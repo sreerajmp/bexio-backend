@@ -1,0 +1,21 @@
+# Package dependencies
+node_modules
+jspm_packages
+
+build
+
+package-lock.json
+
+# Editors configs
+.idea
+.vscode
+.DS_Store
+
+# Build files
+.dist
+.js
+
+/db
+# included js files
+
+db

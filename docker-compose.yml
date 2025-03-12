@@ -1,0 +1,16 @@
+# DEV ONLY: Start with
+# For live use Kubernetes file
+# docker-compose up --build --force-recreate --remove-orphans
+version: '3.8'
+services:
+  example:
+    build:
+      context: Docker
+      dockerfile: Dockerfile
+    environment: 
+      - LOG_LEVEL # like this will be taken from .env
+#    volumes: # ./dev will not be uploaded since it is in gitignore
+#      - ./dev/example:/path/inside/the/docker
+#    ports:
+#      - 'PORT_LOCALHOST:PORT_INSIDE_DOCKER'
+#    restart: always

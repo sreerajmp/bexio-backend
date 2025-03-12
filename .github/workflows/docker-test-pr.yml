@@ -1,0 +1,58 @@
+name: Docker Test
+
+on:
+  # Run tests for any PRs.
+  pull_request:
+    branches:
+      - main
+      - test
+      - staging
+      - custom_release/*
+    paths:
+      - Docker/**
+      - test/**
+      - "*.yml"
+      - "*.yaml"
+concurrency:
+  group: ci-tests-${{ github.ref }}-1
+  cancel-in-progress: true
+
+jobs:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log into registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Install dependencies
+        run: |
+          if [ -f test/apt_requirements.txt ]; then
+            xargs -a test/apt_requirements.txt sudo apt-get install
+          fi
+          if [ -f test/pip_requirements.txt ]; then
+            sudo apt-get install python3-setuptools
+            sudo pip3 install -r test/pip_requirements.txt
+          fi
+
+      - name: Run tests
+        env:
+          LOCAL_USERNAME: ${{ secrets.LOCAL_USERNAME }}
+          LOCAL_USERSECRET: ${{ secrets.LOCAL_USERSECRET }}
+          LOCAL_USERPASSWORD: ${{ secrets.LOCAL_USERPASSWORD }}
+          AUTOTEST_AWS_ENCRYPT_KEY: ${{ secrets.AUTOTEST_AWS_ENCRYPT_KEY }}
+          AUTOTEST_AWS_ACCESS_KEY_ID: ${{ secrets.AUTOTEST_AWS_ACCESS_KEY_ID }}
+          AUTOTEST_AWS_SECRET_ACCESS_KEY: ${{ secrets.AUTOTEST_AWS_SECRET_ACCESS_KEY }}
+          AUTOTEST_AWS_INITIALIZATION_VECTOR: ${{ secrets.AUTOTEST_AWS_INITIALIZATION_VECTOR }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -f test/test.sh ]; then
+            chmod +x test/test.sh
+            test/test.sh
+          else
+            python3 test/test.py
+          fi

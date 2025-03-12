@@ -1,0 +1,16 @@
+{
+    "SOMETHING_WENT_WRONG": "Something went wrong.",
+    "SUCCESS_CREATE": "{{key}} created successfully.",
+    "INVALID_REQUEST": "Invalid Request",
+    "GET_SUCCESS": "{{key}} Info get successfully",
+    "ALREADY_EXISTS": "{{key}} Already Exists",
+    "NOT_EXISTS": "{{key}} does not exist",
+    "NOT_FOUND": "{{key}} Not Found",
+
+    
+    "GET_LIST_SUCCESS": "{{key}} list get successfully",
+    "GET_ALL_DATA":"{{key}} List All Data successfully",
+    "UN_AUTHORIZED":"{{key}} Un authorized User",
+    "IN_CORRECT":"{{key}} Incorrect Password",
+    "SUCCESS_LOGIN":"{{key}} login Success"
+}
