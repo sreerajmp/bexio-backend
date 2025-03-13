@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 COPY files .
 
-RUN npm install
+RUN npm install 
 
 EXPOSE 3000 5000
 
