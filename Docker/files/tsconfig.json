@@ -1,23 +1,21 @@
 {
-    "compilerOptions": {
-        "baseUrl": "src",
-        "resolveJsonModule": true,
-        "target": "es2017",
-        "lib": ["es2017", "esnext.asynciterable", "es6"],
-        "typeRoots": ["./node_modules/@types", "./src/types"],
-        "allowSyntheticDefaultImports": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "node",
-        "module": "commonjs",
-        "pretty": true,
-        "sourceMap": true,
-        "outDir": "./build",
-        "allowJs": true,
-        "noEmit": false,
-        "esModuleInterop": true
-    },
-    //  "include": ["src/**/**/**/.ts"],
-    "exclude": ["node_modules", "layers"]
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
 }
