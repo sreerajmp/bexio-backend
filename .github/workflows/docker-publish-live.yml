@@ -125,9 +125,9 @@ jobs:
             ls
             cd bexio_interface/backend
             cat values-staging.yaml
-            sed -i '/tag:/d' values-prod.yaml
-            sed -i "/repository/a \ \ tag: $VERSION " values-prod.yaml
-            git add values-prod.yaml
+            sed -i '/tag:/d' values-staging.yaml
+            sed -i "/repository/a \ \ tag: $VERSION " values-staging.yaml
+            git add values-staging.yaml
             git commit -m "updated the docker image tag values"
             git push
           elif [ "$branch" = "main" ]; then
