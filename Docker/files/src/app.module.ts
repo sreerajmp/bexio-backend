@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    PrismaModule
+    // PrismaModule
   ],
   controllers: [AppController],
   providers: [AppService],
