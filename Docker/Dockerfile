@@ -2,15 +2,10 @@ FROM node:22.13.0-slim
 
 WORKDIR /usr/src/app
 
+COPY files .
 
 RUN npm install
-
-# Copy all other files after dependencies are installed
-COPY . .
-
-# Ensure start.sh is executable
-RUN chmod +x /start.sh
-
+RUN chmod +x /start.sh  
 # Build the app
 RUN npm run build
 
