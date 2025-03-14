@@ -120,7 +120,7 @@ jobs:
             git add values.yaml
             git commit -m "updated the docker image tag values"
             git push
-          elif [ "$branch" = "main" ]; then
+          elif [ "$branch" = "staging" ]; then
             cd Docker-helmcharts
             git checkout main
             ls
