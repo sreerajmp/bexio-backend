@@ -68,10 +68,11 @@ jobs:
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Build image
-        run: |
+        run: | 
+          branch=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           DOCKER_NAME=$(echo "$GITHUB_REPOSITORY" | sed -e 's/^io-market-AG\/Docker-//')
           GITHUB_URL=https://github.com/${{ github.repository }}
-          docker build ./Docker --tag "tmp" --build-arg NAME=$DOCKER_NAME --build-arg REPO=$GITHUB_URL --build-arg BUILD_DATE=$(date +'%d.%m.%Y')
+          docker build ./Docker --tag "tmp" --build-arg NAME=$DOCKER_NAME --build-arg REPO=$GITHUB_URL --build-arg BUILD_DATE=$(date +'%d.%m.%Y') --build-arg branch=$branch
 
       - name: Push image
         run: |
