@@ -2,11 +2,20 @@ FROM node:22.13.0-slim
 
 WORKDIR /usr/src/app
 
-COPY files .
 
 RUN npm install
-RUN npx prisma migrate deploy 
+
+# Copy all other files after dependencies are installed
+COPY . .
+
+# Ensure start.sh is executable
+RUN chmod +x /start.sh
+
+# Build the app
 RUN npm run build
+
+# Expose port 3000
 EXPOSE 3000
 
-CMD [ "npm", "run", "start:prod" ]
+# Start the script before running the app
+CMD ["/bin/sh", "-c", "/start.sh && npm run start:prod"]
