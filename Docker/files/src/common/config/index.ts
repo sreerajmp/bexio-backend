@@ -5,7 +5,10 @@ dotenv.config();
 
 // Set the NODE_ENV to 'development' by default
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+const DATABASE_URL = `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME_BEXIO}`;
 
+// Set DATABASE_URL dynamically before running Prisma
+process.env.DATABASE_URL = DATABASE_URL;
 const envFound = dotenv.config();
 
 if (!envFound) {
