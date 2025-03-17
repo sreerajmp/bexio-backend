@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 COPY files .
 
 RUN npm install
-RUN chmod +x /start.sh  
+RUN chmod +x /usr/src/app/start.sh 
 # Build the app
 RUN npm run build
 
