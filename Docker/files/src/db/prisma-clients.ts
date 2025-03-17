@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 export const connectBexio = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.BEXIO_DATABASE_URL,
+      url: process.env.DATABASE_URL,
     },
   },
 });
