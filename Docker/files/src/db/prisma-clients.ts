@@ -24,3 +24,10 @@ export const connectGate2b = new PrismaClient({
     },
   },
 });
+export const connectNewGate2b = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.NEWGATE2B_DATABASE_URL,
+    },
+  },
+});

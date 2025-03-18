@@ -1,5 +1,5 @@
 import { Issuer, generators } from 'openid-client';
-import { connectLibrary } from '../../../db/prisma-clients';
+import { connectLibrary } from '../../db/prisma-clients';
 
 export const edit = async () => {
   const code = 'BEXIO';
@@ -21,7 +21,7 @@ export const edit = async () => {
   const client = new issuer.Client({
     client_id: '28edc495-45a1-4d67-a9a9-c48022b5e639',
     client_secret: 'APZ6OmJvjYVYe-ir-hMBDL2zTLHKfqQBtOSUPD9tOnOIbPnicqtOgqstaHA8zQS-JRbi2zyZXu3N7A0R72VlMDQ',
-    redirect_uris: ['http://localhost:3000/bexioRedirect'], 
+    redirect_uris: ['http://localhost:3000/api/v1/bexio-user/bexioRedirect'], 
   });
 
   console.log('*****************', 'bexio');

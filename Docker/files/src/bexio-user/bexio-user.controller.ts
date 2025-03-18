@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 @Controller('bexio-user')
 export class BexioUserController {
   constructor(private readonly bexioUserService: BexioUserService) {
-    console.log('BexioUserController initialized');
+    
   }
 
 @Get('bexioRedirect')
