@@ -117,6 +117,7 @@ console.log('tempJson3',tempJson);
 
         let token = tokenSet.access_token;
         let refreshToken = tokenSet.refresh_token;
+       console.log('rk_csn',jwt.decode(token)['company_id']);
 
         let rk_csn = jwt.decode(token)['company_id']
         const check = await connectBexio.companyregistered.findMany({
