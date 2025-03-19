@@ -338,7 +338,7 @@ console.log('tempJson3',tempJson);
   }
 
   private async bexioUserCreate(userDetails, companyDetails, accessToken, isAdmin, coutryCode, res, req): Promise<any> {
-    console.log('0');
+    console.log('0',req);
 
     let legalname, streetno, phoneNumber;
     let isNewCompany = false, paymentData, orderId;
