@@ -58,7 +58,7 @@ export class BexioUserService {
     let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
     console.log('userDetails',userDetails);
     
-    if (!companyDetails && !coutryCode && !userDetails) {
+    if (!companyDetails || !coutryCode || !userDetails) {
       res.status(500).send({
         status_code: 500,
         message: 'something_went_wrong',
@@ -66,7 +66,10 @@ export class BexioUserService {
       })
     }
     console.log('typeof companyDetails:', typeof companyDetails);
+    console.log('tempJson1',companyDetails);
+    console.log('tempJson2',companyDetails[0]);
     const tempJson = companyDetails[0];
+console.log('tempJson3',tempJson);
 
     if (
       !tempJson['country_name'] ||
@@ -76,12 +79,10 @@ export class BexioUserService {
       !tempJson['postcode'] ||
       !tempJson['country_id']
     ) {
-      // return redirect response
-      return {
-        redirect: `${process.env.BEXIO_APP_URL}#/login/unauthorized`,
-      };
+      res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+      return;
     }
-
+    console.log('test',tempJson);
     const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
     const validationCompany = this.validateFields(companyDetails[0], requiredCompanyFields);
     console.log('validationCompany',validationCompany);
@@ -262,7 +263,7 @@ export class BexioUserService {
     return new Promise((resolve) => {
       var options = {
         'method': 'GET',
-        'url': 'https://auth.bexio.com/realms/bexio/protocol/openid-connect/userinfo',
+        'url': 'https://idp.bexio.com/userinfo',
         'headers': {
           'Accept': 'application/json',
           'Authorization': 'Bearer ' + token
@@ -313,7 +314,7 @@ export class BexioUserService {
 
         if (response.statusCode === 200) {
           try {
-            return resolve(JSON.parse(response.body))
+             resolve(response.body);
           } catch (e) {
             console.error('Failed to parse company profile:', e);
             return resolve(false);
