@@ -31,10 +31,11 @@ export class BexioUserService {
 
 
   }
-  async bexioRedirect(req: Request, res: Response): Promise<any> {
+  async bexioRedirect(req: Request, res: Response, ): Promise<any> {
     // Use prisma to access your DB, example:
     let params
-    console.log('data', req);
+    console.log('data::', req);
+    console.log('data::', req.body);
     let issuer = await Issuer.discover('https://idp.bexio.com');
     console.log('API_URL', config.API_URL);
     // make sure this is inside an async function

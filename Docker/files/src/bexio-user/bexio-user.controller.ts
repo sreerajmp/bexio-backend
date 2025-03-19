@@ -1,4 +1,4 @@
-import { Controller,Post,Body ,UseInterceptors,Get,Req,Res } from '@nestjs/common';
+import { Controller,Post,Body ,UseInterceptors,Get,Req,Res, Param } from '@nestjs/common';
 import { BexioUserService } from './bexio-user.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
@@ -8,11 +8,23 @@ export class BexioUserController {
     
   }
 
-@Get('bexioRedirect')
-async bexioRedirect(@Req() req: Request, @Res() res: Response): Promise<any> {
-  console.log('Query params:', req); // optional debug
-  return this.bexioUserService.bexioRedirect(req, res);
-}
+  @Get('bexio-redirect/:code') 
+  @Get('bexio-redirect') 
+  async bexioRedirect(
+    @Param('code') code: string, 
+    @Req() req: Request, 
+    @Res() res: Response
+  ): Promise<any> {
+    console.log('Received Code:', code || 'No code provided');
+    
+    return this.bexioUserService.bexioRedirect(req, res);
+  }
+
+// @Get('bexioRedirect')
+// async bexioRedirect(@Req() req: Request, @Res() res: Response): Promise<any> {
+//   console.log('Query params:', req); // optional debug
+//   return this.bexioUserService.bexioRedirect(req, res);
+// }
 
 // @Get('bexio-redirect/:code')
 // async handleParamCallback(@Req() req: Request): Promise<any> {
