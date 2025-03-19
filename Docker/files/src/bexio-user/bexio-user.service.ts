@@ -46,7 +46,7 @@ export class BexioUserService {
     console.log('config.API_URL', config.API_URL);
 
     console.log('code_verifier', code_verifier);
-    const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexioRedirect`, params, { code_verifier });
+    const tokenSet = await bexioClient.callback(`https://staging-jlegl.api.io-market.net/api/v1/bexio-user/bexioRedirect`, params, { code_verifier });
 
     console.log('tokenSet', tokenSet);
     // console.log(tokenSet);
