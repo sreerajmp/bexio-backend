@@ -17,7 +17,6 @@ model companyregistered {
   refresh_token String?   @db.VarChar
   is_authorized Boolean?
   authorized_by Int?
-  default_tax   String?   @db.VarChar
   tax_type     String?   @db.VarChar
   settings     Json?     @db.Json
   contact_bc contact_bc[]           // one-to-many relation
