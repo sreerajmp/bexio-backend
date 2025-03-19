@@ -347,10 +347,10 @@ console.log('tempJson3',tempJson);
     let email = userDetails.email;
     let givenname = userDetails.given_name;
     console.log("req.body", req.body);
-    if ('PaymentRecord' in req.body) {
+    if ('PaymentRecord' in req?.body) {
       paymentData = encryptionControl.decryptCookie(req.body.PaymentRecord)
     }
-    if ('orderId' in req.body) {
+    if ('orderId' in req?.body) {
       orderId = encryptionControl.decryptCookie(req.body.orderId)
     }
 
