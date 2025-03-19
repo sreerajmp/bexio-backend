@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
  import { swaggerOptions, swaggerTitle, swaggerDescription } from './common';
  import * as cookieParser from 'cookie-parser';
  import config from './common/config/index';
-
+ import * as express from 'express';
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -32,7 +32,8 @@ export async function bootstrap() {
   SwaggerModule.setup('api', app, document, swaggerOptions);
 
   // End Swagger Configurations --------------------------------
-  
+  app.use(express.json()); // Enables JSON parsing
+  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser(config.SESSION_SECRET));
   //Enable CORS
   app.enableCors();

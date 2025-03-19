@@ -31,10 +31,11 @@ export class BexioUserService {
 
 
   }
-  async bexioRedirect(req: Request, res: Response): Promise<any> {
+  async bexioRedirect(req: Request, res: Response, ): Promise<any> {
     // Use prisma to access your DB, example:
     let params
-    console.log('data', req);
+    console.log('data::', req);
+    console.log('data::', req.body);
     let issuer = await Issuer.discover('https://idp.bexio.com');
     console.log('API_URL', config.API_URL);
     // make sure this is inside an async function
@@ -347,10 +348,10 @@ console.log('tempJson3',tempJson);
     let email = userDetails.email;
     let givenname = userDetails.given_name;
     console.log("req.body", req.body);
-    if ('PaymentRecord' in req.body) {
+    if ('PaymentRecord' in req?.body) {
       paymentData = encryptionControl.decryptCookie(req.body.PaymentRecord)
     }
-    if ('orderId' in req.body) {
+    if ('orderId' in req?.body) {
       orderId = encryptionControl.decryptCookie(req.body.orderId)
     }
 
