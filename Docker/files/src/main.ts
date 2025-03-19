@@ -3,7 +3,9 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
  import { swaggerOptions, swaggerTitle, swaggerDescription } from './common';
- './common'
+ import * as cookieParser from 'cookie-parser';
+ import config from './common/config/index';
+
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -19,19 +21,19 @@ export async function bootstrap() {
   // Swagger Configuration --------------------------------
 
 
-  const config = new DocumentBuilder()
+  const swaggerConfig = new DocumentBuilder()
     .setTitle(swaggerTitle)
     .setDescription(swaggerDescription)
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
   
   SwaggerModule.setup('api', app, document, swaggerOptions);
 
   // End Swagger Configurations --------------------------------
-
-
+  
+  app.use(cookieParser(config.SESSION_SECRET));
   //Enable CORS
   app.enableCors();
 
