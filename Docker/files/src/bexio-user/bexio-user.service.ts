@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
-import { Issuer, generators } from 'openid-client'
+import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
 import config from '../common/config/index';
@@ -36,7 +36,6 @@ export class BexioUserService {
     let params
     console.log('data::', req);
     console.log('data::', req.body);
-    let issuer = await Issuer.discover('https://idp.bexio.com');
     console.log('API_URL', config.API_URL);
     // make sure this is inside an async function
     const bexioClient = await edit();
