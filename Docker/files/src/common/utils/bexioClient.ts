@@ -1,5 +1,6 @@
 import { Issuer, generators } from 'openid-client';
 import { connectLibrary } from '../../db/prisma-clients';
+import config from '../config';
 
 export const edit = async () => {
   const code = 'BEXIO';
@@ -21,8 +22,8 @@ export const edit = async () => {
   const client = new issuer.Client({
     client_id: keyDetails.BEXIO_CLIENT_ID,
     client_secret:keyDetails.BEXIO_SECRET,
-    redirect_uris: keyDetails.BEXIO_REDIRECT_URIS
-    
+    redirect_uri: `${config.API_URL}api/v1/bexio-user/bexio-redirect`,
+    response_types: ['code']
   });
 
   console.log('*****************', 'bexio');
