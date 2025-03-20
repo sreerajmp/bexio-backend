@@ -16,7 +16,7 @@ export const edit = async () => {
   const keyDetails = getBexioKeys[0].config;
   console.log(keyDetails);
 
-  const issuer = await Issuer.discover('https://idp.bexio.com');
+  const issuer = await Issuer.discover('https://auth.bexio.com/realms/bexio');
 
   const client = new issuer.Client({
     client_id: keyDetails.BEXIO_CLIENT_ID,
