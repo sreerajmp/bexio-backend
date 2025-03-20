@@ -22,7 +22,7 @@ export class BexioUserService {
 
     let url = bexioClient.authorizationUrl({
       scope: config.BEXIO_SCOPE,
-      resource: 'https://idp.bexio.com/authorize',
+      resource: 'https://auth.bexio.com/realms/bexio/protocol/openid-connect/auth',
       code_challenge,
       code_challenge_method: 'S256',
     });
@@ -47,7 +47,7 @@ export class BexioUserService {
     console.log('config.API_URL', config.API_URL);
 
     console.log('code_verifier', code_verifier);
-    const tokenSet = await bexioClient.callback(`https://staging-jlegl.api.io-market.net/api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
+    const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
 
     console.log('tokenSet', tokenSet);
     // console.log(tokenSet);
@@ -70,7 +70,7 @@ export class BexioUserService {
     console.log('tempJson1',companyDetails);
     console.log('tempJson2',companyDetails[0]);
     const tempJson = companyDetails[0];
-console.log('tempJson3',tempJson);
+    console.log('tempJson3',tempJson);
 
     if (
       !tempJson['country_name'] ||
@@ -265,7 +265,7 @@ console.log('tempJson3',tempJson);
     return new Promise((resolve) => {
       var options = {
         'method': 'GET',
-        'url': 'https://idp.bexio.com/userinfo',
+        'url': 'https://auth.bexio.com/realms/bexio/protocol/openid-connect/userinfo',
         'headers': {
           'Accept': 'application/json',
           'Authorization': 'Bearer ' + token

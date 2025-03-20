@@ -90,7 +90,7 @@ export default {
 
 	//Local   
 	  BEXIO_REDIRECT_URIS: ['http://localhost:3000/api/v1/gate2bAPI/bexio-redirect'],
-	  API_URL:'http://localhost:3000/',
+	  API_URL:process.env.API_URL ||'http://localhost:3000/',
 	  URL:'http://testadmin-bexio.io-procurement.com/',
 	  DB_NAME_BEXIO : 'bexio',
 
