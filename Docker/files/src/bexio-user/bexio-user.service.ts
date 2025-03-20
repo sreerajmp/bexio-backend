@@ -347,10 +347,10 @@ export class BexioUserService {
     let email = userDetails.email;
     let givenname = userDetails.given_name;
     console.log("req.body", req.body);
-    if ('PaymentRecord' in req?.body) {
+    if (req?.body && req.body.PaymentRecord) {
       paymentData = encryptionControl.decryptCookie(req.body.PaymentRecord)
     }
-    if ('orderId' in req?.body) {
+    if (req?.body && req.body.orderId) {
       orderId = encryptionControl.decryptCookie(req.body.orderId)
     }
 
