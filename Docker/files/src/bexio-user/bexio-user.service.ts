@@ -988,7 +988,7 @@ export class BexioUserService {
         SELECT a.cid AS partyId FROM ediparty ep 
         INNER JOIN address a ON
         a.fk_ediparty = ep.cid
-        WHERE ep.rk_party =${getObjectId[0].objectid}
+        WHERE ep.rk_party =${getObjectId[0].objectid}::UUID
       `);
 
 
@@ -1765,7 +1765,7 @@ VALUES (
       const statusId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       SELECT cid 
       FROM status 
-      WHERE statusLabel = ${statusLabel}
+      WHERE "statusLabel" = ${statusLabel}
     `);
 
       const partyValues = [partyValue, acc, statusId[0].cid, partyUser];
@@ -1775,7 +1775,7 @@ VALUES (
     INNER JOIN status s ON s.cid = pa.fk_status  
     WHERE pa.fk_party = ${partyValuesSelect[0]} 
       AND pa.fk_account = ${partyValuesSelect[1]} 
-      AND s.statusLabel = 'active'
+      AND s."statusLabel" = 'active'
   `);
 
       if (partyResult.length == 0) {
