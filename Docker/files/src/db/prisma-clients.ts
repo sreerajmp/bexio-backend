@@ -1,5 +1,6 @@
 // src/db/prisma-clients.ts
 import { PrismaClient } from '@prisma/client';
+console.log('process.env.GATE2B_DATABASE_URL:',process.env.GATE2B_DATABASE_URL);
 
 export const connectBexio = new PrismaClient({
   datasources: {

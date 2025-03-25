@@ -13,7 +13,7 @@ const sendEmail = require('../common/utils/email');
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
-
+const redisClient =require('../common/utils/redisDB')
 @Injectable()
 export class BexioUserService {
   async authorization(data: any): Promise<any> {
@@ -1971,6 +1971,282 @@ VALUES (
     }
     return true;
   }
+
+  async setExpireCookie(req: Request, res: Response): Promise<any> {
+    let partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(req.body['partyAccount']));
+    const userDetails = await connectLibrary.$queryRaw<any>(Prisma.sql`
+    SELECT email, u.cid AS "userId", pa.fk_party AS "partyId", a.cid AS "accountId", p.objectid
+    FROM party_account pa
+    INNER JOIN account a ON a.cid = pa.fk_account
+    INNER JOIN public.user u ON u.cid = a.fk_user
+    INNER JOIN party p ON p.cid = pa.fk_party
+    INNER JOIN status s ON s.cid = pa.fk_status
+    WHERE pa.cid = ${partyAccountId} AND s."statusLabel" = 'active'
+    `);
+    const netcomId = await connectGate2b.$queryRaw<{ netcomid: string }[]>(Prisma.sql`
+  SELECT netcomid 
+  FROM ediparty 
+  WHERE rk_party = ${userDetails[0].objectid}
+`);
+
+    const datetimeToken = {
+      cookieCreatedTime: new Date(new Date(new Date().getTime() + 15 * 60000).toUTCString()),
+      userMail: userDetails[0].email,
+      partyID: userDetails[0].partyid,
+      userID: userDetails[0].userid,
+      accId: userDetails[0].accountid,
+      isBexioCompany: true,
+      netcomId: netcomId[0].netcomid
+    };
+
+    res.cookie(config.EXPIRE_EXPIRES_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(datetimeToken)), {
+      domain: config.SESSION_DOMAIN,
+      maxAge: config.SESSION_EXPIRY,
+      secure: false,
+      httpOnly: false,
+      signed: false,
+    });
+    res.send({
+      status_code: 200,
+      message: '',
+      data: encryptionControl.encrypt(userDetails.rows[0].partyid),
+      status: true,
+      showPopUp: true,
+      showEbill: config.IS_EBILL_DISABLED,
+    });
+  }
+  async getToken(req, res): Promise<any> {
+    let partyAccountId = null;
+    let data = req?.body;
+    partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(req.body['partyAccount']));
+
+    try {
+        console.log('req', req.body);
+        console.log('partyAccount', partyAccountId);
+        
+        // Fetch user details
+        const userDetails = await connectLibrary.$queryRaw<any[]>(
+            Prisma.sql`SELECT email, u.cid AS userId, pa.fk_party AS partyId, a.cid AS accountId, p.objectid
+                        FROM party_account pa
+                        INNER JOIN account a ON a.cid = pa.fk_account
+                        INNER JOIN public.user u ON u.cid = a.fk_user
+                        INNER JOIN party p ON p.cid = pa.fk_party
+                        INNER JOIN status s ON s.cid = pa.fk_status 
+                        WHERE pa.cid = ${partyAccountId} AND s.statusLabel = 'active'`
+        );
+
+        if (!userDetails.length) {
+            throw new Error('User not found or inactive');
+        }
+
+        const netcomIdResult = await connectGate2b.$queryRaw<any[]>(
+            Prisma.sql`SELECT netcomid FROM ediparty WHERE rk_party = ${userDetails[0].objectid}`
+        );
+        const netcomId = netcomIdResult[0]?.netcomid;
+
+        console.log('netcomId', netcomId);
+        let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(req.body['token']));
+        console.log('Decoded Token:', decodedToken);
+        const bexioClient = await edit();
+
+        const tokenSet = await bexioClient.refresh(decodedToken);
+        let bexioTokenCookie = { 
+            access_Token: tokenSet.access_token,
+            refresh_Token: tokenSet.refresh_token,
+            isBexioUser: true
+        };
+        
+        let companyId = jwt.decode(tokenSet.access_token)['company_id'];
+        await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`UPDATE companyregistered SET refreshtoken = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
+        );
+
+        const data = {
+            email: userDetails[0].email,
+            userId: userDetails[0].userId,
+        };
+        
+        const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
+        const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, { expiresIn: config.JWTRefreshExpiration });
+
+        let tokenCookie = { 
+            accessToken,
+            refreshToken,
+            userMail: userDetails[0].email,
+            partyID: userDetails[0].partyId,
+            userID: userDetails[0].userId,
+            accId: userDetails[0].accountId,
+            isBexioCompany: true
+        };
+
+        const options = { domain: config.SESSION_DOMAIN };
+        res.clearCookie(config.BILLING_COOKIE_NAME, options);
+
+        await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
+        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+            domain: config.SESSION_DOMAIN,
+            maxAge: config.SESSION_EXPIRY,
+            httpOnly: true,
+            signed: true,
+            secure: true
+        });
+
+        res.send({
+            status_code: 200,
+            message: '',
+            data: encryptionControl.encrypt(userDetails[0].partyId),
+            status: true,
+            showPopUp: true,
+            showEbill: config.IS_EBILL_DISABLED,
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({
+            status_code: 500,
+            message: JSON.stringify(error),
+            status: false,
+        });
+    }
+}
+
+async getAccessToken(req,res): Promise<any>{
+  let cookie: any = null;
+  let isNewCompany;
+  let formData = req.body;
+  try {
+   
+    console.log(req.cookies);
+    isNewCompany = encryptionControl.decryptCookie(decodeURIComponent(formData['isNewCompany']));
+
+    console.log('isNewCompanyisNewCompany',isNewCompany);
+    
+    cookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME]));
+     console.log(cookie);
+     const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      SELECT 
+        pa.isuser,
+        pa.cid AS "partyAccountId",
+        u.email,
+        u.cid AS "userId",
+        pa.fk_party AS "partyId",
+        a.cid AS "accountId",
+        u.language AS "userlanguage"
+      FROM party_account pa
+      INNER JOIN account a ON a.cid = pa.fk_account
+      INNER JOIN public.user u ON u.cid = a.fk_user
+      INNER JOIN status s ON s.cid = pa.fk_status
+      WHERE pa.fk_party = ${cookie?.partyID}
+        AND pa.fk_account = ${cookie.accId}
+        AND s."statusLabel" = 'active'`);
+    const data = {
+      email: userDetails[0].email,
+      userId: userDetails[0].userid,
+    };
+    const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
+    const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
+      expiresIn: config.JWTRefreshExpiration,
+    });
+    req.session.isAuth = true;
+
+    let tokenCookie = { 
+      accessToken:accessToken,
+      refreshToken:refreshToken,
+      userMail: userDetails[0].email,
+      partyID: userDetails[0].partyid,
+      userID: userDetails[0].userid,
+      accId: userDetails[0].accountid,
+      isBexioCompany:true,
+      netcomId:cookie.netcomid
+
+    }
+    res.cookie(config.TOKEN_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(tokenCookie)), {
+      domain: config.SESSION_DOMAIN,
+      maxAge: config.SESSION_EXPIRY,
+      httpOnly: true,
+      signed: true,
+      secure: true
+    });
+    let email = userDetails[0].email;
+    console.log('email',email);
+    console.log('req.sessionID',req.sessionID);
+    console.log(req.sessionID);
+
+    let userLanguage = userDetails[0].userlanguage ? userDetails[0].userlanguage : 'de';    
+  
+    const selectResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`SELECT * FROM authTable WHERE mail= ${email} AND sessionId = ${req.sessionID}`);
+    // console.log('selectResult',selectResult);
+    console.log('selectResult.length', selectResult.length);
+    if (selectResult.length === 0) {
+        
+    console.log('INSERT start');
+
+        await connectLibrary.$executeRaw(Prisma.sql`INSERT INTO authTable (mail, refreshToken, sessionId, accessToken) VALUES(${email}, ${refreshToken}, ${req.sessionID}, ${accessToken})`);
+    console.log('INSERT end');
+
+    } else {
+        await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
+        const deleteOldTokens50thFromGeneratedNow = `
+            DELETE FROM public.authtable
+            WHERE mail = $1
+            AND  "id" NOT IN (
+            SELECT "id" FROM public.authtable
+            WHERE mail = $1
+            ORDER BY timestamp DESC
+            LIMIT 50)`;
+        await connectLibrary.$executeRaw(Prisma.sql`${deleteOldTokens50thFromGeneratedNow}`, [email]);
+
+  }
+  if(isNewCompany === "true"){
+    await gate2bRegisterInBexio(userLanguage || 'de', formData.module, userDetails[0].email);
+  }
+    console.log('formData.module',formData.module);
+  
+    if(formData.module == 'EBILL')
+    {
+      let checkRoleQry = `SELECT * 
+      FROM 
+      partyapplication_account_role par
+      INNER JOIN partyapplication_account paa ON par.fk_partyapplication_account = paa.cid
+      INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
+      INNER JOIN role_spr rs ON rs.fk_role = par.fk_role
+      INNER JOIN spr s ON s.cid = rs.fk_spr
+      INNER JOIN role r on par.fk_role = r.cid
+      INNER JOIN status st on st.cid = pa.fk_status
+      WHERE pa.fk_account=$1 AND s.code = 'EN' AND pa.fk_party =$2  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
+
+    const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`${checkRoleQry}`, [userDetails[0].accountid, userDetails[0].partyid]);
+    console.log('checkRoleData', checkRoleData);
+    if(checkRoleData.length === 0){
+      await setEbillRole(userDetails[0].partyid, userDetails[0].accountid, userDetails[0].partyaccountid, userDetails[0].isuser, formData.module);
+      await partyServiceUpdate(userDetails[0].partyid, 'EBILL', 'EDI');
+
+    }
+    }
+   
+    
+    await getUserPermissions(userDetails[0].partyid,userDetails[0].accountid);
+    res.send({
+      status_code: 200,
+      message: '',
+      status: true,
+      data:encryptionControl.encrypt(userDetails[0].partyid)
+  });
+
+  } catch (error) { 
+    // commonErrors['errorTitle'] = req.originalUrl;
+    // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+    // warningMessage(commonErrors,error);
+    console.log(error);
+    res.send({
+      status_code: 500,
+      message: JSON.stringify(error),
+      status: false,
+  });
+    
+  }
+}
+
 }
 const partyServiceUpdate = async (partyResponse, service, app) => {
   return new Promise(async (resolve, reject) => {
@@ -2021,7 +2297,7 @@ const partyServiceUpdate = async (partyResponse, service, app) => {
     }
   })
 }
-async function companyConfirmation(companyname, zip, city, street, state) {
+const companyConfirmation = async(companyname, zip, city, street, state)=> {
   console.log("companyConfirmation function");
   console.log({
     companyname, zip, city, street, state
@@ -2049,7 +2325,7 @@ async function companyConfirmation(companyname, zip, city, street, state) {
   }
 
 };
-async function addMailChimp(fName, lName, email) {
+ const addMailChimp = async(fName, lName, email) => {
   try {
     console.log('fName', fName);
     console.log('lName', lName);
@@ -2133,3 +2409,190 @@ const packagePayment = async (data) => {
     });
   });
 }
+
+const getUserPermissions = async (partyId,accId) => {
+  return new Promise( async (resolve, reject) => {
+      try {
+          const validation = async (partyId,accId) => {
+              if (!partyId && !accId) {
+                  return true;
+              }
+          };
+          const validationResult = await validation(partyId,accId);
+          if( !validationResult ){
+              const redis_client = await redisClient;
+              const getUserPermissionsResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
+                SELECT po.policy, par.cid 
+                FROM partyapplication_account_role par
+                INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
+                INNER JOIN partyapplication p ON p.cid = pa.fk_partyapplication 
+                INNER JOIN role_policy rp ON rp.fk_role = par.fk_role 
+                INNER JOIN policy po ON po.cid = rp.fk_policy
+                WHERE fk_account = ${accId} AND p.fk_party = ${partyId}
+            `);
+            
+              
+              const redisKey = 'permissions_'+partyId+'_'+accId;
+              const roleObject = {};
+              roleObject[redisKey] = {};
+              if( getUserPermissionsResult.rows.length > 0){
+                  getUserPermissionsResult.rows.forEach(element => {
+                      let policy = element.policy;
+                      let effect = {};
+                      if( policy != null){
+                          policy.Statement.forEach(ps => {
+                              if (ps.Effect in roleObject[redisKey]){
+                                  roleObject[redisKey][ps.Effect] = roleObject[redisKey][ps.Effect].concat(ps.Action)
+                              }else{
+                                  effect[ps.Effect] = ps.Action;
+                                  roleObject[redisKey][ps.Effect] = ps.Action;
+        }
+      });
+    }
+
+                  });
+                  let effectObject = Object.keys(roleObject[redisKey]);
+                  effectObject.forEach( ele => {
+                      roleObject[redisKey][ele] = [...new Set(roleObject[redisKey][ele])]
+                  })
+                  await redis_client.setex(redisKey,24*60*60*2,JSON.stringify(roleObject[redisKey]));
+              }
+              resolve(redisKey);
+          }
+      } catch (error) {
+      // commonErrors['errorTitle'] = getUserPermissions.name;
+      // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+' '+accId;
+      // warningMessage(commonErrors,error);
+          reject(error)
+          // return res.status(statusCode.INTERNAL_SERVER_ERROR).json({
+          //     message: 'something went wrong',
+          //     status: false
+          // });
+      }
+  })
+  
+}
+const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
+  console.log('gate2bRegisterInBexio');
+  
+  let subject = '';
+  let message = '';
+  let mailData
+  if(module == 'EBILL'){
+    mailData = await fetchEmailContent('register_gate2b_bexio_app_ebill',userLanguage);
+    /* if (userLanguage == 'de') {
+      subject='Registrierung für gate2b in der bexio-App'
+
+    message = `Lieber Kunde<br><br>Vielen Dank, dass Sie sich für das gate2b in der bexio-App registriert haben.
+    Sie haben Ihre Registrierung für eBill in gate2b erfolgreich abgeschlossen. Sobald wir Ihren Netzwerkpartner auf io-market 
+    aktualisiert haben, werden wir Sie informieren.<br><br>Bei Fragen wenden Sie sich bitte an das Sales-Team unter ` + config.SALES_TEAM_CONTACT + ` oder an das Support-Team unter 
+    ` + config.HELP_DESK_CONTACT + `<br><br>Freundliche Grüsse <br>io-market AG`
+    }
+    else {
+      subject = 'Registration for gate2b in the bexio app';
+      message = `Dear customer<br><br>Thank you for registering for gate2b in the bexio app. You have successfully completed your 
+      registration for eBill in gate2b. As soon as we have updated your network partner on io-market, we will inform you.
+      <br><br>If you have any questions, please contact the sales team at ` + config.SALES_TEAM_CONTACT + `  or the 
+      support team at ` + config.HELP_DESK_CONTACT + `.<br><br>Kind regards<br>io-market AG`
+    } */
+  }else{
+      /* if (userLanguage == 'de') {
+        subject='Registrierung für gate2b in der bexio-App'
+        message = `Lieber Kunde
+        <br><br>
+        <div>Vielen Dank für deine Registrierung für das gate2b in der bexio-App. Mit deiner Registrierung hast du dir gleichzeitig auch einen kostenlosen Account für das gate2b-Modul erstellt.</div><br>
+        <div>Bei Fragen steht dir das Sales-Team unter ` + config.SALES_TEAM_CONTACT + ` oder das Support-Team unter ` + config.HELP_DESK_CONTACT + ` gerne zur Verfügung.</div><br>
+        <div>Freundliche Grüsse</div>
+        <div>io-market AG</div><br>`
+    }
+    else {
+        subject = 'Registration for gate2b in the bexio app';
+        message =`Dear customer
+        <br><br>
+        <div>Thank you for registering for gate2b in the bexio app. With your registration you have also created a free account for the gate2b module.</div><br>
+        <div>If you have any questions, please do not hesitate to contact the Sales-Team at ` + config.SALES_TEAM_CONTACT + ` or the Support-Team at ` + config.HELP_DESK_CONTACT + `.</div><br>
+        <div>Kind regards</div>
+        <div>io-market AG</div><br>`
+    } */
+    mailData = await fetchEmailContent('register_gate2b_bexio_app',userLanguage);
+  }
+  subject = mailData.subject || '';
+  message = mailData.message || '';
+  console.log('messagemessage',message);
+ 
+  await sendEmail({
+      email: config.DEBUG ? config.DEBUG_MAIL : email,
+      subject: subject,
+      message,
+  });
+}
+
+const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
+  console.log('partyId', partyId);
+  console.log('accountId', accountId);
+  console.log('partyAccount', partyAccount);
+
+  try {
+    let userRoles;
+    if (!roleValue) {
+      userRoles = "'EBILL_ADMIN'";
+    } else {
+      userRoles = "'EBILL_USER'";
+    }
+    console.log('userRoles', userRoles);
+
+    // Get role data
+    const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      SELECT r.name, rav.fk_application_version, r.cid AS "roleId" 
+      FROM public.role_policy rp
+      INNER JOIN public.role r ON r.cid = rp.fk_role
+      INNER JOIN public.policy p ON p.cid = rp.fk_policy
+      INNER JOIN role_application_version rav ON rav.fk_role = r.cid
+      WHERE r.name IN (${Prisma.raw(userRoles)})
+      AND r.fk_party IS NULL
+    `);
+
+    console.log('roleData', roleData);
+
+    // Check if party application exists
+    const existingPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      SELECT cid 
+      FROM partyapplication p 
+      WHERE fk_party = ${partyId} 
+      AND fk_application_version = ${roleData[0].fk_application_version}
+    `);
+
+    let partyApplicationId;
+    if (existingPartyApplication.length === 0) {
+      // Insert new party application
+      const newPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        INSERT INTO partyapplication (fk_party, fk_application_version)
+        VALUES (${partyId}, ${roleData[0].fk_application_version})
+        RETURNING cid
+      `);
+      partyApplicationId = newPartyApplication[0].cid;
+    } else {
+      partyApplicationId = existingPartyApplication[0].cid;
+    }
+
+    // Insert party application account
+    const partyApplicationAccount = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      INSERT INTO partyapplication_account 
+        (fk_partyapplication, fk_account, fk_party_account)
+      VALUES (${partyApplicationId}, ${accountId}, ${partyAccount})
+      RETURNING cid
+    `);
+
+    // Insert party application account role
+    await connectLibrary.$queryRaw(Prisma.sql`
+      INSERT INTO partyapplication_account_role 
+        (fk_partyapplication_account, fk_role)
+      VALUES (${partyApplicationAccount[0].cid}, ${roleData[0].roleId})
+    `);
+
+    return 1;
+  } catch (error) {
+    console.log('error in setEbillRole:', error);
+    throw error;
+  }
+};
