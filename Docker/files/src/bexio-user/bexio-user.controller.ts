@@ -37,5 +37,10 @@ async getToken(@Body() data: any, @Res() res: Response): Promise<any> {
   console.log('Received body:', data);
   return this.bexioUserService.getToken(data, res);
 }
+@Post('get-access-token')
+async getAccessToken(@Body() data: any, @Res() res: Response): Promise<any> {
+  console.log('Received body:', data);
+  return this.bexioUserService.getAccessToken(data, res);
+}
 
 }

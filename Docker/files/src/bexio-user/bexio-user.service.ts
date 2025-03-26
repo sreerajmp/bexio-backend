@@ -59,11 +59,11 @@ export class BexioUserService {
     console.log('userDetails',userDetails);
     
     if (!companyDetails || !coutryCode || !userDetails) {
-      res.status(500).send({
+      return res.status(500).send({
         status_code: 500,
         message: 'something_went_wrong',
         status: false,
-      })
+      });
     }
     console.log('typeof companyDetails:', typeof companyDetails);
     console.log('tempJson1',companyDetails);
@@ -79,8 +79,7 @@ export class BexioUserService {
       !tempJson['postcode'] ||
       !tempJson['country_id']
     ) {
-      res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
-      return;
+      return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
     }
     console.log('test',tempJson);
     const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
@@ -91,18 +90,16 @@ export class BexioUserService {
     console.log('validationUser',validationUser);
 
     if (!validationCompany || !validationUser) {
-      res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
-      return;
+      return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
     }
     if (validationCompany && validationUser) {
       let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
       if (!rolesDetails) {
-        res.end({
+        return res.status(500).send({
           status_code: 500,
           message: 'something_went_wrong',
           status: false,
         });
-        return
       }
 
       let isAdmin;
@@ -151,47 +148,37 @@ export class BexioUserService {
           res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            httpOnly: true,
+            httpOnly: false,
             signed: true,
-            secure: true
+            secure: false
           });
 
           let bexioURL = config.BILLING_APP;
-          res.redirect(`${bexioURL}`);
-          console.log('login into billing');
-          return;
+          return res.redirect(`${bexioURL}`);
         }
         else {
           let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
           console.log('responseResult', responseResult);
-          if(responseResult.status)
-            {
-
-              console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-              console.log(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
-              res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`)
-            }
-          else
-            {
-          console.log('111');
-
-              res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
-              return;
-            }
+          if(responseResult.status) {
+            console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
+            console.log(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+            return res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+          } else {
+            console.log('111');
+            return res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+          }
         }
-      }
-      else {
-        res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
-        return;
+      } else {
+        return res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
       }
     }
     console.log('result');
 
-    res.status(200).send({
+    return res.status(200).send({
       status_code: 200,
       message: 'sucess',
       status: true,
-    })
+    });
   }
   private async getloginUserCompanyDetails(access_token): Promise<any> {
     return new Promise((resolve) => {
@@ -2088,7 +2075,7 @@ VALUES (
             maxAge: config.SESSION_EXPIRY,
             httpOnly: true,
             signed: true,
-            secure: true
+            secure: false
         });
 
         res.send({
@@ -2165,7 +2152,7 @@ async getAccessToken(req,res): Promise<any>{
       maxAge: config.SESSION_EXPIRY,
       httpOnly: true,
       signed: true,
-      secure: true
+      secure: false
     });
     let email = userDetails[0].email;
     console.log('email',email);
