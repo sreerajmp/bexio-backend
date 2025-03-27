@@ -132,28 +132,62 @@ export class BexioUserService {
             refresh_Token: tokenSet.refresh_token,
             isBexioUser: true
           }
-          console.log('cokieeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
-
+          console.log('=== Cookie Debug Logs ===');
+          console.log('1. Cookie Names:', {
+            BILLING_COOKIE: config.BILLING_COOKIE_NAME,
+            TOKEN_COOKIE: config.TOKEN_COOKIE_BEXIO_NAME
+          });
+          console.log('2. Session Domain:', config.SESSION_DOMAIN);
+          console.log('3. Session Expiry:', config.SESSION_EXPIRY);
+          
           let billingCookie = {
             bexio: true,
             objectid: insertData[0]?.objectid
           }
-          res.cookie(config.BILLING_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(billingCookie)), {
+          
+          console.log('4. Billing Cookie Data:', billingCookie);
+          console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
+          
+          // Encrypt cookie values
+          const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+          const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
+          
+          console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
+          console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
+          
+          // Set cookies with detailed options
+          const billingCookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
             httpOnly: false,
             signed: false,
-            secure: false
-          });
-          res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+            secure: false,
+            path: '/'
+          };
+          
+          const bexioTokenCookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
             httpOnly: false,
             signed: true,
-            secure: false
-          });
-
+            secure: false,
+            path: '/'
+          };
+          
+          console.log('8. Billing Cookie Options:', billingCookieOptions);
+          console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
+          
+          // Set cookies
+          res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
+          res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
+          
+          // Log response headers
+          console.log('10. Response Headers:', res.getHeaders());
+          
           let bexioURL = config.BILLING_APP;
+          console.log('11. Redirecting to:', bexioURL);
+          console.log('=== End Cookie Debug Logs ===');
+          
           return res.redirect(`${bexioURL}`);
         }
         else {
@@ -161,8 +195,8 @@ export class BexioUserService {
           console.log('responseResult', responseResult);
           if(responseResult.status) {
             console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-            console.log(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
-            return res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+            console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+            return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
           } else {
             console.log('111');
             return res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
@@ -1483,7 +1517,6 @@ export class BexioUserService {
         '',
         '',
         '',
-        '',
         resultdata // this is fk_user
       ];
 
@@ -2002,16 +2035,27 @@ VALUES (
       showEbill: config.IS_EBILL_DISABLED,
     });
   }
-  async getToken(req, res): Promise<any> {
+  async getToken(req: Request, res: Response): Promise<any> {
+    console.log('getToken request:', req);
     let partyAccountId = null;
-    let data = req?.body;
-    partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(req.body['partyAccount']));
-
+    
     try {
-        console.log('req', req.body);
-        console.log('partyAccount', partyAccountId);
+        // Get form data from request body
+        const { partyAccount, token } = req.body;
+        console.log('partyAccount', partyAccount);
+        console.log('token', token);
+        if (!partyAccount || !token) {
+            throw new Error('Missing required form fields');
+        }
+
+        console.log('Form Data:', { partyAccount, token });
+        partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(partyAccount));
         
-        // Fetch user details
+        if (!partyAccountId) {
+            throw new Error('Invalid party account ID');
+        }
+
+        // Fetch user details with proper type casting
         const userDetails = await connectLibrary.$queryRaw<any[]>(
             Prisma.sql`SELECT email, u.cid AS userId, pa.fk_party AS partyId, a.cid AS accountId, p.objectid
                         FROM party_account pa
@@ -2019,7 +2063,7 @@ VALUES (
                         INNER JOIN public.user u ON u.cid = a.fk_user
                         INNER JOIN party p ON p.cid = pa.fk_party
                         INNER JOIN status s ON s.cid = pa.fk_status 
-                        WHERE pa.cid = ${partyAccountId} AND s.statusLabel = 'active'`
+                        WHERE pa.cid = ${parseInt(partyAccountId)} AND s."statusLabel" = 'active'`
         );
 
         if (!userDetails.length) {
@@ -2027,16 +2071,18 @@ VALUES (
         }
 
         const netcomIdResult = await connectGate2b.$queryRaw<any[]>(
-            Prisma.sql`SELECT netcomid FROM ediparty WHERE rk_party = ${userDetails[0].objectid}`
+            Prisma.sql`SELECT netcomid FROM ediparty WHERE rk_party = ${userDetails[0].objectid}::uuid`
         );
         const netcomId = netcomIdResult[0]?.netcomid;
 
         console.log('netcomId', netcomId);
-        let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(req.body['token']));
+        
+        let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(token));
         console.log('Decoded Token:', decodedToken);
+        
         const bexioClient = await edit();
-
         const tokenSet = await bexioClient.refresh(decodedToken);
+        
         let bexioTokenCookie = { 
             access_Token: tokenSet.access_token,
             refresh_Token: tokenSet.refresh_token,
@@ -2045,7 +2091,7 @@ VALUES (
         
         let companyId = jwt.decode(tokenSet.access_token)['company_id'];
         await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`UPDATE companyregistered SET refreshtoken = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
+            Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
         );
 
         const data = {
@@ -2055,7 +2101,7 @@ VALUES (
         
         const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
         const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, { expiresIn: config.JWTRefreshExpiration });
-
+        
         let tokenCookie = { 
             accessToken,
             refreshToken,
@@ -2066,17 +2112,37 @@ VALUES (
             isBexioCompany: true
         };
 
-        const options = { domain: config.SESSION_DOMAIN };
-        res.clearCookie(config.BILLING_COOKIE_NAME, options);
+        console.log('bexioTokenCookie', bexioTokenCookie);
+        console.log('tokenCookie', tokenCookie);
+        console.log('userDetails[0]', userDetails[0]);
+
+        // Clear existing cookies
+        res.clearCookie(config.BILLING_COOKIE_NAME);
+        res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
 
         await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
-        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+        
+        // Set cookie with proper options for local development
+        const cookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
             httpOnly: true,
             signed: true,
-            secure: false
-        });
+            secure: false,
+            path: '/',
+            sameSite: 'none' as const,
+            // ...(config.API_URL.includes('localhost') ? {} : { domain: config.SESSION_DOMAIN })
+        };
+
+        console.log('Setting cookie with options:', cookieOptions);
+        console.log('Cookie name:', config.TOKEN_COOKIE_BEXIO_NAME);
+        console.log('Cookie value:', encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)));
+
+        // Set the cookie
+        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), cookieOptions);
+
+        // Log response headers to verify cookie was set
+        console.log('Response headers:', res.getHeaders());
 
         res.send({
             status_code: 200,
@@ -2088,10 +2154,11 @@ VALUES (
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error in getToken:', error);
         res.status(500).send({
             status_code: 500,
-            message: JSON.stringify(error),
+            message: error.message || 'Internal server error',
+            error_details: error.code === 'ETIMEDOUT' ? 'Connection timeout - Please check your network connection' : error.message,
             status: false,
         });
     }
@@ -2447,6 +2514,7 @@ const getUserPermissions = async (partyId,accId) => {
               resolve(redisKey);
           }
       } catch (error) {
+        console.log('error', error);
       // commonErrors['errorTitle'] = getUserPermissions.name;
       // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+' '+accId;
       // warningMessage(commonErrors,error);
