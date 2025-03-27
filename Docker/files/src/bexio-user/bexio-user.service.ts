@@ -2001,19 +2001,19 @@ VALUES (
     INNER JOIN public.user u ON u.cid = a.fk_user
     INNER JOIN party p ON p.cid = pa.fk_party
     INNER JOIN status s ON s.cid = pa.fk_status
-    WHERE pa.cid = ${partyAccountId} AND s."statusLabel" = 'active'
+    WHERE pa.cid = ${parseInt(partyAccountId)} AND s."statusLabel" = 'active'
     `);
     const netcomId = await connectGate2b.$queryRaw<{ netcomid: string }[]>(Prisma.sql`
   SELECT netcomid 
   FROM ediparty 
-  WHERE rk_party = ${userDetails[0].objectid}
+  WHERE rk_party = ${userDetails[0].objectid}::uuid
 `);
-
+console.log('userDetails[0]', userDetails[0]);
     const datetimeToken = {
       cookieCreatedTime: new Date(new Date(new Date().getTime() + 15 * 60000).toUTCString()),
       userMail: userDetails[0].email,
-      partyID: userDetails[0].partyid,
-      userID: userDetails[0].userid,
+      partyID: String(userDetails[0].partyId),
+      userID: String(userDetails[0].userid),
       accId: userDetails[0].accountid,
       isBexioCompany: true,
       netcomId: netcomId[0].netcomid
@@ -2029,7 +2029,7 @@ VALUES (
     res.send({
       status_code: 200,
       message: '',
-      data: encryptionControl.encrypt(userDetails.rows[0].partyid),
+      data: encryptionControl.encrypt(String(userDetails[0].partyId)),
       status: true,
       showPopUp: true,
       showEbill: config.IS_EBILL_DISABLED,
@@ -2050,7 +2050,7 @@ VALUES (
 
         console.log('Form Data:', { partyAccount, token });
         partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(partyAccount));
-        
+        console.log('partyAccountId', partyAccountId);
         if (!partyAccountId) {
             throw new Error('Invalid party account ID');
         }
@@ -2106,9 +2106,9 @@ VALUES (
             accessToken,
             refreshToken,
             userMail: userDetails[0].email,
-            partyID: userDetails[0].partyId,
-            userID: userDetails[0].userId,
-            accId: userDetails[0].accountId,
+            partyID: String(userDetails[0].partyId),  // Convert to string
+            userID: String(userDetails[0].userId),    // Convert to string
+            accId: String(userDetails[0].accountId),  // Convert to string
             isBexioCompany: true
         };
 
@@ -2120,7 +2120,7 @@ VALUES (
         res.clearCookie(config.BILLING_COOKIE_NAME);
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
 
-        await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
+        // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
         // Set cookie with proper options for local development
         const cookieOptions = {
@@ -2128,10 +2128,9 @@ VALUES (
             maxAge: config.SESSION_EXPIRY,
             httpOnly: true,
             signed: true,
-            secure: false,
+            secure: true,
             path: '/',
             sameSite: 'none' as const,
-            // ...(config.API_URL.includes('localhost') ? {} : { domain: config.SESSION_DOMAIN })
         };
 
         console.log('Setting cookie with options:', cookieOptions);
@@ -2144,10 +2143,13 @@ VALUES (
         // Log response headers to verify cookie was set
         console.log('Response headers:', res.getHeaders());
 
+        // Convert partyId to string before encryption
+        const responseData = encryptionControl.encrypt(String(userDetails[0].partyId));
+        
         res.send({
             status_code: 200,
             message: '',
-            data: encryptionControl.encrypt(userDetails[0].partyId),
+            data: responseData,
             status: true,
             showPopUp: true,
             showEbill: config.IS_EBILL_DISABLED,
@@ -2176,7 +2178,7 @@ async getAccessToken(req,res): Promise<any>{
     console.log('isNewCompanyisNewCompany',isNewCompany);
     
     cookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME]));
-     console.log(cookie);
+     console.log('cookie',cookie);
      const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       SELECT 
         pa.isuser,
@@ -2190,8 +2192,8 @@ async getAccessToken(req,res): Promise<any>{
       INNER JOIN account a ON a.cid = pa.fk_account
       INNER JOIN public.user u ON u.cid = a.fk_user
       INNER JOIN status s ON s.cid = pa.fk_status
-      WHERE pa.fk_party = ${cookie?.partyID}
-        AND pa.fk_account = ${cookie.accId}
+      WHERE pa.fk_party = ${parseInt(cookie?.partyID)}
+        AND pa.fk_account = ${parseInt(cookie.accId)}
         AND s."statusLabel" = 'active'`);
     const data = {
       email: userDetails[0].email,

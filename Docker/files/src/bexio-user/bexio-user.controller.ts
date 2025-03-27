@@ -29,9 +29,13 @@ return this.bexioUserService.authorization (data);
 }
 
 @Post('set-expire-cookie')
-async setExpireCookie(@Body() data: any, @Res() res: Response): Promise<any> {
-  console.log('Received body:', data);
-  return this.bexioUserService.setExpireCookie(data, res);
+@UseInterceptors(AnyFilesInterceptor())
+async setExpireCookie(
+  @Req() req: Request,
+  @Res() res: Response
+): Promise<any> {
+  // console.log('Received body:', req);
+  return this.bexioUserService.setExpireCookie(req, res);
 }
 @Post('get-token')
 @UseInterceptors(AnyFilesInterceptor())
@@ -42,9 +46,14 @@ async getToken(
     return this.bexioUserService.getToken(req, res);
 }
 @Post('get-access-token')
-async getAccessToken(@Body() data: any, @Res() res: Response): Promise<any> {
-  console.log('Received body:', data);
-  return this.bexioUserService.getAccessToken(data, res);
+@UseInterceptors(AnyFilesInterceptor())
+
+async getAccessToken(
+  @Req() req: Request,
+  @Res() res: Response
+): Promise<any> {
+  // console.log('Received body:', req);
+  return this.bexioUserService.getAccessToken(req, res);
 }
 
 }
