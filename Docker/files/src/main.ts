@@ -35,8 +35,12 @@ export async function bootstrap() {
   app.use(express.json()); // Enables JSON parsing
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser(config.SESSION_SECRET));
+  console.log('config.BEXIO_APP_URL', config.BEXIO_APP_URL);
   //Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: config.BEXIO_APP_URL, // Frontend URL
+    credentials: true, // Allow cookies
+  });
 
 
   await app.listen(3000);
