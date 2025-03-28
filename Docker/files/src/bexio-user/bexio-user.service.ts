@@ -199,11 +199,11 @@ export class BexioUserService {
             return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
           } else {
             console.log('111');
-            return res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+            return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
           }
         }
       } else {
-        return res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
+        return res.redirect(`${config.BEXIO_APP_URL}/login/permissiondenied`);
       }
     }
     console.log('result');
