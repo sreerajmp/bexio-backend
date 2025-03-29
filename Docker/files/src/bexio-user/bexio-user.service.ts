@@ -2013,8 +2013,8 @@ console.log('userDetails[0]', userDetails[0]);
       cookieCreatedTime: new Date(new Date(new Date().getTime() + 15 * 60000).toUTCString()),
       userMail: userDetails[0].email,
       partyID: String(userDetails[0].partyId),
-      userID: String(userDetails[0].userid),
-      accId: userDetails[0].accountid,
+      userID: String(userDetails[0].userId),
+      accId: userDetails[0].accountId,
       isBexioCompany: true,
       netcomId: netcomId[0].netcomid
     };
@@ -2128,7 +2128,7 @@ console.log('userDetails[0]', userDetails[0]);
             maxAge: config.SESSION_EXPIRY,
             httpOnly: true,
             signed: true,
-            secure: true,
+            secure: false,
             path: '/',
             sameSite: 'none' as const,
         };
@@ -2166,7 +2166,10 @@ console.log('userDetails[0]', userDetails[0]);
     }
 }
 
-async getAccessToken(req,res): Promise<any>{
+async getAccessToken(req: any, res: Response): Promise<any>{
+  console.log('getAccessToken request:', req.session);
+  console.log('req.sessionID',req.sessionID);
+
   let cookie: any = null;
   let isNewCompany;
   let formData = req.body;
@@ -2195,6 +2198,7 @@ async getAccessToken(req,res): Promise<any>{
       WHERE pa.fk_party = ${parseInt(cookie?.partyID)}
         AND pa.fk_account = ${parseInt(cookie.accId)}
         AND s."statusLabel" = 'active'`);
+    console.log('userDetails',userDetails);
     const data = {
       email: userDetails[0].email,
       userId: userDetails[0].userid,
@@ -2203,7 +2207,7 @@ async getAccessToken(req,res): Promise<any>{
     const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
       expiresIn: config.JWTRefreshExpiration,
     });
-    req.session.isAuth = true;
+    // req.session.isAuth = true;
 
     let tokenCookie = { 
       accessToken:accessToken,
@@ -2223,6 +2227,7 @@ async getAccessToken(req,res): Promise<any>{
       signed: true,
       secure: false
     });
+    console.log('userDetails',userDetails);
     let email = userDetails[0].email;
     console.log('email',email);
     console.log('req.sessionID',req.sessionID);
@@ -2281,12 +2286,12 @@ async getAccessToken(req,res): Promise<any>{
     }
    
     
-    await getUserPermissions(userDetails[0].partyid,userDetails[0].accountid);
+    await getUserPermissions(String(userDetails[0].partyId),userDetails[0].accountId);
     res.send({
       status_code: 200,
       message: '',
       status: true,
-      data:encryptionControl.encrypt(userDetails[0].partyid)
+      data:encryptionControl.encrypt(String(userDetails[0].partyId))
   });
 
   } catch (error) { 
