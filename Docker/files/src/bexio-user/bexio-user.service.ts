@@ -13,7 +13,7 @@ const sendEmail = require('../common/utils/email');
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
-const redisClient =require('../common/utils/redisDB')
+import redisClient from '../common/utils/redisDB';
 @Injectable()
 export class BexioUserService {
   async authorization(data: any): Promise<any> {
@@ -2482,22 +2482,28 @@ const getUserPermissions = async (partyId,accId) => {
           const validationResult = await validation(partyId,accId);
           if( !validationResult ){
               const redis_client = await redisClient;
-              const getUserPermissionsResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
+              
+              // Ensure Redis client is connected
+              if (!redis_client.isOpen) {
+                  await redis_client.connect();
+              }
+
+              const getUserPermissionsResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
                 SELECT po.policy, par.cid 
                 FROM partyapplication_account_role par
                 INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
                 INNER JOIN partyapplication p ON p.cid = pa.fk_partyapplication 
                 INNER JOIN role_policy rp ON rp.fk_role = par.fk_role 
                 INNER JOIN policy po ON po.cid = rp.fk_policy
-                WHERE fk_account = ${accId} AND p.fk_party = ${partyId}
+                WHERE fk_account = ${parseInt(accId)}::bigint AND p.fk_party = ${parseInt(partyId)}::bigint
             `);
             
               
               const redisKey = 'permissions_'+partyId+'_'+accId;
               const roleObject = {};
               roleObject[redisKey] = {};
-              if( getUserPermissionsResult.rows.length > 0){
-                  getUserPermissionsResult.rows.forEach(element => {
+              if( getUserPermissionsResult.length > 0){
+                  getUserPermissionsResult.forEach(element => {
                       let policy = element.policy;
                       let effect = {};
                       if( policy != null){
@@ -2507,21 +2513,28 @@ const getUserPermissions = async (partyId,accId) => {
                               }else{
                                   effect[ps.Effect] = ps.Action;
                                   roleObject[redisKey][ps.Effect] = ps.Action;
-        }
-      });
-    }
-
+                              }
+                          });
+                      }
                   });
                   let effectObject = Object.keys(roleObject[redisKey]);
                   effectObject.forEach( ele => {
                       roleObject[redisKey][ele] = [...new Set(roleObject[redisKey][ele])]
                   })
-                  await redis_client.setex(redisKey,24*60*60*2,JSON.stringify(roleObject[redisKey]));
+                  
+                  try {
+                      await redis_client.set(redisKey, JSON.stringify(roleObject[redisKey]), {
+                          EX: 24 * 60 * 60 * 2 // 2 days in seconds
+                      });
+                  } catch (redisError) {
+                      console.error('Redis error:', redisError);
+                      // Continue execution even if Redis fails
+                  }
               }
               resolve(redisKey);
           }
       } catch (error) {
-        console.log('error', error);
+        console.log('getUserPermissions error', error);
       // commonErrors['errorTitle'] = getUserPermissions.name;
       // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+' '+accId;
       // warningMessage(commonErrors,error);
@@ -2531,8 +2544,7 @@ const getUserPermissions = async (partyId,accId) => {
           //     status: false
           // });
       }
-  })
-  
+  });
 }
 const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
   console.log('gate2bRegisterInBexio');
