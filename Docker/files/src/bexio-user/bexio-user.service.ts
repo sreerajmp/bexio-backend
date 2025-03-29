@@ -2125,11 +2125,9 @@ console.log('userDetails[0]', userDetails[0]);
         const cookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            httpOnly: true,
-            signed: true,
-            secure: false,
-            path: '/',
-            sameSite: 'none' as const,
+            httpOnly: true, // Changed to false to allow JavaScript access
+            signed: true,   // Changed to false since we're not using cookie-parser signing
+            secure: false,    // Changed to true to work with sameSite: 'none'
         };
 
         console.log('Setting cookie with options:', cookieOptions);
