@@ -855,7 +855,7 @@ export class DebtorsService {
     let cookie = null
     let data = req.body
   
-
+let resData
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
     try {
@@ -872,7 +872,7 @@ export class DebtorsService {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
-  // let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMyMzMzNTcsImlhdCI6MTc0MzIyOTc1NywianRpIjoiZjg2OGI3YTYtZDYwZS00OTJiLTlmM2YtYmU3ZDM4ZmM2ODA2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiIxNmExYmIwOC1lMjgwLTQyZjgtYTVjOC01ZmQ3Njk4YmFjOWQiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.WKxEXhNgZLuV8429jABhpYdk0KcQTWSBQXKRJVK0-tcSNGltdLU7BMbxyj5ynAxCLe3Xc-PVesqAWcBeMw7ZJhryHen6TZu7q-LSNRqmfoQlo1W2F0y-XdWHLL8Imnc0IAp0iHt__8gHQ33G8fUI_TWjCEyV1A_30kqH1_8m2VhvdBNGv7pin_a9qCJjdzh7KFhCEYGGhp4NFd40zFioGYiLBBpzUH89i5LAbW1H3mwzhw0vCqu3s1XbB3hFEIWvxFm7PGDY5sw9yHvaWREtVb7BWM7oF-DbyzGMcTL_-_D0OCTRck5G9vb1GV9CyEwxdP5KB53yKnO9ZiDVgTdNxA'
+  // let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMyNDIyNjEsImlhdCI6MTc0MzIzODY2MSwianRpIjoiMWZjYTU4ZGQtY2E5OS00ZTQ4LTllODgtZmQwZWQ4MGFkODg3IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiIxNmExYmIwOC1lMjgwLTQyZjgtYTVjOC01ZmQ3Njk4YmFjOWQiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.SprONltpwI9E1d4o3212zTpMlFhZJQ6nvT8F6hmQmU9NTzLYRVke0gJaRrWc5mOFLUOozW0hN6ComQe2wrN-bsr_gtYrKcQP5O0b-XXnhWL-q-da_Qw_obgHoPn_NhSxb-rLEXDC8IqP5RBPUEZ9aZK3w4tKuhHhlxjhp7lYuiNbBKjNlbBrV7Uzmb143f0JMMrihf55TWDtgHOz_ed0NjMJOTJoiZDn2rbobBR1DyzYr7cuBUIe9kQ997ARTjjnprIhFgf6i6je8g3WNM8y5VJfJn3qIuvY6PZYB6a1eo9EoJZG8OdcjQMlOgXuR4v4RLI-lj5KLR1OHyquWJufvg'
   // let isBexioUser = true 
   let resultData: any[] = [], tempStatus = false;
       let totalCount;
@@ -941,8 +941,8 @@ export class DebtorsService {
                       }
                     }
                   }
-                  const getConnectionBc = await connectBexio.$queryRaw<{ array_agg: string[] }[]>(Prisma.sql`
-                    SELECT array_agg(rk_sendercontactid) 
+                  const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
+                    SELECT array_agg(rk_sendercontactid::int)
                     FROM contact_bc cb
                     WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
                     AND cb.type = 'EDI'
@@ -1018,26 +1018,8 @@ export class DebtorsService {
           },
           body: JSON.stringify(searchJson)
         };
-      } else {
-        // searchJson.push({
-        //   "field": "contact_id",
-        //   "value": contactArray,
-        //   "criteria": "in"
-        // });
 
-       
-       totalCount = await invoiceListCountSearch(accessToken, 0, 2000)as number;
-        options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + accessToken
-          }
-        };
-     
-      }
-      request(options, async function (error, response) {
+request(options, async function (error, response) {
         if (error) {
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
@@ -1048,9 +1030,9 @@ export class DebtorsService {
             error: JSON.stringify(error)
         });
         }
-        let resData = JSON.parse(response.body);
+       
         // /console.log('resData',resData);
-        
+        resData = JSON.parse(response.body);
         if(response.statusCode != 200)
         return res.status(200).json({
           status: true,
@@ -1058,13 +1040,110 @@ export class DebtorsService {
           data: [],
           message: 'unauthorized',
         });
-       
-        let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
+  });
+
+      } 
+     else {
+    searchJson.push({
+        "field": "contact_id",
+        "value": contactArray,
+        "criteria": "in"
+    });
+
+    console.log('JSON.stringify(searchJson)', JSON.stringify(searchJson));
+
+    let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+    let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+    totalCount = totalCountInvoiceList + totalCountInvoiceCount;
+
+    const postOptions = {
+        'method': 'POST',
+        'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+        'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + accessToken
+        },
+        body: JSON.stringify(searchJson)
+    };
+
+    const getOptions = {
+        'method': 'GET',
+        'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+        'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + accessToken
+        }
+    };
+
+  
+  const parseResponse = (response: any): { status: boolean; data: any[] } => {
+    if (response && response.body) {
+        try {
+            let parsedData = JSON.parse(response.body);
+            if (Array.isArray(parsedData)) {
+                return { status: true, data: parsedData };
+            } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
+                return { status: false, data: [] }; // Indicating unauthorized response
+            }
+        } catch (error) {
+            console.error("Error parsing response:", error);
+        }
+    }
+    return { status: true, data: [] };
+};
+
+
+const [postResponse, getResponse] = await Promise.all([
+  new Promise<any>((resolve, reject) => {
+      request(postOptions, (error, response) => {
+          if (error) reject(error);
+          else resolve(response);
+      });
+  }),
+  new Promise<any>((resolve, reject) => {
+      request(getOptions, (error, response) => {
+          if (error) reject(error);
+          else resolve(response);
+      });
+  })
+]).catch(error => {
+  console.error("Request error:", error);
+  return [null, null]; // Ensure promise.all does not break execution
+});
+
+// Parse responses
+let postRes = parseResponse(postResponse);
+let getRes = parseResponse(getResponse);
+
+// If either response is unauthorized, send response and stop execution
+if (!postRes.status || !getRes.status) {
+  return res.status(200).json({
+      status: true,
+      data: [],
+      message: "unauthorized",
+  });
+}
+  
+    // Combine both responses
+    resData = [...postRes.data, ...getRes.data];
+
+  
+}
+
+    
+
+
+if(resData){
+
+           let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
         let contact_idList :any= [];
         for (let invoice in resData) {
+          console.log('resData[invoice].contact_id',resData[invoice].contact_id);
+          
           tempStatus = false;
-          resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id).toString()) ? true:false:false;
-          // resData[invoice]['allowSend'] = "true";
+          resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
+          // resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id)) ? true:false:false;//edi
+          // resData[invoice]['allowSend'] = "true";//ebill
           contact_idList.push((resData[invoice].contact_id));
           resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
           resData[invoice]['timestamp'] = '';
@@ -1156,7 +1235,15 @@ export class DebtorsService {
           data:resultData,
           totalCount:totalCount
         })
-      });
+
+}
+else{
+  return res.status(401).json({
+    status: 'fail',
+    message: 'unauthorized',
+  });
+}
+
       }
       else{
         return res.status(401).json({
@@ -1180,9 +1267,200 @@ export class DebtorsService {
   }
 
 
+  async getOrderList(req: Request, res: Response,): Promise<any> {
+    let cookie = null
+    let data = req.body;
+  
+    try {
+   let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
+      if (!cookieData) {
+        res.status(500).send({
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        })
+      }
 
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      let accessToken = cookie.access_Token;
+      let isBexioUser = cookie.isBexioUser;
+  // let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMyNTU3MzYsImlhdCI6MTc0MzI1MjEzNiwianRpIjoiYTM3ZDhmMTMtMzhmYy00NjYwLTlhMjAtNTIzYzU2Nzg1NTA2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiIxNmExYmIwOC1lMjgwLTQyZjgtYTVjOC01ZmQ3Njk4YmFjOWQiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.GD2ZVVTF9JV9UaxrT_EujWmf8K2Zz5ZO3KLP3v1DIBDrAHvFkwE9kYqXye8v-pW-eUM7xwsrMyxHnQ9Mh3cq0cQKbrDJviC64G-jG8YwvKfEbvRMtyrYWiEUy14JVX9GJozHr_k0UiW5YpPfNG_BjkkigwtItop82WbJ1S4OLPeM1Bw6QMuD-2JGqflsHh87A8MExSlPv4b2zJttLpRY4tiPpafFPk5abqNJ4b2WE9TbLh_qMJlTs41Sb0y0iUliccEmSOykHO4-b0bRckt1dXq2ojnoH2jtQIFjsf2BXeUXlscaOcnSrJojcSqfJ0tSzEcEU07VhPVSGUdlyBzMzQ'
+  // let isBexioUser = true
+      let contacts;
+      let showTo:number;
+      let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
+      showTo = showFrom + parseInt(data.records_per_page) - 1;
+  
+      console.log('showFrom',showFrom);
+      console.log('showTo',showTo);
+  
+      
+  
+      if(isBexioUser)
+      {
+       console.log('*******************');
+       
+        var options = {
+          'method': 'GET',
+          'url': `${config.BEXIO_API}2.0/contact`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+accessToken
+          }
+        };
+        request(options, async function (error, response) {
+          if (error){
+            console.log(error);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
+            warningMessage(commonErrors,error);
+              return res.status(200).json({
+                status: false,
+                message: 'something_went_wrong',
+             });
+  
+            } 
+            if(response.statusCode != 200)
+            {
+              return res.status(200).json({
+                data:[],
+                totalCount:0
+            });
+            }
+            contacts = JSON.parse(response.body);
+            // console.log('contacts',contacts);
+            
+            const getRegisteredId = await connectBexio.companyregistered.findMany({
+              where: {
+                rk_party: Number(data.partyId), // Equivalent to `WHERE rk_party = $1`
+              },
+              select: {
+                cid: true, // Selects only `cid`
+              },
+            });
+            
+            const validDate = (date) => {
+              const parsedDate = new Date(date);
+              return isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+            };
+            
+            const orderList = await connectBexio.documents_order_receive.findMany({
+              where: {
+                fk_companyregistered: 2,
+                created_date: {
+                  gte: validDate(data.dateFrom),
+                  lte: validDate(data.dateTo),
+                },
+                rk_order: data.documentNo?.trim()
+                  ? { contains: data.documentNo.trim(), mode: "insensitive" }
+                  : undefined,
+              },
+              orderBy: {
+                created_date: "desc",
+              },
+              skip: Number(showFrom) - 1,
+              take: Number(showTo) - Number(showFrom) + 1,
+            });
+            
+            // console.log("orderList:", orderList);
+            
+            
+           
+            
+          
+            
+            const orderListCount = await connectBexio.documents_order_receive.count({
+              where: {
+                fk_companyregistered: getRegisteredId[0]?.cid,
+                created_date: {
+                  gte: validDate(data.dateFrom),
+                  lte: validDate(data.dateTo),
+                },
+                rk_order: data.documentNo?.trim()
+                  ? { contains: data.documentNo.trim(), mode: "insensitive" }
+                  : undefined,
+                ...(data.orderStatus === "Yes" ? { rk_order: { not: null } } : {}),
+                ...(data.orderStatus === "No" ? { rk_order: null } : {}),
+              },
+            });
+            
+            const totalOrders = Number(orderListCount); // Convert BigInt to Number
+            
+            console.log("Total Orders:", totalOrders);
 
+  
+            for (let index = 0; index < orderList.length; index++) {
+              const element = orderList[index];
+              element['companyName'] = '';
+              element['netcomId'] = '';
+              const getBc = await connectNewGate2b.$queryRaw<any>`
+              SELECT l.companyname, 
+                     gc."netcomId", 
+                     json_extract_path("ot_updator"::json, 'in_custom_id') as sender_custom_id, 
+                     * 
+              FROM g2b_business_connections bc 
+              INNER JOIN g2b_connections gc ON gc.id = bc."FK_g2b_connections_IN"
+              INNER JOIN ediparty e ON gc."netcomId" = e.netcomid
+              INNER JOIN legalParty l ON l.fk_ediparty = e.cid
+              WHERE bc.id = ${element.rk_businessconnection};
+            `;
+            
+            console.log(getBc);
+             
+              if(getBc.length != 0)
+              {
+                element['companyName'] = getBc[0].companyname;
+                element['netcomId'] = getBc[0].netcomId;
+                if(!element['rk_order'])
+                {
+                  let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
+                  element['contactName'] = temp.length != 0 ? temp[0].name_1:'';
+                  element['contactId'] = temp.length != 0 ? getBc[0].sender_custom_id:'';
+                  element['connectioStatus'] = 'active';
+                }else{
+                  element['contactId'] = '';
+                  let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
+                  element['contactName'] = temp.length != 0 ? temp[0].name_1:'';
+                  element['connectioStatus'] = 'done';
+                }
+               
+              }else{
+                element['contactId'] = '';
+                element['contactName'] ='';
+                element['connectioStatus'] ='';
+  
+              }
+            } 
+          res.send({
+              status: 200,
+              data:orderList,
+               totalCount:totalOrders
+          })
+        // res.send(orderList.rows);
+        });
+  
+      }else{
+        return res.status(401).json({
+          status: 'fail',
+          message: 'unauthorized',
+      });
+      }
+     
+    } catch (error) {
+   
+ 
+      console.log(error);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+      warningMessage(commonErrors,error);
+      return res
+      .status(200)
+      .json({ status: 500, message: 'something_went_wrong' });
+        
+    }
+  }
+ 
 
 }
 const getContactById = async (accessToken,contact_idList) => {
