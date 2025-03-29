@@ -168,10 +168,9 @@ export class BexioUserService {
           const bexioTokenCookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            httpOnly: false,
-            signed: true,
             secure: false,
-            path: '/'
+            httpOnly: false,
+            signed: false,
           };
           
           console.log('8. Billing Cookie Options:', billingCookieOptions);
