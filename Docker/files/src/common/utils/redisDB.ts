@@ -1,18 +1,22 @@
 import config from '../config';
-const redis = require('redis');
+import { createClient } from 'redis';
 
 // REDIS Connection START
-const redisClient = redis.createClient({
-    host: config.REDIS_HOST,
-    port: config.REDIS_PORT,
+const redisClient = createClient({
+    url: `redis://${config.REDIS_HOST}:${config.REDIS_PORT}`,
 });
 
 redisClient.on('connect', function () {
     console.log('Connected Redis SuccessFully!', config.REDIS_HOST);
 });
+
 redisClient.on('error', (err) => {
     console.log('error to use redis!', err.message);
 });
-//   // REDIS Connection END
 
-module.exports = redisClient;
+// Connect to Redis
+redisClient.connect().catch(console.error);
+
+// REDIS Connection END
+
+export default redisClient;
