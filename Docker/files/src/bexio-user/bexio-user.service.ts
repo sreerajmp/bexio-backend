@@ -162,8 +162,6 @@ export class BexioUserService {
             httpOnly: false,
             signed: false,
             secure: false,  // Set to false to allow HTTP to HTTPS
-            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
-            path: '/'
           };
           
           const bexioTokenCookieOptions = {
@@ -172,8 +170,6 @@ export class BexioUserService {
             secure: false,  // Set to false to allow HTTP to HTTPS
             httpOnly: false,
             signed: false,
-            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
-            path: '/'
           };
           
           console.log('8. Billing Cookie Options:', billingCookieOptions);
@@ -2027,8 +2023,6 @@ console.log('userDetails[0]', userDetails[0]);
       secure: false,  // Set to false to allow HTTP to HTTPS
       httpOnly: false,
       signed: false,
-      sameSite:'none' as 'none', // Use 'lax' instead of 'none'
-      path: '/'
     });
     res.send({
       status_code: 200,
@@ -2133,8 +2127,6 @@ console.log('userDetails[0]', userDetails[0]);
             httpOnly: false,
             signed: false,
             secure: false,  // Set to false to allow HTTP to HTTPS
-            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
-            path: '/'
         };
 
         console.log('Setting cookie with options:', cookieOptions);
@@ -2230,8 +2222,6 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       httpOnly: true,
       signed: true,
       secure: false,  // Set to false to allow HTTP to HTTPS
-      sameSite:'none' as 'none', // Use 'lax' instead of 'none'
-      path: '/'
     });
     console.log('userDetails',userDetails);
     let email = userDetails[0].email;
