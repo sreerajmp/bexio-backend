@@ -161,16 +161,19 @@ export class BexioUserService {
             maxAge: config.SESSION_EXPIRY,
             httpOnly: false,
             signed: false,
-            secure: false,
+            secure: false,  // Set to false to allow HTTP to HTTPS
+            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
             path: '/'
           };
           
           const bexioTokenCookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            secure: false,
+            secure: false,  // Set to false to allow HTTP to HTTPS
             httpOnly: false,
             signed: false,
+            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+            path: '/'
           };
           
           console.log('8. Billing Cookie Options:', billingCookieOptions);
@@ -2021,9 +2024,11 @@ console.log('userDetails[0]', userDetails[0]);
     res.cookie(config.EXPIRE_EXPIRES_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(datetimeToken)), {
       domain: config.SESSION_DOMAIN,
       maxAge: config.SESSION_EXPIRY,
-      secure: false,
+      secure: false,  // Set to false to allow HTTP to HTTPS
       httpOnly: false,
       signed: false,
+      sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+      path: '/'
     });
     res.send({
       status_code: 200,
@@ -2125,9 +2130,11 @@ console.log('userDetails[0]', userDetails[0]);
         const cookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            httpOnly: true, // Changed to false to allow JavaScript access
-            signed: true,   // Changed to false since we're not using cookie-parser signing
-            secure: false,    // Changed to true to work with sameSite: 'none'
+            httpOnly: false,
+            signed: false,
+            secure: false,  // Set to false to allow HTTP to HTTPS
+            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+            path: '/'
         };
 
         console.log('Setting cookie with options:', cookieOptions);
@@ -2222,7 +2229,9 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       maxAge: config.SESSION_EXPIRY,
       httpOnly: true,
       signed: true,
-      secure: false
+      secure: false,  // Set to false to allow HTTP to HTTPS
+      sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+      path: '/'
     });
     console.log('userDetails',userDetails);
     let email = userDetails[0].email;
