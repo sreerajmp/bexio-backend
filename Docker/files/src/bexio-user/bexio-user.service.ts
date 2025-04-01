@@ -2478,11 +2478,10 @@ const getUserPermissions = async (partyId,accId) => {
           };
           const validationResult = await validation(partyId,accId);
           if( !validationResult ){
-              const redis_client = await redisClient;
               
               // Ensure Redis client is connected
-              if (!redis_client.isOpen) {
-                  await redis_client.connect();
+              if (!redisClient.isOpen) {
+                  await redisClient.connect();
               }
 
               const getUserPermissionsResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -2520,7 +2519,7 @@ const getUserPermissions = async (partyId,accId) => {
                   })
                   
                   try {
-                      await redis_client.set(redisKey, JSON.stringify(roleObject[redisKey]), {
+                      await redisClient.set(redisKey, JSON.stringify(roleObject[redisKey]), {
                           EX: 24 * 60 * 60 * 2 // 2 days in seconds
                       });
                   } catch (redisError) {
