@@ -2124,7 +2124,7 @@ console.log('userDetails[0]', userDetails[0]);
         const cookieOptions = {
             domain: config.SESSION_DOMAIN,
             maxAge: config.SESSION_EXPIRY,
-            httpOnly: false,
+            httpOnly: true,
             signed: false,
             secure: false,  // Set to false to allow HTTP to HTTPS
         };
