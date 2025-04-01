@@ -20,5 +20,11 @@ export class DebtorsController {
   // console.log('Received body:', req);
   return this.debtorsService.getInvoice(req,res);
   }
-
+  @Post('getOrderList')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.debtorsService.getOrderList(req,res);
+  }
+  
 }
