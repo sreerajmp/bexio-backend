@@ -162,7 +162,7 @@ export class BexioUserService {
             httpOnly: false,
             signed: false,
             secure: false,  // Set to false to allow HTTP to HTTPS
-            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
             path: '/'
           };
           
@@ -172,7 +172,7 @@ export class BexioUserService {
             secure: false,  // Set to false to allow HTTP to HTTPS
             httpOnly: false,
             signed: false,
-            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
             path: '/'
           };
           
@@ -2027,7 +2027,7 @@ console.log('userDetails[0]', userDetails[0]);
       secure: false,  // Set to false to allow HTTP to HTTPS
       httpOnly: false,
       signed: false,
-      sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+      sameSite:'none' as 'none', // Use 'lax' instead of 'none'
       path: '/'
     });
     res.send({
@@ -2133,7 +2133,7 @@ console.log('userDetails[0]', userDetails[0]);
             httpOnly: false,
             signed: false,
             secure: false,  // Set to false to allow HTTP to HTTPS
-            sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+            sameSite:'none' as 'none', // Use 'lax' instead of 'none'
             path: '/'
         };
 
@@ -2230,7 +2230,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       httpOnly: true,
       signed: true,
       secure: false,  // Set to false to allow HTTP to HTTPS
-      sameSite: 'lax' as 'lax', // Use 'lax' instead of 'none'
+      sameSite:'none' as 'none', // Use 'lax' instead of 'none'
       path: '/'
     });
     console.log('userDetails',userDetails);
