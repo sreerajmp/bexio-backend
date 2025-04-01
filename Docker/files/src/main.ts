@@ -38,7 +38,7 @@ export async function bootstrap() {
   console.log('config.BEXIO_APP_URL', config.BEXIO_APP_URL);
   //Enable CORS
   app.enableCors({
-    origin: config.BEXIO_APP_URL, // Frontend URL
+    origin: /\.io-market\.net$/,
     credentials: true, // Allow cookies
   });
 
