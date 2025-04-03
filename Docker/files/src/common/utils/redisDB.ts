@@ -3,7 +3,7 @@ import { createClient } from 'redis';
 
 // REDIS Connection START
 const redisClient = createClient({
-    url: `redis://redis-13011.c98.us-east-1-4.ec2.redns.redis-cloud.com:13011`,
+    url:`redis://${config.REDIS_HOST}:${config.REDIS_PORT}`
     // password: config.REDIS_PASSWORD,
     // username: 'default',
 });

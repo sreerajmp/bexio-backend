@@ -13,13 +13,14 @@ const sendEmail = require('../common/utils/email');
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
-const redisClient = require('../common/utils/redisDB');
+import redisClient from '../common/utils/redisDB';
 import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 @Injectable()
 export class DebtorsService {
  async getInvoice(req: Request, res: Response,): Promise<any> {
+  
   let cookie = null
     let data = req.body
     let resData
@@ -51,57 +52,6 @@ export class DebtorsService {
       sortType = req.body?.sort;
       let resultArray
       let contactArray
-
-
-    //   const getBillerData = await prisma.$queryRaw`
-    //   SELECT b.billerid
-    //   FROM biller b
-    //   WHERE b.netcomid = ${netcomId}
-    // `;
-    
-    // console.log(getBillerData);
-
-    //   if (getBillerData.recordset.length) {
-    //     const getSubcribeDetails = `SELECT * from 
-    //   (SELECT r.recipientid
-    //       ,r.name AS surname
-    //       ,r.firstname
-    //       ,r.email
-    //       ,r.streetnumber
-    //       ,r.street
-    //       ,r.zip
-    //       ,r.city
-    //       ,r.countrycode
-    //       ,r.created
-    //       ,r.lastupdate
-    //       ,r.SubscriptionFormFieldsJSON AS subscription
-    //       ,r.party_specific_id
-    //       ,r.id as subscriptionId
-    //       ,r.status,ROW_NUMBER() OVER (order by r.created DESC) as RowNumber  FROM recipient r
-    //   INNER JOIN biller b
-    //   ON b.id = r.fk_biller WHERE r.islinked = '${isLinked}' AND b.billerid ='${getBillerData.recordset[0].billerid}'
-    //   AND r.email LIKE '${emailValue}' AND r.recipientId LIKE '${reciepentValue}'
-    //   AND (r.firstname  LIKE '${nameValue}' OR r.name LIKE '${nameValue}') 
-    //   ) temp`;
-    //     const getData = await pool.query(getSubcribeDetails)
-    //     if (getData.recordset.length) {
-    //       return res.status(status_code.OK).json({
-    //         data: getData.recordset,
-    //         status_code: 200,
-    //         message: 'subscriber_details',
-    //         status: true,
-    //       });
-    //     }
-    //     else {
-          
-    //       return res.status(status_code.OK).json({
-    //         data: [],
-    //         status_code: 200,
-    //         message: 'no_data_found',
-    //         status: true,
-    //       });
-    //     }
-    //   }
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
           companyregistered: {
@@ -112,7 +62,6 @@ export class DebtorsService {
           companyregistered: true
         }
       });
-      
       const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
       if (ediInvoices.length > 0) {
@@ -344,14 +293,13 @@ postRes.data = postRes.data.map(item => ({ ...item, isEbill: true }));
 getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
     // Combine both responses
     resData = [...postRes.data, ...getRes.data];
-}
-if(resData){
+     }
+    if(resData){
 
            let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
         let contact_idList :any= [];
         for (let invoice in resData) {
           console.log('resData[invoice].contact_id',resData[invoice].contact_id);
-          
           // tempStatus = false;
           // resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
           resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true  : false;
@@ -424,25 +372,29 @@ if(resData){
         currency.forEach(element => {
           currencyList[element.id] = element.name;
         });
-        
+        let recipientList:any = [];
+        recipientList = await getRecipientList(contact_idList);
+
+
         resultData.forEach((second) => {
           second.companyName = contactNameList[second["contact_id"]];
           second.currency = currencyList[second['currency_id']];
           second.email = contactEmailList[second["contact_id"]];
         });
-        // let keys = Object.keys(req.body)
-    
-        // let redisKey = req.body.partyId+"_"+req.url+"_";
-        // console.log('redisKey',redisKey);
-        // keys.forEach(element => {
-        //     redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-        // });
-        // await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
-        //   status: 200,
-        //   data:resData,
-        //   totalCount:totalCount
-        // } ));
+        let keys = Object.keys(req.body)
         
+        let redisKey = req.body.partyId+"_"+req.url+"_";
+        console.log('redisKey',redisKey);
+        keys.forEach(element => {
+            redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+        });
+        await redisClient.set(redisKey, JSON.stringify({
+          status: 200,
+          data: resData,
+          totalCount: totalCount
+      }), {
+          EX: 24 * 60 * 60 * 2 // Expiry time in seconds (2 days)
+      });
         res.send({
           status: 200,
           data:resultData,
@@ -849,18 +801,19 @@ else{
               }
               resultData.push(resData[deliveryNotes]);
           }
-          // let keys = Object.keys(req.body)
-          // // let redisKey = req.url+"_"+req.body.partyId+"_";
-          // let redisKey = req.body.partyId+"_"+req.url+"_";
-          // console.log('redisKey',redisKey);
-          // keys.forEach(element => {
-          //     redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-          // });
-          // await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
-          //   status: 200,
-          //   data:resData,
-          //   totalCount:totalCount
-          // } ));
+          let keys = Object.keys(req.body)
+          // let redisKey = req.url+"_"+req.body.partyId+"_";
+          let redisKey = req.body.partyId+"_"+req.url+"_";
+          console.log('redisKey',redisKey);
+          keys.forEach(element => {
+              redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+          });
+         
+          await redisClient.set(redisKey, JSON.stringify( {status: 200,
+            data:resData,
+            totalCount:totalCount}), {
+            EX: 24 * 60 * 60 * 2 // 2 days in seconds
+        });
             
           res.send({
             status: 200,
@@ -887,6 +840,84 @@ else{
       .json({ status: 500, message: 'something_went_wrong' });
         
     }
+  }
+  async getTagName (req: Request, res: Response,): Promise<any> {
+   
+    console.log("req.body ",req.body);  
+    try {
+      let data = req.body
+      let responseData = null
+    
+   
+    let reason={
+      "config_id": 1,
+      "module": data.module,
+      "file_list":JSON.parse(data.file_list)
+		  }
+  //  let invoice_issuerid ='';
+  //  let emailAddress='';
+  //  let billRecipientId ='';
+  //  let sender_name='';
+  //  let receiver_name='';
+  //  let doc_type='';
+  //  let in_cust_id='';
+  //  let out_cust_id='';
+  //  let doc_format='';
+  //  let mode='';
+  //  let doc_module='';
+  //  let recipient_email='';
+  //  let recipient_name='';
+  //  let receiver_street='';
+  //  let receiver_city='';
+  //  let receiver_zip='';
+  var options = {
+    'method': 'POST',
+    'url': `${config.OCTOPUS_URL}/bexio_file_check/`,
+    'headers': {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(reason)
+  
+  };
+      console.log('options',options);
+      
+      return new Promise(function (resolve, reject) {
+        request(options, async function (error, response, body) {
+        
+          if(error){
+            commonErrors['errorTitle'] = 'getPythonData';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+            warningMessage(commonErrors, error);
+            return resolve(error)
+          }
+          else{
+            try{
+              console.log('response.bodyresponse.body',response.body);
+              
+            responseData = JSON.parse(response.body)
+            res.send({
+              status: 200,
+              data:responseData,
+              
+            })
+            }
+            catch{
+              return resolve(responseData)
+            }
+          }
+        })
+        
+        });
+       
+     }
+     catch (error) {
+      commonErrors['errorTitle'] = 'getPythonData';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+      warningMessage(commonErrors, error);
+      
+      }
+  
   }
 }
 const getContactById = async (accessToken,contact_idList) => {
@@ -954,6 +985,23 @@ const getAllCurrency = async (access_token) => {
             resolve(false)
         });
       });
+}
+const getRecipientList= async (contact_idList) => {
+  try {
+    const contacts = await connectBexio.contact_bc.findMany({
+      where: {
+        rk_receivercontactid: {
+          in: contact_idList, // Filters where `rk_receivercontactid` is in the given array
+        },
+      },
+    });
+console.log('contacts',contacts);
+
+    return contacts; // Returns an array of matching contacts
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    throw error; // Handle errors properly
+  }
 }
 const invoiceCountSearch = async (token,search,offset,limit?) => {
 
@@ -1109,79 +1157,3 @@ const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-const getTagName = async()=>{
-  return new Promise(async (resolve, reject) => {
-  let responseData = null
-  try {
-    let config_id= 1;
-    let module= "BEX";
-    let file_list:any= [
-    {
-      "doc_id": 10,
-      "bill_id": "BIID0000009191",
-      "bill_recipient_email": "pauljoy27@yahoo.com"
-    },
-    {
-      "doc_id": 11,
-      "bill_id": "BIID0000005896",
-      "bill_recipient_id": "41012023479279982"
-    }
-  ];
-//  let invoice_issuerid ='';
-//  let emailAddress='';
-//  let billRecipientId ='';
-//  let sender_name='';
-//  let receiver_name='';
-//  let doc_type='';
-//  let in_cust_id='';
-//  let out_cust_id='';
-//  let doc_format='';
-//  let mode='';
-//  let doc_module='';
-//  let recipient_email='';
-//  let recipient_name='';
-//  let receiver_street='';
-//  let receiver_city='';
-//  let receiver_zip='';
-    const options = {
-      method: 'POST',
-      url: `https://localhost:28027/bexio_file_check`,
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      form: { 
-        'config_id': config_id,
-        'file_list':file_list,
-        'module':module,
-       
-      }
-    };
-    console.log('options',options);
-    
-    await request(options, async function (error, response) {
-      if(error){
-        commonErrors['errorTitle'] = 'getPythonData';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
-        warningMessage(commonErrors, error);
-        return resolve(error)
-      }
-      else{
-        try{
-        responseData = JSON.parse(response.body)
-        return resolve(responseData)
-        }
-        catch{
-          return resolve(responseData)
-        }
-      }
-    })
-   }
-   catch (error) {
-    commonErrors['errorTitle'] = 'getPythonData';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
-    warningMessage(commonErrors, error);
-    return resolve(responseData)
-    }
-  })
-}

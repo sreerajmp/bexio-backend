@@ -7,7 +7,7 @@ const encryptionControl = require("../common/utils/jwt-decode");
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
-const redisClient = require('../common/utils/redisDB');
+import redisClient from '../common/utils/redisDB';
 import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
@@ -471,19 +471,23 @@ export class CreditorsService {
             second.companyName = contactNameList[second["contact_id"]];
             second.currency = currencyList[second['currency_id']];
           });
-          // let keys = Object.keys(req.body)
-          // // let redisKey = req.url+"_"+req.body.partyId+"_";
-          // let redisKey = req.body.partyId+"_"+req.url+"_";
-          // console.log('redisKey1',redisKey);
-          // keys.forEach(element => {
-          //     redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-          // });
+          let keys = Object.keys(req.body)
+          // let redisKey = req.url+"_"+req.body.partyId+"_";
+          let redisKey = req.body.partyId+"_"+req.url+"_";
+          console.log('redisKey1',redisKey);
+          keys.forEach(element => {
+              redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+          });
           // await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
           //   status: 200,
           //   data:resData,
           //   totalCount:totalCount
           // } ));
-          
+          await redisClient.set(redisKey, JSON.stringify( {status: 200,
+            data:resData,
+            totalCount:totalCount}), {
+            EX: 24 * 60 * 60 * 2 // 2 days in seconds
+        });
           res.send({
             status: 200,
             data:resultData,
