@@ -19,22 +19,19 @@ export class CreditorsService {
     let data = req.body;
    
     try {
-      // let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
-      // if (!cookieData) {
-      //   res.status(500).send({
-      //     status_code: 500,
-      //     message: 'Missing_cookie',
-      //     status: false,
-      //   })
-      // }
+      if (!cookieData) {
+        res.status(500).send({
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        })
+      }
 
-      // let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      // let accessToken = cookie.access_Token;
-      // let isBexioUser = cookie.isBexioUser;
-  
-  let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDM1MTM4MTUsImlhdCI6MTc0MzUxMDIxNSwianRpIjoiOTUxNTBmZGYtMTQwYi00ZWQ4LTlkY2UtZjMyNWQ5ZDI1YmU0IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiI0NmQ4NGZkZC0zNTYwLTQ3OGMtYjEwYi0zZGM1YzQ2YmE5ZTYiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.ACTMQ0_Ku5f9P322eklKPuomDtTfwo3tHe0pSrSvPmP9bhe72Wk2OCyK5XGgTVqQ8ESgi43O-RXKzij7yRC9TjPuIcZAWwF7eadeNNBJikACNcirp0GWAt67LB_svE8GqCzkGtxKiZzGMEWnj32PLRJN2w00zvjhahcHplOVZJ5H_btMb9Kvw5UddEwRb52yQDZ_G7nVLxXeNXUEJUEUVsN1GYC2V4rOEVQYrQBSiZ2-2Sq6jPXlEPbnXfXDbVrxLaJ0f7vkIPx0QiAC6zRDdTtgxd2oJsMmk5IHK7TDQXQjtS8W5AdGIQNJAlYuRG3OptSAWD4VjdyJMbXo2L0jCA'
-  let isBexioUser = true
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      let accessToken = cookie.access_Token;
+      let isBexioUser = cookie.isBexioUser;
       let contacts;
       let showTo:number;
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
@@ -211,22 +208,19 @@ export class CreditorsService {
     let data = req.body
     let partyId = req.body.partyId;
     try {
-      // let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
-      // if (!cookieData) {
-      //   res.status(500).send({
-      //     status_code: 500,
-      //     message: 'Missing_cookie',
-      //     status: false,
-      //   })
-      // }
+      if (!cookieData) {
+        res.status(500).send({
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        })
+      }
 
-      // let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      // let accessToken = cookie.access_Token;
-      // let isBexioUser = cookie.isBexioUser;
-     
-  let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDM1ODAyOTksImlhdCI6MTc0MzU3NjY5OSwianRpIjoiNzU2NDg1YmYtYTk5Mi00YjY0LTk0ZmEtZjMyMDY1MzExNjY3IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiJhYjQyNWNkYi1hODM0LTQ2OGQtYjE1ZC05ZDQyZDRlZjdmNzciLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.X7grbSNJx1qybldzoNKaPup7P86xviEF93pVazsCZN8aJWtydsPk44KBdfX7ZQfl8ytI4IAAz9oh36-nwF1iz5dB3t3jaS8WMBuJFtUrj1sace6qnxAlb037QITgFdG4dWckDEc43j7zS1iEwO303wTbF_w9KTqG2gl-4X0paLMOsYG_uTY0BIdvqneio8NCp5gcifZtSQz4vVw3Z0iMU5XWN4LQGC0Q4yGYp-j3_nk0QD2BhL4As_Yk2rnC3QPRviiRr4KjOjC9zCy0Ur-YLm-ImSZ45Wh9uCt5P37QACljoqAdvsbykZmCsvAO6huTKy5lh474ZR8kX47s3quGAQ'
-  let isBexioUser = true
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      let accessToken = cookie.access_Token;
+      let isBexioUser = cookie.isBexioUser;
       let resultData: any[] = [],tempStatus = false;
       let totalCount;
       let sortColumn = 'updated_at';
