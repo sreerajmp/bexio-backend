@@ -26,5 +26,10 @@ export class DebtorsController {
   // console.log('Received body:', req);
   return this.debtorsService.getOrderList(req,res);
   }
-  
+  @Post('getDeliveryNotesList')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getDeliveryNotesList(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.debtorsService.getDeliveryNotesList(req,res);
+  }
 }

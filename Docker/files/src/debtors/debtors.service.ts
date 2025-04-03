@@ -19,848 +19,14 @@ import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 @Injectable()
 export class DebtorsService {
-//   async getInvoice(req: Request ): Promise<any> {
-//     //console.log(('getNetcomIdQry');
-//   }
-//   async getInvoice(req: Request, res: Response, ): Promise<any> {
-//     //console.log(('getNetcomIdQry');
-//     let cookie = null
-//     let data = req.body
-//     //console.log(('req.body',req.body);
-    
-//     let partyId = req.body.partyId;
-
-//     try {
-//       // let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-  
-//       // if (!cookieData) {
-//       //   res.status(500).send({
-//       //     status_code: 500,
-//       //     message: 'Missing_cookie',
-//       //     status: false,
-//       //   })
-//       // }
-      
-//       // let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-//       // let accessToken = cookie.access_Token;
-//       // let isBexioUser = cookie.isBexioUser;
-//       let accessToken ='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMwNzk4OTIsImlhdCI6MTc0MzA3NjI5MiwianRpIjoiNTcxNjM2N2UtZTkxZS00NjdjLWE2NDQtMTg1ZGUzZGE2Yjc0IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiI4ZTRjNWZiZi02MjMyLTRiOTUtODFiYi0zNjAwM2MzYmNiMjkiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.CKIukEVH0Q_L2wgrCAYDDnX0wEyVyB7jMJpyOclW4csgBVErs6ZmK8lwbyGoZUcmDerz3O22nXxKn9zLd2uGJGq04khWAsnbyCJAOGnzdaOViG95eC-6xaA_cNAWHNRGj2TkGz65FsxhhA_-X7sDQZI29tgr9CQo_c3lVVtHH9zaPycpNeQenovExmQM2j-vDGhGpckES4N5sGhM4X8_4qI19P3oQePqFdMpztcKHol1GiWT47FoOY0Q55AzWoHL8p7MN4ugv_VR_O_Jt5pSZa3GoIIsnVZLVJ0lD1lGbktcg_v4YF1yHtJH_ZjlSqOtTG1cHqojC5o8vtwN-ie_CA'
-//       let isBexioUser = true
-//       let resultData: any[] = [],tempStatus = false;
-//       let totalCount;
-//       let sortColumn = 'updated_at';
-//       let sortType = 'asc';
-  
-//       let showFrom = req.body.records_per_page * (req.body.page_number-1);
-//       let showTo = req.body.records_per_page;
-//       sortColumn = req.body?.sortColumn;
-//       sortType = req.body?.sort;
-  
-//       const invoiceList = await connectBexio.documents_invoice_send.findMany({
-//         where: {
-//           invoice_type: 'EDI',
-//           companyregistered: {
-//             rk_party:  Number(req.body?.partyId)
-//           }
-//         },
-//         include: {
-//           companyregistered: true // Fetch related companyregistered data
-//         }
-//       });
-      
-//       //console.log(('invoiceList',invoiceList);
-
-//       const getNetcomId = await connectBexio.$queryRaw<any>(
-//         Prisma.sql`
-//           SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
-//         `
-//       );
-
-//       // //console.log(('partyId',partyId);
-  
-//       // //console.log(('getNetcomIdQry',getNetcomId);
-//       // //console.log(('getNetcomId',getNetcomId[0].netcomid);
-  
-//       // NEW
-//       const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-//         Prisma.sql`
-//           SELECT array_agg(pa.cid) AS cid 
-//           FROM party_account pa 
-//           WHERE pa.fk_party = ${Number(partyId)}
-//         `
-//       );
-      
-//       const invitedCids = getInviteCompanyId[0]?.cid || []; // Extract CIDs safely
-      
-    
-//     // //console.log(('getInviteCompanyId.rows[0].cid',getInviteCompanyId[0].cid);
-
-
-    
-//     const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
-//       Prisma.sql`
-//         SELECT array_agg(rk_businessconnection) AS bcConnection
-//         FROM contact_bc cb
-//         WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
-//         AND cb.type = 'EDI'
-//         AND cb.rk_businessconnection IS NOT NULL
-//       `
-//     );
-    
-// const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
-//      // //console.log(('bcDetails12121222');
-//       let bcDetails;
-//       bcDetails = await this.getBcDetails(bcConnectionIds,getNetcomId[0].netcomid);
-  
-//    //   //console.log(('bcDetails12121222',bcDetails['data']);
-//       let tempBc = [0];
-//       if (bcDetails?.data?.length) {
-//         for (const element of bcDetails.data) {
-//           if (element?.company_details?.doc_type?.data === 'Invoice') {
-//             tempBc.push(element.bc_id);
-//           }
-//         }
-//       }
-      
-   
-//      // //console.log(('tempBc',tempBc);
-      
-     
-
-
-//      const getConnectionBc = await connectBexio.$queryRaw<{ array_agg: string[] }[]>(Prisma.sql`
-//      SELECT array_agg(rk_sendercontactid) 
-//      FROM contact_bc cb
-//      WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
-//      AND cb.type = 'EDI'
-//      ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
-//      AND cb.rk_businessconnection IS NOT NULL
-//    `);
-   
-
-//     //  //console.log(('getConnectionBc',getConnectionBc);
-     
-//       let resultArray = getConnectionBc[0]?.array_agg;
-//       if(isBexioUser)
-//       {
-      
-//         let options;
-     
-//         console.log('************************************');
-//         if(data['documentNo'] != '' || data['invoiceTitle'] != '' || data['dateFrom'] != '' || data['dateTo'] != '' || data['comapnyUser'] != '' || data['invoiceStatus'] == 'Yes' || data['invoiceStatus'] == 'No')
-//         {
-          
-//           const getSendInvoiceList = await connectBexio.$queryRaw<{ invoiceid: string[] }[]>(Prisma.sql`
-//           SELECT array_agg(ds.rk_invoice) AS invoiceId 
-//           FROM documents_invoice_send ds
-//           INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-//           WHERE c.rk_party = CAST(${partyId} AS INTEGER)  
-//           AND ds.status = 2
-//           AND ds.invoice_type = 'EDI'
-//         `);
-
-//        //   //console.log(("getSendInvoiceQry",getSendInvoiceList[0].invoiceid);
-  
-//           let searchJson: any[] = [];
-
-//           if (data['documentNo'] !== '' && data['documentNo']) {
-//             searchJson.push({
-//               "field": "document_nr",
-//               "value": data.documentNo,
-//               "criteria": "like"
-//             });
-//           }
-//           if(data['documentNo'] != '' && data['documentNo']){
-//             searchJson.push({
-//               "field":"document_nr",
-//               "value": data.documentNo,
-//               "criteria":"like"
-//             })
-//           }
-//           if(data['invoiceTitle'] != '' && data['invoiceTitle']){
-//             searchJson.push({
-//               "field":"title",
-//               "value":data.invoiceTitle,
-//               "criteria":"like"
-//             })
-//           }
-         
-//           if( data['dateFrom'] != "" && data['dateFrom']){
-//             searchJson.push({
-//               "field":"is_valid_from",
-//               "value" :new Date(data.dateFrom),
-//               "criteria":">="
-//             })
-//           }
-//           if( data['dateTo'] != "" && data['dateTo']){
-//             searchJson.push({
-//               "field":"is_valid_from",
-//               "value":new Date(data.dateTo),
-//               "criteria":"<="
-//             })
-//           }
-//           if(data['comapnyUser'] != '' && data['comapnyUser']){
-  
-  
-//             searchJson.push({
-//               "field":"user_id",
-//               "value":data.comapnyUser,
-//               "criteria":"="
-//             })
-//           }
-//           if(data['invoiceStatus'] == 'Yes'){
-  
-//             //console.log(('typeof',resultArray==null);
-            
-//             searchJson.push({
-//               "field":"contact_id",
-//               "value":resultArray==null ? "" : resultArray,
-//               "criteria":"in"
-//             },
-//             {
-//               "field":"id",
-//               "value":getSendInvoiceList[0].invoiceid ? getSendInvoiceList[0].invoiceid : "",
-//               "criteria":"in"
-//             })
-//           }
-//           if(data['invoiceStatus'] == 'No'){
-            
-//             searchJson.push({
-//               "field":"contact_id",
-//               "value":resultArray==null ? "" : resultArray,
-//               "criteria":"in"
-//             },
-//             {
-//               "field":"id",
-//               "value":getSendInvoiceList[0].invoiceid ? getSendInvoiceList[0].invoiceid : "",
-//               "criteria":"not_in"
-//             })
-//           }
-//          // //console.log(('searchJsonsearchJson',searchJson.length);
-//           if(searchJson.length != 0)
-//           {
-//             totalCount = await invoiceCountSearch(accessToken,searchJson,0,2000)
-//             options = {
-//               'method': 'POST',
-//               'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-             
-//               'headers': {
-//                 'Accept': 'application/json',
-//                 'Authorization': 'Bearer '+accessToken
-//               },
-//               body: JSON.stringify(searchJson)
-//             };
-//           }else{
-//             totalCount = await this.invoiceListCountSearch(accessToken,0,2000);
-            
-            
-//             options = {
-              
-//               'method': 'GET',
-//               // 'url': `${config.BEXIO_API}2.0/kb_invoice`,
-//               'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-//               'headers': {
-//                 'Accept': 'application/json',
-//                 'Authorization': 'Bearer '+accessToken
-//               }
-    
-//             }; 
-//           }
-        
-//           // //console.log(('totalCount',options);
-//           // //console.log(('totalCount',totalCount);
-        
-//           // totalCount = await  contactListCountSearch(accessToken,0,2000);
-  
-//         }
-//         else{
-//           totalCount = await this.invoiceListCountSearch(accessToken,0,2000);
-//           console.log('totalCount',totalCount);
-//           options = {
-//             'method': 'GET',
-//             // 'url': `${config.BEXIO_API}2.0/kb_invoice`,
-//             'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-//             'headers': {
-//               'Accept': 'application/json',
-//               'Authorization': 'Bearer '+accessToken
-//             }
-  
-//           }; 
-//         }  
-//         request(options, async function (error, response) {
-//           if (error) {
-//             commonErrors['errorTitle'] = req.originalUrl;
-//             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
-//             warningMessage(commonErrors,error);
-//             return res.status(200).json({
-//               status: false,
-//               message: 'something_went_wrong',
-//               error: JSON.stringify(error)
-//           });
-//           }
-//           let resData = JSON.parse(response.body);
-          
-//           if(response.statusCode != 200)
-//           return res.status(200).json({
-//             status: true,
-//             status_code : response.statusCode,
-//             data: [],
-//             message: 'unauthorized',
-//           });
-//           //'url': `${config.BEXIO_API}2.0/kb_invoice?order_by=updated_at_desc`,
-//           let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
-//           let contact_idList: any[] = [];
-//           for (let invoice in resData) {
-//             tempStatus = false;
-//             resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id).toString()) ? true:false:false;
-//             console.log('****************',resData[invoice].contact_id);
-//             contact_idList.push((resData[invoice].contact_id));
-//             resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
-//             resData[invoice]['timestamp'] = '';
-//             //resData[invoice]['companyName'] = resData[invoice]['contact_address'].split("\n")[0];
-//             resData[invoice]['rk_globaltransaction'] = '';
-//             resData[invoice]['status'] = '';
-//             resData[invoice]['statusLabelInvoice'] = '';        
-//             for (let qryInvoice of invoiceList) {
-//               if (qryInvoice['rk_invoice'] === resData[invoice]['id']) {
-//                   resData[invoice]['rk_globaltransaction'] = qryInvoice['rk_globaltransaction'];
-//                   resData[invoice]['status'] = qryInvoice['status'];
-//                   const invoiceStatusMap = JSON.parse(config.INVOICE_STATUS || '{}');
-//                   const statusKey = qryInvoice['status'] ?? ''; 
-//                   resData[invoice]['statusLabelInvoice'] = invoiceStatusMap[statusKey] || '';
-
-//                   resData[invoice]['timestamp'] = qryInvoice['timestamp'];
-//                   resData[invoice]['type'] = qryInvoice['type'];
-//                   resData[invoice]['response'] = qryInvoice['response']; // Added response from documents_invoice_send to show the error message in the front end.
-          
-//                   if (qryInvoice['status'] === 2) {
-//                       resData[invoice]['allowSend'] = false;
-//                   }
-//                   if (!tempStatus && qryInvoice['type'] === 'EBILL') {
-//                       tempStatus = true;
-//                   }
-//                   break; // Exit the loop once a match is found
-//               }
-//           }
-          
-//             if(!tempStatus){
-//               // //console.log(('12332145',resData[invoice]);
-              
-//               resData[invoice]['isEbill'] = false;
-//             }else{
-//               resData[invoice]['isEbill'] = true;
-//               resData[invoice]['allowSend'] = false;
-  
-//             }    
-//             resultData.push(resData[invoice]);
-//           }
-//           let contactList:any = [];
-//           // Search contact list from bexio to get name_1 and name_2
-//           console.log("tyu", typeof contact_idList)
-//           console.log("contact_idList", contact_idList)
-//           contactList = await getContactById(accessToken,contact_idList);
-//           // Loop to add name_1 and name_2  from contact list to the resultData as companyName.
-//           let contactNameList = {};
-//           if(!contactList)
-//           {
-//             res.send({
-//               status: 500,
-//               data:[]
-//             });
-//             return
-//           }
-       
-//           contactList.forEach(element => {         
-//             let name_1 = element.name_1 ? element.name_1 : '';
-//             let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
-//             contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
-//           });
-//           let currencyList = {};
-//           let currency: any = [];
-//           // Get all currency from bexio to map the currency_id in every invoice.
-//           currency = await getAllCurrency(accessToken);
-//           currency.forEach(element => {
-//             currencyList[element.id] = element.name;
-//           });
-//           resultData.forEach((second) => {
-//             second.companyName = contactNameList[second["contact_id"]];
-//             second.currency = currencyList[second['currency_id']];
-//           });
-//           let keys = Object.keys(req.body)
-//           // let redisKey = req.url+"_"+req.body.partyId+"_";
-//           let redisKey = req.body.partyId+"_"+req.url+"_";
-//           // //console.log(('redisKey',redisKey);
-//           keys.forEach(element => {
-//               redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-//           });
-//           await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
-//             status: 200,
-//             data:resData,
-//             totalCount:totalCount
-//           } ));
-          
-//           res.send({
-//             status: 200,
-//             data:resultData,
-//             totalCount:totalCount
-//           })
-//         });
-//       }
-//       else{
-//         return res.status(401).json({
-//           status: 'fail',
-//           message: 'unauthorized',
-//         });
-//       }
-//     } catch (error) {
-    
-      
-//       //console.log((error);
-//       commonErrors['errorTitle'] = req.originalUrl;
-//       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-//       warningMessage(commonErrors,error);
-//       return res
-//       .status(200)
-//       .json({ status: 500, message: 'something_went_wrong' });
-        
-//     }
-//   }
-//     async getBcDetails(bc_id,netcomId ): Promise<any> {
-   
-//     try{
-     
-//       // //console.log(('654');
-//       // //console.log(('bc_id:: ',bc_id);
-//       // //console.log(('netcomId:: ',netcomId);
-      
-     
-//       return new Promise(async(resolve, reject) => {
-//         if(bc_id){
-//           let formData = {
-//             bc : bc_id.toString(),
-//             netcom_id : netcomId
-//           } 
-//           // //console.log(('formData',formData);
-          
-//           let  options = {
-//             'method': 'POST',
-//             'url': config.PYTHON_API+'get-contact-bc',
-//             // 'url': 'http://192.168.2.166:5005/api/'+'get-contact-bc',
-  
-//             formData: formData
-//           };
-  
-//           request(options, async function (error, response, body) {
-//             if (error) {  
-//               commonErrors['errorTitle'] = 'getBcDetails';
-//               warningMessage(commonErrors,error);
-//               resolve(false)
-//             }else{
-//               // //console.log(('1111111111');
-              
-//               resolve(JSON.parse(response.body));
-//             }
-            
-          
-//           });
-//         }else{
-//           resolve(false)
-//         }
-         
-//         });
-//     } catch (error) {
-//         commonErrors['errorTitle'] = 'getCountryLists';
-//         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+'access_token';
-//         warningMessage(commonErrors,error);
-//         // fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-//         //   // res.send();
-//         //   resolve('');
-//         // });
-//       }
-//   }
-
-  
-
-
-
-
-
-//   async getEbillInvoice(req: Request, res: Response, ): Promise<any> {
-//   let cookie = null
-//   // let encrToken = encryptionControl.decrypt(req.body.encrToken);
-//   let encrToken = req.body;
-
-//   let netcomId = encrToken.netcomId;
-//   let data = encrToken;
-
-//   try {
-  
-//     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-  
-//       if (!cookieData) {
-//         res.status(500).send({
-//           status_code: 500,
-//           message: 'Missing_cookie',
-//           status: false,
-//         })
-//       }
-      
-//       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-//       let accessToken = cookie.access_Token;
-//       let isBexioUser = cookie.isBexioUser;
-
-
-
-//       let resultData: any[] = [],tempStatus = false;
-//     let totalCount;
-//     let sortColumn = 'updated_at';
-//     let sortType = 'asc';
-
-  
-//     let showFrom = req.body.records_per_page * (req.body.page_number-1);
-//     let showTo = req.body.records_per_page;
-//     sortColumn = req.body?.sortColumn;
-//     sortType = req.body?.sort;
-
-   
-
-//     const invoiceList = await connectBexio.documents_invoice_send.findMany({
-//       where: {
-//         invoice_type: 'EBILL',
-//         companyregistered: {
-//           netcomid: netcomId
-//         }
-//       },
-//       include: {
-//         companyregistered: true // Include related companyregistered data
-//       }
-//     });
-    
-//     let tempBc = [0];
-    
-  
-   
-//     const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
-//       Prisma.sql`
-//         SELECT array_agg(rk_contact) 
-//         FROM contact_bc c 
-//         INNER JOIN companyregistered cr 
-//         ON cr.cid = c.fk_companyregistered
-//         WHERE c.type = 'EBILL' 
-//         AND cr.netcomid = ${netcomId}
-//       `
-//     );
-    
-   
-//       let contactArray = getContactBcQryReslt[0].array_agg;
-
-    
-    
-//     if(isBexioUser)
-//     {
-    
-//       let options;
- 
-
-//     const getSendInvoiceList = await connectBexio.$queryRaw<{ invoiceid: string[] }[]>(
-//       Prisma.sql`
-//       SELECT array_agg(rk_invoice) AS invoiceId
-//       FROM documents_invoice_send ds
-//       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-//       WHERE c.netcomid = ${netcomId}
-//       AND ds.invoicetype = 'EBILL'
-//       ${data.shippingStatus ? Prisma.sql`AND ds.status = ${data.shippingStatus}` : Prisma.empty}
-//       `
-//     );
-
-//         let searchJson: any[] = [];
-         
-//         if(data['documentNo'] != '' && data['documentNo']){
-//           searchJson.push({
-//             "field":"document_nr",
-//             "value": data.documentNo,
-//             "criteria":"like"
-//           })
-//         }
-//         if(data['invoiceTitle'] != '' && data['invoiceTitle']){
-//           searchJson.push({
-//             "field":"title",
-//             "value":data.invoiceTitle,
-//             "criteria":"like"
-//           })
-//         }
-       
-//         if( data['dateFrom'] != "" && data['dateFrom']){
-//           searchJson.push({
-//             "field":"is_valid_from",
-//             "value" :new Date(data.dateFrom),
-//             "criteria":">="
-//           })
-//         }
-//         if( data['dateTo'] != "" && data['dateTo']){
-//           searchJson.push({
-//             "field":"is_valid_from",
-//             "value":new Date(data.dateTo),
-//             "criteria":"<="
-//           })
-//         }
-//         if(data['comapnyUser'] != '' && data['comapnyUser']){
-
-
-//           searchJson.push({
-//             "field":"user_id",
-//             "value":data.comapnyUser,
-//             "criteria":"="
-//           })
-//         }
-//         if(data['invoiceStatus'] == 'Yes'){
-
-         
-//           searchJson.push(
-         
-//           {
-//             "field":"id",
-//             "value":getSendInvoiceList[0].invoiceid ? getSendInvoiceList[0].invoiceid : "",
-//             "criteria":"in"
-//           })
-//         }
-      
-        
-//         if(data['invoiceStatus'] == 'No'){
-          
-//           searchJson.push(
-        
-//           {
-//             "field":"id",
-//             "value":getSendInvoiceList[0].invoiceid ? getSendInvoiceList[0].invoiceid : "",
-//             "criteria":"not_in"
-//           })
-//         }
-      
-//         if(data['shippingStatus'] != ''){
-          
-//           searchJson.push(
-//           {
-//             "field":"id",
-//             "value":getSendInvoiceList[0].invoiceid ? getSendInvoiceList[0].invoiceid : "",
-//             "criteria":"in"
-//           })
-//         }
-       
-//         if(req.body.contactId != ''){
-//           contactArray = [];
-//           contactArray.push(req.body.contactId);
-//           searchJson.push({
-//             "field":"contact_id",
-//             "value":contactArray,
-//             "criteria":"in"
-//           })
-//         }else{
-//           searchJson.push({
-//             "field":"contact_id",
-//             "value":contactArray,
-//             "criteria":"in"
-//           })
-//         }
-       
-      
-//           totalCount = await this.invoiceCountSearch(accessToken,searchJson,0,2000)
-//           options = {
-//             'method': 'POST',
-//             'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-//             // 'url': `${config.BEXIO_API}2.0/kb_invoice/search`,
-           
-//             'headers': {
-//               'Accept': 'application/json',
-//               'Authorization': 'Bearer '+accessToken
-//             },
-//             body: JSON.stringify(searchJson)
-//           };
-//           //console.log(('options1111',options);
-          
-       
-//         //   totalCount = await invoiceListCountSearch(accessToken,0,2000);
-//         //   options = {
-            
-//         //     'method': 'GET',
-//         //     // 'url': `${config.BEXIO_API}2.0/kb_invoice`,
-//         //     'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-//         //     'headers': {
-//         //       'Accept': 'application/json',
-//         //       'Authorization': 'Bearer '+accessToken
-//         //     }
-  
-//         //   }; 
-//         // }
-      
-//         // //console.log(('totalCount',options);
-//         // //console.log(('totalCount',totalCount);
-      
-//         // totalCount = await  contactListCountSearch(accessToken,0,2000);
-
-//       // }
-//       // else{
-//       //   totalCount = await invoiceListCountSearch(accessToken,0,2000);
-//       //   options = {
-//       //     'method': 'GET',
-//       //     // 'url': `${config.BEXIO_API}2.0/kb_invoice`,
-//       //     'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-//       //     'headers': {
-//       //       'Accept': 'application/json',
-//       //       'Authorization': 'Bearer '+accessToken
-//       //     }
-
-//       //   }; 
-//       // }  
-//       request(options, async function (error, response) {
-//         if (error) {
-//           commonErrors['errorTitle'] = req.originalUrl;
-//           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
-//           warningMessage(commonErrors,error);
-//           return res.status(200).json({
-//             status: false,
-//             message: 'something_went_wrong',
-//             error: JSON.stringify(error)
-//         });
-//         }
-//         let resData = JSON.parse(response.body);
-//         if(response.statusCode != 200)
-//         return res.status(200).json({
-//           status: true,
-//           status_code : response.statusCode,
-//           data: [],
-//           message: 'unauthorized',
-//         });
-     
-//         let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
-//         let contact_idList:any = [];
-//         for (let invoice in resData) {
-//           tempStatus = false;
-//           // resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id).toString()) ? true:false:false;
-//           resData[invoice]['allowSend'] = "true";
-//           contact_idList.push((resData[invoice].contact_id));
-//           resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
-//           resData[invoice]['timestamp'] = '';
-//           //resData[invoice]['companyName'] = resData[invoice]['contact_address'].split("\n")[0];
-//           resData[invoice]['rk_globaltransaction'] = '';
-//           resData[invoice]['status'] = '';
-//           resData[invoice]['statusLabelInvoice'] = '';     
-          
-//           // //console.log(('invoiceList.rows',invoiceList.rows);
-          
-//           for (let qryInvoice of invoiceList) {  // Correct loop
-//             if (qryInvoice.rk_invoice === resData[invoice].id) {  // Correct object access
-             
-//               resData[invoice]['rk_globaltransaction'] = qryInvoice['rk_globaltransaction'];
-//                 resData[invoice]['status'] = qryInvoice['status']
-//               const invoiceStatusMap = JSON.parse(config.INVOICE_STATUS || '{}');
-//               const statusKey = qryInvoice['status'] ?? ''; 
-//               resData[invoice]['statusLabelInvoice'] = invoiceStatusMap[statusKey] || '';
-              
-//               resData[invoice]['timestamp'] = qryInvoice['timestamp'];
-//               resData[invoice]['type'] = qryInvoice['type'];
-//               resData[invoice]['response'] = qryInvoice['response'];
-//               resData[invoice]['allowSend'] = qryInvoice.status !== 2; // Simplified condition
-          
-//               if (!tempStatus && qryInvoice['type'] === 'EBILL') {
-//                 tempStatus = true;
-//               }
-//               break;  // Stop iteration after finding a match
-//             }
-//           }
-
-//           if(!tempStatus){
-//             resData[invoice]['isEbill'] = true;
-//           }else{
-//             resData[invoice]['isEbill'] = false;
-//             resData[invoice]['allowSend'] = false;
-
-//           }        
-//           resultData.push(resData[invoice]);
-//         }
-//         let contactList:any = [];
-//         // Search contact list from bexio to get name_1 and name_2
-//         contactList = await this.getContactById(accessToken,contact_idList);
-//         // Loop to add name_1 and name_2  from contact list to the resultData as companyName.
-//         let contactNameList = {};
-//         if(!contactList)
-//         {
-//           res.send({
-//             status: 500,
-//             data:[]
-//           });
-//           return
-//         }
-     
-//         contactList.forEach(element => {         
-//           let name_1 = element.name_1 ? element.name_1 : '';
-//           let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
-//           contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
-//         });
-//         let currencyList = {};
-//         let currency: any = [];
-//         // Get all currency from bexio to map the currency_id in every invoice.
-//         currency = await this.getAllCurrency(accessToken);
-//         if(currency)
-//         {
-//           currency?.forEach(element => {
-//             currencyList[element.id] = element.name;
-//           });
-//         }
-      
-//         resultData?.forEach((second) => {
-//           second.companyName = contactNameList[second["contact_id"]];
-//           second.currency = currencyList[second['currency_id']];
-//         });
-//         let keys = Object.keys(req.body)
-//         // let redisKey = req.url+"_"+req.body.partyId+"_";
-//         let redisKey = req.body.netcomid+"_"+req.url+"_";
-//         // //console.log(('redisKey',redisKey);
-//         keys.forEach(element => {
-//             redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-//         });
-//         await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
-//           status: 200,
-//           data:resData,
-//           totalCount:totalCount
-//         } ));
-        
-//         res.send({
-//           status: 200,
-//           data:resultData,
-//           totalCount:totalCount
-//         })
-//       });
-//     }
-//     else{
-//       return res.status(401).json({
-//         status: 'fail',
-//         message: 'unauthorized',
-//       });
-//     }
-//   } catch (error) {
-  
-//     commonErrors['errorTitle'] = req.originalUrl;
-//     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-//     warningMessage(commonErrors,error);
-//     return res
-//     .status(200)
-//     .json({ status: 500, message: 'something_went_wrong' });
-      
-//   }
-// }  
-  async getInvoice(req: Request, res: Response,): Promise<any> {
-
-  
-    let cookie = null
+ async getInvoice(req: Request, res: Response,): Promise<any> {
+  let cookie = null
     let data = req.body
-  
-let resData
+    let resData
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-
       if (!cookieData) {
         res.status(500).send({
           status_code: 500,
@@ -872,8 +38,8 @@ let resData
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
-  // let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMyNDIyNjEsImlhdCI6MTc0MzIzODY2MSwianRpIjoiMWZjYTU4ZGQtY2E5OS00ZTQ4LTllODgtZmQwZWQ4MGFkODg3IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiIxNmExYmIwOC1lMjgwLTQyZjgtYTVjOC01ZmQ3Njk4YmFjOWQiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.SprONltpwI9E1d4o3212zTpMlFhZJQ6nvT8F6hmQmU9NTzLYRVke0gJaRrWc5mOFLUOozW0hN6ComQe2wrN-bsr_gtYrKcQP5O0b-XXnhWL-q-da_Qw_obgHoPn_NhSxb-rLEXDC8IqP5RBPUEZ9aZK3w4tKuhHhlxjhp7lYuiNbBKjNlbBrV7Uzmb143f0JMMrihf55TWDtgHOz_ed0NjMJOTJoiZDn2rbobBR1DyzYr7cuBUIe9kQ997ARTjjnprIhFgf6i6je8g3WNM8y5VJfJn3qIuvY6PZYB6a1eo9EoJZG8OdcjQMlOgXuR4v4RLI-lj5KLR1OHyquWJufvg'
-  // let isBexioUser = true 
+ console.log('accessToken',accessToken);
+ 
   let resultData: any[] = [], tempStatus = false;
       let totalCount;
       let sortColumn = 'updated_at';
@@ -885,6 +51,57 @@ let resData
       sortType = req.body?.sort;
       let resultArray
       let contactArray
+
+
+    //   const getBillerData = await prisma.$queryRaw`
+    //   SELECT b.billerid
+    //   FROM biller b
+    //   WHERE b.netcomid = ${netcomId}
+    // `;
+    
+    // console.log(getBillerData);
+
+    //   if (getBillerData.recordset.length) {
+    //     const getSubcribeDetails = `SELECT * from 
+    //   (SELECT r.recipientid
+    //       ,r.name AS surname
+    //       ,r.firstname
+    //       ,r.email
+    //       ,r.streetnumber
+    //       ,r.street
+    //       ,r.zip
+    //       ,r.city
+    //       ,r.countrycode
+    //       ,r.created
+    //       ,r.lastupdate
+    //       ,r.SubscriptionFormFieldsJSON AS subscription
+    //       ,r.party_specific_id
+    //       ,r.id as subscriptionId
+    //       ,r.status,ROW_NUMBER() OVER (order by r.created DESC) as RowNumber  FROM recipient r
+    //   INNER JOIN biller b
+    //   ON b.id = r.fk_biller WHERE r.islinked = '${isLinked}' AND b.billerid ='${getBillerData.recordset[0].billerid}'
+    //   AND r.email LIKE '${emailValue}' AND r.recipientId LIKE '${reciepentValue}'
+    //   AND (r.firstname  LIKE '${nameValue}' OR r.name LIKE '${nameValue}') 
+    //   ) temp`;
+    //     const getData = await pool.query(getSubcribeDetails)
+    //     if (getData.recordset.length) {
+    //       return res.status(status_code.OK).json({
+    //         data: getData.recordset,
+    //         status_code: 200,
+    //         message: 'subscriber_details',
+    //         status: true,
+    //       });
+    //     }
+    //     else {
+          
+    //       return res.status(status_code.OK).json({
+    //         data: [],
+    //         status_code: 200,
+    //         message: 'no_data_found',
+    //         status: true,
+    //       });
+    //     }
+    //   }
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
           companyregistered: {
@@ -1123,16 +340,11 @@ if (!postRes.status || !getRes.status) {
       message: "unauthorized",
   });
 }
-  
+postRes.data = postRes.data.map(item => ({ ...item, isEbill: true }));
+getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
     // Combine both responses
     resData = [...postRes.data, ...getRes.data];
-
-  
 }
-
-    
-
-
 if(resData){
 
            let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
@@ -1140,8 +352,9 @@ if(resData){
         for (let invoice in resData) {
           console.log('resData[invoice].contact_id',resData[invoice].contact_id);
           
-          tempStatus = false;
-          resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
+          // tempStatus = false;
+          // resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
+          resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true  : false;
           // resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id)) ? true:false:false;//edi
           // resData[invoice]['allowSend'] = "true";//ebill
           contact_idList.push((resData[invoice].contact_id));
@@ -1163,23 +376,23 @@ if(resData){
                 {
                   resData[invoice]['allowSend'] = false;
                 }
-                if(!tempStatus && invoiceList[qryInvoice]?.invoice_type === 'EBILL'){
-                  tempStatus = true;
-                }
+                // if(!tempStatus && invoiceList[qryInvoice]?.invoice_type === 'EBILL'){
+                //   tempStatus = true;
+                // }
                 break;
             }
             // else
               // resultData.push(resData[invoice]);
           }
-          if(!tempStatus){
-            // console.log('12332145',resData[invoice]);
+          // if(!tempStatus){
+          //   // console.log('12332145',resData[invoice]);
             
-            resData[invoice]['isEbill'] = false;
-          }else{
-            resData[invoice]['isEbill'] = true;
-            resData[invoice]['allowSend'] = false;
+          //   resData[invoice]['isEbill'] = false;
+          // }else{
+          //   resData[invoice]['isEbill'] = true;
+          //   resData[invoice]['allowSend'] = false;
 
-          }    
+          // }    
           resultData.push(resData[invoice]);
         }
         let contactList:any = [];
@@ -1265,8 +478,6 @@ else{
 
     }
   }
-
-
   async getOrderList(req: Request, res: Response,): Promise<any> {
     let cookie = null
     let data = req.body;
@@ -1285,8 +496,7 @@ else{
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
-  // let accessToken='eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDMyNTU3MzYsImlhdCI6MTc0MzI1MjEzNiwianRpIjoiYTM3ZDhmMTMtMzhmYy00NjYwLTlhMjAtNTIzYzU2Nzg1NTA2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiIxNmExYmIwOC1lMjgwLTQyZjgtYTVjOC01ZmQ3Njk4YmFjOWQiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.GD2ZVVTF9JV9UaxrT_EujWmf8K2Zz5ZO3KLP3v1DIBDrAHvFkwE9kYqXye8v-pW-eUM7xwsrMyxHnQ9Mh3cq0cQKbrDJviC64G-jG8YwvKfEbvRMtyrYWiEUy14JVX9GJozHr_k0UiW5YpPfNG_BjkkigwtItop82WbJ1S4OLPeM1Bw6QMuD-2JGqflsHh87A8MExSlPv4b2zJttLpRY4tiPpafFPk5abqNJ4b2WE9TbLh_qMJlTs41Sb0y0iUliccEmSOykHO4-b0bRckt1dXq2ojnoH2jtQIFjsf2BXeUXlscaOcnSrJojcSqfJ0tSzEcEU07VhPVSGUdlyBzMzQ'
-  // let isBexioUser = true
+
       let contacts;
       let showTo:number;
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
@@ -1347,7 +557,7 @@ else{
             
             const orderList = await connectBexio.documents_order_receive.findMany({
               where: {
-                fk_companyregistered: 2,
+                fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
                   gte: validDate(data.dateFrom),
                   lte: validDate(data.dateTo),
@@ -1460,8 +670,224 @@ else{
         
     }
   }
- 
+  async getDeliveryNotesList(req: Request, res: Response,): Promise<any> {
 
+    console.log("getDeliveryNotesList");  
+    let cookie = null;
+    let data = req.body;
+    let partyId = req.body.partyId;
+    
+    let netcomId;
+    console.log("req.body ",req.body);  
+    try {
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+
+      if (!cookieData) {
+        res.status(500).send({
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        })
+      }
+
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      let accessToken = cookie.access_Token;
+      let isBexioUser = cookie.isBexioUser;
+  
+  let resultData: any[] = [],tempStatus = false;
+      let totalCount;
+      let showFrom = req.body.records_per_page * (req.body.page_number-1);
+      let showTo = req.body.records_per_page;
+  
+      const deliveryNotesList = await connectBexio.documents_dispatchnotification_send.findMany({
+        where: {
+          fk_companyregistered: {
+            in: (
+              await connectBexio.companyregistered.findMany({
+                where: { rk_party: Number(partyId) },
+                select: { cid: true },
+              })
+            ).map((company) => company.cid),
+          },
+          deliverynotes_type: "EDI",
+        },
+        include: {
+          companyregistered : true, // Includes related company details if needed
+        },
+      });
+      
+
+      const getNetcomId = await connectBexio.$queryRaw<any>(
+        Prisma.sql`
+        SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
+      `
+      );
+      console.log('getNetcomId',getNetcomId);
+
+      
+
+      const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+        Prisma.sql`
+        SELECT array_agg(pa.cid) AS cid 
+        FROM party_account pa 
+        WHERE pa.fk_party = ${Number(partyId)}
+      `
+      );
+
+    
+      console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId[0].cid);
+    
+      
+
+
+      const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
+        Prisma.sql`
+      SELECT array_agg(rk_businessconnection) AS "bcConnection"
+      FROM contact_bc cb
+      WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
+      AND cb.type = 'EDI'
+      AND cb.rk_businessconnection IS NOT NULL
+    `
+      );
+
+      console.log('getConnectionStatusList',getConnectionStatusList);
+      console.log('getConnectionStatusList',getConnectionStatusList[0]);
+      console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
+      const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
+      let bcDetails;
+      bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
+      console.log('bcDetails',bcDetails);
+
+     
+      let tempBc = [0];
+    
+      if(bcDetails){
+        for (let index = 0; index < bcDetails['data'].length; index++) {
+          const element = bcDetails['data'][index];
+          console.log("element :: ",element);      
+          if(element['company_details']['doc_type']['data'] == 'DispatchNotification'){
+            tempBc.push(element['bc_id'])
+          }      
+        }
+      }
+      console.log('tempBc',tempBc);
+      
+     
+
+      const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
+      SELECT array_agg(rk_sendercontactid::int)
+      FROM contact_bc cb
+      WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
+      AND cb.type = 'EDI'
+      ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
+      AND cb.rk_businessconnection IS NOT NULL
+    `);
+    console.log('getConnectionBc',getConnectionBc);
+    let resultArray = getConnectionBc[0]?.array_agg;
+    console.log('resultArray',resultArray);
+
+      if(isBexioUser){
+        totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
+        var options = {
+          'method': 'GET',
+          // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
+          'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+accessToken
+          }
+  
+        };    
+        request(options, async function (error, response) {
+          if (error) {
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
+            warningMessage(commonErrors,error);
+            return res.status(200).json({
+              status: false,
+              message: 'something_went_wrong',
+          });
+          }
+          let resData = JSON.parse(response.body);       
+          if(response.statusCode != 200)
+            return res.status(401).json({
+            status: false,
+            message: 'unauthorized',
+            });
+          let status = JSON.parse(config.BEXIO_ITEM_STATUS);
+          for (let deliveryNotes in resData) {
+            tempStatus = false;
+            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id).toString()) ? true:false:false;
+            resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
+            resData[deliveryNotes]['timestamp'] = '';
+            resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];
+            resData[deliveryNotes]['rk_globaltransaction'] = '';
+            resData[deliveryNotes]['status'] = '';
+            resData[deliveryNotes]['statusLabelDeliveryNotes'] = '';        
+            for(let qryDeliveryNotes in deliveryNotesList){
+                if(deliveryNotesList[qryDeliveryNotes]['rk_deliverynotes'] == resData[deliveryNotes]['id']){
+                  resData[deliveryNotes]['rk_globaltransaction'] = deliveryNotesList[qryDeliveryNotes]['rk_globaltransaction'];
+                  resData[deliveryNotes]['status'] = deliveryNotesList[qryDeliveryNotes]['status'];
+                  resData[deliveryNotes]['statusLabelDeliveryNotes'] = JSON.parse(config.INVOICE_STATUS||'')[deliveryNotesList[qryDeliveryNotes]['status']||''];
+                  resData[deliveryNotes]['timestamp'] = deliveryNotesList[qryDeliveryNotes]['timestamp'];
+                  resData[deliveryNotes]['type'] = deliveryNotesList[qryDeliveryNotes]['type'];
+  
+                  if(deliveryNotesList[qryDeliveryNotes]['status'] == 2){
+                    resData[deliveryNotes]['allowSend'] = false;
+                  }
+                  if(!tempStatus && deliveryNotesList[qryDeliveryNotes]['type'] == 'EBILL'){
+                    tempStatus = true;
+                  }
+                  break;
+                }
+              }
+              if(!tempStatus){            
+                resData[deliveryNotes]['isEbill'] = false;
+              }else{
+                resData[deliveryNotes]['isEbill'] = true;
+                resData[deliveryNotes]['allowSend'] = false;
+              }
+              resultData.push(resData[deliveryNotes]);
+          }
+          // let keys = Object.keys(req.body)
+          // // let redisKey = req.url+"_"+req.body.partyId+"_";
+          // let redisKey = req.body.partyId+"_"+req.url+"_";
+          // console.log('redisKey',redisKey);
+          // keys.forEach(element => {
+          //     redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+          // });
+          // await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
+          //   status: 200,
+          //   data:resData,
+          //   totalCount:totalCount
+          // } ));
+            
+          res.send({
+            status: 200,
+            data:resultData,
+            totalCount:totalCount
+          })
+        });
+      }
+      else{
+          return res.status(401).json({
+            status: 'fail',
+            message: 'unauthorized',
+        });
+      }
+    } catch (error) {
+    
+     
+      console.log(error);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+      warningMessage(commonErrors,error);
+      return res
+      .status(200)
+      .json({ status: 500, message: 'something_went_wrong' });
+        
+    }
+  }
 }
 const getContactById = async (accessToken,contact_idList) => {
 
@@ -1639,9 +1065,123 @@ const getBcDetails= async (bc_id,netcomId ) => {
            
           });
       } catch (error) {
-          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorTitle'] = 'getBcDetails';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+'access_token';
           warningMessage(commonErrors,error);
         
         }
+}
+const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
+  return new Promise(async(resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      // 'url': 'https://api.bexio.com/2.0/contact/search',
+      'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    };
+    console.log({
+      offset: offset,
+      limit: limit
+    });
+    
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'deliveryNotesList';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
+          warningMessage(commonErrors,error);
+          resolve(false);
+        }
+        if(response.statusCode == 200){
+          if(JSON.parse(response.body).length == limit){
+           let temp = invoiceListCountSearch(token,offset+2000,2000);
+           resolve(temp);
+          }else{
+            offset = offset + JSON.parse(response.body).length;
+            resolve(offset);            
+          }  
+        }
+        else
+        resolve(false);
+      });
+  });
+}
+
+const getTagName = async()=>{
+  return new Promise(async (resolve, reject) => {
+  let responseData = null
+  try {
+    let config_id= 1;
+    let module= "BEX";
+    let file_list:any= [
+    {
+      "doc_id": 10,
+      "bill_id": "BIID0000009191",
+      "bill_recipient_email": "pauljoy27@yahoo.com"
+    },
+    {
+      "doc_id": 11,
+      "bill_id": "BIID0000005896",
+      "bill_recipient_id": "41012023479279982"
+    }
+  ];
+//  let invoice_issuerid ='';
+//  let emailAddress='';
+//  let billRecipientId ='';
+//  let sender_name='';
+//  let receiver_name='';
+//  let doc_type='';
+//  let in_cust_id='';
+//  let out_cust_id='';
+//  let doc_format='';
+//  let mode='';
+//  let doc_module='';
+//  let recipient_email='';
+//  let recipient_name='';
+//  let receiver_street='';
+//  let receiver_city='';
+//  let receiver_zip='';
+    const options = {
+      method: 'POST',
+      url: `https://localhost:28027/bexio_file_check`,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      form: { 
+        'config_id': config_id,
+        'file_list':file_list,
+        'module':module,
+       
+      }
+    };
+    console.log('options',options);
+    
+    await request(options, async function (error, response) {
+      if(error){
+        commonErrors['errorTitle'] = 'getPythonData';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+        warningMessage(commonErrors, error);
+        return resolve(error)
+      }
+      else{
+        try{
+        responseData = JSON.parse(response.body)
+        return resolve(responseData)
+        }
+        catch{
+          return resolve(responseData)
+        }
+      }
+    })
+   }
+   catch (error) {
+    commonErrors['errorTitle'] = 'getPythonData';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+    warningMessage(commonErrors, error);
+    return resolve(responseData)
+    }
+  })
 }
