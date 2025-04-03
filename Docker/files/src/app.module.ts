@@ -5,12 +5,16 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { BexioUserModule } from './bexio-user/bexio-user.module';
 import { DebtorsModule } from './debtors/debtors.module';
+import { CreditorsModule } from './creditors/creditors.module';
+import { ConfigurationModule } from './configuration/configuration.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
     // PrismaModule
     BexioUserModule,
-    DebtorsModule
+    DebtorsModule,
+    CreditorsModule,
+    ConfigurationModule
   ],
   controllers: [AppController],
   providers: [AppService],
