@@ -30,4 +30,11 @@ export class ConfigurationController {
   // console.log('Received body:', req);
   return this.configurationService.getConfiguration(req,res);
   }
+  @Post('getediConfig')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getediConfig(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.getediConfig(req,res);
+  }
+  
 }
