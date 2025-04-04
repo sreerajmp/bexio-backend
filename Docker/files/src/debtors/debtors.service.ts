@@ -39,7 +39,7 @@ export class DebtorsService {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
- console.log('accessToken',accessToken);
+ //console.log('accessToken',accessToken);
  
   let resultData: any[] = [], tempStatus = false;
       let totalCount;
@@ -47,7 +47,9 @@ export class DebtorsService {
       let sortType = 'asc';
 
       let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.records_per_page;
+      let showTo = req.body.records_per_page-5;
+      console.log('showFrom',showFrom);
+      console.log('showTo',showTo);
       sortColumn = req.body?.sortColumn;
       sortType = req.body?.sort;
       let resultArray
@@ -65,14 +67,14 @@ export class DebtorsService {
       const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
       if (ediInvoices.length > 0) {
-        console.log('*************************1');
+        //console.log('*************************1');
         
                   const getNetcomId = await connectBexio.$queryRaw<any>(
                     Prisma.sql`
                     SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
                   `
                   );
-                  console.log('getNetcomId',getNetcomId);
+                  //console.log('getNetcomId',getNetcomId);
                   
                   const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
                     Prisma.sql`
@@ -81,7 +83,7 @@ export class DebtorsService {
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
                   );
-                  console.log('getInviteCompanyId',getNetcomId[0].netcomid);
+                  //console.log('getInviteCompanyId',getNetcomId[0].netcomid);
                   const invitedCids = getInviteCompanyId[0]?.cid || [];
                   const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
                     Prisma.sql`
@@ -92,13 +94,13 @@ export class DebtorsService {
                   AND cb.rk_businessconnection IS NOT NULL
                 `
                   );
-                  console.log('getConnectionStatusList',getConnectionStatusList);
-                  console.log('getConnectionStatusList',getConnectionStatusList[0]);
-                  console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
+                  //console.log('getConnectionStatusList',getConnectionStatusList);
+                  //console.log('getConnectionStatusList',getConnectionStatusList[0]);
+                  //console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
                   const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
                   let bcDetails;
                   bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-                  console.log('bcDetails',bcDetails);
+                  //console.log('bcDetails',bcDetails);
                   let tempBc = [0];
                   if (bcDetails?.data?.length) {
                     for (const element of bcDetails.data) {
@@ -115,13 +117,13 @@ export class DebtorsService {
                     ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
                     AND cb.rk_businessconnection IS NOT NULL
                   `);
-                  console.log('getConnectionBc',getConnectionBc);
+                  //console.log('getConnectionBc',getConnectionBc);
                   resultArray = getConnectionBc[0]?.array_agg;
-                  console.log('resultArray',resultArray);
+                  //console.log('resultArray',resultArray);
                   
       }
       if (ebillInvoices.length > 0) {
-        console.log('*************************2');
+        //console.log('*************************2');
               const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
                 Prisma.sql`
                   SELECT array_agg(rk_contact) 
@@ -133,7 +135,7 @@ export class DebtorsService {
                 `
               );
             contactArray = getContactBcQryReslt[0]?.array_agg || []; 
-            console.log('contactArray',contactArray);
+            //console.log('contactArray',contactArray);
             if (req.body.contactId && req.body.contactId !== '') {
               contactArray=[];
               contactArray = [req.body.contactId];  // Overwrite with user input
@@ -172,7 +174,7 @@ export class DebtorsService {
         });
       }
       if (searchJson.length > 0) {
-        console.log('161616',searchJson);
+        //console.log('161616',searchJson);
         
         totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
         options = {
@@ -197,7 +199,7 @@ request(options, async function (error, response) {
         });
         }
        
-        // /console.log('resData',resData);
+        // ///console.log('resData',resData);
         resData = JSON.parse(response.body);
         if(response.statusCode != 200)
         return res.status(200).json({
@@ -216,7 +218,7 @@ request(options, async function (error, response) {
         "criteria": "in"
     });
 
-    console.log('JSON.stringify(searchJson)', JSON.stringify(searchJson));
+    //console.log('JSON.stringify(searchJson)', JSON.stringify(searchJson));
 
     let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
     let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
@@ -299,7 +301,7 @@ getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
            let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
         let contact_idList :any= [];
         for (let invoice in resData) {
-          console.log('resData[invoice].contact_id',resData[invoice].contact_id);
+          //console.log('resData[invoice].contact_id',resData[invoice].contact_id);
           // tempStatus = false;
           // resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
           resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true  : false;
@@ -333,7 +335,7 @@ getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
               // resultData.push(resData[invoice]);
           }
           // if(!tempStatus){
-          //   // console.log('12332145',resData[invoice]);
+          //   // //console.log('12332145',resData[invoice]);
             
           //   resData[invoice]['isEbill'] = false;
           // }else{
@@ -346,7 +348,7 @@ getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
         let contactList:any = [];
     
         contactList = await getContactById(accessToken,contact_idList);
-    //  console.log('contactList',contactList);
+    //  //console.log('contactList',contactList);
      
         let contactNameList = {};
         let contactEmailList = {};
@@ -369,22 +371,35 @@ getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
         let currency: any = [];
      
         currency = await getAllCurrency(accessToken);
+        // console.log('recipientList',currency);
         currency.forEach(element => {
           currencyList[element.id] = element.name;
         });
-        let recipientList:any = [];
-        recipientList = await getRecipientList(contact_idList);
-
+        let recipientList= {};
+        let recipientIds: any = [];
+        // console.log('contact_idList',contact_idList);
+        
+        recipientIds = await getRecipientList(contact_idList);
+        recipientIds.forEach(element => {
+          recipientList[element.rk_receivercontactid] = element.recipient_id;
+        });
+        // console.log('recipientList',recipientList);
+        // console.log('currencyList',currencyList);
 
         resultData.forEach((second) => {
           second.companyName = contactNameList[second["contact_id"]];
           second.currency = currencyList[second['currency_id']];
           second.email = contactEmailList[second["contact_id"]];
+          second.recipient_id = recipientList[second["contact_id"]]?recipientList[second["contact_id"]]:'';
+          // console.log(' second.recipientId = recipientList[second["contact_id"]];', second.recipientId );
+          // console.log(' recipientList[second["contact_id"]];', recipientList[second["contact_id"]]);
+          // console.log('currencyid;', currencyList[second['currency_id']]);
+          // console.log('currency;', currency);
         });
         let keys = Object.keys(req.body)
         
         let redisKey = req.body.partyId+"_"+req.url+"_";
-        console.log('redisKey',redisKey);
+        //console.log('redisKey',redisKey);
         keys.forEach(element => {
             redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
         });
@@ -420,7 +435,7 @@ else{
     catch (error) {
 
 
-      //console.log((error);
+      ////console.log((error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie;
       warningMessage(commonErrors, error);
@@ -454,14 +469,14 @@ else{
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
       showTo = showFrom + parseInt(data.records_per_page) - 1;
   
-      console.log('showFrom',showFrom);
-      console.log('showTo',showTo);
+      //console.log('showFrom',showFrom);
+      //console.log('showTo',showTo);
   
       
   
       if(isBexioUser)
       {
-       console.log('*******************');
+       //console.log('*******************');
        
         var options = {
           'method': 'GET',
@@ -473,7 +488,7 @@ else{
         };
         request(options, async function (error, response) {
           if (error){
-            console.log(error);
+            //console.log(error);
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
             warningMessage(commonErrors,error);
@@ -491,7 +506,7 @@ else{
             });
             }
             contacts = JSON.parse(response.body);
-            // console.log('contacts',contacts);
+            // //console.log('contacts',contacts);
             
             const getRegisteredId = await connectBexio.companyregistered.findMany({
               where: {
@@ -525,7 +540,7 @@ else{
               take: Number(showTo) - Number(showFrom) + 1,
             });
             
-            // console.log("orderList:", orderList);
+            // //console.log("orderList:", orderList);
             
             
            
@@ -549,7 +564,7 @@ else{
             
             const totalOrders = Number(orderListCount); // Convert BigInt to Number
             
-            console.log("Total Orders:", totalOrders);
+            //console.log("Total Orders:", totalOrders);
 
   
             for (let index = 0; index < orderList.length; index++) {
@@ -568,7 +583,7 @@ else{
               WHERE bc.id = ${element.rk_businessconnection};
             `;
             
-            console.log(getBc);
+            //console.log(getBc);
              
               if(getBc.length != 0)
               {
@@ -612,7 +627,7 @@ else{
     } catch (error) {
    
  
-      console.log(error);
+      //console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
@@ -624,13 +639,13 @@ else{
   }
   async getDeliveryNotesList(req: Request, res: Response,): Promise<any> {
 
-    console.log("getDeliveryNotesList");  
+    //console.log("getDeliveryNotesList");  
     let cookie = null;
     let data = req.body;
     let partyId = req.body.partyId;
     
     let netcomId;
-    console.log("req.body ",req.body);  
+    //console.log("req.body ",req.body);  
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
@@ -674,7 +689,7 @@ else{
         SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
       `
       );
-      console.log('getNetcomId',getNetcomId);
+      //console.log('getNetcomId',getNetcomId);
 
       
 
@@ -687,7 +702,7 @@ else{
       );
 
     
-      console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId[0].cid);
+      //console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId[0].cid);
     
       
 
@@ -702,13 +717,13 @@ else{
     `
       );
 
-      console.log('getConnectionStatusList',getConnectionStatusList);
-      console.log('getConnectionStatusList',getConnectionStatusList[0]);
-      console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
+      //console.log('getConnectionStatusList',getConnectionStatusList);
+      //console.log('getConnectionStatusList',getConnectionStatusList[0]);
+      //console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
       let bcDetails;
       bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-      console.log('bcDetails',bcDetails);
+      //console.log('bcDetails',bcDetails);
 
      
       let tempBc = [0];
@@ -716,13 +731,13 @@ else{
       if(bcDetails){
         for (let index = 0; index < bcDetails['data'].length; index++) {
           const element = bcDetails['data'][index];
-          console.log("element :: ",element);      
+          //console.log("element :: ",element);      
           if(element['company_details']['doc_type']['data'] == 'DispatchNotification'){
             tempBc.push(element['bc_id'])
           }      
         }
       }
-      console.log('tempBc',tempBc);
+      //console.log('tempBc',tempBc);
       
      
 
@@ -734,9 +749,9 @@ else{
       ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
       AND cb.rk_businessconnection IS NOT NULL
     `);
-    console.log('getConnectionBc',getConnectionBc);
+    //console.log('getConnectionBc',getConnectionBc);
     let resultArray = getConnectionBc[0]?.array_agg;
-    console.log('resultArray',resultArray);
+    //console.log('resultArray',resultArray);
 
       if(isBexioUser){
         totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
@@ -804,7 +819,7 @@ else{
           let keys = Object.keys(req.body)
           // let redisKey = req.url+"_"+req.body.partyId+"_";
           let redisKey = req.body.partyId+"_"+req.url+"_";
-          console.log('redisKey',redisKey);
+          //console.log('redisKey',redisKey);
           keys.forEach(element => {
               redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
           });
@@ -831,7 +846,7 @@ else{
     } catch (error) {
     
      
-      console.log(error);
+      //console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
@@ -843,7 +858,7 @@ else{
   }
   async getTagName (req: Request, res: Response,): Promise<any> {
    
-    console.log("req.body ",req.body);  
+    //console.log("req.body ",req.body);  
     try {
       let data = req.body
       let responseData = null
@@ -880,7 +895,7 @@ else{
     body: JSON.stringify(reason)
   
   };
-      console.log('options',options);
+      //console.log('options',options);
       
       return new Promise(function (resolve, reject) {
         request(options, async function (error, response, body) {
@@ -893,7 +908,7 @@ else{
           }
           else{
             try{
-              console.log('response.bodyresponse.body',response.body);
+              //console.log('response.bodyresponse.body',response.body);
               
             responseData = JSON.parse(response.body)
             res.send({
@@ -986,23 +1001,34 @@ const getAllCurrency = async (access_token) => {
         });
       });
 }
-const getRecipientList= async (contact_idList) => {
+const getRecipientList = async (contact_idList: number[]) => {
   try {
+    // Ensure unique IDs and explicitly cast to number[]
+    const uniqueIds: number[] = [...new Set(contact_idList)];
+console.log('uniqueIds',uniqueIds);
+console.log('uniqueIds',uniqueIds.length);
+    if (uniqueIds.length === 0) return []; // Return empty array if no valid IDs
+
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
-        rk_receivercontactid: {
-          in: contact_idList, // Filters where `rk_receivercontactid` is in the given array
-        },
+        rk_receivercontactid: { in: uniqueIds },
+      },
+      select: {
+        recipient_id: true, 
+        rk_receivercontactid:true
+        // Remove `docType` for testing
       },
     });
-console.log('contacts',contacts);
+    
 
-    return contacts; // Returns an array of matching contacts
+    return contacts;
   } catch (error) {
     console.error('Error fetching contacts:', error);
-    throw error; // Handle errors properly
+    throw error;
   }
-}
+};
+
+
 const invoiceCountSearch = async (token,search,offset,limit?) => {
 
   return new Promise(async(resolve, reject) => {
@@ -1024,14 +1050,14 @@ const invoiceCountSearch = async (token,search,offset,limit?) => {
       if(response?.statusCode == 200){
         if(JSON.parse(response.body).length == limit){
          let temp = this.invoiceCountSearch(token,offset+2000,2000)
-        //  //console.log(('11111111111111111111111111111');
+        //  ////console.log(('11111111111111111111111111111');
          
         }else{
           offset = offset + JSON.parse(response.body).length;
-          // //console.log(('lengthhh',offset);
+          // ////console.log(('lengthhh',offset);
           resolve(offset)
         }
-        // //console.log((JSON.parse(response.body).length);
+        // ////console.log((JSON.parse(response.body).length);
         
         // resolve(JSON.parse(response.body).length)
 
@@ -1053,7 +1079,7 @@ const invoiceListCountSearch = async (token,offset,limit?) => {
         'Authorization': 'Bearer ' + token
       }
     };
-    // //console.log(({
+    // ////console.log(({
     //   offset: offset,
     //   limit: limit
     // });
@@ -1130,10 +1156,10 @@ const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
         'Authorization': 'Bearer ' + token
       }
     };
-    console.log({
-      offset: offset,
-      limit: limit
-    });
+    //console.log({
+    //   offset: offset,
+    //   limit: limit
+    // });
     
       request(options, function (error, response) {
         if (error) {  
