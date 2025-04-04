@@ -32,4 +32,10 @@ export class DebtorsController {
   // console.log('Received body:', req);
   return this.debtorsService.getDeliveryNotesList(req,res);
   }
+  @Post('getTagName')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getTagName(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.debtorsService.getTagName(req,res);
+  }
 }
