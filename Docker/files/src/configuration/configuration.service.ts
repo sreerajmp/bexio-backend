@@ -144,7 +144,7 @@ export class ConfigurationService {
         
             let formdata = {
                 module: 'BEX',
-                exact_name:data.name
+                exact_name:data.netcom_id
               };
               
               const queryParams = new URLSearchParams(formdata).toString();
@@ -194,6 +194,27 @@ export class ConfigurationService {
             
             }
     }
+    async getediConfig(req: Request, res: Response,): Promise<any> {
+    
+        try {
+          res.send({
+            status_code: 200,
+            message: 'common_sucess',
+            status: true,
+            data: JSON.parse(config.BEXIO_DOCTYPES),
+          });
+        } catch (error) {
+      
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'BEXIO_DOC_TYPE -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'BEXIO_DOC_TYPE');
+          return res.status(500).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+      }
     async getPayementComments(req: Request, res: Response,): Promise<any> {
         let encrToken = req.body;
 
