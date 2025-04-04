@@ -13,6 +13,187 @@ import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 @Injectable()
 export class ConfigurationService {
+
+    async setConfiguration(req: Request, res: Response,): Promise<any> {
+  
+    try {
+        let data = req.body
+        let responseData = null
+  
+        let fomdata={
+            name: data.netcom_id,
+            config:JSON.stringify(data.config),
+            status: 1,
+            module: 'BEX'
+        }
+            var options = {
+            'method': 'POST',
+            'url': `${config.OCTOPUS_URL}/create_config`,
+            formData: fomdata
+            };
+        
+         console.log('options',options);
+    
+        return new Promise(function (resolve, reject) {
+          request(options, async function (error, response, body) {
+          
+            if(error){
+              commonErrors['errorTitle'] = 'setConfiguration';
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+              warningMessage(commonErrors, error);
+              return resolve(error)
+            }
+            else{
+              try{
+               
+                console.log(response.body);
+              responseData = JSON.parse(response.body)
+            
+              
+              res.send({
+                status: 200,
+                data:responseData,
+                
+              })
+              }
+              catch{
+                return resolve(responseData)
+              }
+            }
+          })
+          
+          });
+         
+      }
+      catch (error) {
+        commonErrors['errorTitle'] = 'setConfiguration';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+        warningMessage(commonErrors, error);
+        
+        }
+    }
+    async updateConfiguration(req: Request, res: Response,): Promise<any> {
+  
+        try {
+            let data = req.body
+            let responseData = null
+            console.log('data.confi',data.config);
+            
+            let fomdata={
+                name: data.netcom_id,
+                config:JSON.stringify(data.config),
+                status: 1,
+                module: 'BEX'
+            }
+
+        var options = {
+          'method': 'PUT',
+          'url': `${config.OCTOPUS_URL}/update_config/${data.config_id}`,
+        //   'headers': {
+        //     'Accept': 'application/json',
+        //     'Content-Type': 'application/json'
+        //   },
+          formData: fomdata
+        };
+      
+        console.log('options',options);
+        
+            return new Promise(function (resolve, reject) {
+              request(options, async function (error, response, body) {
+              
+                if(error){
+                  commonErrors['errorTitle'] = 'UpdateConfiguration';
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+                  warningMessage(commonErrors, error);
+                  return resolve(error)
+                }
+                else{
+                  try{
+                   
+                    console.log(response.body);
+                  responseData = JSON.parse(response.body)
+                
+                  
+                  res.send({
+                    status: 200,
+                    data:responseData,
+                    
+                  })
+                  }
+                  catch{
+                    return resolve(responseData)
+                  }
+                }
+              })
+              
+              });
+             
+          }
+          catch (error) {
+            commonErrors['errorTitle'] = 'UpdateConfiguration';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+            warningMessage(commonErrors, error);
+            
+            }
+    }
+    async getConfiguration(req: Request, res: Response,): Promise<any> {
+  
+        try {
+            let data = req.body
+            let responseData = null
+        
+            let formdata = {
+                module: 'BEX',
+                exact_name:data.name
+              };
+              
+              const queryParams = new URLSearchParams(formdata).toString();
+        var options = {
+          'method': 'GET',
+          'url': `${config.OCTOPUS_URL}/read_config?${queryParams}`,
+       
+        };
+      
+        console.log('options',options);
+        
+            return new Promise(function (resolve, reject) {
+              request(options, async function (error, response, body) {
+              
+                if(error){
+                  commonErrors['errorTitle'] = 'getConfiguration';
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+                  warningMessage(commonErrors, error);
+                  return resolve(error)
+                }
+                else{
+                  try{
+                   
+                    console.log(response.body);
+                  responseData = JSON.parse(response.body)
+                
+                  
+                  res.send({
+                    status: 200,
+                    data:responseData,
+                    
+                  })
+                  }
+                  catch{
+                    return resolve(responseData)
+                  }
+                }
+              })
+              
+              });
+             
+          }
+          catch (error) {
+            commonErrors['errorTitle'] = 'getConfiguration';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+            warningMessage(commonErrors, error);
+            
+            }
+    }
     async getPayementComments(req: Request, res: Response,): Promise<any> {
         let encrToken = req.body;
 
@@ -280,57 +461,3 @@ export class ConfigurationService {
     //   }
 
 }
-const getPythonData = async(netcomId)=>{
-    return new Promise(async (resolve, reject) => {
-    let responseData = null
-    try {
-    let search = ""
-    let page_number= "1"
-    let records_per_page = "5"
-    let limit = "5"
-    let offset = "0"
-    let netcom_id = netcomId
-    let ebill = "true"
-      const options = {
-        method: 'POST',
-        url: `${config.GATE2BURL}post-list/connections`,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        form: { 
-          'search': search,
-          'page_number':page_number,
-          'records_per_page':records_per_page,
-          'limit':limit,
-          'offset':offset,
-          'netcom_id':netcom_id,
-          'ebill':ebill
-        }
-      };
-      await request(options, async function (error, response) {
-        if(error){
-          commonErrors['errorTitle'] = 'getPythonData';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
-          warningMessage(commonErrors, error);
-          return resolve(error)
-        }
-        else{
-          try{
-          responseData = JSON.parse(response.body)
-          return resolve(responseData)
-          }
-          catch{
-            return resolve(responseData)
-          }
-        }
-      })
-     }
-     catch (error) {
-      commonErrors['errorTitle'] = 'getPythonData';
-      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
-      warningMessage(commonErrors, error);
-      return resolve(responseData)
-      }
-    })
-  }
