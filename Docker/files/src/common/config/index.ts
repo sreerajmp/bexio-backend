@@ -227,5 +227,5 @@ export default {
 	  MAILCHIMP_PREFIX: process.env.MAILCHIMP_PREFIX,
 	  MAILCHIMP_KEY:  process.env.MAILCHIMP_KEY ,
 	  MAILCHIMP_TAG_NAME:  process.env.MAILCHIMP_TAG_NAME || "iomarket AG Test",
-	  
+	  OCTOPUS_URL:  process.env.OCTOPUS_URL 
 };
