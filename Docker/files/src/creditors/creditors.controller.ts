@@ -2,6 +2,7 @@ import { Controller,Post,Body ,UseInterceptors,Get,Req,Res, Param, Query } from 
 import { CreditorsService } from './creditors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
 @Controller('creditors')
 export class CreditorsController {
   constructor(private readonly creditorsService: CreditorsService) {
@@ -13,10 +14,11 @@ export class CreditorsController {
  
   return this.creditorsService.getInvoice(req,res);
   }
+  
+  @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
   async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
-  // console.log('Received body:', req);
   return this.creditorsService.getOrderList(req,res);
   }
 }
