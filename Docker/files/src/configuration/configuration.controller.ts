@@ -36,5 +36,17 @@ export class ConfigurationController {
   // console.log('Received body:', req);
   return this.configurationService.getediConfig(req,res);
   }
+  @Post('getContactList')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getContactList(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.getContactList(req,res);
+  }
+  @Post('getInvitionCodeDetails')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getInvitionCodeDetails(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.getInvitionCodeDetails(req,res);
+  }
   
 }

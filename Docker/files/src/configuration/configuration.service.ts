@@ -7,7 +7,7 @@ const encryptionControl = require("../common/utils/jwt-decode");
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
-const redisClient = require('../common/utils/redisDB');
+import redisClient from '../common/utils/redisDB';
 import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
@@ -32,7 +32,7 @@ export class ConfigurationService {
             formData: fomdata
             };
         
-         console.log('options',options);
+         //console.log.log('options',options);
     
         return new Promise(function (resolve, reject) {
           request(options, async function (error, response, body) {
@@ -46,7 +46,7 @@ export class ConfigurationService {
             else{
               try{
                
-                console.log(response.body);
+                //console.log.log(response.body);
               responseData = JSON.parse(response.body)
             
               
@@ -77,7 +77,7 @@ export class ConfigurationService {
         try {
             let data = req.body
             let responseData = null
-            console.log('data.confi',data.config);
+            //console.log.log('data.confi',data.config);
             
             let fomdata={
                 name: data.netcom_id,
@@ -96,7 +96,7 @@ export class ConfigurationService {
           formData: fomdata
         };
       
-        console.log('options',options);
+        //console.log.log('options',options);
         
             return new Promise(function (resolve, reject) {
               request(options, async function (error, response, body) {
@@ -110,7 +110,7 @@ export class ConfigurationService {
                 else{
                   try{
                    
-                    console.log(response.body);
+                    //console.log.log(response.body);
                   responseData = JSON.parse(response.body)
                 
                   
@@ -154,7 +154,7 @@ export class ConfigurationService {
        
         };
       
-        console.log('options',options);
+        //console.log.log('options',options);
         
             return new Promise(function (resolve, reject) {
               request(options, async function (error, response, body) {
@@ -168,7 +168,7 @@ export class ConfigurationService {
                 else{
                   try{
                    
-                    console.log(response.body);
+                    //console.log.log(response.body);
                   responseData = JSON.parse(response.body)
                 
                   
@@ -215,6 +215,295 @@ export class ConfigurationService {
           });
         }
       }
+      async getContactList(req: Request, res: Response,): Promise<any> {
+    
+        const data = req.body;
+        
+        try {
+          let docType = data.docType || 'Invoice';
+          let direction = data.direction || 'Receive';
+          let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+          let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+          let accessToken = cookie.access_Token;
+          let isBexioUser = cookie.isBexioUser;
+          const partyAccountCheckRaw = await connectBexio.contact_bc.findMany({
+            where: {
+              type: 'EDI',
+              OR: [
+                { rk_netcomidsender: dataCookie.netcomId },
+                { rk_netcomidreceived: dataCookie.netcomId }
+              ]
+            },
+            select: {
+              cid: true,
+              rk_netcomidsender: true,
+              rk_netcomidreceived: true,
+              rk_contact: true,
+              receiver_customerid: true,
+              status: true,
+              rk_businessconnection: true,
+              rk_sendercontactid: true,
+              rk_receivercontactid: true,
+            }
+          });
+
+          let beStruct = {}
+          const partyAccountCheck = partyAccountCheckRaw.map(item => ({
+            ...item,
+            rk_sendercontactid: Number(item.rk_sendercontactid),
+            rk_receivercontactid: Number(item.rk_receivercontactid)
+          }));
+
+          console.log('*******************',partyAccountCheck);
+          const getInviteCompanyBcResult = await connectBexio.contact_bc.findMany({
+            where: {
+              type: 'EDI',
+              rk_businessconnection: {
+                not: null
+              },
+              OR: [
+                { rk_netcomidsender: dataCookie.netcomId },
+                { rk_netcomidreceived: dataCookie.netcomId }
+              ]
+            },
+            select: {
+              rk_businessconnection: true
+            }
+          });
+          const businessConnectionIds = getInviteCompanyBcResult
+            .map(item => item.rk_businessconnection)
+            .filter(id => id !== null);
+          
+        
+          let resultBc:any = [];
+          if(businessConnectionIds != null){
+             let bcResult:any = await getBcDetails(businessConnectionIds,dataCookie.netcomId);
+            resultBc =  bcResult['data'];
+          }
+          
+         
+          resultBc.forEach(async element => {
+            beStruct[element.bc_id] = element;
+          });
+       
+            let totalCount;
+            if(isBexioUser)
+            {
+              
+              let showFrom = req.body.records_per_page * (req.body.page_number-1);
+              let showTo = req.body.records_per_page;
+             
+              let resData ;
+              let countryList = {};
+              resData = await getCountryLists(accessToken);
+             
+              if(!resData)
+              {
+                commonErrors['errorTitle'] = req.originalUrl;
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
+                warningMessage(commonErrors,'countryList_not_found');
+                res.send({
+                  status_code: 500,
+                  message: 'something_went_wrong',
+                  status: false,
+              
+              });
+              return
+              }
+              resData = JSON.parse(resData);
+              resData['message'] != 'Unauthorized' ?resData.forEach((country) => {
+                countryList[country.id] = country.name
+              }):'';
+              let options;
+          
+              if(data['username'] != '' || data['email'] != '' || data['surname'] != '' || data['contact_type_id'] != '')
+              {
+                let searchJson:any[] = [];
+                 
+                if(data['username'] != '' && data['username']){
+                  searchJson.push({
+                    "field":"name_1",
+                    "value": data['username'],
+                    "criteria":"like"
+                  })
+                }
+                
+                if(data['email'] != '' && data['email']){
+                  searchJson.push({
+                    "field":"mail",
+                    "value":data.email,
+                    "criteria":"like"
+                  })
+                }
+                if(data['surname'] != '' && data['surname']){
+                  searchJson.push({
+                    "field":"name_2",
+                    "value":data.surname,
+                    "criteria":"like"
+                  })
+                }
+                if( data['contact_type_id'] != "" && data['contact_type_id']){
+                  searchJson.push({
+                    "field":"contact_type_id",
+                    "value":data.contact_type_id,
+                    "criteria":"equal"
+                  })
+                }
+                options = {
+                  'method': 'POST',
+                  'url': `${config.BEXIO_API}${data.api}/search/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
+             
+                  'headers': {
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer '+accessToken
+                  },
+                  body: JSON.stringify(searchJson)
+                };
+      
+              totalCount = await contactListCountSearch(accessToken,searchJson,0,2000)
+            }else{
+              totalCount = await  contactListCount(accessToken,0,2000);
+              
+              options = {
+                'method': 'GET',
+                'url': `${config.BEXIO_API}${data.api}/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
+              
+                'headers': {
+                  'Accept': 'application/json',
+                  'Authorization': 'Bearer '+accessToken
+                  } 
+                }
+              }
+                request(options, async function (error, response) {
+                  if (error) {
+                    //console.log.log('eror');
+                    commonErrors['errorTitle'] = req.originalUrl;
+                    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+showTo+' '+showFrom;
+                    warningMessage(commonErrors,error);
+                    return res.status(200).json({
+                      status: false,
+                      message: [response],
+                      
+                    });
+                  }
+                  
+                  if(response.statusCode != 200)
+                  return res.status(200).json({
+                    status: false,
+                    message: [response],
+                    
+                });
+               
+                  let resData = response.body.length != 0 && response.statusCode == '200'? JSON.parse(response.body) : '';
+                  let senderStatus='';
+                  let receiverStatus='';
+                 
+          
+                  for (let contactIndex in resData) {
+                    resData[contactIndex]['country'] = countryList[resData[contactIndex]['country_id']] ? countryList[resData[contactIndex]['country_id']] : '';
+                    console.log('resData[contactIndex]',resData[contactIndex]['country'] );
+                    console.log('partyAccountCheck',partyAccountCheck );
+                    console.log('partyAccountChecklength',partyAccountCheck.length );
+                    if(partyAccountCheck.length != 0)
+                   {
+      
+                   
+                    for (let partyAccountIndex in partyAccountCheck) {
+                    if(direction == 'send')  
+                    {
+                   
+                      if('bcActive' in resData[contactIndex]){
+                              
+                      }else{
+                        resData[contactIndex]['bcActive'] = [];
+                      }
+                  
+                      if(partyAccountCheck[partyAccountIndex]['rk_netcomidsender'] == dataCookie.netcomId)
+                      {
+
+                        if(partyAccountCheck[partyAccountIndex].rk_sendercontactid == resData[contactIndex].id)
+                        {
+                          let tempIndex = partyAccountCheck[partyAccountIndex].rk_businessconnection
+                          let tempBc = beStruct[tempIndex?tempIndex:''];
+                          if(tempBc)
+                          {
+                            if(docType == tempBc['company_details']['doc_type']['data']){
+                              resData[contactIndex]['bcActive'].push(beStruct[tempIndex?tempIndex:'']);
+                              resData[contactIndex]['bcDetailsSend'] = beStruct[tempIndex?tempIndex:''];
+      
+                            }
+                          }
+                        
+                        }
+                      }
+                    }
+                    if(direction == 'receive')  
+                    {
+                      if('bcActive' in resData[contactIndex]){
+                      }else{
+                        resData[contactIndex]['bcActive'] = [];
+                      }
+                      if(partyAccountCheck[partyAccountIndex]['rk_netcomidreceived'] == dataCookie.netcomId)
+                      {
+                        if(partyAccountCheck[partyAccountIndex].rk_receivercontactid == resData[contactIndex].id)
+                        {
+                          let tempIndex = partyAccountCheck[partyAccountIndex].rk_businessconnection
+                          let tempBc = beStruct[tempIndex?tempIndex:''];
+                      
+                          if(tempBc)
+                          {
+                            if(docType == tempBc['company_details']['doc_type']['data']){
+                            
+                              resData[contactIndex]['bcActive'].push(beStruct[tempIndex?tempIndex:'']);
+                            }
+                        }
+                        }
+                      }
+                    }
+                  }
+                }else{
+                  resData[contactIndex]['bcActive'] = [];
+                }
+                  }
+                  let keys = Object.keys(req.body)
+                  let redisKey = req.body.partyId+"_"+req.url+"_";
+                  keys.forEach(element => {
+                      redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+                  });
+                  await redisClient.set(redisKey, JSON.stringify( {status: 200,
+                    data:resData,
+                    totalCount:totalCount}), {
+                    EX: 24 * 60 * 60 * 2 
+                });
+                  res.send({
+                    status: 200,
+                    data:resData,
+                    totalCount:totalCount
+                })
+                });
+              }
+              else{
+                return res.status(401).json({
+                  status: 'fail',
+                  message: 'unauthorized',
+              });
+              }
+       
+        } catch (error) {
+        
+          //console.log.log('*****',error);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,',req.body;
+            warningMessage(commonErrors,error);
+      
+          res.send({
+      
+            status_code: 500,
+            message: JSON.stringify(error),
+            status: false,
+        })
+        }
+      }
     async getPayementComments(req: Request, res: Response,): Promise<any> {
         let encrToken = req.body;
 
@@ -242,7 +531,7 @@ export class ConfigurationService {
             });
 
         } catch (error) {
-            console.log('error', error);
+            //console.log.log('error', error);
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + encrToken;
             warningMessage(commonErrors, error);
@@ -270,13 +559,13 @@ export class ConfigurationService {
             });
 
 
-            console.log('encrToken.payementStatus', encrToken.payementStatus);
-            console.log('encrToken.payementStatus', encrToken.commentStatus);
+            //console.log.log('encrToken.payementStatus', encrToken.payementStatus);
+            //console.log.log('encrToken.payementStatus', encrToken.commentStatus);
             if (getStatusQryRslt?.settings !== null) {
 
                 if (encrToken.payementStatus == 'true' || encrToken.payementStatus == 'false') {
                     let payementStatus = encrToken.payementStatus == 'true' ? '"true"' : '"false"';
-                    console.log('payementStatus', payementStatus);
+                    //console.log.log('payementStatus', payementStatus);
 
                     const existingSettings =
                         typeof getStatusQryRslt?.settings === "string"
@@ -343,7 +632,7 @@ export class ConfigurationService {
             });
 
         } catch (error) {
-            console.log('error', error);
+            //console.log.log('error', error);
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + encrToken;
             warningMessage(commonErrors, error);
@@ -360,7 +649,7 @@ export class ConfigurationService {
     //     try {
     //     //   const pool = await dbConn;
     //     //   const ioDb = await connectPostgres;
-    //     //   console.log('req.body.encrToken',req.body.encrToken);
+    //     //   //console.log.log('req.body.encrToken',req.body.encrToken);
           
     //       encrToken = encryptionControl.decrypt(req.body.encrToken);
       
@@ -480,5 +769,225 @@ export class ConfigurationService {
     //       });
     //     }
     //   }
-
+    async getInvitionCodeDetails(req: Request, res: Response,): Promise<any> {
+    
+      let data = req.body;
+      let code = '';
+      try{
+        console.log('data',data);
+        
+        if(data.code == 'undefined' || data.code == '' || data.code == null)
+        {
+          code = '';
+        }else{
+          code = data.code.toString();
+        }
+   
+        return new Promise(async(resolve, reject) => {
+        
+            let formData = {
+              invite_code : code,
+              invited_netcom_id : data.netcom_id,
+              doc_type : data.doc_type ? data.doc_type : '1',
+              direction: data.direction ? data.direction : 'send'
+            } 
+            console.log('formData',formData);
+            
+            let  options = {
+              'method': 'POST',
+              'url': config.PYTHON_API+'invite-details',
+              // 'url': 'http://192.168.2.64:5005/api/'+'invite-details',
+    
+              formData: formData
+            };
+            request(options, async function (error, response, body) {
+              if (error) {  
+                commonErrors['errorTitle'] = 'getInvitionCodeDetails';
+                warningMessage(commonErrors,error);
+                resolve(false)
+              }
+              console.log('body',body);
+              res.send({
+                status_code: 200,
+                message: 'common_sucess',
+                status: true,
+                data: JSON.parse(body)['data'],
+              });
+            });
+        
+           
+          });
+      }
+      
+      catch (error) {
+      
+       console.log(error);
+       commonErrors['errorTitle'] = req.originalUrl;
+       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+JSON.stringify(req.body); 
+       warningMessage(commonErrors,error);
+       return res.status(200).json({
+           status_code: 500,
+           message: 'something_went_wrong',
+           status: false,
+       });
+       
+    }
+    
+    }
 }
+const getBcDetails= async (bc_id,netcomId ) => {
+   
+    try{
+    
+      return new Promise(async(resolve, reject) => {
+        if(bc_id){
+          let formData = {
+            bc : bc_id.toString(),
+            netcom_id : netcomId
+          } 
+          let  options = {
+            'method': 'POST',
+            'url': config.PYTHON_API+'get-contact-bc',
+            formData: formData
+          };
+  
+          request(options, async function (error, response, body) {
+            if (error) {  
+              commonErrors['errorTitle'] = 'getBcDetails';
+              warningMessage(commonErrors,error);
+              resolve(false)
+            }else{
+              resolve(JSON.parse(response.body));
+            }
+          });
+        }else{
+          resolve(false)
+        }
+         
+        });
+    } catch (error) {
+        commonErrors['errorTitle'] = 'getBcDetails';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+'access_token';
+        warningMessage(commonErrors,error);
+      
+      }
+}
+const getCountryLists = async (access_token)=>{
+    //  let access_token = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_NAME]))).access_token;
+      try {
+        return new Promise(async(resolve, reject) => {
+          var options = {
+            'method': 'GET',
+            'url': `https://api.bexio.com/2.0/country`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer '+access_token
+            }
+          };
+          request(options, function (error, response) {
+            if (error) {  
+              commonErrors['errorTitle'] = 'getCountryLists';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+              warningMessage(commonErrors,error);
+              resolve(false)
+            }
+            if(response.statusCode==200)
+            resolve(response.body);
+            else
+            resolve(false)
+  
+          });
+        });
+      } catch (error) {
+        commonErrors['errorTitle'] = getCountryLists.name;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
+        warningMessage(commonErrors,error);
+   
+      }
+  }
+  const contactListCountSearch = async (token,search,offset,limit?)=>{
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        // 'url': 'https://api.bexio.com/2.0/contact/search',
+        'url': `https://api.bexio.com/2.0/contact/search?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + token
+        }, body: JSON.stringify(search)
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'contactListCount';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        if(response.statusCode == 200){
+          if(JSON.parse(response.body).length == limit){
+           let temp = contactListCountSearch(token,offset+2000,2000)
+           //console.log.log('11111111111111111111111111111');
+           
+          }else{
+            offset = offset + JSON.parse(response.body).length;
+            //console.log.log('lengthhh',offset);
+            resolve(offset)
+          }
+          // //console.log.log(JSON.parse(response.body).length);
+          
+          // resolve(JSON.parse(response.body).length)
+  
+        }
+        else
+        resolve(false)
+      });
+    });
+  }
+  const contactListCount = async (token,offset,limit?)=>{
+    return new Promise(async(resolve, reject) => {
+      //console.log.log('limit',limit);
+      //console.log.log('offset',offset);
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/contact/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + token
+        }
+      };
+      request(options, async function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'contactListCount';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        //console.log.log('resultLength',JSON.parse(response.body).length);
+        
+        if(response.statusCode == 200){
+          //console.log.log('JSON.parse(response.body).length',JSON.parse(response.body).length);
+          //console.log.log('limit',limit);
+  
+          
+          if(JSON.parse(response.body).length == limit){
+           let temp = await contactListCount(token,offset+2000,2000);
+           //console.log.log('temp2565',temp);
+           resolve(temp)
+           //console.log.log('afterResole',temp);
+  
+          }else{
+            offset = offset + JSON.parse(response.body).length;
+            //console.log.log('lengthhh',offset);
+            resolve(offset)
+            return
+          }
+          // //console.log.log(JSON.parse(response.body).length);
+          
+          // resolve(JSON.parse(response.body).length)
+          // resolve(offset)
+        }
+        else
+        resolve(false)
+      });
+    });
+  }

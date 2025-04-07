@@ -478,11 +478,7 @@ export class CreditorsService {
           keys.forEach(element => {
               redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
           });
-          // await redisClient.setex(redisKey,24*60*60*2,JSON.stringify({
-          //   status: 200,
-          //   data:resData,
-          //   totalCount:totalCount
-          // } ));
+         
           await redisClient.set(redisKey, JSON.stringify( {status: 200,
             data:resData,
             totalCount:totalCount}), {
