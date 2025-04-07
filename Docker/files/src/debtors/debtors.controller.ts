@@ -1,39 +1,39 @@
-import { Controller,Post,Body ,UseInterceptors,Get,Req,Res, Param, Query } from '@nestjs/common';
+import { Controller,Post,UseInterceptors,Req,Res } from '@nestjs/common';
 import { DebtorsService } from './debtors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
+
 @Controller('debtors')
 export class DebtorsController {
   constructor(private readonly debtorsService: DebtorsService) {
     
   }
-
-  // @Post('getInvoice')
-  // async getInvoice(@Body() data: any, @Res() res: Response): Promise<any> {
-  //   console.log('Received body:', data);
-  //   return this.debtorsService.getInvoice(data, res);
-  // }
- 
+  @UseInterceptors(RedisCacheInterceptor)
   @Post('getInvoice')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor()) 
   async getInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
-  // console.log('Received body:', req);
-  return this.debtorsService.getInvoice(req,res);
+    console.log('controller getInvoice');
+    return this.debtorsService.getInvoice(req, res);
   }
+
+  // @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor()) 
   async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
   // console.log('Received body:', req);
   return this.debtorsService.getOrderList(req,res);
   }
+
+  // @UseInterceptors(RedisCacheInterceptor)
   @Post('getDeliveryNotesList')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor()) 
   async getDeliveryNotesList(@Req() req: Request, @Res() res: Response): Promise<any> {
   // console.log('Received body:', req);
   return this.debtorsService.getDeliveryNotesList(req,res);
   }
   @Post('getTagName')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor()) 
   async getTagName(@Req() req: Request, @Res() res: Response): Promise<any> {
   // console.log('Received body:', req);
   return this.debtorsService.getTagName(req,res);

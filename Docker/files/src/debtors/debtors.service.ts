@@ -19,17 +19,17 @@ import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 @Injectable()
 export class DebtorsService {
- async getInvoice(req: Request, res: Response,): Promise<any> {
-  
-  let cookie = null
+  async getInvoice(req: Request, res: Response,): Promise<any> {
+    console.log('getInvoice');
+    let cookie = null
     let data = req.body
-    let resData
+    let resData: any[] = [];
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
       if (!cookieData) {
-        res.status(500).send({
+        return res.status(500).send({
           status_code: 500,
           message: 'Missing_cookie',
           status: false,
@@ -39,21 +39,21 @@ export class DebtorsService {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
- //console.log('accessToken',accessToken);
- 
-  let resultData: any[] = [], tempStatus = false;
+      //console.log('accessToken',accessToken);
+
+      let resultData: any[] = [], tempStatus = false;
       let totalCount;
       let sortColumn = 'updated_at';
       let sortType = 'asc';
 
       let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.records_per_page-5;
-      console.log('showFrom',showFrom);
-      console.log('showTo',showTo);
+      let showTo = req.body.records_per_page - 5;
+      console.log('showFrom', showFrom);
+      console.log('showTo', showTo);
       sortColumn = req.body?.sortColumn;
       sortType = req.body?.sort;
-      let resultArray
-      let contactArray
+      let resultArray: any[] = [];
+      let contactArray: any[] = [];
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
           companyregistered: {
@@ -68,48 +68,48 @@ export class DebtorsService {
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
       if (ediInvoices.length > 0) {
         //console.log('*************************1');
-        
-                  const getNetcomId = await connectBexio.$queryRaw<any>(
-                    Prisma.sql`
+
+        const getNetcomId = await connectBexio.$queryRaw<any>(
+          Prisma.sql`
                     SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
                   `
-                  );
-                  //console.log('getNetcomId',getNetcomId);
-                  
-                  const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-                    Prisma.sql`
+        );
+        //console.log('getNetcomId',getNetcomId);
+
+        const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
                     SELECT array_agg(pa.cid) AS cid 
                     FROM party_account pa 
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
-                  );
-                  //console.log('getInviteCompanyId',getNetcomId[0].netcomid);
-                  const invitedCids = getInviteCompanyId[0]?.cid || [];
-                  const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
-                    Prisma.sql`
+        );
+        //console.log('getInviteCompanyId',getNetcomId[0].netcomid);
+        const invitedCids = getInviteCompanyId[0]?.cid || [];
+        const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
+          Prisma.sql`
                   SELECT array_agg(rk_businessconnection) AS "bcConnection"
                   FROM contact_bc cb
                   WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
                   AND cb.type = 'EDI'
                   AND cb.rk_businessconnection IS NOT NULL
                 `
-                  );
-                  //console.log('getConnectionStatusList',getConnectionStatusList);
-                  //console.log('getConnectionStatusList',getConnectionStatusList[0]);
-                  //console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
-                  const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
-                  let bcDetails;
-                  bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-                  //console.log('bcDetails',bcDetails);
-                  let tempBc = [0];
-                  if (bcDetails?.data?.length) {
-                    for (const element of bcDetails.data) {
-                      if (element?.company_details?.doc_type?.data === 'Invoice') {
-                        tempBc.push(element.bc_id);
-                      }
-                    }
-                  }
-                  const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
+        );
+        //console.log('getConnectionStatusList',getConnectionStatusList);
+        //console.log('getConnectionStatusList',getConnectionStatusList[0]);
+        //console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
+        const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
+        let bcDetails;
+        bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
+        //console.log('bcDetails',bcDetails);
+        let tempBc = [0];
+        if (bcDetails?.data?.length) {
+          for (const element of bcDetails.data) {
+            if (element?.company_details?.doc_type?.data === 'Invoice') {
+              tempBc.push(element.bc_id);
+            }
+          }
+        }
+        const getConnectionBc = await connectBexio.$queryRaw<{ array_agg: number[] }[]>(Prisma.sql`
                     SELECT array_agg(rk_sendercontactid::int)
                     FROM contact_bc cb
                     WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
@@ -117,15 +117,15 @@ export class DebtorsService {
                     ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
                     AND cb.rk_businessconnection IS NOT NULL
                   `);
-                  //console.log('getConnectionBc',getConnectionBc);
-                  resultArray = getConnectionBc[0]?.array_agg;
-                  //console.log('resultArray',resultArray);
-                  
+        //console.log('getConnectionBc',getConnectionBc);
+        resultArray = getConnectionBc[0]?.array_agg;
+        //console.log('resultArray',resultArray);
+
       }
       if (ebillInvoices.length > 0) {
         //console.log('*************************2');
-              const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
-                Prisma.sql`
+        const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
+          Prisma.sql`
                   SELECT array_agg(rk_contact) 
                   FROM contact_bc c 
                   INNER JOIN companyregistered cr 
@@ -133,299 +133,303 @@ export class DebtorsService {
                   WHERE c.type = 'EBILL' 
                   AND cr.netcomid = ${netcomId}
                 `
-              );
-            contactArray = getContactBcQryReslt[0]?.array_agg || []; 
-            //console.log('contactArray',contactArray);
-            if (req.body.contactId && req.body.contactId !== '') {
-              contactArray=[];
-              contactArray = [req.body.contactId];  // Overwrite with user input
-            }
-            
+        );
+        contactArray = getContactBcQryReslt[0]?.array_agg || [];
+        //console.log('contactArray',contactArray);
+        if (req.body.contactId && req.body.contactId !== '') {
+          contactArray = [];
+          contactArray = [req.body.contactId];  // Overwrite with user input
+        }
+
       }
       let tempBc = [0];
-      if(isBexioUser)
-      {
-            
-      let options;
-      let searchJson: any[] = [];
-  
-    
-      if (data.documentNo) {
-        searchJson.push({
-          "field": "document_nr",
-          "value": data.documentNo,
-          "criteria": "like"
-        });
-      }
-  
-      if (data.dateFrom) {
-        searchJson.push({
-          "field": "is_valid_from",
-          "value": new Date(data.dateFrom),
-          "criteria": ">="
-        });
-      }
-  
-      if (data.dateTo) {
-        searchJson.push({
-          "field": "is_valid_from",
-          "value": new Date(data.dateTo),
-          "criteria": "<="
-        });
-      }
-      if (searchJson.length > 0) {
-        //console.log('161616',searchJson);
-        
-        totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
-        options = {
-          'method': 'POST',
-          'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + accessToken
-          },
-          body: JSON.stringify(searchJson)
-        };
+      if (isBexioUser) {
 
-request(options, async function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
-          warningMessage(commonErrors,error);
-          return res.status(200).json({
-            status: false,
-            message: 'something_went_wrong',
-            error: JSON.stringify(error)
-        });
+        let options;
+        let searchJson: any[] = [];
+
+
+        if (data.documentNo) {
+          searchJson.push({
+            "field": "document_nr",
+            "value": data.documentNo,
+            "criteria": "like"
+          });
         }
-       
-        // ///console.log('resData',resData);
-        resData = JSON.parse(response.body);
-        if(response.statusCode != 200)
-        return res.status(200).json({
-          status: true,
-          status_code : response.statusCode,
-          data: [],
-          message: 'unauthorized',
-        });
-  });
 
-      } 
-     else {
-    searchJson.push({
-        "field": "contact_id",
-        "value": contactArray,
-        "criteria": "in"
-    });
-
-    //console.log('JSON.stringify(searchJson)', JSON.stringify(searchJson));
-
-    let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-    let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-    totalCount = totalCountInvoiceList + totalCountInvoiceCount;
-
-    const postOptions = {
-        'method': 'POST',
-        'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-        'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + accessToken
-        },
-        body: JSON.stringify(searchJson)
-    };
-
-    const getOptions = {
-        'method': 'GET',
-        'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-        'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + accessToken
+        if (data.dateFrom) {
+          searchJson.push({
+            "field": "is_valid_from",
+            "value": new Date(data.dateFrom),
+            "criteria": ">="
+          });
         }
-    };
 
-  
-  const parseResponse = (response: any): { status: boolean; data: any[] } => {
-    if (response && response.body) {
-        try {
-            let parsedData = JSON.parse(response.body);
-            if (Array.isArray(parsedData)) {
-                return { status: true, data: parsedData };
-            } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
-                return { status: false, data: [] }; // Indicating unauthorized response
+        if (data.dateTo) {
+          searchJson.push({
+            "field": "is_valid_from",
+            "value": new Date(data.dateTo),
+            "criteria": "<="
+          });
+        }
+        if (searchJson.length > 0) {
+          //console.log('161616',searchJson);
+
+          totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
+          options = {
+            'method': 'POST',
+            'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify(searchJson)
+          };
+
+          request(options, async function (error, response) {
+            if (error) {
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + showTo + ' ' + showFrom;
+              warningMessage(commonErrors, error);
+              return res.status(200).json({
+                status: false,
+                message: 'something_went_wrong',
+                error: JSON.stringify(error)
+              });
             }
-        } catch (error) {
-            console.error("Error parsing response:", error);
+
+            // ///console.log('resData',resData);
+            resData = JSON.parse(response.body);
+            if (response.statusCode != 200)
+              return res.status(200).json({
+                status: true,
+                status_code: response.statusCode,
+                data: [],
+                message: 'unauthorized',
+              });
+          });
+
         }
-    }
-    return { status: true, data: [] };
-};
+        else {
+          searchJson.push({
+            "field": "contact_id",
+            "value": contactArray,
+            "criteria": "in"
+          });
+
+          //console.log('JSON.stringify(searchJson)', JSON.stringify(searchJson));
+
+          let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+          let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+          totalCount = totalCountInvoiceList + totalCountInvoiceCount;
+
+          const postOptions = {
+            'method': 'POST',
+            'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify(searchJson)
+          };
+
+          const getOptions = {
+            'method': 'GET',
+            'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ' + accessToken
+            }
+          };
 
 
-const [postResponse, getResponse] = await Promise.all([
-  new Promise<any>((resolve, reject) => {
-      request(postOptions, (error, response) => {
-          if (error) reject(error);
-          else resolve(response);
-      });
-  }),
-  new Promise<any>((resolve, reject) => {
-      request(getOptions, (error, response) => {
-          if (error) reject(error);
-          else resolve(response);
-      });
-  })
-]).catch(error => {
-  console.error("Request error:", error);
-  return [null, null]; // Ensure promise.all does not break execution
-});
+          const parseResponse = (response: any): { status: boolean; data: any[] } => {
+            console.log('parseResponse',response);
+            if (response && response.body) {
+              try {
+                let parsedData = JSON.parse(response.body);
+                if (Array.isArray(parsedData)) {
+                  return { status: true, data: parsedData };
+                } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
+                  return { status: false, data: [] }; // Indicating unauthorized response
+                }
+              } catch (error) {
+                console.error("Error parsing response:", error);
+              }
+            }
+            return { status: true, data: [] };
+          };
 
-// Parse responses
-let postRes = parseResponse(postResponse);
-let getRes = parseResponse(getResponse);
 
-// If either response is unauthorized, send response and stop execution
-if (!postRes.status || !getRes.status) {
-  return res.status(200).json({
-      status: true,
-      data: [],
-      message: "unauthorized",
-  });
-}
-postRes.data = postRes.data.map(item => ({ ...item, isEbill: true }));
-getRes.data = getRes.data.map(item => ({ ...item, isEbill: false}));
-    // Combine both responses
-    resData = [...postRes.data, ...getRes.data];
-     }
-    if(resData){
+          const [postResponse, getResponse] = await Promise.all([
+            new Promise<any>((resolve, reject) => {
+              request(postOptions, (error, response) => {
+                if (error) reject(error);
+                else resolve(response);
+              });
+            }),
+            new Promise<any>((resolve, reject) => {
+              request(getOptions, (error, response) => {
+                if (error) reject(error);
+                else resolve(response);
+              });
+            })
+          ]).catch(error => {
+            console.error("Request error:", error);
+            return [null, null]; // Ensure promise.all does not break execution
+          });
 
-           let status = JSON.parse(config.BEXIO_INVOICE_STATUS||'');
-        let contact_idList :any= [];
-        for (let invoice in resData) {
-          //console.log('resData[invoice].contact_id',resData[invoice].contact_id);
-          // tempStatus = false;
-          // resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
-          resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true  : false;
-          // resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id)) ? true:false:false;//edi
-          // resData[invoice]['allowSend'] = "true";//ebill
-          contact_idList.push((resData[invoice].contact_id));
-          resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
-          resData[invoice]['timestamp'] = '';
-          resData[invoice]['rk_globaltransaction'] = '';
-          resData[invoice]['status'] = '';
-          resData[invoice]['statusLabelInvoice'] = '';        
-          for(let qryInvoice in invoiceList ){
-              if(invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']){
+          // Parse responses
+          let postRes = parseResponse(postResponse);
+          let getRes = parseResponse(getResponse);
+          console.log('postRes',postRes.status);
+          console.log('getRes',getRes.status);
+          // If either response is unauthorized, send response and stop execution
+          if (!postRes.status || !getRes.status) {
+            return res.status(200).json({
+              status: true,
+              data: [],
+              message: "unauthorized",
+            });
+          }
+          postRes.data = postRes.data.map(item => ({ ...item, isEbill: true }));
+          getRes.data = getRes.data.map(item => ({ ...item, isEbill: false }));
+          // console.log('postRes.data',postRes.data);
+          // console.log('getRes.data',getRes.data);
+          // Combine both responses
+          resData = [...postRes.data, ...getRes.data];
+          // console.log('resData',resData);
+        }
+        if (resData) {
+
+          let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
+          let contact_idList: any = [];
+          for (let invoice in resData) {
+            //console.log('resData[invoice].contact_id',resData[invoice].contact_id);
+            // tempStatus = false;
+            // resData[invoice]['allowSend'] = resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
+            resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray.map(Number).includes(Number(resData[invoice].contact_id)) ? true : false;
+            // resultArray?resData[invoice]['allowSend'] = resultArray.includes((resData[invoice].contact_id)) ? true:false:false;//edi
+            // resData[invoice]['allowSend'] = "true";//ebill
+            contact_idList.push((resData[invoice].contact_id));
+            resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
+            resData[invoice]['timestamp'] = '';
+            resData[invoice]['rk_globaltransaction'] = '';
+            resData[invoice]['status'] = '';
+            resData[invoice]['statusLabelInvoice'] = '';
+            for (let qryInvoice in invoiceList) {
+              if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
                 resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
                 resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
-                resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS||'')[invoiceList[qryInvoice]['status']||''];
+                resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS || '')[invoiceList[qryInvoice]['status'] || ''];
                 resData[invoice]['timestamp'] = invoiceList[qryInvoice]['timestamp'];
                 resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
                 resData[invoice]['response'] = invoiceList[qryInvoice]['response']; // Added response from documents_invoice_send to show the error message in the front end.
 
-                if (invoiceList[qryInvoice]?.status === 2)
-                {
+                if (invoiceList[qryInvoice]?.status === 2) {
                   resData[invoice]['allowSend'] = false;
                 }
                 // if(!tempStatus && invoiceList[qryInvoice]?.invoice_type === 'EBILL'){
                 //   tempStatus = true;
                 // }
                 break;
-            }
-            // else
+              }
+              // else
               // resultData.push(resData[invoice]);
+            }
+            // if(!tempStatus){
+            //   // //console.log('12332145',resData[invoice]);
+
+            //   resData[invoice]['isEbill'] = false;
+            // }else{
+            //   resData[invoice]['isEbill'] = true;
+            //   resData[invoice]['allowSend'] = false;
+
+            // }    
+            resultData.push(resData[invoice]);
           }
-          // if(!tempStatus){
-          //   // //console.log('12332145',resData[invoice]);
-            
-          //   resData[invoice]['isEbill'] = false;
-          // }else{
-          //   resData[invoice]['isEbill'] = true;
-          //   resData[invoice]['allowSend'] = false;
+          let contactList: any = [];
 
-          // }    
-          resultData.push(resData[invoice]);
-        }
-        let contactList:any = [];
-    
-        contactList = await getContactById(accessToken,contact_idList);
-    //  //console.log('contactList',contactList);
-     
-        let contactNameList = {};
-        let contactEmailList = {};
-        if(!contactList)
-        {
-          res.send({
-            status: 500,
-            data:[]
+          contactList = await getContactById(accessToken, contact_idList);
+          //  //console.log('contactList',contactList);
+
+          let contactNameList = {};
+          let contactEmailList = {};
+          if (!contactList) {
+            res.send({
+              status: 500,
+              data: []
+            });
+            return
+          }
+
+          contactList.forEach(element => {
+            let name_1 = element.name_1 ? element.name_1 : '';
+            let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
+            contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
+            contactEmailList[element.id] = element.mail ? element.mail : '';
           });
-          return
+          let currencyList = {};
+          let currency: any = [];
+
+          currency = await getAllCurrency(accessToken);
+          // console.log('recipientList',currency);
+          currency.forEach(element => {
+            currencyList[element.id] = element.name;
+          });
+          let recipientList = {};
+          let recipientIds: any = [];
+          // console.log('contact_idList',contact_idList);
+
+          recipientIds = await getRecipientList(contact_idList);
+          recipientIds.forEach(element => {
+            recipientList[element.rk_receivercontactid] = element.recipient_id;
+          });
+          // console.log('recipientList',recipientList);
+          // console.log('currencyList',currencyList);
+
+          resultData.forEach((second) => {
+            second.companyName = contactNameList[second["contact_id"]];
+            second.currency = currencyList[second['currency_id']];
+            second.email = contactEmailList[second["contact_id"]];
+            second.recipient_id = recipientList[second["contact_id"]] ? recipientList[second["contact_id"]] : '';
+            // console.log(' second.recipientId = recipientList[second["contact_id"]];', second.recipientId );
+            // console.log(' recipientList[second["contact_id"]];', recipientList[second["contact_id"]]);
+            // console.log('currencyid;', currencyList[second['currency_id']]);
+            // console.log('currency;', currency);
+          });
+          let keys = Object.keys(req.body)
+
+          let redisKey = req.body.partyId + "_" + req.url + "_";
+          //console.log('redisKey',redisKey);
+          keys.forEach(element => {
+            redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey
+          });
+          await redisClient.set(redisKey, JSON.stringify({
+            status: 200,
+            data: resData,
+            totalCount: totalCount
+          }), {
+            EX: 24 * 60 * 60 * 2 // Expiry time in seconds (2 days)
+          });
+          res.send({
+            status: 200,
+            data: resultData,
+            totalCount: totalCount
+          })
+
         }
-     
-        contactList.forEach(element => {         
-          let name_1 = element.name_1 ? element.name_1 : '';
-          let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
-          contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
-          contactEmailList[element.id] = element.mail ? element.mail : '';
-        });
-        let currencyList = {};
-        let currency: any = [];
-     
-        currency = await getAllCurrency(accessToken);
-        // console.log('recipientList',currency);
-        currency.forEach(element => {
-          currencyList[element.id] = element.name;
-        });
-        let recipientList= {};
-        let recipientIds: any = [];
-        // console.log('contact_idList',contact_idList);
-        
-        recipientIds = await getRecipientList(contact_idList);
-        recipientIds.forEach(element => {
-          recipientList[element.rk_receivercontactid] = element.recipient_id;
-        });
-        // console.log('recipientList',recipientList);
-        // console.log('currencyList',currencyList);
-
-        resultData.forEach((second) => {
-          second.companyName = contactNameList[second["contact_id"]];
-          second.currency = currencyList[second['currency_id']];
-          second.email = contactEmailList[second["contact_id"]];
-          second.recipient_id = recipientList[second["contact_id"]]?recipientList[second["contact_id"]]:'';
-          // console.log(' second.recipientId = recipientList[second["contact_id"]];', second.recipientId );
-          // console.log(' recipientList[second["contact_id"]];', recipientList[second["contact_id"]]);
-          // console.log('currencyid;', currencyList[second['currency_id']]);
-          // console.log('currency;', currency);
-        });
-        let keys = Object.keys(req.body)
-        
-        let redisKey = req.body.partyId+"_"+req.url+"_";
-        //console.log('redisKey',redisKey);
-        keys.forEach(element => {
-            redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
-        });
-        await redisClient.set(redisKey, JSON.stringify({
-          status: 200,
-          data: resData,
-          totalCount: totalCount
-      }), {
-          EX: 24 * 60 * 60 * 2 // Expiry time in seconds (2 days)
-      });
-        res.send({
-          status: 200,
-          data:resultData,
-          totalCount:totalCount
-        })
-
-}
-else{
-  return res.status(401).json({
-    status: 'fail',
-    message: 'unauthorized',
-  });
-}
+        else {
+          console.log('418 else');
+          return res.status(401).json({
+            status: 'fail',
+            message: 'unauthorized',
+          });
+        }
 
       }
-      else{
+      else {
+        console.log('427 else');
         return res.status(401).json({
           status: 'fail',
           message: 'unauthorized',
@@ -453,7 +457,7 @@ else{
    let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
       if (!cookieData) {
-        res.status(500).send({
+        return res.status(500).send({
           status_code: 500,
           message: 'Missing_cookie',
           status: false,
@@ -650,7 +654,7 @@ else{
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
       if (!cookieData) {
-        res.status(500).send({
+       return res.status(500).send({
           status_code: 500,
           message: 'Missing_cookie',
           status: false,
