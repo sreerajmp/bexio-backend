@@ -385,7 +385,6 @@ export class CreditorsService {
           });
           }
           let resData = JSON.parse(response.body);
-          console.log('*********',response.body);
           
           if(response.statusCode != 200)
           return res.status(200).json({

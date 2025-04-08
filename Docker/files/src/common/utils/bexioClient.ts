@@ -26,7 +26,6 @@ export const edit = async () => {
     response_types: ['code']
   });
 
-  console.log('*****************', 'bexio',client);
 
   return client;
 };
