@@ -52,8 +52,17 @@ async getAccessToken(
   @Req() req: Request,
   @Res() res: Response
 ): Promise<any> {
-  // console.log('Received body:', req);
   return this.bexioUserService.getAccessToken(req, res);
+}
+
+@Post('refresh-access-token')
+@UseInterceptors(AnyFilesInterceptor())
+
+async refreshTokenCreate(
+  @Req() req: Request,
+  @Res() res: Response
+): Promise<any> {
+  return this.bexioUserService.refreshTokenCreate(req, res);
 }
 
 }

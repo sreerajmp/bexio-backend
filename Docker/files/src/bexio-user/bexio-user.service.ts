@@ -213,6 +213,62 @@ export class BexioUserService {
       status: true,
     });
   }
+  async refreshTokenCreate(req: Request, res: Response,): Promise<any> {
+    let data = req.body;
+    let refresh_token = null
+    let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+    const bexioClient = await edit();
+
+    try {
+      refresh_token = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME]))).refresh_Token;
+      console.log(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+
+      const tokenSet = await bexioClient.refresh(refresh_token || '');
+      console.log(tokenSet);
+
+      let bexioTokenCookie = {
+        access_Token: tokenSet.access_token,
+        refresh_Token: tokenSet.refresh_token,
+        isBexioUser: true
+
+      }
+      const updateRefreshToken = `UPDATE companyregistered SET refreshtoken = $1
+        WHERE rk_csn = $2`
+      let rk_csn = jwt.decode(tokenSet.access_token)['company_id']
+
+      //  await bexioPool.query(updateRefreshToken, [tokenSet.refresh_token,rk_csn]);
+      await connectBexio.$queryRaw<any[]>(
+        Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${rk_csn}`
+      );
+      res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+        domain: config.SESSION_DOMAIN,
+        maxAge: config.SESSION_EXPIRY,
+        httpOnly: true,
+        signed: true,
+        secure: true
+      });
+      res.send({ status: true })
+
+    } catch (error) {
+
+
+      //   logs.action = 'REFRESH_TOKEN_CREATE';
+      //   logs.level = 'ERROR';
+      //   logs.item = 'EDI';
+      //   // //addlogs(logs,data.rolePartyId,data.roleAccId);
+      // commonErrors['errorTitle'] = req.originalUrl;
+      // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+refresh_token;
+      // warningMessage(commonErrors,error);
+      console.log('error', error);
+      return res.status(401).json({
+        status: 'fail',
+        message: 'unauthorized',
+      });
+
+
+    }
+
+  }
   private async getloginUserCompanyDetails(access_token): Promise<any> {
     return new Promise((resolve) => {
       const options = {
@@ -1911,9 +1967,7 @@ VALUES (
             user_email: email,
             language: 'DE'
           };
-          console.log('********************formData', formData);
-          let planResponse = await planPurchase(formData);
-          console.log('********************regResponse', planResponse);
+          // let planResponse = await planPurchase(formData);
         }
         else {
           let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
@@ -1954,7 +2008,6 @@ VALUES (
             paymentDetails = updateResult[0]?.paymentdata;
 
             let packageSuccess = await packagePayment(paymentDetails);
-            console.log('******************** packagePayment Response for paymentData:', packageSuccess);
           }
 
 
@@ -1971,7 +2024,6 @@ VALUES (
           };
 
           let packageResponse = await packagePayment(formData);
-          console.log('******************** packagePayment Response for formData:', packageResponse);
 
         }
         resolve(true)
@@ -2418,11 +2470,9 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
 
 }
 const planPurchase = async (data) => {
-  console.log('********************data', data);
   let fomdata = {
     planData: encryptionControl.encrypt(JSON.stringify(data))
   }
-  console.log('********************planPurchasefomdata', fomdata);
   let options = {
     'method': 'POST',
     'url': config.ADMIN_URL + 'payment/planPurchase',
@@ -2443,11 +2493,9 @@ const planPurchase = async (data) => {
   });
 }
 const packagePayment = async (data) => {
-  console.log('********************data',data);
   let fomdata= {
     payementData: encryptionControl.encrypt(JSON.stringify(data))
   }
-  console.log('********************packagePaymentfomdata',data);
   let  options = {
       'method': 'POST',
       'url': config.ADMIN_URL+'payment/packagePayment',
