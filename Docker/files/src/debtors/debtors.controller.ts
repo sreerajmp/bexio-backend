@@ -25,7 +25,7 @@ export class DebtorsController {
   return this.debtorsService.getOrderList(req,res);
   }
 
-  // @UseInterceptors(RedisCacheInterceptor)
+  @UseInterceptors(RedisCacheInterceptor)
   @Post('getDeliveryNotesList')
   @UseInterceptors(AnyFilesInterceptor()) 
   async getDeliveryNotesList(@Req() req: Request, @Res() res: Response): Promise<any> {

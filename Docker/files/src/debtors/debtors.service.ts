@@ -67,14 +67,12 @@ export class DebtorsService {
       const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
       if (ediInvoices.length > 0) {
-        //console.log('*************************1');
 
         const getNetcomId = await connectBexio.$queryRaw<any>(
           Prisma.sql`
                     SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
                   `
         );
-        //console.log('getNetcomId',getNetcomId);
 
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
@@ -84,7 +82,6 @@ export class DebtorsService {
                   `
         );
         //console.log('getInviteCompanyId',getNetcomId[0].netcomid);
-        const invitedCids = getInviteCompanyId[0]?.cid || [];
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
                   SELECT array_agg(rk_businessconnection) AS "bcConnection"
@@ -117,13 +114,10 @@ export class DebtorsService {
                     ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
                     AND cb.rk_businessconnection IS NOT NULL
                   `);
-        //console.log('getConnectionBc',getConnectionBc);
         resultArray = getConnectionBc[0]?.array_agg;
-        //console.log('resultArray',resultArray);
 
       }
       if (ebillInvoices.length > 0) {
-        //console.log('*************************2');
         const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
           Prisma.sql`
                   SELECT array_agg(rk_contact) 
@@ -135,19 +129,21 @@ export class DebtorsService {
                 `
         );
         contactArray = getContactBcQryReslt[0]?.array_agg || [];
-        //console.log('contactArray',contactArray);
         if (req.body.contactId && req.body.contactId !== '') {
           contactArray = [];
           contactArray = [req.body.contactId];  // Overwrite with user input
         }
 
       }
-      let tempBc = [0];
       if (isBexioUser) {
 
         let options;
         let searchJson: any[] = [];
-
+        const getSendInvoiceList = await connectBexio.$queryRaw<any>(
+          Prisma.sql`SELECT array_agg(rk_order) AS invoiceId FROM documents_order_send ds
+        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+        WHERE c.rk_party =  ${Number(partyId)}
+        AND ds.status = 2`);
 
         if (data.documentNo) {
           searchJson.push({
@@ -156,7 +152,13 @@ export class DebtorsService {
             "criteria": "like"
           });
         }
-
+        if(data.invoiceTitle != '' && data.invoiceTitle){
+          searchJson.push({
+            "field":"title",
+            "value":data.invoiceTitle,
+            "criteria":"like"
+          })
+        }
         if (data.dateFrom) {
           searchJson.push({
             "field": "is_valid_from",
@@ -172,8 +174,44 @@ export class DebtorsService {
             "criteria": "<="
           });
         }
+        if(data['comapnyUser'] != '' && data['comapnyUser']){
+
+
+          searchJson.push({
+            "field":"user_id",
+            "value":data.comapnyUser,
+            "criteria":"="
+          })
+        }
+        if(data['invoiceStatus'] == 'Yes'){
+
+          console.log('typeof',resultArray==null);
+          
+          searchJson.push({
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value":getSendInvoiceList.rows[0].invoiceid ? getSendInvoiceList.rows[0].invoiceid : "",
+            "criteria":"in"
+          })
+        }
+        if(data['invoiceStatus'] == 'No'){
+          
+          searchJson.push({
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value":getSendInvoiceList.rows[0].invoiceid ? getSendInvoiceList.rows[0].invoiceid : "",
+            "criteria":"not_in"
+          })
+        }
         if (searchJson.length > 0) {
-          //console.log('161616',searchJson);
 
           totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
           options = {
@@ -200,13 +238,14 @@ export class DebtorsService {
 
             // ///console.log('resData',resData);
             resData = JSON.parse(response.body);
-            if (response.statusCode != 200)
-              return res.status(200).json({
+            if (response.statusCode != 200){
+              return res.status(401).json({
                 status: true,
                 status_code: response.statusCode,
                 data: [],
                 message: 'unauthorized',
               });
+            }
           });
 
         }
@@ -286,7 +325,7 @@ export class DebtorsService {
           console.log('getRes',getRes.status);
           // If either response is unauthorized, send response and stop execution
           if (!postRes.status || !getRes.status) {
-            return res.status(200).json({
+            return res.status(401).json({
               status: true,
               data: [],
               message: "unauthorized",
@@ -480,7 +519,6 @@ export class DebtorsService {
   
       if(isBexioUser)
       {
-       //console.log('*******************');
        
         var options = {
           'method': 'GET',
@@ -713,21 +751,19 @@ export class DebtorsService {
 
       const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
         Prisma.sql`
-      SELECT array_agg(rk_businessconnection) AS "bcConnection"
-      FROM contact_bc cb
-      WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
-      AND cb.type = 'EDI'
-      AND cb.rk_businessconnection IS NOT NULL
-    `
+        SELECT array_agg(rk_businessconnection) AS "bcConnection"
+        FROM contact_bc cb
+        WHERE ${getInviteCompanyId[0]?.cid?.length ? 
+          Prisma.sql`cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0].cid)}])` : 
+          Prisma.sql`FALSE`}
+        AND cb.type = 'EDI'
+        AND cb.rk_businessconnection IS NOT NULL
+      `
       );
 
-      //console.log('getConnectionStatusList',getConnectionStatusList);
-      //console.log('getConnectionStatusList',getConnectionStatusList[0]);
-      //console.log('getConnectionStatusList',getConnectionStatusList[0]?.bcConnection);
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
       let bcDetails;
       bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-      //console.log('bcDetails',bcDetails);
 
      
       let tempBc = [0];
@@ -741,7 +777,6 @@ export class DebtorsService {
           }      
         }
       }
-      //console.log('tempBc',tempBc);
       
      
 
@@ -774,7 +809,7 @@ export class DebtorsService {
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
             warningMessage(commonErrors,error);
-            return res.status(200).json({
+            return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
           });
@@ -855,7 +890,7 @@ export class DebtorsService {
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
       return res
-      .status(200)
+      .status(500)
       .json({ status: 500, message: 'something_went_wrong' });
         
     }
