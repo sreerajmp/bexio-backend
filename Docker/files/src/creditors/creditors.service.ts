@@ -387,7 +387,7 @@ export class CreditorsService {
           let resData = JSON.parse(response.body);
           
           if(response.statusCode != 200)
-          return res.status(200).json({
+          return res.status(401).json({
             status: true,
             status_code : response.statusCode,
             data: ['test'],
@@ -401,7 +401,6 @@ export class CreditorsService {
             tempStatus = false;
             resData[invoice]['allowSend'] = resultArray ? ( resultArray.includes((resData[invoice].contact_id).toString()) ? true : false ) : false;
             contact_idList.push((resData[invoice].contact_id));
-            console.log('resData[invoice].id',resData[invoice].id);
             
             order = await getOrderOT(accessToken,resData[invoice].id); 
             

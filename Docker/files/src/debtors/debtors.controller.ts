@@ -17,7 +17,7 @@ export class DebtorsController {
     return this.debtorsService.getInvoice(req, res);
   }
 
-  // @UseInterceptors(RedisCacheInterceptor)
+  @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
   @UseInterceptors(AnyFilesInterceptor()) 
   async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
@@ -32,6 +32,7 @@ export class DebtorsController {
   // console.log('Received body:', req);
   return this.debtorsService.getDeliveryNotesList(req,res);
   }
+  
   @Post('getTagName')
   @UseInterceptors(AnyFilesInterceptor()) 
   async getTagName(@Req() req: Request, @Res() res: Response): Promise<any> {
