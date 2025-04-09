@@ -1428,12 +1428,15 @@ const getCountryLists = async (access_token)=>{
             //console.log(response.body);
             console.log(response.body);
             
-            if(response.statusCode==200)
+            if(response.statusCode==200){
            
             console.log('JSON.parse(response.body',JSON.parse(response.body))
-            // resolve(JSON.parse(response.body));
-            else
-            resolve(false)
+            resolve(JSON.parse(response.body));
+            }
+            else{
+              reject(false)
+            }
+            
   
           });
         });
