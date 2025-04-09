@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b,connectEBILL } from '../db/prisma-clients';
+import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
 import config from '../common/config/index';
 import * as request from 'request';
 import { Request, Response } from 'express';
@@ -844,20 +844,19 @@ export class ConfigurationService {
           const data = req.body;
         
           try {
-            // let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+            let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
-            // if (!cookieData) {
-            //   res.status(500).send({
-            //     status_code: 500,
-            //     message: 'Missing_cookie',
-            //     status: false,
-            //   })
-            // }
+            if (!cookieData) {
+              res.status(500).send({
+                status_code: 500,
+                message: 'Missing_cookie',
+                status: false,
+              })
+            }
       
-            // let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-            // let accessToken = cookie.access_Token;
+            let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+            let accessToken = cookie.access_Token;
           
-            let accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NDQxODQ4NDIsImlhdCI6MTc0NDE4MTI0MiwianRpIjoiMjBjMTljZGYtMThmYy00YzIyLThiNDYtODFlOWM5ZTg4MjA0IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiI0ODJkNjQzMC02MmZiLTRhNDItYjkwMC03NTgzODUxZGJkZjYiLCJzaWQiOiJjNjU4Zjg4ZS1hNjY1LTQxOTUtODMwYy02NTAxYjI4YTAyZTUiLCJzY29wZSI6Im9wZW5pZCBrYl9pbnZvaWNlX2VkaXQgb2ZmbGluZV9hY2Nlc3Mga2JfZGVsaXZlcnlfc2hvdyBrYl9vcmRlcl9zaG93IGtiX2FydGljbGVfb3JkZXJfc2hvdyBmaWxlIGFydGljbGVfc2hvdyBjb21wYW55X3Byb2ZpbGUgZW1haWwga2Jfb3JkZXJfZWRpdCBrYl9pbnZvaWNlX3Nob3cgY29udGFjdF9lZGl0IGtiX29mZmVyX3Nob3cgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.iZbosmzF03k56oxBJ7ZxDys_-PZ_rR7iE0yaCQAYJ9zHa6UnKHCizxSlvBpFzVQwXkPbcTej4sFxOBgqaRi8KKzJT1tZc1rb1OOwS8uvGHsFZvE1AUGQj2C-pqyPI1aJIRMFg_-EZlKK1FMMfDlH7N30EgV0-e8wcb1sPFm5jivBZVVWqyvCnY53hh_t5N404LS4EtRUT37Dd0hN-G9MnsEZI2cywSOgCDLgLuC_O37j-hp_IfGDLA7gIY9UC7Sz_KGBelSBT_2gaRod94d3fWxjVHnnsRK6RXPU_4o3faT-Pnwa-9zIBgVbtyHJwss0fshF3LEgOgHdG9nFxrb19A'
               console.log("data.contactsId:: ",data.contactsId);
               
               let senderNr = await getContactDetails(accessToken,data.contactsId);
