@@ -1221,4 +1221,3 @@ const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
       });
   });
 }
-
