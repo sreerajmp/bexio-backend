@@ -47,7 +47,6 @@ model contact_bc {
   recipient_id           String?   @db.VarChar(17)
   rk_sendercontactid    BigInt?
   rk_receivercontactid  BigInt?
-  docType               String?   @db.VarChar
   // Foreign key relation
   companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
 }
