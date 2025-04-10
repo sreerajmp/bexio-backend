@@ -60,5 +60,41 @@ export class ConfigurationController {
   // console.log('Received body:', req);
   return this.configurationService.getBillerDetails(req,res);
   }
+  @Post('getBiller')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getBiller(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.getBiller(req,res);
+  }
+  @Post('getSectors')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getSectors(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.getSectors(req,res);
+  }
+  @Post('updateBiller')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async updateBiller(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.updateBiller(req,res);
+  }
+  @Post('checkContact')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async checkContact(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.checkContact(req,res);
+  }
+  @Post('checkContactExist')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async checkContactExist(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.checkContactExist(req,res);
+  }
+  @Post('createContact')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async createContact(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.createContact(req,res);
+  }
   
 }
