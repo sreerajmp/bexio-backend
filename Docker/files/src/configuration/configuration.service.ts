@@ -860,19 +860,25 @@ console.log('****************************');
 
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
-      let senderNr = await getContactDetails(accessToken, data.contactsId);
+      let senderNr:any = await getContactDetails(accessToken, data.contactsId);
+      if(senderNr.message=='Unauthorized'){
+        return res.status(401).send({
+          message: senderNr.message,
+          status: false,
+        })
+      }
       if (!senderNr) {
         commonErrors['errorTitle'] = 'inviteCompany';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_details_not_found - req param,', req.body;
         warningMessage(commonErrors, 'contact_details_not_found');
 
-        res.send({
+      return res.status(500).send({
           status_code: 500,
           message: 'something_went_wrong',
           status: false,
 
         });
-        return
+        
       }
 
       if (senderNr['id']) {
@@ -1059,7 +1065,7 @@ console.log('****************************');
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_in_inviteSendStatus - req param,', req.body;
           warningMessage(commonErrors, 'error_in_inviteSendStatus');
           return res
-            .status(200)
+            .status(500)
             .json({
               status_code: 500,
               message: 'something_went_wrong',
@@ -1135,7 +1141,6 @@ const getBcDetails = async (bc_id, netcomId) => {
   }
 }
 const getCountryLists = async (access_token) => {
-  //  let access_token = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_NAME]))).access_token;
   try {
     return new Promise(async (resolve, reject) => {
       var options = {
@@ -1254,7 +1259,7 @@ const contactListCount = async (token, offset, limit?) => {
   });
 }
 const getContactDetails = async (access_token, id) => {
-  console.log(id);
+  console.log('access_token:',access_token,id);
 
   try {
     return new Promise(async (resolve, reject) => {
@@ -1273,12 +1278,14 @@ const getContactDetails = async (access_token, id) => {
           warningMessage(commonErrors, error);
           resolve(false)
         }
-        // res.send(response.body)
-        //console.log(response.body);
-        if (response.statusCode == 200)
+        if (response.statusCode == 200){
           resolve(JSON.parse(response.body));
-        else
-          resolve(false)
+
+        }
+        else if(response.statusCode == 401){
+          resolve(JSON.parse(response.body));
+
+        }
 
       });
     });
@@ -1303,8 +1310,6 @@ const createConnector = async (params) => {
     let options = {
       'method': 'POST',
       'url': config.PYTHON_API + 'third-party-connector',
-      // 'url':'http://192.168.2.64:5005/api/third-party-connector',
-      // 'headers': headers,
       formData: formdata
     };
     return new Promise(function (resolve, reject) {
