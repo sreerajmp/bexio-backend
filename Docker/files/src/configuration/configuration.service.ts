@@ -259,7 +259,7 @@ export class ConfigurationService {
         rk_receivercontactid: Number(item.rk_receivercontactid)
       }));
 
-      console.log('*******************', partyAccountCheck);
+      // console.log('*******************', partyAccountCheck);
       const getInviteCompanyBcResult = await connectBexio.contact_bc.findMany({
         where: {
           type: 'EDI',
@@ -1096,11 +1096,15 @@ console.log('****************************');
   }
   async getBiller(req: Request, res: Response,): Promise<any> {
     let encrToken:any = null;
-    const data = encryptionControl.decrypt(req.body.encrToken);
+    encrToken = encryptionControl.decrypt(req.body.encrToken);
+console.log('encrToken',encrToken);
+console.log('req.body',req.body);
+
     try {
-      encrToken = encryptionControl.decrypt(req.body.encrToken);
       const resetToken = crypto.randomBytes(15).toString('hex');
-      const billerId = encrToken?.billerId
+      const billerId = req.body.billerId
+      console.log("billerId:",billerId);
+      
       const options = {
         method: 'GET',
         url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}`,
