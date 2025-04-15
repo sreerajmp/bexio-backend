@@ -31,4 +31,10 @@ export class CreditorsController {
   async xmlToJson(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.creditorsService.xmlToJson(req,res);
   }
+  @Post('getAllUsers')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async getAllUsers(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.creditorsService.getAllUsers(req,res);
+  }
+  
 }
