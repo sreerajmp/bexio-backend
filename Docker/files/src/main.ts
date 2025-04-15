@@ -4,11 +4,33 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerOptions, swaggerTitle, swaggerDescription } from './common';
 import * as cookieParser from 'cookie-parser';
+import * as session from 'express-session';
 import config from './common/config/index';
 import * as express from 'express';
+import redisClient from './common/utils/redisDB';
+import { RedisStore } from 'connect-redis';
+
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.use(cookieParser(config.SESSION_SECRET));
+  app.use(
+    session({
+      store: new RedisStore({
+        client: redisClient,
+      }),
+      secret: config.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      name: config.SESSION_COOKIE_NAME || 'nestjs.session', 
+      cookie: {
+        secure: process.env.NODE_ENV === 'production', // true in production
+        httpOnly: true,
+        maxAge: config.SESSION_EXPIRY || 86400000, // Default: 1 day
+        domain: config.SESSION_DOMAIN || undefined,
+        sameSite: 'lax'
+      },
+    })
+  );
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(

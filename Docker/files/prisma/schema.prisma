@@ -106,6 +106,7 @@ model documents_invoice_send {
   object_id             String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   is_notifyed           Boolean?  @default(true)
   reference_id          String?   @db.VarChar
+  response              String?   @db.VarChar
     // Foreign key relation
   companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
 }

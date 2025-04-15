@@ -2256,15 +2256,15 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
       expiresIn: config.JWTRefreshExpiration,
     });
-    // req.session.isAuth = true;
+    req.session.isAuth = true;
 
     let tokenCookie = { 
       accessToken:accessToken,
       refreshToken:refreshToken,
       userMail: userDetails[0].email,
-      partyID: userDetails[0].partyid,
-      userID: userDetails[0].userid,
-      accId: userDetails[0].accountid,
+      partyID: String(userDetails[0].partyId),
+      userID: userDetails[0].userId,
+      accId: userDetails[0].accountId,
       isBexioCompany:true,
       netcomId:cookie.netcomid
 
