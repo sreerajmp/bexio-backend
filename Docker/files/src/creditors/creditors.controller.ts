@@ -9,7 +9,7 @@ export class CreditorsController {
     
   }
   @Post('getInvoice')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor())
   async getInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
  
   return this.creditorsService.getInvoice(req,res);
@@ -17,7 +17,7 @@ export class CreditorsController {
   
   @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
-  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  @UseInterceptors(AnyFilesInterceptor())
   async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.creditorsService.getOrderList(req,res);
   }
