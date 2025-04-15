@@ -16,6 +16,8 @@ import connectMssql from '../db/mssql-client'
 import status_code from '../common/utils/statusCodes';
 const crypto = require("crypto");
 import { resolve } from 'path';
+const fetchEmailContent = require('../common/utils/fetchEmailData');
+const sendEmail = require('../common/utils/email');
 @Injectable()
 export class ConfigurationService {
 
@@ -1534,189 +1536,364 @@ console.log('req.body',req.body);
     })
     }
   }
-  // async createBusinessConnection(req: Request, res: Response,): Promise<any> {
-  //   const pool = await connectPostgres;
-  //   const data = req.body;
-  //     try {
-  //       let connectionData,invitationData;
-  //       let bexioPool = await postgresBexio;
-  //       let inviteSenderDetails,direction,doc_type;
-        
-  //       console.log(data);
-  //       invitationData = await getInvitations(data.code);
-  //       if(invitationData == false){
-  //         commonErrors['errorTitle'] = req.originalUrl;
-  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'invitationData_not_found -req param,',JSON.stringify(req.body);
-  //         warningMessage(commonErrors,'invitationData_not_found');
-  //         res.send({
-  //           status_code: 500,
-  //           message: 'something_went_wrong',
-  //           status: false,
-  //         });
-  //         return
-  //       }
-  //       direction = data.direction;
-  //       doc_type = data.docType;
-  //       let getPartyAccountIdQry = `SELECT pa.cid,p.objectid,lp.companyname
-  //           FROM party_account pa
-  //             INNER JOIN party p ON pa.fk_party = p.cid 
-  //             INNER JOIN legalparty lp ON lp.fk_party = p.cid 
-  //             INNER JOIN status s ON s.cid = pa.fk_status 
-  //           WHERE pa.fk_account = $1
-  //             AND pa.fk_party = $2 AND s."statusLabel" = 'active'`;
-  //       const getPartyAccountId = await pool.query(getPartyAccountIdQry, [data.accountId, data.partyId]);
-  //       if( doc_type != 'Invoice'){
-  //         let params = {'direction': data.direction.toUpperCase(),'netcomId':data.netcomId,'name':getPartyAccountId.rows[0].companyname,'doc_type':doc_type};
-  //         await createConnector(params);
-  //       }
-  //       let inviteData = JSON.parse(invitationData).results[0];
-  
-  //       console.log('invitationData',inviteData.mode);
-  //       let statusJson 
-  //       statusJson = await getStatus(inviteData.id);
-  //       console.log(statusJson);
-  
-  //       statusJson = JSON.parse(statusJson)
-        
-  //       let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
-  //       connectionData = await getConnections(dataCookie.netcomId,doc_type);
-  //       console.log('connectionData',connectionData);
-  //       if(!connectionData)
-  //       {
-  //         commonErrors['errorTitle'] = req.originalUrl;
-  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'connectionData_not_found -req param,',JSON.stringify(req.body);
-  //         warningMessage(commonErrors,'connectionData_not_found');
-        
-  //         res.send({
-  //           status_code: 500,
-  //           message: 'something_went_wrong',
-  //           status: false,
-  //         });
-  //         return
-  //       }
-  //       inviteSenderDetails = JSON.parse(connectionData).results.length != 0 ?  await getConnectionsDetailsOfInviteSender(data.code,data.netcomId):'';
-  //       if(!inviteSenderDetails){
-  //         commonErrors['errorTitle'] = req.originalUrl;
-  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'inviteSenderDetails_not_found -req param,',JSON.stringify(req.body);
-  //         warningMessage(commonErrors,'inviteSenderDetails_not_found');
-         
-  //         res.send({
-  //           status_code: 500,
-  //           message: 'something_went_wrong',
-  //           status: false,
-  //         });
-  //         return
-  //       }      
-  //       console.log('inviteSenderDetails',inviteSenderDetails);
-  //       if(JSON.parse(connectionData).results.length != 0 && JSON.parse(inviteSenderDetails).results[0].direction['id'] != 0)
-  //       {
-  //         let inviteData = JSON.parse(invitationData).results[0];
-  
-  //         console.log('in_custom_id',inviteData.g2b_connections_customerid['in_custom_id']);
-  //         const getInviteCompanyIdQry = `SELECT cid FROM
-  //         companyregistered 
-  //         WHERE netcomid = $1`
-  //         console.log(inviteData.g2b_connections_customerid);
-  //         let getInviteNetcomId = await bexioPool.query(getInviteCompanyIdQry,[dataCookie.netcomId]);
-  //         let tempConnectionDetails = JSON.parse(inviteSenderDetails);
-  //         console.log('tempConnectionDetails',tempConnectionDetails);
-          
-  //         let tempPaye = {"company_payee":tempConnectionDetails.results[0].company_payee,"partner_company_payee":tempConnectionDetails.results[0].partner_company_payee, "company_direction": 0};
-  //         if(!tempConnectionDetails.results[0].company_payee)
-  //         {
-  //           tempPaye.company_payee = "self";
-  //         }
-         
-          
-  //         let formData =  {
-  //           out_id:JSON.parse(connectionData).results[0].id,
-  //           out_cust_id:inviteData.g2b_connections_customerid['out_cust_id'],
-  //           out_status:1,
-  //           in_id:inviteData.connection_id,
-  //           in_cust_id:inviteData.g2b_connections_customerid['in_cust_id'],
-  //           in_status:1,
-  //           merge_status:1,
-  //           invitation_id:inviteData.id,
-  //           invitation_code:data.code,
-  //           platform:JSON.stringify({"type": "ext-party", "code": "BEX", "direction": "OUT"}),
-  //           fk_companyregistered:getInviteNetcomId.rows[0].cid, 
-  //           rk_contact:data.id, 
-  //           rk_partyreceived:data.partyId,
-  //           ot_updator:JSON.stringify({"in_custom_id": data.id, "out_custom_id": "1","receiver_file_name":''}),
-  //           payee_details:JSON.stringify(tempPaye),
-  //           mode:inviteData?.mode
-  //         };
-  //         console.log('inviteData',inviteData);
-  //         console.log(formData);
+  async createBusinessConnection(req: Request, res: Response,): Promise<any> {
    
-  //         console.log('config.PYTHON_API',config.PYTHON_API+'merge-connections');
-  //         return new Promise(async(resolve, reject) => {
-  //           var options = {
-  //             'method': 'POST',
-  //             'url': config.PYTHON_API+'merge-connections',
-  //             formData: formData
-            
-  //           };
-  //           request(options, async function (error, response) {
-  //             if (error) {  
-  //               commonErrors['errorTitle'] = 'merge-connections';
-  //               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-  //               warningMessage(commonErrors,error);
-              
-  //               res.send({
-  //                 status_code: 500,
-  //                 message: JSON.parse(response.body).message,
-  //                 status: false,
-  //               });
-  //               return
-  //             }
-            
-  //             console.log(response.body);
-              
-  //             if(JSON.parse(response.body).status)
-  //             {
-              
-  //               let temp = req.url.substr(1,req.url.length);
-  //               console.log('temp',temp);
-  //               let redisKey = req.body.partyId+"_/";
-  //               await deleteRedis(req.url.substr(1,req.url.length),redisKey);
-  //               res.send({
-  //                 status_code: 200,
-  //                 message: 'common_success',
-  //                 status: true,
-  //               });
-  //             }else{
-  //               res.send({
-  //                 status_code: 500,
-  //                 message: JSON.parse(response.body).message,
-  //                 status: false,
-  //               });
-  //             }
-          
-  //           });
-  //         });
-  //       }else{
-  //         let msg = JSON.parse(inviteSenderDetails).results[0].direction['id'] == 0 ? 'sender_Error_msg' : '';
-  //         res.send({
-  //           status_code: 500,
-  //           message: msg,
-  //           status: false,
-  //         });
-  //       }
-  //     } catch (error) {
-          
-  //         console.log(error);
-  //         commonErrors['errorTitle'] = req.originalUrl;
-  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+JSON.stringify(req.body);
-  //         warningMessage(commonErrors,error);
-  //       res.send({
-  //         status_code: 500,
-  //         message: 'something_went_wrong',
-  //         status: false,
-  //       });
-  //     }
-  // }  
+    const data = req.body;
+      try {
+        let connectionData,invitationData;
+        let inviteSenderDetails,direction,doc_type;
+        console.log(data);
+        invitationData = await getInvitations(data.code);
+        if(invitationData == false){
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'invitationData_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'invitationData_not_found');
+          res.send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return
+        }
+        direction = data.direction;
+        doc_type = data.docType;
 
+        const getPartyAccountId = await connectLibrary.$queryRaw<any[]>`
+        SELECT pa.cid, p.objectid, lp.companyname
+        FROM party_account pa
+        INNER JOIN party p ON pa.fk_party = p.cid 
+        INNER JOIN legalparty lp ON lp.fk_party = p.cid 
+        INNER JOIN status s ON s.cid = pa.fk_status 
+        WHERE pa.fk_account = ${BigInt(data.accountId)}
+          AND pa.fk_party = ${BigInt(data.partyId)}
+          AND s."statusLabel" = 'active'
+      `;
+
+console.log('getPartyAccountId', getPartyAccountId);
+
+        if( doc_type != 'Invoice'){
+          let params = {'direction': data.direction.toUpperCase(),'netcomId':data.netcomId,'name':getPartyAccountId[0].companyname,'doc_type':doc_type};
+          await createConnector(params);
+        }
+        let inviteData = JSON.parse(invitationData).results[0];
+  
+        console.log('invitationData',inviteData.mode);
+        let statusJson 
+        statusJson = await getStatus(inviteData.id);
+        console.log(statusJson);
+  
+        statusJson = JSON.parse(statusJson)
+        
+        let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+        connectionData = await getConnections(dataCookie.netcomId,doc_type);
+        console.log('connectionData',connectionData);
+        if(!connectionData)
+        {
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'connectionData_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'connectionData_not_found');
+        
+          res.send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return
+        }
+        inviteSenderDetails = JSON.parse(connectionData).results.length != 0 ?  await getConnectionsDetailsOfInviteSender(data.code,data.netcomId):'';
+        if(!inviteSenderDetails){
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'inviteSenderDetails_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'inviteSenderDetails_not_found');
+         
+          res.send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return
+        }      
+        console.log('inviteSenderDetails',inviteSenderDetails);
+        if(JSON.parse(connectionData).results.length != 0 && JSON.parse(inviteSenderDetails).results[0].direction['id'] != 0)
+        {
+          let inviteData = JSON.parse(invitationData).results[0];
+          console.log('in_custom_id',inviteData.g2b_connections_customerid['in_custom_id']);
+          const getInviteNetcomId = await connectBexio.companyregistered.findMany({
+            where: {
+              netcomid: dataCookie.netcomId,
+            },
+            select: {
+              cid: true, 
+            }
+          });
+
+          let tempConnectionDetails = JSON.parse(inviteSenderDetails);
+          console.log('tempConnectionDetails',tempConnectionDetails);
+          
+          let tempPaye = {"company_payee":tempConnectionDetails.results[0].company_payee,"partner_company_payee":tempConnectionDetails.results[0].partner_company_payee, "company_direction": 0};
+          if(!tempConnectionDetails.results[0].company_payee)
+          {
+            tempPaye.company_payee = "self";
+          }
+         
+          
+          let formData =  {
+            out_id:JSON.parse(connectionData).results[0].id,
+            out_cust_id:inviteData.g2b_connections_customerid['out_cust_id'],
+            out_status:1,
+            in_id:inviteData.connection_id,
+            in_cust_id:inviteData.g2b_connections_customerid['in_cust_id'],
+            in_status:1,
+            merge_status:1,
+            invitation_id:inviteData.id,
+            invitation_code:data.code,
+            platform:JSON.stringify({"type": "ext-party", "code": "BEX", "direction": "OUT"}),
+            fk_companyregistered:getInviteNetcomId[0].cid, 
+            rk_contact:data.id, 
+            rk_partyreceived:data.partyId,
+            ot_updator:JSON.stringify({"in_custom_id": data.id, "out_custom_id": "1","receiver_file_name":''}),
+            payee_details:JSON.stringify(tempPaye),
+            mode:inviteData?.mode
+          };
+          console.log('inviteData',inviteData);
+          console.log(formData);
+   
+          console.log('config.PYTHON_API',config.PYTHON_API+'merge-connections');
+          return new Promise(async(resolve, reject) => {
+            var options = {
+              'method': 'POST',
+              'url': config.PYTHON_API+'merge-connections',
+              formData: formData
+            
+            };
+            request(options, async function (error, response) {
+              if (error) {  
+                commonErrors['errorTitle'] = 'merge-connections';
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+                warningMessage(commonErrors,error);
+              
+                res.send({
+                  status_code: 500,
+                  message: JSON.parse(response.body).message,
+                  status: false,
+                });
+                return
+              }
+            
+              console.log(response.body);
+              
+              if(JSON.parse(response.body).status)
+              {
+                let redisKey = req.body.partyId + "_/";
+                await deleteRedis('createBusinessConnection', redisKey);
+                res.send({
+                  status_code: 200,
+                  message: 'common_success',
+                  status: true,
+                });
+              }else{
+                res.send({
+                  status_code: 500,
+                  message: JSON.parse(response.body).message,
+                  status: false,
+                });
+              }
+          
+            });
+          });
+        }else{
+          let msg = JSON.parse(inviteSenderDetails).results[0].direction['id'] == 0 ? 'sender_Error_msg' : '';
+          res.send({
+            status_code: 500,
+            message: msg,
+            status: false,
+          });
+        }
+      } catch (error) {
+          
+          console.log(error);
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+JSON.stringify(req.body);
+          warningMessage(commonErrors,error);
+        res.send({
+          status_code: 500,
+          message: 'something_went_wrong',
+          status: false,
+        });
+      }
+  }  
+  async createBiller(req: Request, res: Response,): Promise<any> {
+    let encrToken:any = null;
+    try {
+      const correlationId = crypto.randomBytes(15).toString('hex');
+      encrToken = encryptionControl.decrypt(req.body.encrToken);
+      const options = {
+        method: 'POST',
+        url: config.SIX_API_CERTIFICATE_BASE + `billers`,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'X-Correlation-Id': correlationId,
+        },
+        body: encrToken.data,
+        key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE) 
+      };
+      await request(options, async function (error, response) {
+        if (error) {
+          console.log(error);
+          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+        else {
+          let data = JSON.parse(response.body);
+          if (data.id) {
+            let netcomId = encrToken.netcomId;
+            let companyName = encrToken.companyName;
+            let companyId = encrToken.companyId;
+            let bexioCompanyName = null;
+            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
+              where: {
+                netcomid: netcomId,
+              },
+              select: {
+                cid: true, 
+              }
+            });
+            if (checkBexioCompanyResult.length != 0) {
+              const getParentData = await connectGate2b.$queryRaw<any[]>`
+              SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
+              bexioCompanyName = getParentData[0].rk_party;
+            }
+            let jsonReq = JSON.stringify(data);
+
+            const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+              Prisma.sql`
+              SELECT cid
+              FROM "ebillWallet"
+              WHERE fk_party =  ${Number(companyId)}
+              `
+            );
+
+            if (getPartyEbillResult.length <= 0) {
+              await connectLibrary.$executeRaw(
+                Prisma.sql`
+                  INSERT INTO "ebillWallet" (fk_party, "lastEntered", "billerId")
+                  VALUES (
+                    ${Number(companyId)},
+                    date_trunc('month', now()::timestamp) + interval '6 hour',
+                    ${data.id}
+                  )
+                `
+              );
+            }
+            await connectMssql.$executeRaw(
+              Prisma.sql`
+                INSERT INTO biller (
+                  netcomid, billerId, status, legalName, uid,
+                  subscriptionStatus, defaultLanguage, companyJSON, party_parent
+                ) VALUES (
+                  ${netcomId},
+                  ${data.id},
+                  ${data.status},
+                  ${data.legalName},
+                  ${data.accounts[0].iid},
+                  ${data.billRecipientSubscriptionStatus},
+                  ${data.localizedData.defaultLanguage},
+                  ${jsonReq},
+                  ${bexioCompanyName}
+                )
+              `
+            );
+            let createdPythonResponse = await bexioCreatePythonData(netcomId,companyName,encrToken);
+            console.log("createdPythonResponse---",createdPythonResponse,'createdPythonResponse &&');
+            if (checkBexioCompanyResult.length != 0) {
+             let updateBexio = await bexioUpdateBiller(req,data.id);
+             console.log("updateBexio---",updateBexio);
+             if(updateBexio != true){
+              let dataResponse = {"name":"io_market.ebill_pid", "value":`${data.id}`} 
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-bexioUpdateBiller params---'+dataResponse;
+              console.log("commonErrors--",commonErrors);
+              warningMessage(commonErrors, 'bexioUpdateBiller failed...');
+             }
+            }
+            if (companyId != null) {
+            
+              await connectLibrary.$executeRaw(
+                Prisma.sql`
+                  UPDATE commissionagent_party
+                  SET status = 'biller_created',
+                      "module" = 'EBILL'
+                  WHERE fk_party = ${Number(companyId)}
+                `
+              );
+              
+            }
+            const getCompanyDetails = await connectLibrary.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT u."language", e.email, l.companyname
+              FROM party p
+              INNER JOIN email e ON e.fk_party = p.cid
+              INNER JOIN "user" u ON e.fk_user = u.cid
+              INNER JOIN legalparty l ON l.fk_party = p.cid
+              WHERE p.cid = ${Number(companyId)} AND e."_type" = 'company_contact'
+            `
+          );
+            let language = getCompanyDetails[0]?.language;
+            let ComapnyEmail = getCompanyDetails[0]?.email;
+            let companyname = getCompanyDetails[0]?.companyname;
+           let keyDatas = {
+            id: data.id,
+            companyName: companyname
+           }
+           const mailData = await fetchEmailContent('biller_created_six',language,keyDatas);
+           const message = mailData.message;
+           const subject = mailData.subject;
+            await sendEmail({
+              email: config.DEBUG ? config.DEBUG_MAIL :ComapnyEmail ,
+              subject: subject,
+              message,
+            });
+          
+            return res.status(status_code.OK).json({
+              status_code: 200,
+              message: 'created_biller_successfully',
+              status: true,
+            });          
+          }
+          else {
+            let responseValue = JSON.stringify(encrToken)
+            commonErrors['errorTitle'] = req.originalUrl;
+         
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param six,'+ responseValue;
+            warningMessage(commonErrors, responseValue);
+            var returnData = data.type.replace('/problems/','');
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              status_code: 500,
+              message: returnData.toLowerCase(),
+              status: false,
+            });
+          }
+        }
+      })
+    }
+    catch (error) {
+   
+      let responseValue = JSON.stringify(encrToken);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'+responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+  }
 }
 const getBcDetails = async (bc_id, netcomId) => {
   try {
@@ -2224,4 +2401,219 @@ const getInvitations = async (code)=>{
     warningMessage(commonErrors,error);
     return 
   }
+}
+const getStatus = async (code)=>{
+  let formData:any =  null
+  try {
+     formData = {
+      invite_id:code
+    }
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': config.PYTHON_API+'fetch-field-status',
+        formData: formData
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getStatus';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio params,'+formData;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        // res.send(response.body)
+        //console.log(response.body);
+        
+        resolve(response.body);
+
+      });
+    });
+  } catch (error) {
+      commonErrors['errorTitle'] = getStatus.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
+      warningMessage(commonErrors,error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      // res.send();
+      resolve('');
+    });
+  }
+}
+const getConnections = async (netcomId,docType)=>{
+  let formData:any = null
+  try {
+    let doc_type = JSON.parse(config.BEXIO_DOCTYPES).filter( a=> a.key.toLowerCase() == docType.toLowerCase());
+    formData = {
+      netcom_id:netcomId,
+      direction:'OUTPUT',
+      active_only:'true',
+      doc_type: doc_type[0]['id'],
+      doc_format:config.DOC_FORMAT,
+      show_all: 'true'
+    }
+    console.log('formData',formData);
+    
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': config.PYTHON_API+'post-list/connections',
+         formData: formData
+       
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'post-list/connections';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+       
+        resolve(response.body);
+
+      });
+    });
+  } catch (error) {
+      commonErrors['errorTitle'] = getConnections.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId;
+      warningMessage(commonErrors,error);
+
+   
+  }
+}
+const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
+  let formData:any = null
+  try {
+
+    formData = {
+      invite_code:code,
+      logged_in_netcom_id:netComId
+    
+    }
+    console.log(formData);
+    
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': config.PYTHON_API+'post-list/connections',
+         formData: formData
+       
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getLoginUserInfo';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+          warningMessage(commonErrors,error);
+          resolve(response.body);
+        }
+        // res.send(response.body)
+        resolve(response.body);
+
+      });
+    });
+  } catch (error) {
+      commonErrors['errorTitle'] = getConnectionsDetailsOfInviteSender.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
+      warningMessage(commonErrors,error);
+  }
+}
+const bexioCreatePythonData = async (netcomId,companyName,encrToken) => {
+  return new Promise(async (resolve, reject) => {
+  let data 
+  try{ 
+  if(companyName === 'Bexio'){
+    data = JSON.parse(config.BEXIO_CREATE_BUSSINESS_CONNECTION||'')
+   }
+else{
+  data = JSON.parse(config.CREATE_BUSSINESS_CONNECTION||'')
+  let response = JSON.parse(encrToken.config)
+  data.config.platform["config"] = {}
+  data.config["fk_doc_type"] = response.fk_doc_type || '',
+  data.config["fk_doc_format"] = response.fk_doc_format || '',
+  data.config["fk_netcomid_doc_interface"] = response.fk_netcomid_doc_interface || ''
+  data.config["include_pdf"] = response.include_pdf || 0
+}
+  data.config['netcom_id'] = `${netcomId}`
+  let docTypeFormat = encrToken.docTypeFormat ? JSON.parse(encrToken.docTypeFormat) : '';
+  let doc_type = docTypeFormat ? docTypeFormat.doc_type : data.config["fk_doc_type"].toUpperCase();
+  let doc_format = docTypeFormat ? docTypeFormat.doc_type : data.config["fk_doc_format"];
+  data.config['name'] = `EBILL_$SEND$_${doc_type}_${doc_format}_${netcomId}`;
+  const options = {
+    method: 'POST',
+    url: `${config.GATE2BURL}no-invite-process`,
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    form: { 'data': JSON.stringify(data) }
+  };
+  await request(options, async function (error, response) {
+    if (error) {
+      let responseValue = JSON.stringify(data)
+      commonErrors['errorTitle'] = ' bexioCreatePythonData';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return  resolve(false);
+    }
+    else {
+      let dataValue = JSON.parse(response.body)
+      if (dataValue.status) {
+        return resolve(true);
+      }
+      else{
+      let responseValue = JSON.stringify(data)
+      commonErrors['errorTitle'] = 'bexioCreatePythonData';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'something wrong'+responseValue;
+      warningMessage(commonErrors,responseValue);
+      return resolve(false);
+      }
+    }
+  })
+}
+catch(error){
+  let responseValue = JSON.stringify(data)
+  commonErrors['errorTitle'] = 'bexioCreatePythonData';
+  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString()+'req param-'+responseValue;
+  warningMessage(commonErrors, error);
+  return reject(false);
+ }
+})
+}
+const bexioUpdateBiller = async (req, billerId) => {
+  return new Promise( async (resolve,reject)=>{
+  let cookie;
+  try {
+    cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME]));
+    let accessToken = cookie.access_Token;
+    let data = {
+      "name":"io_market.ebill_pid",
+      "value":`${billerId}` 
+    }
+    const options = {
+      method: 'POST',
+      url: `https://office.bexio.com/api.php/external_api_settings`,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(data)
+    };
+    await request(options, async function (error, response) {
+      if (error) {
+        console.log("response from bexio update biller error----",error);
+        commonErrors['errorTitle'] = req.originalUrl + `' bexioUpdateBiller'+' '+'billerId ----${billerId}'`;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie.access_Token;
+        commonErrors['errorCode'] = config.ERROR_BEXIO_BILLER
+        warningMessage(commonErrors, error);
+        resolve(false);
+      }
+      else {
+        console.log("response from bexio update biller----",response.body);
+        resolve(true);
+      }
+    })
+  }
+  catch {
+    resolve(false);
+  }
+})
 }

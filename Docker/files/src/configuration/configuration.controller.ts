@@ -96,5 +96,10 @@ export class ConfigurationController {
   // console.log('Received body:', req);
   return this.configurationService.createContact(req,res);
   }
-  
+  @Post('createBiller')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async createBiller(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // console.log('Received body:', req);
+  return this.configurationService.createBiller(req,res);
+  }
 }
