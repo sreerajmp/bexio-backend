@@ -382,7 +382,7 @@ export class CreditorsService {
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
             warningMessage(commonErrors,error);
-            return res.status(200).json({
+            return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
               error: JSON.stringify(error)
@@ -507,7 +507,7 @@ export class CreditorsService {
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
       return res
-      .status(200)
+      .status(500)
       .json({ status: 500, message: 'something_went_wrong' });
         
     }
@@ -870,6 +870,47 @@ export class CreditorsService {
    
        
 
+}
+async getAllUsers(req: Request, res: Response,): Promise<any> {
+
+  let cookie ;
+  cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+  try {
+    let access_token = cookie.access_Token;
+    
+    return new Promise(async(resolve, reject) => {
+          var options = {
+            'method': 'GET',
+            'url': `https://api.bexio.com/3.0/users`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer '+access_token
+            }
+          };
+          request(options, function (error, response) {
+            if (error) {  
+              commonErrors['errorTitle'] = 'users';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+              warningMessage(commonErrors,error);
+              resolve(false)
+            }
+            // res.send(response.body)
+            console.log(response?.body);
+            res.send(response?.body)
+           'body' in response ?  resolve(JSON.parse(response?.body)) : '';
+  
+          });
+        });
+    } catch (error) {
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+        warningMessage(commonErrors,error);
+      res.send({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+    });
+    }
 }
 }
 const orderListCountSearch = async (token,offset,limit?) => {
