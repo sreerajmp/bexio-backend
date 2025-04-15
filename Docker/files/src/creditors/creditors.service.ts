@@ -11,6 +11,10 @@ import redisClient from '../common/utils/redisDB';
 import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
+const { Worker } = require('worker_threads');
+const fs = require('fs')
+import { resolve } from 'path';
+var xml2js = require('xml2js');
 @Injectable()
 export class CreditorsService {
  async getInvoice(req: Request, res: Response,): Promise<any> {
@@ -508,7 +512,365 @@ export class CreditorsService {
         
     }
   }
+  async sendOrder(req: Request, res: Response,): Promise<any> {
+    try {
+      let bodyData = req.body;
+      let bodyParams = {
+        "partyId": bodyData.partyId,
+        "accountId": bodyData.accountId,
+      }
+      let orders = bodyData.orderItems;
+      let obj = JSON.parse(orders);
+      console.log('objobjobjobj',obj);
+      
+      async function processInvoices(obj, bodyData) {
+        for (let index = 0; index < obj.length; index++) {
+          const element = obj[index];
+          await setOrderSendStatus(bodyData.partyId, element.orderId, '', '1', '');
+  
+        }
+      }
+      // Call the function with await to ensure it completes before moving on
+      await processInvoices(obj, bodyData);
+      const worker = new Worker('./src/common/utils/sendPurchaseOrder_worker.js',{
+        workerData: {
+          bodyParams : JSON.stringify(bodyParams),
+          orders,
+          headerParams: {
+            cookies: req.cookies, // Include cookies
+            signedCookies: req.signedCookies, // Include signed cookies
+            url: req.url
+          }        
+        }
+      })
+      
+    } catch (error) {
+      console.log("error in sendBulkPurchaseOrder :: ",error);      
+      let responseValue = req.body.invoiceId;
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+    res.send({});
+  }
+  async xmlToJson(req: Request, res: Response,): Promise<any> {
+ 
+    let formData;
+    let reqData = req.body;
+    let cookie,access_token
+    cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+   try {
+       let transaction_id = req.body.globaltransaction,taxList;
+       let bc_id = req.body.bcId;
+       let file_path = req.body.file_path;
+       let id = req.body.id;
+       let netcomId = req.body.netcomId;
+      
+       access_token = cookie.access_Token;
+       let customerIds = await constGetContactId(bc_id);
+       console.log('customerIds',customerIds);
+       taxList = await getTaxList(access_token);
+         
+          formData = {
+           transaction_id:transaction_id,
+           virtual_filename:JSON.parse(file_path).output,
+           filetype:'output',
+           data_format:'base64'
+         }
+         console.log(formData);
+         
+         var options = {
+           'method': 'POST',
+           'url': config.PYTHON_API+'file-download',
+           formData: formData
+         };
+         request(options, function (error, response) {
+           if (error) {  
+             commonErrors['errorTitle'] = 'xmlToJson';
+             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+             warningMessage(commonErrors,error);
+         
+             res.send({
+               status_code: 500,
+               message: 'something_went_wrong',
+               status: false,
+           
+             });
+             return
+           }
+             let data = JSON.parse(response.body).data;
+           console.log(data);
+           if(!data){
+             console.log('File not found');
+             let error = 'File not found';
+             let errorJson = {host:req.headers.host,method:'xmlToJson',parms:req.body,error:'File not found'}
+             commonErrors['errorTitle'] = req.originalUrl;
+             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
+             warningMessage(commonErrors,error);
+    
+             res.send({
+               status_code: 500,
+               message: 'something_went_wrong',
+               status: false,
+             })
+             return
 
+           }
+           let xml = Buffer.from(data, 'base64').toString();
+           let contact,contryName;
+           
+         xml2js.parseString(xml, async (err, result) => {
+           if(err) {
+               throw err;
+           }
+   
+       let header,itemList,summary;
+       header = result.OPENTRANS.INVOICE[0]?.INVOICE_HEADER[0];
+       itemList = result.OPENTRANS.INVOICE[0]?.INVOICE_ITEM_LIST;
+       summary = result.OPENTRANS.INVOICE[0]?.INVOICE_SUMMARY;
+ 
+       let fileDeatis;
+
+       if('MIME_INFO' in header.INVOICE_INFO[0])
+       {
+         console.log(header.INVOICE_INFO[0]);
+         
+
+         fileDeatis = await fileUpload(transaction_id,header.INVOICE_INFO[0].MIME_INFO[0].MIME[0].MIME_EMBEDDED[0],access_token);
+         if(!fileDeatis){
+           commonErrors['errorTitle'] = req.originalUrl;
+           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_in_fileUpload -req param,',JSON.stringify(req.body);
+           warningMessage(commonErrors,'error_in_fileUpload');
+           res.send({
+             status_code: 500,
+             message: 'something_went_wrong',
+             status: false,
+           });
+           return
+         }
+         'error_code' in JSON.parse(fileDeatis) ? fileDeatis = '':''
+         console.log(fileDeatis);
+       }
+       
+       let iteamArray:any = [];
+       let dueDate;
+
+       if('PAYMENT' in header.INVOICE_INFO[0])
+       {
+        if(JSON.stringify( header.INVOICE_INFO[0].PAYMENT).indexOf('VALUE_DATE') != -1)
+        {
+         dueDate = header.INVOICE_INFO[0]?.PAYMENT[0]?.PAYMENT_TERMS[0]?.VALUE_DATE[0];
+          
+        }else{
+         var date = new Date(header.INVOICE_INFO[0].INVOICE_DATE);
+         console.log(date.getDate());
+      
+        date.setDate(date.getDate() + 30);
+        
+        var d = new Date(date),
+              month = '' + (d.getMonth() + 1),
+              day = '' + d.getDate(),
+              year = d.getFullYear();
+      
+          if (month.length < 2) 
+              month = '0' + month;
+          if (day.length < 2) 
+              day = '0' + day;
+              dueDate = [year, month, day].join('-');
+        }
+       }else{
+         var date = new Date(header.INVOICE_INFO[0].INVOICE_DATE);
+         console.log(date.getDate());
+      
+        date.setDate(date.getDate() + 30);
+        
+        var d = new Date(date),
+              month = '' + (d.getMonth() + 1),
+              day = '' + d.getDate(),
+              year = d.getFullYear();
+      
+          if (month.length < 2) 
+              month = '0' + month;
+          if (day.length < 2) 
+              day = '0' + day;
+              dueDate = [year, month, day].join('-');
+
+       }
+       itemList[0].INVOICE_ITEM.forEach(element => {
+         console.log( element.LINE_ITEM_ID);
+         let items = {};
+         let discounts = {};
+         let title;
+         // items = 
+         items['position'] = Math.trunc(element.LINE_ITEM_ID[0]),
+         console.log(typeof(element.PRODUCT_ID[0]));
+         
+         //  typeof(element.PRODUCT_ID[0]) ==  'object' ?:'',
+          if( typeof(element.PRODUCT_ID[0]) ==  'object' )
+          {
+            if('bmecat:DESCRIPTION_SHORT' in element.PRODUCT_ID[0])
+            {
+             title = element.PRODUCT_ID[0]['bmecat:DESCRIPTION_SHORT'][0];
+            }else{
+             title = ' ';
+            }
+          }else{
+           title = ' ';
+          }
+          items['title'] = title;
+        
+         console.log('123');
+
+         items['amount'] = parseFloat(element.PRICE_LINE_AMOUNT[0]).toFixed(2);
+         items['booking_account_id'] = 99; // Setting default value
+
+         console.log(items);
+         console.log('DESCRIPTION_SHORT',element.PRODUCT_ID[0]['bmecat:DESCRIPTION_SHORT']);
+         console.log('PRICE_AMOUNT',element.PRODUCT_PRICE_FIX[0]['bmecat:PRICE_AMOUNT']);
+         let taxId = '';
+         if('TAX_DETAILS_FIX' in element.PRODUCT_PRICE_FIX[0])
+         {
+           if('bmecat:TAX_TYPE' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0])
+           {
+             if('bmecat:TAX' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0])
+             {
+               taxId = taxList.filter((e)=> e.type == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX_TYPE'] && e.value == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'])
+               taxId != '' ? items['tax_id'] = taxId[0]['id']:'';
+             }
+           }
+     
+         }
+
+         iteamArray.push(items)
+       });
+       console.log('123');
+       
+       contact = await getContactDetails(access_token, customerIds[0].senderid);
+       console.log(contact);
+
+       if(!contact)
+       {
+         commonErrors['errorTitle'] = req.originalUrl;
+         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contactDetails_not_found -req param,',JSON.stringify(req.body);
+         warningMessage(commonErrors,'contactDetails_not_found');
+     
+           res.send({
+           status_code: 500,
+           message: 'something_went_wrong',
+           status: false,
+       
+       });
+       return
+       }
+        console.log("contact['country_id']",contact['country_id']);
+     
+       contryName =  contact['country_id'] ? await getCountryName(access_token, contact['country_id']) : true;
+       console.log('contryName',contryName);
+
+       if(!contryName)
+       {
+         commonErrors['errorTitle'] = req.originalUrl;
+         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryName_not_found -req param,',JSON.stringify(req.body);
+         warningMessage(commonErrors,'countryName_not_found');
+     
+         res.send({
+           status_code: 500,
+           message: 'something_went_wrong',
+           status: false,
+       
+       });
+       return
+       }
+       console.log('contryName',JSON.parse(contryName)['iso_3166_alpha2']);
+       console.log('amount_man',summary[0].TOTAL_AMOUNT[0]);
+       console.log('amount_man_trunc',Math.trunc(summary[0].TOTAL_AMOUNT[0]));
+       
+       let bill =  {
+         "supplier_id": customerIds[0].senderid, //Contact Id
+         "vendor_ref": header.INVOICE_INFO[0].INVOICE_ID[0],
+         "contact_partner_id":  req.body.userId, // User Id
+         "bill_date": formatDate(header.INVOICE_INFO[0].INVOICE_DATE),
+         "due_date": dueDate,
+         "amount_man":parseFloat(summary[0].TOTAL_AMOUNT[0]).toFixed(2),
+         "manual_amount": true,
+         "currency_code": header.INVOICE_INFO[0]['bmecat:CURRENCY'][0],
+         "item_net": true,
+         "address": {
+           "lastname_company": contact['name_1'],
+           "country_code": contryName ? JSON.parse(contryName)['iso_3166_alpha2']:'',
+           "type": JSON.parse(config.BEXIO_COMPANY_TYPE||'')[contact['contact_type_id']]
+         },
+        
+       
+         "line_items":iteamArray,
+      
+       
+     }
+     fileDeatis ? bill['attachment_ids'] = [JSON.parse(fileDeatis)[0].uuid] : '';
+   
+     console.log('bill',bill);
+     var options = {
+       'method': 'POST',
+       'url': `${config.BEXIO_API}4.0/purchase/bills`,
+       'headers': {
+         'Accept': 'application/json',
+         "Content-Type": "application/json",
+         'Authorization': 'Bearer '+access_token
+       },
+       body:JSON.stringify(bill)
+   
+     };
+     request(options, async function (error, response) {
+       if (error) {  
+         commonErrors['errorTitle'] = 'bills';
+         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+bill;
+         warningMessage(commonErrors,error);
+       
+         res.send({
+           status_code: 500,
+           message: JSON.stringify(error),
+           status: false,
+         })
+       }
+       if(response.statusCode==201)
+         await setBillId(id,JSON.parse(response.body)['document_no'])
+         if('customer-output' in JSON.parse(file_path)){
+           await moveFile(netcomId,JSON.parse(file_path)["customer-output"]);
+         }
+    
+         console.log(response.body);
+         
+         res.send(response.body);
+
+     });
+     });
+         });
+
+   } catch (error) {
+    
+      console.log(error);
+     
+     let errorJson = {host:req.headers.host,method:'xmlToJson',parms:req.body,error:error}
+
+     commonErrors['errorTitle'] = req.originalUrl;
+     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
+     warningMessage(commonErrors,error);
+     res.send({
+       status_code: 500,
+       message: JSON.stringify(error),
+       status: false,
+     })
+  
+   }
+   
+       
+
+}
 }
 const orderListCountSearch = async (token,offset,limit?) => {
   return new Promise(async(resolve, reject) => {
@@ -734,4 +1096,317 @@ const getAllCurrency = async (access_token) => {
             resolve(false)
         });
       });
+}
+const setOrderSendStatus = async (partyId,orderId,ordernumber,status,error?) => {
+  let sendOrderId;
+  return new Promise( async function (resolve, reject) {
+    try {
+
+      const selectQryResult = await connectBexio.documents_order_send.findMany({
+        where: {
+          rk_order: orderId,
+          order_type: 'EDI',
+          companyregistered: {
+            rk_party: partyId,
+          },
+        },
+        select: {
+          cid: true, // this is documents_order_send.cid (ordersendid)
+          companyregistered: {
+            select: {
+              cid: true, // this is c.cid
+            },
+          },
+        },
+      });
+      
+      if(selectQryResult.length == 0){
+        console.log('ifffffffffffff');
+       
+        const selectQryResultParty = await connectBexio.companyregistered.findMany({
+          where: {
+            rk_party:Number(partyId),
+          },
+        });
+
+        const result = await connectBexio.documents_order_send.create({
+          data: {
+            rk_order: orderId,
+            order_number: ordernumber,
+            fk_companyregistered: selectQryResultParty[0]?.cid, // Make sure this exists
+            order_type: 'EDI',
+            status: status,
+          },
+          select: {
+            cid: true, // This is the equivalent of RETURNING cid
+          },
+        });
+        console.log(result);
+        sendOrderId = result[0].cid;
+      }
+      else{
+        console.log('elseeeeeeeeeee');
+
+        sendOrderId = selectQryResult[0]?.cid;
+
+
+        await connectBexio.documents_order_send.updateMany({
+          where: {
+            fk_companyregistered:selectQryResult[0]?.companyregistered?.cid,
+            rk_order: orderId,
+            order_type: 'EDI',
+          },
+          data: {
+            time_stamp: new Date(), // equivalent to NOW()
+            status: status,        // make sure it's a string
+          },
+        });
+
+      }
+    
+      resolve(sendOrderId);
+    } catch (error) {
+     
+      console.log(error);
+      commonErrors['errorTitle'] =' setInvoiceSendStatus';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+orderId+'-orderId'+ordernumber+'orderNumber';
+      warningMessage(commonErrors,error);
+      resolve('');
+    }
+  });
+
+}
+const constGetContactId = async (code) =>{
+  try {
+    const getCustomerIdResult = await connectNewGate2b.$queryRaw<any>(Prisma.sql`
+    SELECT json_extract_path("ot_updator"::json,'in_custom_id') AS senderId,
+    json_extract_path("ot_updator"::json,'out_custom_id')  AS receiverId
+  FROM  g2b_business_connections 
+    WHERE id = ${code}
+    `);
+      return getCustomerIdResult
+
+
+  } catch (error) {
+      commonErrors['errorTitle'] = constGetContactId.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+code;
+      warningMessage(commonErrors,error);
+  }
+}
+const getTaxList = async (access_token) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/3.0/taxes`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+          console.log(response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else
+           resolve(false)
+
+        });
+      });
+} 
+const fileUpload = async (transaction_id,file,access_token)=>{
+  let formData = {
+    transaction_id:transaction_id,
+    virtual_filename:file.FILE_NAME[0],
+    filetype:'input',
+    data_format:'base64',
+  }
+  return new Promise(async(resolve, reject) => {
+      var b64string = file.MIME_DATA[0]
+      
+      var buf = Buffer.from(b64string, 'base64');
+      var options = {
+        'method': 'POST',
+        'url': `https://api.bexio.com/3.0/files`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        },
+        formData: {
+          'string': {
+            'value': buf,
+            'options': {
+              'filename': file.FILE_NAME[0],
+              'contentType': null
+            }
+          }
+        }
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+           resolve(response.body);
+      });
+  });
+}
+const getContactDetails = async (access_token,id) => {    
+  console.log(id);
+  
+  try {
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/contact/${id}`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        }
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getContactDetails';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+     
+        if(response.statusCode==200)
+          resolve(JSON.parse(response.body));
+        else
+          resolve(false)
+
+      });
+    });
+  } catch (error) {
+      commonErrors['errorTitle'] = getContactDetails.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
+      warningMessage(commonErrors,error);
+
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      resolve('');
+    });
+  }
+}
+const getCountryName = async (access_token,id)=>{
+    try {
+      return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/country/${id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getCountryName';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+         
+          if(response.statusCode==200)
+           resolve(response.body);
+          else
+           resolve(false)
+        });
+      });
+    } catch (error) {
+      commonErrors['errorTitle'] = getCountryName.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
+      warningMessage(commonErrors,error);
+      fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+        resolve('');
+      });
+    }
+}
+function formatDate(date) {
+  var d = new Date(date),
+      month = '' + (d.getMonth() + 1),
+      day = '' + d.getDate(),
+      year = d.getFullYear();
+
+  if (month.length < 2) 
+      month = '0' + month;
+  if (day.length < 2) 
+      day = '0' + day;
+
+  return [year, month, day].join('-');
+}
+const setBillId = async (id,billId) =>{
+  console.log('error');
+
+  try {
+
+    const getcustomerIdResult = await connectBexio.documents_invoice_receive.updateMany({
+      where: {
+        cid: id,
+      },
+      data: {
+        rk_invoice: billId,
+        status: '2',
+      },
+    });
+    return getcustomerIdResult
+  } catch (error) {
+    console.log(error);
+      commonErrors['errorTitle'] = setBillId.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+billId;
+      warningMessage(commonErrors,error);
+    return 0;
+  }
+}
+const moveFile = async (netcomId,fileName)=>{
+  let formData 
+  try {
+   formData = {
+      netcom_id:netcomId,
+      filename:fileName
+    }
+    console.log(formData);
+    
+
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': config.PYTHON_API+'move-file',
+       
+        formData: formData
+      };
+      
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'moveFile';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+      
+    console.log("move",response.body);
+        
+        resolve(response.body);
+
+      });
+    });
+  } catch (error) {
+      commonErrors['errorTitle'] = 'moveFile';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId+fileName;
+      warningMessage(commonErrors,error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      // res.send();
+      resolve('');
+    });
+  }
 }

@@ -33,10 +33,20 @@ export class DebtorsController {
   return this.debtorsService.getDeliveryNotesList(req,res);
   }
   
-  @Post('getTagName')
+  @Post('sendInvoice')
   @UseInterceptors(AnyFilesInterceptor()) 
-  async getTagName(@Req() req: Request, @Res() res: Response): Promise<any> {
-  // console.log('Received body:', req);
-  return this.debtorsService.getTagName(req,res);
+  async sendInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.sendInvoice(req,res);
   }
+  @Post('sendOrder')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async sendOrder(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.sendOrder(req,res);
+  }
+  @Post('sendDeliveryNotes')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async sendDeliveryNotes(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.sendDeliveryNotes(req,res);
+  }
+  
 }

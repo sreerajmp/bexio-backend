@@ -11,8 +11,8 @@
         "getDeliveryNotesForOT":"getDeliveryNotesList",
         "sendBulkInvoices":"sendBulkInvoices",
         "sendBulkDeliveryNotes":"sendBulkDeliveryNotes",
-        "sendBulkPurchaseOrder":"sendBulkPurchaseOrder"
-
+        "sendBulkPurchaseOrder":"sendBulkPurchaseOrder",
+        "sendInvoice":"sendInvoice"
 
     }
 } 
