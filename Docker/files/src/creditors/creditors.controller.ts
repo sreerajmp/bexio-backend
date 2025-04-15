@@ -21,4 +21,14 @@ export class CreditorsController {
   async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.creditorsService.getOrderList(req,res);
   }
+  @Post('sendOrder')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async sendOrder(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.creditorsService.sendOrder(req,res);
+  }
+  @Post('xmlToJson')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async xmlToJson(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.creditorsService.xmlToJson(req,res);
+  }
 }
