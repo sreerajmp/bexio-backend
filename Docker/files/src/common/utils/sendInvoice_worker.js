@@ -1,13 +1,21 @@
-const {parentPort, workerData} = require("worker_threads");
-import { DebtorsService } from './debtors.service';
+import { parentPort, workerData } from 'worker_threads';
+import { pushInvoiceBulk } from './helperfn';
 
+async function push(bodyParams, invoices, headerParams) {
+  console.log('Push');
+  console.log({ bodyParams, invoices });
+  await pushInvoiceBulk(invoices, bodyParams, headerParams);
+}
+
+// Destructure workerData
 const { headerParams, bodyParams, invoices } = workerData;
 
-
-parentPort.postMessage(push(bodyParams, invoices, headerParams));
-
-function push(bodyParams, invoices, headerParams) {
-    console.log("Push");
-    console.log({ bodyParams, invoices });
-    DebtorsService.pushInvoiceBulk(invoices, bodyParams, headerParams);
-  }
+// Call the push function and handle errors
+push(bodyParams, invoices, headerParams)
+  .then(() => {
+    parentPort?.postMessage({ status: 'success' });
+  })
+  .catch((error) => {
+    console.error('Error in worker:', error);
+    parentPort?.postMessage({ status: 'error', error });
+  });
