@@ -1,5 +1,5 @@
 const { parentPort } = require('worker_threads');
-const { pushInvoiceBulk } = require('./helperfn.js');
+const { pushInvoiceBulk } = require('./helperfn');
 
 // Listen for messages from the main thread
 parentPort.on('message', async ({ invoices, bodyParams, headerParams, id }) => {

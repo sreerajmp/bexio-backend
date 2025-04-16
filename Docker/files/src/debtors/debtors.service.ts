@@ -21,12 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import connectMssql from '../db/mssql-client'
-const crypto = require("crypto");
-import status_code from '../common/utils/statusCodes';
-import {pool} from 'workerpool';
 import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId } from 'src/common/utils/helperfn';
-import { randomUUID } from 'crypto';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 
 @Injectable()
