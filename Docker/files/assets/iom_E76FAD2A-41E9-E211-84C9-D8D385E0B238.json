@@ -12,7 +12,7 @@
         "sendBulkInvoices":"sendBulkInvoices",
         "sendBulkDeliveryNotes":"sendBulkDeliveryNotes",
         "sendBulkPurchaseOrder":"sendBulkPurchaseOrder",
-        "sendInvoice":"sendInvoice"
-
+        "sendInvoice":"sendInvoice",
+        "sendOrder":"sendOrder"
     }
 } 

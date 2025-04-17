@@ -670,7 +670,7 @@ console.log('getUserPermissionsResult',getUserPermissionsResult);
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 200,
               message: 'no_data_found',
-              status: true,
+              status: false,
             });
           }
         }
@@ -762,7 +762,7 @@ console.log('****************************');
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 200,
             message: 'no_data_found',
-            status: true,
+            status: false,
           });
         }
 
