@@ -1,5 +1,5 @@
 const { parentPort } = require('worker_threads');
-import { pushInvoiceBulk } from './helperfn';
+import { setPurchaseOrderBulk } from './helperfn';
 
 // Listen for messages from the main thread
 parentPort.on('message', async ({ orders, bodyParams, headerParams, id }) => {
@@ -7,7 +7,7 @@ parentPort.on('message', async ({ orders, bodyParams, headerParams, id }) => {
     console.log('Send Order Worker Received:', { bodyParams, orders });
 
     // Perform the task
-    await pushInvoiceBulk(orders, bodyParams, headerParams);
+    await setPurchaseOrderBulk(orders, bodyParams, headerParams);
 
     // Send success response back to the main thread
     parentPort.postMessage({ id, status: 'success' });

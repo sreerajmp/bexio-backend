@@ -46,6 +46,8 @@ export class DebtorsService {
       }
 
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      console.log('cookie.access_Token',cookie.access_Token);
+      
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
 
@@ -449,6 +451,8 @@ export class DebtorsService {
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
+      console.log('accessToken',accessToken);
+      
       let isBexioUser = cookie.isBexioUser;
       let contacts;
       let showTo:number;
@@ -756,7 +760,7 @@ export class DebtorsService {
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
             tempStatus = false;
-            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id).toString()) ? true:false:false;
+            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];

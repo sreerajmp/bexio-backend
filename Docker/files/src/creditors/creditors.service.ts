@@ -15,8 +15,10 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
+import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 @Injectable()
 export class CreditorsService {
+  constructor(private readonly sendOrderWorkerHost: SendOrderWorkerHost) {}
  async getInvoice(req: Request, res: Response,): Promise<any> {
   
     let cookie = null
@@ -223,6 +225,8 @@ export class CreditorsService {
       }
 
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      console.log('cookie.access_Token;',cookie.access_Token);
+      
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
       let resultData: any[] = [],tempStatus = false;
@@ -236,7 +240,7 @@ export class CreditorsService {
       sortType = req.body?.sort;
   
       
-      const invoiceList = await connectBexio.documents_order_send.findMany({
+      const invoiceData = await connectBexio.documents_order_send.findMany({
         where: {
           companyregistered: {
             rk_party: Number(req.body?.partyId)
@@ -246,17 +250,20 @@ export class CreditorsService {
           companyregistered: true
         }
       });
-
-
+      // console.log('invoiceData',invoiceData);
+      const invoiceList = invoiceData.map(inv => ({
+        ...inv,
+        rk_order: Number(inv.rk_order)
+      }));
       const getNetcomId = await connectBexio.$queryRaw<any>(
         Prisma.sql`
         SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
       `
       );
-      console.log('getNetcomId',getNetcomId);
+      // console.log('getNetcomId',getNetcomId);
   
     
-      console.log('getNetcomId',getNetcomId[0].netcomid);
+      // console.log('getNetcomId',getNetcomId[0].netcomid);
   
       // NEW
   
@@ -284,12 +291,12 @@ export class CreditorsService {
 
 
 
-      console.log('bcDetails12121222');
+     // console.log('bcDetails12121222');
      
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
                   let bcDetails;
                   bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-                  console.log('bcDetails',bcDetails);
+                 // console.log('bcDetails',bcDetails);
                   let tempBc = [0];
       if(bcDetails){
         for (let index = 0; index < bcDetails['data'].length; index++) {
@@ -308,9 +315,9 @@ export class CreditorsService {
       ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
       AND cb.rk_businessconnection IS NOT NULL
     `);
-    console.log('getConnectionBc',getConnectionBc);
+    //console.log('getConnectionBc',getConnectionBc);
     let resultArray  = getConnectionBc[0]?.array_agg;
-    console.log('resultArray',resultArray);
+   // console.log('resultArray',resultArray);
       if(isBexioUser)
       {
       
@@ -342,7 +349,7 @@ export class CreditorsService {
               "criteria": "<="
             });
           }
-          console.log('searchJsonsearchJson',searchJson.length);
+        //  console.log('searchJsonsearchJson',searchJson.length);
           if(searchJson.length != 0)
           {
             totalCount = await orderCountSearch(accessToken,searchJson,0,2000)
@@ -382,7 +389,7 @@ export class CreditorsService {
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
             warningMessage(commonErrors,error);
-            return res.status(200).json({
+            return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
               error: JSON.stringify(error)
@@ -401,9 +408,12 @@ export class CreditorsService {
           let status = JSON.parse(config.BEXIO_PURCHASE_ORDER_STATUS);
           let contact_idList:any = [];
           let order:any;
+
+          
+          // console.log('resData',resData);
           for (let invoice in resData) {
             tempStatus = false;
-            resData[invoice]['allowSend'] = resultArray ? ( resultArray.includes((resData[invoice].contact_id).toString()) ? true : false ) : false;
+            resData[invoice]['allowSend'] = resultArray ? ( resultArray.includes((resData[invoice].contact_id)) ? true : false ) : false;
             contact_idList.push((resData[invoice].contact_id));
             
             order = await getOrderOT(accessToken,resData[invoice].id); 
@@ -420,16 +430,21 @@ export class CreditorsService {
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';  
             for(let qryInvoice in invoiceList ){
+              if(invoiceList[qryInvoice]['rk_order'] == resData[invoice]['id']){
+               // console.log('0000',invoiceList[qryInvoice]['status'])
+              }
                 if(invoiceList[qryInvoice]['rk_order'] == resData[invoice]['id']){
                   resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
                   resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
-                  resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS||'')[invoiceList[qryInvoice]['status']||''];
-                  resData[invoice]['timestamp'] = invoiceList[qryInvoice]['timestamp'];
+                  resData[invoice]['statusLabelInvoice'] =JSON.parse(config.INVOICE_STATUS || '{}')[String(invoiceList?.[qryInvoice]?.status)];
+                  resData[invoice]['timestamp'] = invoiceList[qryInvoice]['time_stamp'];
                   resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
                   if(invoiceList[qryInvoice]['status'] == 2)
                   {
+                   // console.log('222')
                     resData[invoice]['allowSend'] = false;
                   }
+                  
                   break;
               }
             }
@@ -507,7 +522,7 @@ export class CreditorsService {
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
       return res
-      .status(200)
+      .status(500)
       .json({ status: 500, message: 'something_went_wrong' });
         
     }
@@ -532,17 +547,12 @@ export class CreditorsService {
       }
       // Call the function with await to ensure it completes before moving on
       await processInvoices(obj, bodyData);
-      const worker = new Worker('./src/common/utils/sendPurchaseOrder_worker.js',{
-        workerData: {
-          bodyParams : JSON.stringify(bodyParams),
-          orders,
-          headerParams: {
-            cookies: req.cookies, // Include cookies
-            signedCookies: req.signedCookies, // Include signed cookies
-            url: req.url
-          }        
-        }
-      })
+      await this.sendOrderWorkerHost.run(orders, bodyParams, {
+        cookies: req.cookies, // Include cookies
+        signedCookies: req.signedCookies, // Include signed cookies
+        url: req.url,
+      });
+
       
     } catch (error) {
       console.log("error in sendBulkPurchaseOrder :: ",error);      
@@ -871,6 +881,47 @@ export class CreditorsService {
        
 
 }
+async getAllUsers(req: Request, res: Response,): Promise<any> {
+
+  let cookie ;
+  cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+  try {
+    let access_token = cookie.access_Token;
+    
+    return new Promise(async(resolve, reject) => {
+          var options = {
+            'method': 'GET',
+            'url': `https://api.bexio.com/3.0/users`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer '+access_token
+            }
+          };
+          request(options, function (error, response) {
+            if (error) {  
+              commonErrors['errorTitle'] = 'users';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+              warningMessage(commonErrors,error);
+              resolve(false)
+            }
+            // res.send(response.body)
+            console.log(response?.body);
+            res.send(response?.body)
+           'body' in response ?  resolve(JSON.parse(response?.body)) : '';
+  
+          });
+        });
+    } catch (error) {
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+        warningMessage(commonErrors,error);
+      res.send({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+    });
+    }
+}
 }
 const orderListCountSearch = async (token,offset,limit?) => {
   return new Promise(async(resolve, reject) => {
@@ -1107,7 +1158,7 @@ const setOrderSendStatus = async (partyId,orderId,ordernumber,status,error?) => 
           rk_order: orderId,
           order_type: 'EDI',
           companyregistered: {
-            rk_party: partyId,
+            rk_party: Number(partyId),
           },
         },
         select: {
@@ -1135,14 +1186,14 @@ const setOrderSendStatus = async (partyId,orderId,ordernumber,status,error?) => 
             order_number: ordernumber,
             fk_companyregistered: selectQryResultParty[0]?.cid, // Make sure this exists
             order_type: 'EDI',
-            status: status,
+            status:Number(status),
           },
           select: {
             cid: true, // This is the equivalent of RETURNING cid
           },
         });
         console.log(result);
-        sendOrderId = result[0].cid;
+        sendOrderId = result.cid;
       }
       else{
         console.log('elseeeeeeeeeee');
@@ -1158,7 +1209,7 @@ const setOrderSendStatus = async (partyId,orderId,ordernumber,status,error?) => 
           },
           data: {
             time_stamp: new Date(), // equivalent to NOW()
-            status: status,        // make sure it's a string
+            status:Number(status),        // make sure it's a string
           },
         });
 
@@ -1409,4 +1460,296 @@ const moveFile = async (netcomId,fileName)=>{
       resolve('');
     });
   }
+}
+
+const getConnectionDetails = async (partyId,accountId,contactId,req) => {
+  try {
+    console.log(contactId);
+  let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+    const partyObjectId = await connectBexio.contact_bc.findMany({
+      where: {
+        rk_netcomidsender: dataCookie.netcomId,
+        rk_sendercontactid: contactId,
+        type: 'EDI',
+        rk_businessconnection: {
+          not: null,
+        },
+      },
+    });
+    return partyObjectId;
+  } catch (error) {
+      commonErrors['errorTitle'] = getConnectionDetails.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+contactId;
+      warningMessage(commonErrors,error);
+    console.log(error);
+    
+  }
+}
+const deleteRedis = async (api, key) => {
+  const checkAPI = JSON.parse(fs.readFileSync('./assets/iom_E76FAD2A-41E9-E211-84C9-D8D385E0B238.json'));
+  let delApis = checkAPI.realated[api];
+  console.log('delApis', delApis);
+  console.log('data', key);
+
+  const redis_client = await redisClient;
+
+  try {
+    delApis.split(",").forEach(async element => { // <--- make this async
+      const pattern = key + element + '*';
+      console.log(pattern);
+
+      const data = await redis_client.keys(pattern); // use await instead of callback
+      data.forEach(async apis => {
+        await redis_client.del(apis); // also await here
+      });
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+async function invoiceFilePush(netcomId,service,data,filename,type) {
+  let formData 
+  console.log('123654');
+  
+  return new Promise(async(resolve, reject) => {
+    formData = {
+      netcom_id:netcomId,
+      interface:service,
+      data:data,
+      filename:filename+'.xml',
+      module:type
+    }
+
+    let  options = {
+        'method': 'POST',
+        // 'url':'http://192.168.2.63:5005/api/bexio-file-drop',
+        'url':config.PYTHON_API+'bexio-file-drop',
+        // 'headers': headers,
+        formData: formData
+      };
+    request(options, function (error, response) {
+      if (error) { 
+        console.log('sdfdsfdsf',error);
+        
+        commonErrors['errorTitle'] = 'bexio-file-drop';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+        warningMessage(commonErrors,error);
+        resolve(false)
+      }
+
+      // console.log('invoiceFilePush',response.body);
+      console.log('asdsadsadsad',response?.body);
+      
+      return resolve(response?.body)
+      
+      // res.send(response.body)
+    });
+  });
+}
+const getCountryLists = async (access_token)=>{
+  try {
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/country`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        }
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        if(response.statusCode==200)
+        resolve(response.body);
+        else
+        resolve(false)
+
+      });
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = getCountryLists.name;
+    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
+    warningMessage(commonErrors,error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      resolve('');
+    });
+  }
+}
+const getCurrency = async (access_token,id)=>{
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/3.0/currencies/${id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getCountryLists';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,',id;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+          //console.log(response.body);
+          if(response.statusCode==200)
+            resolve(JSON.parse(response.body));
+          else
+            resolve(false)
+        });
+      });
+}
+const getloginUserCompanyDetails = async (access_token)=>{
+  try{
+ 
+     return new Promise(async(resolve, reject) => {
+ 
+      var options = {
+        'method': 'GET',
+        'url': 'https://api.bexio.com/2.0/company_profile',
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        }
+      };
+      
+      request(options, function (error, response) {
+        if (error) {
+          commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+          warningMessage(commonErrors,error);
+           resolve(false);
+        }
+        if(response.statusCode==200)
+          return resolve(response.body)
+        else
+          return resolve(false)
+        
+      });
+    });
+    
+  } catch (error) {
+      commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
+      warningMessage(commonErrors,error);
+
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+     
+      resolve('');
+    });
+  }
+}
+const getPaymentType = async (access_token,id)=>{
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/payment_type`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getPaymentType';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          if(response.statusCode==200)
+          resolve(JSON.parse(response.body));
+          else
+          resolve(false)
+        });
+      });
+}
+const getContact = async (access_token,id)=>{
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/contact/${id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getContact';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          if(response.statusCode==200)
+          resolve(JSON.parse(response.body));
+          else
+          resolve(false)
+        });
+      });
+}
+const getTaxs = async (access_token,id)=>{
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/3.0/taxes/${id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getTaxs';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          console.log(response?.body);
+          
+          if(response?.statusCode==200)
+          resolve(JSON.parse(response?.body));
+          else
+          resolve(false)
+
+        });
+      });
+}
+const getProducts = async (access_token,id)=>{
+  console.log('IDDD',id);
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/article/${id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'getProducts';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          if(response.statusCode==200)
+          resolve(JSON.parse(response.body));
+          else
+          resolve(false);
+
+
+        });
+      });
 }

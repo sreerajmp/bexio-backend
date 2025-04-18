@@ -12,7 +12,7 @@ export class SendOrderWorkerHost implements OnApplicationBootstrap, OnApplicatio
 
   onApplicationBootstrap() {
     // Initialize the worker thread
-    this.worker = new Worker(join(__dirname, 'sendOrder_worker.ts'));
+    this.worker = new Worker(join(__dirname, 'sendOrder_worker.js'));
 
     // Create an observable from the worker's message events
     this.messages$ = fromEvent(this.worker, 'message') as Observable<{
