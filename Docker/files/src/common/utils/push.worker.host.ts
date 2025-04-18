@@ -27,23 +27,28 @@ export class PushWorkerHost implements OnApplicationBootstrap, OnApplicationShut
     await this.worker.terminate();
   }
 
-  async run(invoices: any, bodyParams: any, headerParams: any): Promise<string> {
+  async run(invoices: any, bodyParams: any, headerParams: any, billerid?: any): Promise<string> {
     const uniqueId = randomUUID(); // Generate a unique ID for the task
 
-    // Send a message to the worker thread
-    this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId });
+    try {
+        // Send a message to the worker thread
+        this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId, billerId: billerid });
 
-    // Wait for the worker's response
-    return firstValueFrom(
-      this.messages$.pipe(
-        filter(({ id }) => id === uniqueId), // Filter messages by unique ID
-        map(({ status, error }) => {
-          if (status === 'error') {
-            throw new Error(error);
-          }
-          return status;
-        })
-      )
-    );
+        return firstValueFrom(
+          this.messages$.pipe(
+            filter(({ id }) => id === uniqueId), // Filter messages by unique ID
+            map(({ status, error }) => {
+              if (status === 'error') {
+                throw new Error(error);
+              }
+              return status;
+            })
+          )
+        );
+        console.log(`Worker triggered with ID: ${uniqueId}`);
+    } catch (error) {
+        console.error(`Error triggering worker with ID: ${uniqueId}`, error);
+        throw new Error("Failed to trigger worker");
+    }
   }
 }

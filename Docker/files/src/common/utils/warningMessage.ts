@@ -34,7 +34,7 @@ const warningMessageToDotnet = async (data,error) => {
        else{
            data['addl_params'] = '{}'
           }
-    let typeIssue = data.errorDescription.search("ERR_INVALID_ARG_TYPE");
+    let typeIssue = data.errorDescription?.search("ERR_INVALID_ARG_TYPE") ?? -1;
     data['name']='';
     data['path']='';
 

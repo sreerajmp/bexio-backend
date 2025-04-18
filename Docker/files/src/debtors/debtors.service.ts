@@ -21,13 +21,9 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import connectMssql from '../db/mssql-client'
-const crypto = require("crypto");
-import status_code from '../common/utils/statusCodes';
-import {pool} from 'workerpool';
 import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId } from 'src/common/utils/helperfn';
-import { randomUUID } from 'crypto';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
+import connectMssql from '../db/mssql-client'
 
 @Injectable()
 export class DebtorsService {
@@ -50,6 +46,8 @@ export class DebtorsService {
       }
 
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      console.log('cookie.access_Token',cookie.access_Token);
+      
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
 
@@ -453,6 +451,8 @@ export class DebtorsService {
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
+      console.log('accessToken',accessToken);
+      
       let isBexioUser = cookie.isBexioUser;
       let contacts;
       let showTo:number;
@@ -760,7 +760,7 @@ export class DebtorsService {
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
             tempStatus = false;
-            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id).toString()) ? true:false:false;
+            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];
@@ -834,55 +834,147 @@ export class DebtorsService {
   }
   async sendInvoice(req: Request, res: Response): Promise<any> {
     let data = req.body;
-    console.log("data:", data);
+    const bexioClient = await edit();
+    let combinedResponse :any = {};
 
     try {
-      if (data.invoices) {
-        console.log("data.edi:", data.invoices);
+        if (data.otherInvoice) {
+            let getTag: any = await getTagName(data.otherInvoice);
+            console.log('getTag', getTag);
+            combinedResponse.otherInvoiceResults = getTag?.data || [];
 
-        try {
-          let bodyParams = {
-            partyId: data.partyId,
-            accountId: data.accountId,
-          };
-          let invoices: any = data.invoices;
+            for (const item of getTag?.data || []) {
+                if (item.tag === "ebill") {
+                    try {
+                        const pool = await connectMssql;
+                        const getRecipient = await connectBexio.companyregistered.findMany({
+                            where: {
+                                netcomid: data.netcomId,
+                            },
+                            select: {
+                                refresh_token: true,
+                            },
+                        });
+                        let tokenSet = await bexioClient.refresh(getRecipient[0]?.refresh_token || '');
 
-          // Use the PushWorkerHost to run the worker task
-          await this.pushWorkerHost.run(invoices, bodyParams, {
-            cookies: req.cookies, // Include cookies
-            signedCookies: req.signedCookies, // Include signed cookies
-            url: req.url,
-          });
+                        let tempJson = JSON.parse(data.otherInvoice);
+                        console.log('getRecipient tempJson',tempJson)
+                        
+                        for (let index = 0; index < tempJson.length; index++) {
+                            const element = tempJson[index];
+                            console.log('getRecipient element',element)
+                            const getRecipient = await connectBexio.contact_bc.findFirstOrThrow({
+                                where: {
+                                    rk_contact: element.contactId,
+                                    companyregistered: {
+                                        netcomid: data.netcomId,
+                                    },
+                                },
+                                select: {
+                                    recipient_id: true,
+                                    companyregistered: {
+                                        select: {
+                                            refresh_token: true,
+                                        },
+                                    },
+                                },
+                            });
+                            console.log('getRecipient',element, getRecipient);
+                            
+                            element['recipientid'] = getRecipient.recipient_id;
+                            element['accessToken'] = tokenSet['access_token'];
+                        }
 
-          return res.status(200).json({
+                        const getBiller = `SELECT billerid  FROM biller  
+                        WHERE netcomid = '${data.netcomId}'
+                        AND status = 'ACTIVE'`;
+                        const getBillerData = await pool.query(getBiller);
+
+                        if (getBillerData.recordset.length > 0) {
+                            this.pushWorkerHost.run(tempJson, {}, {}, getBillerData?.recordset[0]?.billerid);
+                        }
+
+                        let bexioTokenCookie = {
+                            access_Token: tokenSet.access_token,
+                            refresh_Token: tokenSet.refresh_token,
+                            isBexioUser: true
+                        };
+                        const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
+                        await connectBexio.companyregistered.updateMany({
+                            where: {
+                                rk_csn: rk_csn,
+                            },
+                            data: {
+                                refresh_token: tokenSet.refresh_token,
+                            },
+                        });
+                        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+                            domain: config.SESSION_DOMAIN,
+                            maxAge: config.SESSION_EXPIRY,
+                            httpOnly: true,
+                            signed: true,
+                            secure: true
+                        });
+                    } catch (error) {
+                        console.log('error', error);
+
+                        let responseValue = data.otherInvoice.invoiceId;
+                        commonErrors['errorTitle'] = req.originalUrl;
+                        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+                        warningMessage(commonErrors, error);
+                    }
+                }
+            }
+        }
+
+        if (data.invoices) {
+            console.log("Processing invoices:", data.invoices);
+
+            try {
+                let bodyParams = {
+                    partyId: data.partyId,
+                    accountId: data.accountId,
+                };
+                async function processInvoices(obj, bodyData): Promise<any[]> {
+                  const results:any = [];
+                  for (let index = 0; index < obj.length; index++) {
+                    console.log("Processing invoice:", obj[index]);
+                    
+                      const element = obj[index];
+                      const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId, '', '1', '');
+                      results.push(result);
+                  }
+                  return results;
+              }
+              combinedResponse.ediResults = await processInvoices(JSON.parse(data.invoices), bodyParams);
+                // Use the PushWorkerHost to run the worker task
+                 this.pushWorkerHost.run(data.invoices, bodyParams, {
+                    cookies: req.cookies, // Include cookies
+                    signedCookies: req.signedCookies, // Include signed cookies
+                    url: req.url,
+                });
+            } catch (error) {
+                console.log("error in sendBulkInvoices :: ", error);
+            }
+        }
+
+        return res.status(200).json({
             status_code: 200,
             message: 'common_success',
             status: true,
-          });
-        } catch (error) {
-          console.log("error in sendBulkInvoices :: ", error);
-          return res.status(500).json({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-        }
-      } else {
-        return res.status(400).json({
-          status_code: 400,
-          message: 'No invoices provided',
-          status: false,
+            data: combinedResponse,
         });
-      }
     } catch (error) {
-      console.error("Error in sendInvoice:", error);
-      return res.status(500).json({
-        status_code: 500,
-        message: 'something_went_wrong',
-        status: false,
-      });
+
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param';
+        warningMessage(commonErrors, error);
+        return res
+            .status(500)
+            .json({ status: 500, message: 'something_went_wrong' });
+
     }
-  }
+}
   async sendOrder(req: Request, res: Response,): Promise<any> {
     let formData ;
     console.log("xmlToJsonOrder ");
@@ -942,6 +1034,7 @@ export class DebtorsService {
       let customerIds = await constGetContactId(bc_id);
    
       let title;
+     console.log('response',response.body);
      
       let data = JSON.parse(response.body).data;
       let xml = Buffer.from(data, 'base64').toString();
