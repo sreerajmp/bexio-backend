@@ -1034,6 +1034,7 @@ export class DebtorsService {
       let customerIds = await constGetContactId(bc_id);
    
       let title;
+     console.log('response',response.body);
      
       let data = JSON.parse(response.body).data;
       let xml = Buffer.from(data, 'base64').toString();

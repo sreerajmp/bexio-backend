@@ -607,7 +607,7 @@ export class CreditorsService {
          
              res.send({
                status_code: 500,
-               message: 'something_went_wrong',
+               message: 'something_went_wrong'+error,
                status: false,
            
              });
@@ -615,6 +615,7 @@ export class CreditorsService {
            }
              let data = JSON.parse(response.body).data;
            console.log(data);
+           console.log('xmltojsooooooooo',response.body);
            if(!data){
              console.log('File not found');
              let error = 'File not found';
@@ -906,7 +907,7 @@ async getAllUsers(req: Request, res: Response,): Promise<any> {
             }
             // res.send(response.body)
             console.log(response?.body);
-            res.send(response?.body)
+             res.status(200).send(response?.body)
            'body' in response ?  resolve(JSON.parse(response?.body)) : '';
   
           });
