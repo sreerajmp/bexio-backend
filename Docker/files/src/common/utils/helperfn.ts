@@ -697,7 +697,7 @@ export const constGetContactId = async (code) =>{
   SELECT json_extract_path("ot_updator"::json,'in_custom_id') AS senderId,
   json_extract_path("ot_updator"::json,'out_custom_id')  AS receiverId
 FROM  g2b_business_connections 
-  WHERE id = ${code}
+  WHERE id = ${Number(code)}
   `);
     return getCustomerIdResult
   } catch (error) {
