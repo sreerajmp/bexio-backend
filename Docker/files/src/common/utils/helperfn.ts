@@ -821,8 +821,6 @@ export const getCurrency = async (access_token,id)=>{
             warningMessage(commonErrors,error);
             resolve(false)
           }
-          // res.send(response.body)
-          //console.log(response.body);
           if(response.statusCode==200)
             resolve(JSON.parse(response.body));
           else
@@ -1170,32 +1168,11 @@ invoice.taxs.forEach(element => {
   
 
 console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
-// obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0] = JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']))
 
-//console.log('invoice.positions',invoice.positions);
- 
-  // invoice.positions.forEach(function (element,index) {
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
     let arr,status = true;
 
-    // element.article.intern_description?arr={"bmecat:DESCRIPTION_LONG":element.article.intern_description}:"";
-    // arr={"bmecat:SUPPLIER_PID":element.article.id}
-    // arr={"bmecat:DESCRIPTION_SHORT":element.intern_name}
-    ////console.log('arr',arr);
-
-//    //console.log(obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM']);
-////console.log(index);
-
-//    //console.log(obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][index]['PRODUCT_ID']["bmecat:DESCRIPTION_LONG"]);
-     //console.log(element.unit_price);
-
-      // if(element.unit_price == null){
-      //  //console.log('123');
-      //   return false;
-      //   break;
-      // }
-     //console.log('987');
 
       obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
           "$": {
@@ -1256,19 +1233,13 @@ console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
        element.discount_in_percent==null?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX']:'';
   }
 
-
-  // let builder = new xml2js.Builder();
   let builder = new xml2js.Builder({'xmldec.version':1.0} );
   var xml = builder.buildObject(obj);
- //console.log(xml);
-  ////console.log(xml)
   return Buffer.from(xml).toString('base64');
-  ////console.log('OT', JSON.stringify(obj));
+  
 }
 export async function invoiceFilePush(netcomId,service,data,filename,type) {
   let formData 
- //console.log('123654');
-  
   return new Promise(async(resolve, reject) => {
     formData = {
       netcom_id:netcomId,
@@ -1294,21 +1265,14 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
         warningMessage(commonErrors,error);
         resolve(false)
       }
-
-      ////console.log('invoiceFilePush',response.body);
-     //console.log('asdsadsadsad',response?.body);
-      
       return resolve(response?.body)
-      
-      // res.send(response.body)
+     
     });
   });
 }
 export const deleteRedis = async (api, key) => {
   const checkAPI = JSON.parse(fs.readFileSync('./assets/iom_E76FAD2A-41E9-E211-84C9-D8D385E0B238.json'));
   let delApis = checkAPI.realated[api];
- //console.log('delApis', delApis);
- //console.log('data', key);
 
   const redis_client = await redisClient;
 
@@ -2940,10 +2904,10 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
       if(selectQryResult.length == 0){
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
-            rk_party: Number(partyId),
+            rk_party:Number(partyId),
           },
         });
-       //console.log('selectQryResultParty',selectQryResultParty);
+       console.log('selectQryResultParty',selectQryResultParty);
         
         const result = await connectBexio.documents_dispatchnotification_send.create({
           data: {
@@ -2951,13 +2915,13 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
             deliverynotes_number: ordernumber,
             fk_companyregistered: selectQryResultParty[0].cid,
             deliverynotes_type: 'EDI',
-            status: status, // assuming this is the correct type
+            status:Number(status), // assuming this is the correct type
           },
           select: {
             cid: true,
           },
         });
-       //console.log(result);
+       console.log(result);
 
         sendDeliveryNotesId = result[0].cid;
       }
@@ -2971,7 +2935,7 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
           },
           data: {
             time_stamp: new Date(), // equivalent to NOW()
-            status: status,        // make sure it's a string
+            status: Number(status),        // make sure it's a string
           },
         });
       }
@@ -3264,6 +3228,7 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
   });
 
 }
+
 const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customerIds,orderId,taxIsAdded)=>{
  
   let tempString = JSON.stringify(order.delivery_address_manual)
@@ -3538,3 +3503,533 @@ const getOrderOT = async (accessToken,orderId) =>{
     return;
   }  
 }
+export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerParams) => {
+  console.log("worker processing invoices...");
+  console.log('deliveryNotes',deliveryNotes);
+  console.log('bodyValues',bodyValues);
+ 
+  let tempIds = JSON.parse(deliveryNotes);
+
+  for (let index = 0; index < tempIds.length; index++) {
+    const element = tempIds[index];
+    const tempParam = {
+      cookies: headerParams['cookies'], // Include cookies
+      signedCookies: headerParams['signedCookies'], // Include signed cookies
+      url: headerParams['url'],
+      originalUrl: headerParams['originalUrl'],
+      body: {
+        partyId: bodyValues.partyId,
+        accountId: bodyValues.accountId,
+        delivery_id: element.delivery_id,
+      },
+    };
+
+    console.log("start processing delivery notes");
+    const result = await pushDeliveryNotesBulk(tempParam, "");
+    console.log("result:", result);
+    console.log("end processing delivery notes");
+  }
+};
+export const pushDeliveryNotesBulk = async( req, res)=>{
+  return new Promise( async(resolve,reject) => {
+    let cookie ;
+    let decryptData ;
+    let deliveryNotesCid;
+    decryptData = req.body;
+    
+    try {
+      let deliveryNotes,paymentType;
+      cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+      const partyId = decryptData.partyId;
+      const accountId = decryptData.accountId;
+      const delivery_id = decryptData.delivery_id || 1;
+      deliveryNotes = await getDeliveryNotesOT(accessToken,delivery_id); // Get deliveryNotes from bexio using orderId
+
+      if( !deliveryNotes){ // If there is no deliveryNotes with this orderId, return with error
+        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,'','0','error_in_getDeliveryNotesOT');
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_in_getDeliveryNotesOT -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'error_in_getDeliveryNotesOT');
+     
+        return resolve('error_in_getDeliveryNotesOT');
+      }
+      let invitationData:any = await getConnectionDetails(partyId,accountId,deliveryNotes.contact_id,req); // Get the connection details using contact_id, party and account
+      let customerIds
+      if( invitationData.length > 0)
+        customerIds = await constGetContactId(invitationData[0].rk_businessconnection); // Get customer Id using businessConnection
+      else
+        if( !customerIds ){ // If there is no customerIds, return with error
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','customerIds_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'customerIds_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'customerIds_not_found');
+         
+          return resolve('customerIds_not_found');
+        }
+      if( invitationData != undefined){ // If there is any invitationData then do
+        let pdf,fileName,pdfContent;
+        pdf = await getDeliveryNotesPdf(accessToken,delivery_id); // Fetch pdf file for deliveryNotes from bexio.
+
+        if( !pdf ){ // If there is no pdf, return with error
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','deliveryNotesPdf_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'deliveryNotesPdf_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'deliveryNotesPdf_not_found');
+        
+          return resolve('deliveryNotesPdf_not_found');
+        }
+        
+        pdfContent = JSON.parse(pdf).content; // Assign pdf content.
+        fileName = JSON.parse(pdf).name; // Assign pdf name.
+
+        /* Fetch country data from bexio using accessToken */
+        let countryList;
+        countryList = await getCountryLists(accessToken);
+
+        if( !countryList ){ // If country list not found, return with error.
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','countryList_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'countryList_not_found');
+          return resolve('countryList_not_found');
+        }
+        let bank;
+        console.log("deliveryNotes.currency_id :: ",deliveryNotes.currency_id);
+        /* Fetch currency from bexio using id. */
+        let currency = await getCurrency(accessToken,deliveryNotes.currency_id);
+        if( !currency ){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','currency_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'currency_not_found');
+         
+          return resolve('currency_not_found');
+        }
+        deliveryNotes['currency'] = currency;
+
+        /* Get user details from access token */
+        let temp = await getloginUserCompanyDetails(accessToken);
+        if( !temp ){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','loginUserCompanyDetails_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'loginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'loginUserCompanyDetails_not_found');
+        
+          return resolve('loginUserCompanyDetails_not_found');
+        }
+        deliveryNotes['companyProfile'] = temp;
+        deliveryNotes['companyProfile'] = JSON.parse(deliveryNotes['companyProfile']);
+        /* Fetch payment type from deliveryNotes */
+        paymentType = await getPaymentType(accessToken,deliveryNotes.payment_type_id);
+        if(!paymentType){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','paymentType_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'paymentType_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'paymentType_not_found');
+         
+          return resolve('paymentType_not_found');
+        }
+
+        let tempPaymentType = paymentType.filter(e => e.id == deliveryNotes.payment_type_id);
+        deliveryNotes['paymentType'] = tempPaymentType;
+
+        /* Fetch contact using contact id from deliveryNotes */
+        let contact = await getContact(accessToken,deliveryNotes.contact_id);
+        if(!contact){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','contact_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contact_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'contact_not_found');
+         
+          return resolve('contact_not_found');
+        }
+        deliveryNotes['contact'] = contact;
+        let user = true;
+        if(!user){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','user_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'user_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'user_not_found');
+        
+          return resolve('user_not_found');
+        }
+        deliveryNotes['user'] = user;
+
+        /* Loop over positions in deliveryNotes */
+        for (const items of deliveryNotes.positions) {
+          console.log('items.tax_id',items.tax_id);
+          if(items.tax_id){ // Check tax is there or not
+            /* Fetch tax using tax id */
+            let tempTax = await getTaxs(accessToken,items.tax_id);
+            if(!tempTax){
+              deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','tax_not_Found');
+             
+              // addlogs(logs,decryptData.partyId,decryptData.accountId);
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
+              warningMessage(commonErrors,'tax_not_Found');
+              return resolve('tax_not_Found');
+            }
+            items['tax'] = tempTax;
+          }
+          let tempItem;
+          if('article_id' in items){
+            tempItem = await getProducts(accessToken,items.article_id);
+            items['article'] = tempItem;
+          }else{
+            items['article'] = {}
+            items['article']['intern_name'] = items.text;
+            items['article']['intern_description'] = items.text;
+
+          }
+        }
+        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'1');
+
+        /* Create XML from data */
+        let xml;
+        xml = await setDeliveryNotesToOt(deliveryNotes,countryList,invitationData[0],pdfContent,fileName,customerIds,deliveryNotesCid);
+        if( xml == false){
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','deliveryNotesToOt_not_found');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'deliveryNotesToOt_not_found -req param,',JSON.stringify(req.body);
+          warningMessage(commonErrors,'deliveryNotesToOt_not_found');
+   
+          return resolve('deliveryNotesToOt_not_found');
+        }
+        await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,deliveryNotes['document_nr'],'EDI');
+        let redisKey = req.body.partyId+"_/";
+        await deleteRedis(req.url.substr(1,req.url.length),redisKey);
+        return resolve(true);
+      }
+      else{
+      
+        // addlogs(logs,decryptData.partyId,decryptData.accountId);
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'ORDER_FOR_OPEN_TRANSACTION -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'ORDER_FOR_OPEN_TRANSACTION');
+        return resolve('deliveryNotes_push_error')
+      }
+      } catch (error) {
+        console.error('Error in pushDeliveryNotesBulk:', error);
+        reject(error); // Ensure the promise is rejected.
+      }
+    });
+  }
+  const getDeliveryNotesOT = async (accessToken,delivery_id) =>{
+    try {
+      return new Promise( async( resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}`,
+          'headers': {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        };
+    
+        request( options, function(error, response){
+          if(error){
+            commonErrors['errorTitle'] = 'getDeliveryNotesCidOT';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
+            warningMessage(commonErrors,error);
+            resolve(error);
+          }
+          if( response.statusCode == 200){
+            resolve(JSON.parse(response.body));
+          }
+          else{
+            resolve(false);
+          }
+        })
+      });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'getDeliveryNotesOT';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
+      warningMessage(commonErrors,error);
+      return;
+    }  
+  }
+  const getDeliveryNotesPdf = async( accessToken,delivery_id) => {
+    try {
+      return new Promise( async( resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}/pdf`,
+          'headers': {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+            }
+        };
+    
+        request( options, function( error, respons){
+          if(error){
+            commonErrors['errorTitle'] = 'getOrderResposnePdf';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
+            warningMessage(commonErrors,error);
+            resolve(error);
+          }
+          if( respons.statusCode == 200){
+            resolve(respons.body);
+          }
+          else{
+            resolve(false);
+          }
+        })
+      });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'getOrderResposnePdf';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
+      warningMessage(commonErrors,error);
+      return;
+    }
+    
+  }
+  const setDeliveryNotesToOt = async(deliveryNotes,coutryList,contactDetails,pdf,fileName,customerIds,delivery_id)=>{
+    console.log({
+      deliveryNotes,coutryList,contactDetails,fileName,customerIds,delivery_id
+    });
+    coutryList = JSON.parse(coutryList);
+    console.log("gghghgh");
+    let emptyValue = 'NA'
+    let taxIsAdded;
+    let priceQuantity = '1'
+    let deliveryNotesUnit = {
+      'Stk':'C62',
+      'h':'HUR'
+    }
+    let obj:any = {
+      "OPENTRANS": {
+        "$": {
+          "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+          "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+          "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+        },
+        "DISPATCHNOTIFICATION": [{
+          "$": {
+            "version": "2.1"
+          },
+          "DISPATCHNOTIFICATION_HEADER": [{
+            "CONTROL_INFO":[],
+            "DISPATCHNOTIFICATION_INFO": []
+          }],
+          "DISPATCHNOTIFICATION_ITEM_LIST": [{
+            "DISPATCHNOTIFICATION_ITEM": []
+          }],
+          "DISPATCHNOTIFICATION_SUMMARY": []
+  
+        }]
+      }
+    };
+  
+    let v = coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)  
+    taxIsAdded = deliveryNotes.taxs.length;
+    console.log("\ntaxIsAdded:: "+taxIsAdded);
+    console.log("JSON.stringify(deliveryNotes) ",JSON.stringify(deliveryNotes.contact));
+    console.log(coutryList[0]);
+    
+    
+    obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
+      "GENERATOR_INFO": new Date(deliveryNotes.updated_at).toISOString()
+    })))
+    console.log("-------------------------\n"+new Date(deliveryNotes.updated_at).toISOString()+"\n----------------");
+    let deliveryAddress = {};
+    let tempString = JSON.stringify(deliveryNotes.delivery_address)
+    let tempArray = "";
+    console.log("tempString",tempString);
+  
+    
+    if(tempString.indexOf("\\r\\n") != -1)
+    {
+      tempArray = tempString.substring(1, tempString.length-1).replace(/\\r\\n/g, "___________");
+    }
+    else if(tempString.indexOf("\\n") != -1)
+    {
+      tempArray = tempString.substring(1, tempString.length-1).replace(/\\n/g, "___________");
+    }
+    else if(tempString.indexOf("\\r") != -1)
+    {
+      tempArray = tempString.substring(1, tempString.length-1).replace(/\\r/g, "___________");
+    }
+    else{
+      tempArray = tempString;
+    }
+  
+    console.log('tempArray',tempArray);
+    let deliveryAddress2 = tempArray.split("___________");
+    console.log("deliveryAddress2",deliveryAddress2);
+    
+    let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
+    console.log('tempAdress',tempAdress);
+    if(tempAdress.length == 4){
+      tempAdress.splice(1,0," ")
+    }
+    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let isEmailAdded = pattern.test(tempAdress[1]);
+    let tempStreet;
+    let tempZip;
+    let tempCity;
+    let countryCode;
+    let secondName ;
+    if(isEmailAdded){
+      tempStreet = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempZip = tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempCity = tempAdress[5]?.trim() ? tempAdress[5]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      countryCode = tempAdress[6] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[6].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+    }else{
+      if(tempAdress.length == 5){
+        countryCode = tempAdress[4] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[4].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+        tempStreet = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+        tempZip = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+        tempCity =  tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      }else{
+        countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+        secondName = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+        tempStreet = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+        tempZip = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+        tempCity =  tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      }
+    }
+    obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['DISPATCHNOTIFICATION_INFO'].push(JSON.parse(
+      JSON.stringify({
+        "DISPATCHNOTIFICATION_ID": deliveryNotes.document_nr,
+        "DISPATCHNOTIFICATION_DATE": new Date(deliveryNotes.updated_at).toISOString(),
+        "bmecat:LANGUAGE": 'deu',
+        "DELIVERY_DATE": [{
+          "DELIVERY_START_DATE": new Date(deliveryNotes.is_valid_from).toISOString(),
+          "DELIVERY_END_DATE": new Date(deliveryNotes.is_valid_from).toISOString()
+        }],      
+        "PARTIES": [{
+          "PARTY": [{
+            "bmecat:PARTY_ID": [{
+              "_": contactDetails.rk_netcomidsender,
+              "$": {
+                "type": "supplier_specific"
+              }
+            }],
+            "PARTY_ROLE":"supplier",
+            "ADDRESS": [{
+              "bmecat:NAME": deliveryNotes.companyProfile[0].name_1?deliveryNotes.companyProfile[0].name_1:undefined,
+              "bmecat:NAME2": deliveryNotes.companyProfile[0].name_2?deliveryNotes.companyProfile[0].name_2:undefined,
+              "bmecat:STREET": deliveryNotes.companyProfile[0].address?deliveryNotes.companyProfile[0].address:undefined,
+              "bmecat:ZIP": deliveryNotes.companyProfile[0].postcode?deliveryNotes.companyProfile[0].postcode:undefined,
+              "bmecat:CITY": deliveryNotes.companyProfile[0].city?deliveryNotes.companyProfile[0].city:undefined,
+              "bmecat:COUNTRY_CODED":coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2
+            }]
+          },{
+            "bmecat:PARTY_ID": [{
+              "_": contactDetails.rk_netcomidreceived,
+              "$": {
+                "type": "buyer_specific"
+              }
+            }],
+            "PARTY_ROLE":"buyer",
+            "ADDRESS": [{
+              "bmecat:NAME": deliveryNotes.contact.name_1?deliveryNotes.contact.name_1:undefined,
+              "bmecat:NAME2": deliveryNotes.contact.name_2?deliveryNotes.contact.name_2:undefined,
+              "bmecat:STREET": deliveryNotes.contact.address?deliveryNotes.contact.address:undefined,
+              "bmecat:ZIP": deliveryNotes.contact.postcode?deliveryNotes.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+              "bmecat:CITY": deliveryNotes.contact.city?deliveryNotes.contact.city:undefined,
+              "bmecat:COUNTRY_CODED": deliveryNotes.contact.country_id?coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2:undefined
+            }]
+          },{
+            "bmecat:PARTY_ID": [{
+              "_": contactDetails.rk_netcomidsender,
+              "$": {
+                "type": "party_specific"
+              }
+            }],
+            "PARTY_ROLE":"delivery",
+            "ADDRESS": [{
+              "bmecat:NAME": tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
+               "bmecat:NAME2": secondName,
+               "CONTACT_DETAILS":isEmailAdded ? [{
+                "bmecat:CONTACT_NAME":tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
+                "bmecat:PHONE":tempAdress[2]?.replace(/\n/g, "") ? tempAdress[2]:undefined,
+                "bmecat:EMAILS":tempAdress[1]?.trim()?[{
+                  "bmecat:EMAIL":tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined
+                }]:undefined,
+               }]: undefined,
+              "bmecat:STREET": tempStreet,
+              "bmecat:ZIP":  tempZip,
+              "bmecat:CITY":  tempCity,
+              "bmecat:COUNTRY_CODED": countryCode ? countryCode : undefined
+            }]
+          }]
+        }],
+        "bmecat:SUPPLIER_IDREF":contactDetails.sendercustomerid,
+        "bmecat:BUYER_IDREF": contactDetails.receivercustomerid,
+        "SHIPMENT_PARTIES_REFERENCE":[{
+          "DELIVERY_IDREF": contactDetails.rk_netcomidsender
+        }],
+        "REMARKS": deliveryNotes.title ? deliveryNotes.title : undefined,
+        "HEADER_UDX":[{
+          "HEADER_UDX_OPT": [{
+            "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
+          }],
+          "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
+          "RECEIVER_CUSTOM_ID_1": contactDetails.receivercustomerid,
+        }]
+      })
+    ));
+    // console.log(JSON.stringify(obj.OPENTRANS));
+    console.log("-----------------------------------------------------------");
+    let allTax:any = [];
+    deliveryNotes.positions.forEach(element => {
+      const index = allTax.findIndex(object => object.type === element.tax?.type);
+      if (index === -1) {
+        allTax.push({
+            type: element.tax?.type,
+            value: element.tax?.value,
+        });
+      }
+    })
+    let tempTaxArray = [];
+    let totalAmount: any = '0.00';
+    for (let index = 0; index < deliveryNotes.positions.length; index++) {
+      let element = deliveryNotes.positions[index];
+      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      console.log(element);    
+      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      
+      totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
+      let arr,status = true;
+      obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_ITEM_LIST'][0]['DISPATCHNOTIFICATION_ITEM'].push(JSON.parse(JSON.stringify({
+        "LINE_ITEM_ID": element.pos?element.pos:index,
+        "PRODUCT_ID": [{
+          "bmecat:SUPPLIER_PID" : element.internal_pos?element.internal_pos:undefined,
+          ...(element.article.intern_code
+            ? {
+                "bmecat:INTERNATIONAL_PID": {
+                  "_": element.article.intern_code,
+                  "$": {
+                    "type": "ean"
+                  }
+                }
+              }
+            : {}),
+            "bmecat:DESCRIPTION_LONG": element.text? element.text:undefined
+         
+        }],
+        "QUANTITY": element.amount?Math.trunc(element.amount):1,
+        "bmecat:ORDER_UNIT":deliveryNotesUnit[element.unit_name]?deliveryNotesUnit[element.unit_name]:'C62',
+        "ORDER_REFERENCE": [{
+          "ORDER_ID": element.id,
+          "LINE_ITEM_ID": element.pos?element.pos:index
+        }],
+        "SHIPMENT_PARTIES_REFERENCE":[{
+          "DELIVERY_IDREF": contactDetails.rk_netcomidsender
+        }]
+      })))
+    }
+    obj.OPENTRANS['DISPATCHNOTIFICATION'][0]['DISPATCHNOTIFICATION_SUMMARY'].push(JSON.parse(JSON.stringify({
+      "TOTAL_ITEM_NUM" : deliveryNotes.positions.length
+    })))
+    // return
+    
+    let builder = new xml2js.Builder({'xmldec.version':1.0} );
+    console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
+    var xml = builder.buildObject(obj);
+    console.log("xml:  ---------------------------\n",xml);
+    return Buffer.from(xml).toString('base64');
+  }

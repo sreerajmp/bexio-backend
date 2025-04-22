@@ -23,11 +23,12 @@ import { resolve } from 'path';
 var xml2js = require('xml2js');
 import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
+import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
 
 @Injectable()
 export class DebtorsService {
-  constructor(private readonly pushWorkerHost: PushWorkerHost) {}
+  constructor(private readonly pushWorkerHost: PushWorkerHost,private readonly sendDeliveryNotesHost:SendDeliveryNotesHost) {}
 
   async getInvoice(req: Request, res: Response,): Promise<any> {
     console.log('getInvoice');
@@ -1386,7 +1387,9 @@ export class DebtorsService {
         "partyId": bodyData.partyId,
         "accountId": bodyData.accountId,
       }
-      let deliveryItems = bodyData.deliveryItems;   
+      let deliveryItems = bodyData.deliveryItems;  
+    
+       
       let obj = JSON.parse(deliveryItems);
       console.log('objobjobjobj',obj);
       
@@ -1397,17 +1400,13 @@ export class DebtorsService {
         }
       }
       await processInvoices(obj, bodyData);
-      const worker = new Worker('./src/common/utils/sendDeliveryNotes_worker.js',{
-        workerData: {
-          bodyParams : JSON.stringify(bodyParams),
-          deliveryItems,
-          headerParams: {
-            cookies: req.cookies, // Include cookies
-            signedCookies: req.signedCookies, // Include signed cookies
-            url: req.url
-          }        
-        }
-      })
+      console.log('deliveryItems',deliveryItems);
+      
+      this.sendDeliveryNotesHost.run(deliveryItems, bodyParams, {
+        cookies: req.cookies, // Include cookies
+        signedCookies: req.signedCookies, // Include signed cookies
+        url: req.url,
+    });
       
     } catch (error) {
       console.log("error in sendBulkDeliveryNotes :: ",error);      
