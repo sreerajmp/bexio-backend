@@ -21,7 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId } from 'src/common/utils/helperfn';
+import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -123,15 +123,8 @@ export class DebtorsService {
             }
           }
         }
-        const getConnectionBc = await connectBexio.$queryRaw<{ array_agg: number[] }[]>(Prisma.sql`
-                    SELECT array_agg(rk_sendercontactid::int)
-                    FROM contact_bc cb
-                    WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
-                    AND cb.type = 'EDI'
-                    ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
-                    AND cb.rk_businessconnection IS NOT NULL
-                  `);
-        resultArray = getConnectionBc[0]?.array_agg;
+        const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
+        resultArray = getConnectionBcResult[0]?.array_agg;
         console.log('resultArray',resultArray);
         
       }
@@ -161,6 +154,39 @@ export class DebtorsService {
 
       if (data['invoiceStatus']) {
         getSendInvoiceListResult = await getSendInvoiceList(Number(partyId));
+        console.log('getSendInvoiceListResult', getSendInvoiceListResult);
+        
+        if(getSendInvoiceListResult.length > 0) {
+          if (data['invoiceStatus'] == 'Yes') {
+            console.log("invoiceStatus s", data['invoiceStatus']);
+            
+            searchJson.push({
+              "field": "contact_id",
+              "value": resultArray == null ? "" : resultArray,
+              "criteria": "in"
+            },
+            {
+              "field": "id",
+              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
+              "criteria": "in"
+            });
+          }
+          if (data['invoiceStatus'] == 'No') {
+            console.log("invoiceStatus no", data['invoiceStatus']);
+    
+            searchJson.push({
+              "field": "contact_id",
+              "value": resultArray == null ? "" : resultArray,
+              "criteria": "in"
+            },
+            {
+              "field": "id",
+              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
+              "criteria": "not_in"
+            });
+          }
+        }
+        
       }
 
       if (data.documentNo) {
@@ -198,35 +224,14 @@ export class DebtorsService {
           "criteria": "="
         });
       }
-      if (data['invoiceStatus'] == 'Yes') {
-        searchJson.push({
-          "field": "contact_id",
-          "value": resultArray == null ? "" : resultArray,
-          "criteria": "in"
-        },
-        {
-          "field": "id",
-          "value": getSendInvoiceListResult[0]?.invoiceid ? getSendInvoiceListResult[0].invoiceid : "",
-          "criteria": "in"
-        });
-      }
-      if (data['invoiceStatus'] == 'No') {
-        searchJson.push({
-          "field": "contact_id",
-          "value": resultArray == null ? "" : resultArray,
-          "criteria": "in"
-        },
-        {
-          "field": "id",
-          "value": getSendInvoiceListResult[0]?.invoiceid ? getSendInvoiceListResult[0].invoiceid : "",
-          "criteria": "not_in"
-        });
-      }
+     
 
       let resData: any[] = [];
       console.log('searchJson:::',searchJson);
       
       if (searchJson.length > 0) {
+      console.log('searchJson 2:::',searchJson);
+
           totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
           options = {
             'method': 'POST',
@@ -302,24 +307,6 @@ export class DebtorsService {
             return [];
           };
 
-          // const [postResponse, getResponse] = await Promise.all([
-          //   new Promise<any>((resolve, reject) => {
-          //     request(postOptions, (error, response) => {
-          //       if (error) reject(error);
-          //       else resolve(response);
-          //     });
-          //   }),
-          //   new Promise<any>((resolve, reject) => {
-          //     request(getOptions, (error, response) => {
-          //       if (error) reject(error);
-          //       else resolve(response);
-          //     });
-          //   })
-          // ]).catch(error => {
-          //   console.error("Request error:", error);
-          // return [null, null];
-          // });
-
           const getResponse = await new Promise<any>((resolve, reject) => {
             request(getOptions, (error, response) => {
               if (error) reject(error);
@@ -330,20 +317,8 @@ export class DebtorsService {
           return null;
           });
           console.log('searchJson',searchJson);
-          // console.log('postResponse',postResponse.body.length);
           console.log('getResponse',getResponse.statusCode);
           console.log('getResponse message',getResponse.message);
-          // let postRes = parseResponse(postResponse);
-          let getRes = parseResponse(getResponse);
-          // console.log('postResponse',postRes.data.length);
-          // console.log('getResponse',getRes);
-          // if (!postRes.status || !getRes.status) {
-          //   return res.status(401).json({
-          //     status: true,
-          //     data: [],
-          //     message: "unauthorized",
-          //   });
-          // }
          
           if (getResponse.statusCode == 401) {
             return res.status(401).json({
@@ -354,20 +329,20 @@ export class DebtorsService {
           }
           else if (getResponse.statusCode ==200) {
         
-          resData = [...getRes];
+          resData = [...parseResponse(getResponse)];
           }
 
           else  {
+            console.log('getResponse',getResponse);
+            console.log('getResponse body',getResponse.body);
+            console.log('getResponse status',getResponse.statusCode);
             return res.status(getResponse.statusCode).json({
               status: true,
-              data: getRes,
+              data: getResponse.body,
               message: getResponse.statusMessage,
             });
 
           }
-        
-          
-          // resData = [...postRes.data, ...getRes.data];
         }
 
       if (resData && resData.length > 0) {
@@ -375,7 +350,8 @@ export class DebtorsService {
           let contact_idList: any = [];
         
           for (let invoice in resData) {
-          resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray?.map(Number).includes(Number(resData[invoice].contact_id)) ? true : true;
+          resData[invoice]['allowSend'] =  true;
+          // resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray?.map(Number).includes(Number(resData[invoice].contact_id)) ? true : true;
             contact_idList.push((resData[invoice].contact_id));
             resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
             resData[invoice]['timestamp'] = '';
@@ -461,12 +437,13 @@ export class DebtorsService {
             data: resultData,
             totalCount: totalCount
         });
-      } else {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'unauthorized',
-        });
-      }
+      } 
+      // else {
+      //   return res.status(401).json({
+      //     status: 'fail',
+      //     message: 'unauthorized',
+      //   });
+      // }
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
@@ -761,16 +738,17 @@ export class DebtorsService {
       
      
 
-      const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
-      SELECT array_agg(rk_sendercontactid::int)
-      FROM contact_bc cb
-      WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
-      AND cb.type = 'EDI'
-      ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
-      AND cb.rk_businessconnection IS NOT NULL
-    `);
-    //console.log('getConnectionBc',getConnectionBc);
-    let resultArray = getConnectionBc[0]?.array_agg;
+    //   const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
+    //   SELECT array_agg(rk_sendercontactid::int)
+    //   FROM contact_bc cb
+    //   WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
+    //   AND cb.type = 'EDI'
+    //   ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
+    //   AND cb.rk_businessconnection IS NOT NULL
+    // `);
+    // //console.log('getConnectionBc',getConnectionBc);
+    // let resultArray = getConnectionBc[0]?.array_agg;
+    let resultArray=await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
     //console.log('resultArray',resultArray);
 
       if(isBexioUser){
