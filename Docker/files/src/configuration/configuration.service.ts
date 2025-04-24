@@ -1087,7 +1087,7 @@ console.log('req.body',req.body);
 
     try {
       const resetToken = crypto.randomBytes(15).toString('hex');
-      const billerId = req.body.billerId
+      const billerId = encrToken.billerId
       console.log("billerId:",billerId);
       
       const options = {
@@ -1173,6 +1173,8 @@ console.log('req.body',req.body);
         }
         else {
           if(response.body){
+            console.log("response.body:",response.body);
+            
           return res.status(status_code.OK).json({
             data: JSON.parse(response.body),
             status_code: 200,
@@ -2209,9 +2211,8 @@ const getPythonData = async (netcomId) => {
           ebill: ebill
       }
       const options = {
-        method: 'POST',
-        url: `${config.GATE2BURL}/post-list/connections`,
-       
+        'method': 'POST',
+      'url': config.PYTHON_API + 'post-list/connections',
         formData: formData
       };
       //console.log('options',options);
