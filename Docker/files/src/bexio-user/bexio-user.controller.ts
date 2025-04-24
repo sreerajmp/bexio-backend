@@ -64,5 +64,9 @@ async refreshTokenCreate(
 ): Promise<any> {
   return this.bexioUserService.refreshTokenCreate(req, res);
 }
-
+@Post('bexioLogout')
+@UseInterceptors(AnyFilesInterceptor())
+async bexioLogout(@Req() req: Request, @Res() res: Response): Promise<any> {
+return this.bexioUserService.bexioLogout(req,res);
+}
 }
