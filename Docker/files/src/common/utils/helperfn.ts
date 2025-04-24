@@ -151,7 +151,6 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
   return new Promise(async(resolve, reject) => {
     var options = {
       'method': 'GET',
-      // 'url': 'https://api.bexio.com/2.0/contact/search',
       'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
       'headers': {
         'Accept': 'application/json',
@@ -1758,7 +1757,8 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 object_id: true,
               },
             });
-            sendInvoiceId = result[0].objectid;
+            console.log('resultresult',result);
+            sendInvoiceId = result.object_id;
           }else{
             sendInvoiceId = selectQryResult[0].object_id;
             await connectBexio.documents_invoice_send.updateMany({
@@ -2803,7 +2803,7 @@ export const setOrderId = async (id,billId) =>{
   try {
     const getcustomerIdResult = await connectBexio.documents_order_receive.updateMany({
       where: {
-        cid: id,
+        cid: Number(id),
       },
       data: {
         rk_order: billId,
@@ -4033,3 +4033,18 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     console.log("xml:  ---------------------------\n",xml);
     return Buffer.from(xml).toString('base64');
   }
+
+  export const getSendInvoiceList = async (partyId: number): Promise<any[]> => {
+      try {
+          const result = await connectBexio.$queryRaw<any[]>(
+              Prisma.sql`SELECT array_agg(rk_order) AS "invoiceId" 
+                         FROM documents_order_send ds
+                         INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                         WHERE c.rk_party = ${partyId} AND ds.status = 2`
+          );
+          return result;
+      } catch (error) {
+          console.error('Error fetching send invoice list:', error);
+          throw new Error('Failed to fetch send invoice list');
+      }
+  };

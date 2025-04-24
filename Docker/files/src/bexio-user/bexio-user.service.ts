@@ -1910,7 +1910,6 @@ VALUES (
       AND r.fk_party IS NULL
   `);
 
-        //console.log('userRoles', userRoles);
 
         //console.log('roleData', roleData);
         for (const element of roleData) {
@@ -2396,6 +2395,7 @@ console.log('inside');
           sessionId = 'sess:' + sessionId;
           res.clearCookie(config.SESSION_COOKIE_NAME, options);
           res.clearCookie(config.TOKEN_COOKIE_NAME, options);
+          res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME, options);
           req.session.destroy();
           return res.send({ status: true });
       } else {
