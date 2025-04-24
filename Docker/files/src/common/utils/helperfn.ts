@@ -2235,15 +2235,6 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
     warningMessage(commonErrors,'QR_code_not_found');
     return false;
   }
-  if(!billerDetails)
-  {
-   //console.log('Biller');
-    
-    commonErrors['errorTitle'] = 'QR_code_not_found';
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
-    warningMessage(commonErrors,'QR_code_not_found');
-    return false;
-  }
   let obj = JSON.parse(JSON.stringify({
       "OPENTRANS": {
           "$": {
@@ -4035,16 +4026,37 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
   }
 
   export const getSendInvoiceList = async (partyId: number): Promise<any[]> => {
-      try {
-          const result = await connectBexio.$queryRaw<any[]>(
-              Prisma.sql`SELECT array_agg(rk_order) AS "invoiceId" 
-                         FROM documents_order_send ds
-                         INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-                         WHERE c.rk_party = ${partyId} AND ds.status = 2`
-          );
-          return result;
-      } catch (error) {
-          console.error('Error fetching send invoice list:', error);
-          throw new Error('Failed to fetch send invoice list');
-      }
-  };
+    try {
+        const result = await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+                       FROM documents_invoice_send ds
+                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                       WHERE c.rk_party = ${partyId} AND ds.status = 2`
+        );
+        // Serialize BigInt values to strings
+        return result.map(row => ({
+            ...row,
+            invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
+        }));
+    } catch (error) {
+        console.error('Error fetching send invoice list:', error);
+        throw new Error('Failed to fetch send invoice list');
+    }
+};
+
+export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number[]): Promise<any[]> {
+  try {
+    return await connectBexio.$queryRaw<{ array_agg: number[] }[]>(Prisma.sql`
+        SELECT array_agg(rk_sendercontactid::int)
+        FROM contact_bc cb
+        WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(inviteCompanyIds || [])}])
+        AND cb.type = 'EDI'
+        ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
+        AND cb.rk_businessconnection IS NOT NULL
+    `);
+  } catch (error) {
+    console.error('Error fetching send getConnectionBc:', error);
+    throw new Error('Failed to fetch send getConnectionBc');
+  }
+
+}
