@@ -1009,7 +1009,6 @@ export class DebtorsService {
       let id = req.body.id;
       let netcomId = req.body.netcomId;
       let cookie, access_token;
-      // let bexioPool = await postgresBexio;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       access_token = cookie.access_Token;
       console.log('access_token',access_token);
@@ -1057,7 +1056,14 @@ export class DebtorsService {
    
       let title;
      console.log('response',response.body);
-     
+     if (JSON.parse(response.body).message == "something_went_wrong") {
+     console.log('response',response.body);
+
+        return res.status(500).json({
+          status: false,
+          message: 'something_went_wrong',
+        });
+      }
       let data = JSON.parse(response.body).data;
       let xml = Buffer.from(data, 'base64').toString();
               let contact,contryName;
@@ -1355,7 +1361,7 @@ export class DebtorsService {
           
           if (error){
             console.log(error);
-            res.send({
+            return res.send({
               status_code: 500,
               message: JSON.stringify(error),
               status: false,
@@ -1370,7 +1376,7 @@ export class DebtorsService {
               await moveFile(netcomId,JSON.parse(file_path)["customer-output"]);
             }
             }
-            res.send({
+            return res.send({
               status_code: 200,
               message: 'common_sucess',
               status: true,
@@ -1380,7 +1386,7 @@ export class DebtorsService {
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'SEND_G2B_ORDER -req param,',JSON.stringify(req.body);
             warningMessage(commonErrors,'SEND_G2B_ORDER');
-            res.send({
+           return res.send({
               status_code: 500,
               message: 'something_went_wrong',
               status: false,
@@ -1394,7 +1400,7 @@ export class DebtorsService {
        commonErrors['errorTitle'] = req.originalUrl;
        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
        warningMessage(commonErrors,error);
-       res.send({
+       return res.send({
          status_code: 500,
          message: JSON.stringify(error),
          status: false,
