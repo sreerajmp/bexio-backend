@@ -2235,15 +2235,6 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
     warningMessage(commonErrors,'QR_code_not_found');
     return false;
   }
-  if(!billerDetails)
-  {
-   //console.log('Biller');
-    
-    commonErrors['errorTitle'] = 'QR_code_not_found';
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
-    warningMessage(commonErrors,'QR_code_not_found');
-    return false;
-  }
   let obj = JSON.parse(JSON.stringify({
       "OPENTRANS": {
           "$": {
