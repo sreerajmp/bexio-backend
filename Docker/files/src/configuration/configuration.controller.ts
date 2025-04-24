@@ -102,4 +102,10 @@ export class ConfigurationController {
   
   return this.configurationService.createBiller(req,res);
   }
+  @Post('changePayementComments')
+  @UseInterceptors(AnyFilesInterceptor())
+  async changePayementComments(@Req() req: Request, @Res() res: Response): Promise<any> {
+  
+  return this.configurationService.changePayementComments(req,res);
+  }
 }

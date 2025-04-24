@@ -34,29 +34,29 @@ export class BexioUserService {
   async bexioRedirect(req: Request, res: Response, ): Promise<any> {
     // Use prisma to access your DB, example:
     let params
-    console.log('data::', req);
-    console.log('data::', req.body);
-    console.log('API_URL', config.API_URL);
+    //console.log('data::', req);
+    //console.log('data::', req.body);
+    //console.log('API_URL', config.API_URL);
     // make sure this is inside an async function
     const bexioClient = await edit();
-    console.log('bexioClient', bexioClient);
+    //console.log('bexioClient', bexioClient);
 
     params = bexioClient.callbackParams(req);
-    console.log('params', params);
-    console.log('config.API_URL', config.API_URL);
+    //console.log('params', params);
+    //console.log('config.API_URL', config.API_URL);
 
-    console.log('code_verifier', code_verifier);
+    //console.log('code_verifier', code_verifier);
     const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
 
-    console.log('tokenSet', tokenSet);
-    // console.log(tokenSet);
+  //  console.log('tokenSet', tokenSet.access_token);
+    // //console.log(tokenSet);
 
     let companyDetails = await this.getloginUserCompanyDetails(tokenSet.access_token);
-    console.log('companyDetails',companyDetails);
+    //console.log('companyDetails',companyDetails);
     let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
-    console.log('coutryCode',coutryCode);
+    //console.log('coutryCode',coutryCode);
     let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
-    console.log('userDetails',userDetails);
+    //console.log('userDetails',userDetails);
     
     if (!companyDetails || !coutryCode || !userDetails) {
       return res.status(500).send({
@@ -65,11 +65,11 @@ export class BexioUserService {
         status: false,
       });
     }
-    console.log('typeof companyDetails:', typeof companyDetails);
-    console.log('tempJson1',companyDetails);
-    console.log('tempJson2',companyDetails[0]);
+    //console.log('typeof companyDetails:', typeof companyDetails);
+    //console.log('tempJson1',companyDetails);
+    //console.log('tempJson2',companyDetails[0]);
     const tempJson = companyDetails[0];
-    console.log('tempJson3',tempJson);
+    //console.log('tempJson3',tempJson);
 
     if (
       !tempJson['country_name'] ||
@@ -81,13 +81,13 @@ export class BexioUserService {
     ) {
       return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
     }
-    console.log('test',tempJson);
+    //console.log('test',tempJson);
     const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
     const validationCompany = this.validateFields(companyDetails[0], requiredCompanyFields);
-    console.log('validationCompany',validationCompany);
+    //console.log('validationCompany',validationCompany);
     const requiredUserFields = ['given_name', 'family_name', 'email'];
     const validationUser = this.validateFields(userDetails, requiredUserFields);
-    console.log('validationUser',validationUser);
+    //console.log('validationUser',validationUser);
 
     if (!validationCompany || !validationUser) {
       return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
@@ -109,12 +109,12 @@ export class BexioUserService {
         isAdmin = false;
       }
       let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
-      console.log('companyCreateStatus', companyCreateStatus);
+      //console.log('companyCreateStatus', companyCreateStatus);
       if (companyCreateStatus) {
 
         let token = tokenSet.access_token;
         let refreshToken = tokenSet.refresh_token;
-       console.log('rk_csn',jwt.decode(token)['company_id']);
+       //console.log('rk_csn',jwt.decode(token)['company_id']);
 
         let rk_csn = jwt.decode(token)['company_id']
         const check = await connectBexio.companyregistered.findMany({
@@ -132,28 +132,28 @@ export class BexioUserService {
             refresh_Token: tokenSet.refresh_token,
             isBexioUser: true
           }
-          console.log('=== Cookie Debug Logs ===');
-          console.log('1. Cookie Names:', {
-            BILLING_COOKIE: config.BILLING_COOKIE_NAME,
-            TOKEN_COOKIE: config.TOKEN_COOKIE_BEXIO_NAME
-          });
-          console.log('2. Session Domain:', config.SESSION_DOMAIN);
-          console.log('3. Session Expiry:', config.SESSION_EXPIRY);
+          //console.log('=== Cookie Debug Logs ===');
+          //console.log('1. Cookie Names:', {
+          //   BILLING_COOKIE: config.BILLING_COOKIE_NAME,
+          //   TOKEN_COOKIE: config.TOKEN_COOKIE_BEXIO_NAME
+          // });
+          //console.log('2. Session Domain:', config.SESSION_DOMAIN);
+          //console.log('3. Session Expiry:', config.SESSION_EXPIRY);
           
           let billingCookie = {
             bexio: true,
             objectid: insertData[0]?.objectid
           }
           
-          console.log('4. Billing Cookie Data:', billingCookie);
-          console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
+          //console.log('4. Billing Cookie Data:', billingCookie);
+          //console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
           
           // Encrypt cookie values
           const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
           const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
           
-          console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
-          console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
+          //console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
+          //console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
           
           // Set cookies with detailed options
           const billingCookieOptions = {
@@ -173,31 +173,31 @@ export class BexioUserService {
             signed: false,
           };
           
-          console.log('8. Billing Cookie Options:', billingCookieOptions);
-          console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
+          //console.log('8. Billing Cookie Options:', billingCookieOptions);
+          //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
           
           // Set cookies
           res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
           res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
           
           // Log response headers
-          console.log('10. Response Headers:', res.getHeaders());
+          //console.log('10. Response Headers:', res.getHeaders());
           
           let bexioURL = config.BILLING_APP;
-          console.log('11. Redirecting to:', bexioURL);
-          console.log('=== End Cookie Debug Logs ===');
+          //console.log('11. Redirecting to:', bexioURL);
+          //console.log('=== End Cookie Debug Logs ===');
           
           return res.redirect(`${bexioURL}`);
         }
         else {
           let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
-          console.log('responseResult', responseResult);
+          //console.log('responseResult', responseResult);
           if(responseResult.status) {
-            console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-            console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+            //console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
+            //console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
             return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
           } else {
-            console.log('111');
+            //console.log('111');
             return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
           }
         }
@@ -205,7 +205,7 @@ export class BexioUserService {
         return res.redirect(`${config.BEXIO_APP_URL}/login/permissiondenied`);
       }
     }
-    console.log('result');
+    //console.log('result');
 
     return res.status(200).send({
       status_code: 200,
@@ -279,7 +279,7 @@ export class BexioUserService {
           Authorization: 'Bearer ' + access_token,
         },
       };
-      console.log('options', options);
+      //console.log('options', options);
 
       request(options, (error, response) => {
         if (error) {
@@ -314,7 +314,7 @@ export class BexioUserService {
         body: `[{"field": "name","value": "${country}","criteria": "="}]`
 
       };
-      console.log('options', options);
+      //console.log('options', options);
 
       request(options, (error, response) => {
         if (error) {
@@ -347,7 +347,7 @@ export class BexioUserService {
         }
 
       };
-      console.log('options', options);
+      //console.log('options', options);
 
       request(options, (error, response) => {
         if (error) {
@@ -381,7 +381,7 @@ export class BexioUserService {
           'Authorization': 'Bearer ' + access_token
         }
       };
-      console.log('options', options);
+      //console.log('options', options);
 
       request(options, (error, response) => {
         if (error) {
@@ -414,15 +414,15 @@ export class BexioUserService {
   }
 
   private async bexioUserCreate(userDetails, companyDetails, accessToken, isAdmin, coutryCode, res, req): Promise<any> {
-    console.log('bexioUserCreate::',req);
+    //console.log('bexioUserCreate::',req);
 
     let legalname, streetno, phoneNumber;
     let isNewCompany = false, paymentData, orderId;
-    console.log('1');
+    //console.log('1');
 
     let email = userDetails.email;
     let givenname = userDetails.given_name;
-    console.log("req.body", req.body);
+    //console.log("req.body", req.body);
     if (req?.body && req.body.PaymentRecord) {
       paymentData = encryptionControl.decryptCookie(req.body.PaymentRecord)
     }
@@ -468,18 +468,18 @@ export class BexioUserService {
         streetno = companyDeatails.address.split(' ').length > 1 ? companyDeatails.address.split(' ').pop() : '';
         phoneNumber = companyDeatails.phone_fixed;
 
-        console.log(companyDeatails.address.split(' ').length);
-        console.log(streetno);
+        //console.log(companyDeatails.address.split(' ').length);
+        //console.log(streetno);
 
         if (companyDeatails.address.split(' ').length > 1) {
-          console.log('streetno');
+          //console.log('streetno');
 
           let tempStreet = companyDeatails.address.split(' ');
           tempStreet.pop();
           companyDeatails.address = tempStreet.join(" ")
 
         }
-        console.log('companyDeatails', companyDeatails);
+        //console.log('companyDeatails', companyDeatails);
 
         if (isPartyExists.length == 0) {
           newCompany = true;
@@ -500,7 +500,7 @@ export class BexioUserService {
                   `
           );
 
-          console.log('getCurrencyCode', getCurrencyCode);
+          //console.log('getCurrencyCode', getCurrencyCode);
 
 
           party = await partyCreate(companyDeatails, coutryCode, email, getCurrencyCode[0].cid);
@@ -525,10 +525,10 @@ export class BexioUserService {
             }
           }
 
-          console.log('5555555555555555555555555555555555555');
+          //console.log('5555555555555555555555555555555555555');
 
           const ediPartyId = await netcomeCreate(party.partyResponse, getCurrencyCode[0].cid);
-          console.log('ediPartyIdediPartyId', ediPartyId);
+          //console.log('ediPartyIdediPartyId', ediPartyId);
 
 
 
@@ -536,9 +536,9 @@ export class BexioUserService {
                 SELECT p.objectid FROM party p WHERE p.cid = ${partyId}
               `);
 
-          console.log('objectIdobjectIdobjectId', objectId);
+          //console.log('objectIdobjectIdobjectId', objectId);
 
-          console.log('partyIdpartyId', partyId);
+          //console.log('partyIdpartyId', partyId);
 
 
           const networkIdG2b = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
@@ -551,10 +551,10 @@ export class BexioUserService {
                 RETURNING *
               `);
 
-          console.log('4444444444444444444444444444444');
+          //console.log('4444444444444444444444444444444');
 
           netcomeAddress = await netcomGate2b(companyDeatails, party.partyResponse, ediPartyId, coutryCode, newGate2bId[0]?.cid, email);
-          console.log('ediPartyId', ediPartyId);
+          //console.log('ediPartyId', ediPartyId);
 
 
           await saveLegal(party.partyResponse, companyDeatails);
@@ -574,7 +574,7 @@ export class BexioUserService {
 
 
           netcomIdG2b = objectId[0]?.netcomid;
-          console.log(netcomIdG2b);
+          //console.log(netcomIdG2b);
 
           newCompany = false;
           partyId = isPartyExists[0]?.fk_party;
@@ -588,10 +588,10 @@ export class BexioUserService {
           }
         }
 
-        console.log('partyId1', partyId);
+        //console.log('partyId1', partyId);
 
         await setBexioCompany(partyId, rk_csn, netcomIdG2b);
-        console.log('setBexioCompany');
+        //console.log('setBexioCompany');
         let data = {
           errorTitle: 'Created Company:' + ' ' + companyDeatails.name,
           errorDescription: "created new company",
@@ -607,7 +607,7 @@ export class BexioUserService {
           errorFile: ''
         }
 
-        console.log("data :: ", data);
+        //console.log("data :: ", data);
 
         companyConfirmation(companyDeatails.name, companyDeatails.postcode, companyDeatails.city, companyDeatails.city, coutryCode)
 
@@ -628,11 +628,11 @@ export class BexioUserService {
           });
         }
 
-        console.log('partyIdelse', partyId);
+        //console.log('partyIdelse', partyId);
         let companyDeatails = companyDetails[0];
         let streetNo = companyDeatails.address.split(' ').length > 1 ? companyDeatails.address.split(' ').pop() : '';
         if (companyDeatails.address.split(' ').length > 1) {
-          console.log('streetno');
+          //console.log('streetno');
 
           let tempStreet = companyDeatails.address.split(' ');
           tempStreet.pop();
@@ -657,8 +657,8 @@ export class BexioUserService {
 
 
 
-        console.log('55');
-        console.log('netComId', netComId);
+        //console.log('55');
+        //console.log('netComId', netComId);
 
 
         async function updateAddress(data: any[], type: string) {
@@ -682,7 +682,7 @@ export class BexioUserService {
         await updateAddress(addressUpdate, 'technical');
 
 
-        console.log('companyDeatails.legal_form', companyDeatails.legal_form);
+        //console.log('companyDeatails.legal_form', companyDeatails.legal_form);
         const legalPartyData = [
           companyDeatails.name || '',
           companyDeatails.tax_number || '',
@@ -707,7 +707,7 @@ export class BexioUserService {
           companyDeatails.phone_fixed || '',
           ediPartyId[0]?.cid,
         ]
-        console.log('legalPartyData', legalPartyData);
+        //console.log('legalPartyData', legalPartyData);
 
         await connectLibrary.$executeRaw(
           Prisma.sql`
@@ -754,7 +754,7 @@ export class BexioUserService {
 
 
         let tempMail = companyDeatails.mail ? companyDeatails.mail : userDetails.email;
-        console.log('tempMail.mail', tempMail);
+        //console.log('tempMail.mail', tempMail);
 
         await connectLibrary.$executeRaw(
           Prisma.sql`
@@ -792,7 +792,7 @@ export class BexioUserService {
           newEdiPartyId[0].cid
         ];
         //update legal party in new gate2b
-        console.log('112');
+        //console.log('112');
 
         await connectNewGate2b.$executeRaw(
           Prisma.sql`
@@ -830,7 +830,7 @@ export class BexioUserService {
                 `
         );
 
-        console.log('22');
+        //console.log('22');
 
         party = {
           addressMain: '',
@@ -849,17 +849,17 @@ export class BexioUserService {
       }
       let userAccountStatus = await checkUserAccount(userId)
       // partyId = partyId ;
-      console.log('partyId2', partyId);
-      console.log('userAccountStatus', userAccountStatus);
+      //console.log('partyId2', partyId);
+      //console.log('userAccountStatus', userAccountStatus);
 
 
       let accountId;
 
       if (!userAccountStatus) {
-        console.log('paraccountaccountaccountaccountaccountaccountaccountaccountty', party);
+        //console.log('paraccountaccountaccountaccountaccountaccountaccountaccountty', party);
 
         const accountIdResult = await account(userId, party, userDetails, netcomeAddress, jwt.decode(accessToken)['user_id']);
-        console.log('accountIdResult', accountIdResult);
+        //console.log('accountIdResult', accountIdResult);
 
         accountId = accountIdResult.accountId;
         partyId = accountIdResult.partyKey;
@@ -871,12 +871,12 @@ export class BexioUserService {
 
 
       // let checkInvitationStatus  = await checkInvitation(JSON.parse(companyDetails)[0].name,partyId);
-      console.log(newCompany);
-      console.log(netcomIdG2b);
-      console.log(companyNameGate2b);
+      //console.log(newCompany);
+      //console.log(netcomIdG2b);
+      //console.log(companyNameGate2b);
 
       if (newCompany && accountIdFinal != 0) {
-        console.log('inside');
+        //console.log('inside');
 
 
 
@@ -893,14 +893,14 @@ export class BexioUserService {
         let parmsSend = config.BEXIO_CONNECTION_CONFIG_SEND || ''
           .replace('$netcom_id$', netcomIdG2b)
           .replace("$name$", companyNameGate2b)
-        console.log('parms', parmsSend.slice(1, -1));
-        console.log('parms', parmsSend);
+        //console.log('parms', parmsSend.slice(1, -1));
+        //console.log('parms', parmsSend);
         await setBusinessConnector(parmsSend);
         let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
           .replace('$netcom_id$', netcomIdG2b)
           .replace("$name$", companyNameGate2b)
-        console.log('parms', parms.slice(1, -1));
-        console.log('parms', parms);
+        //console.log('parms', parms.slice(1, -1));
+        //console.log('parms', parms);
         await setBusinessConnector(parms);
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
@@ -914,7 +914,7 @@ export class BexioUserService {
 
       if (isCompanyAlreadyExists.length == 0) {
         let decryptData = encryptionControl.decrypt(req.body.encrToken);
-        console.log('decryptData', decryptData);
+        //console.log('decryptData', decryptData);
 
         if (decryptData?.planId && decryptData?.subScriptionType) {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
@@ -956,7 +956,7 @@ export class BexioUserService {
     } catch (error) {
 
 
-      console.log('error', error);
+      //console.log('error', error);
 
 
       // commonErrors['errorTitle'] = bexioUserCreate.name;
@@ -976,7 +976,7 @@ export class BexioUserService {
         let fomdata = {
           data: params
         }
-        console.log('stringfuu', fomdata);
+        //console.log('stringfuu', fomdata);
 
         let options = {
           'method': 'POST',
@@ -989,10 +989,10 @@ export class BexioUserService {
           request(options, async function (error, response, body) {
             if (!error && response.statusCode == 200) {
               resolve(body);
-              console.log('response', body);
+              //console.log('response', body);
 
             } else {
-              console.log('error', error);
+              //console.log('error', error);
 
               reject(error);
             }
@@ -1004,7 +1004,7 @@ export class BexioUserService {
         //   commonErrors['errorTitle'] = setBusinessConnector.name;
         //   commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;
         //   warningMessage(commonErrors,error);
-        // console.log(error);
+        // //console.log(error);
 
       }
     }
@@ -1012,7 +1012,7 @@ export class BexioUserService {
 
     async function checkUserAccount(userId) {
       // try {
-      console.log('userId', userId);
+      //console.log('userId', userId);
 
       const accountDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
     SELECT cid 
@@ -1021,7 +1021,7 @@ export class BexioUserService {
     AND isdisabled = false
   `);
 
-      console.log('checkUserAccount', accountDetails.length);
+      //console.log('checkUserAccount', accountDetails.length);
 
       if (accountDetails.length > 0) {
         return accountDetails[0]?.cid;
@@ -1045,7 +1045,7 @@ export class BexioUserService {
     }
     async function getPartyId(partyId) {
       // try {
-      console.log(partyId);
+      //console.log(partyId);
 
 
       const getObjectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -1056,10 +1056,10 @@ export class BexioUserService {
 
 
       let partyResult;
-      console.log(getObjectId);
+      //console.log(getObjectId);
 
       if (getObjectId.length > 0) {
-        console.log(getObjectId[0].objectid);
+        //console.log(getObjectId[0].objectid);
         partyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
         SELECT a.cid AS partyId FROM ediparty ep 
         INNER JOIN address a ON
@@ -1069,14 +1069,14 @@ export class BexioUserService {
 
 
       }
-      console.log(partyResult[0]);
+      //console.log(partyResult[0]);
 
       return partyResult[0].partyid;
 
     }
     async function userCheck(decryptData) {
       // try {
-      console.log(decryptData.email);
+      //console.log(decryptData.email);
 
       let data = null;
       const isAlreadyExist = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -1232,7 +1232,7 @@ export class BexioUserService {
 
     }
     async function contactUpdate(accountID, companyID, email, mobileNumber) {
-      console.log('hera');
+      //console.log('hera');
 
       const getUserResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
     SELECT u.cid 
@@ -1349,10 +1349,10 @@ export class BexioUserService {
         `);
 
 
-      console.log(resultMain);
+      //console.log(resultMain);
 
       if (resultMain.length > 0) {
-        console.log('resultMain.rows');
+        //console.log('resultMain.rows');
 
         await connectLibrary.$executeRaw(
           Prisma.sql`
@@ -1363,8 +1363,8 @@ export class BexioUserService {
         );
 
       } else {
-        console.log('resultMain.rows else`');
-        console.log('mobileNumber', mobileNumber);
+        //console.log('resultMain.rows else`');
+        //console.log('mobileNumber', mobileNumber);
         await connectLibrary.$executeRaw(
           Prisma.sql`
             INSERT INTO phone (fk_party, "_type", phone, fk_user)
@@ -1383,15 +1383,15 @@ export class BexioUserService {
   `);
 
 
-      console.log(chekUserIsEmptyBillingResult[0].fk_user);
-      console.log(chekUserIsEmptyBillingResult[0]);
+      //console.log(chekUserIsEmptyBillingResult[0].fk_user);
+      //console.log(chekUserIsEmptyBillingResult[0]);
 
-      console.log('666666666666666');
+      //console.log('666666666666666');
 
       if (!chekUserIsEmptyBillingResult[0].fk_user) {
         // update address userid
-        console.log('55555555555555555555555555');
-        console.log(userId);
+        //console.log('55555555555555555555555555');
+        //console.log(userId);
 
         await connectLibrary.$queryRaw<any[]>(Prisma.sql`
   UPDATE address
@@ -1410,8 +1410,8 @@ export class BexioUserService {
 
       if (!chekUserIsEmptyTechnicalResult[0].fk_user) {
         // update address userid
-        console.log('666666666666666666');
-        console.log(userId);
+        //console.log('666666666666666666');
+        //console.log(userId);
 
         await connectLibrary.$queryRaw<any[]>(Prisma.sql`
   UPDATE address 
@@ -1425,7 +1425,7 @@ export class BexioUserService {
     async function saveLegal(partyResponse, decryptData) {
 
       // try {
-      console.log('decryptDataName', decryptData.name);
+      //console.log('decryptDataName', decryptData.name);
 
 
       //   const pool = await connectPostgres;
@@ -1484,8 +1484,8 @@ export class BexioUserService {
 
 
     async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {
-      console.log('account');
-      console.log(resultdata);
+      //console.log('account');
+      //console.log(resultdata);
 
       const valuesaccount = [
         resultdata || '',
@@ -1494,7 +1494,7 @@ export class BexioUserService {
         decryptData.email || ''
 
       ];
-      console.log('1');
+      //console.log('1');
 
       if (partyData.addressCid) {
         await connectLibrary.$executeRaw(
@@ -1507,7 +1507,7 @@ export class BexioUserService {
 
 
       }
-      console.log('2');
+      //console.log('2');
 
       if (partyData.billingCid) {
         await connectLibrary.$executeRaw(
@@ -1519,7 +1519,7 @@ export class BexioUserService {
         );
 
       }
-      console.log('3');
+      //console.log('3');
 
       if (partyData.technicalCid) {
         await connectLibrary.$executeRaw(
@@ -1530,9 +1530,9 @@ export class BexioUserService {
           `
         );
       }
-      console.log('4');
+      //console.log('4');
 
-      console.log(valuesaccount);
+      //console.log(valuesaccount);
 
       const accountSave = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
   INSERT INTO account 
@@ -1545,7 +1545,7 @@ export class BexioUserService {
   )
   RETURNING cid
 `);
-      console.log('5');
+      //console.log('5');
 
       if (partyData.addressMain) {
         await connectLibrary.$executeRaw(
@@ -1558,7 +1558,7 @@ export class BexioUserService {
 
       }
 
-      console.log('6');
+      //console.log('6');
 
       const personalAddress = [
         null,
@@ -1599,7 +1599,7 @@ export class BexioUserService {
 
       const personalAddressdata = personalAddressResult[0]?.cid;
 
-      console.log('9');
+      //console.log('9');
 
       await connectGate2b.$executeRaw(
         Prisma.sql`
@@ -1643,13 +1643,13 @@ export class BexioUserService {
       )
       RETURNING cid
     `);
-      console.log('10');
+      //console.log('10');
 
       let data = {
         partyKey: partyKey,
         accountId: accountSave[0].cid
       }
-      console.log('done account');
+      //console.log('done account');
 
       return data
 
@@ -1673,7 +1673,7 @@ export class BexioUserService {
   RETURNING *
 `);
 
-      console.log('checkTokenData1.rows[0].cid', checkTokenData1[0]?.cid);
+      //console.log('checkTokenData1.rows[0].cid', checkTokenData1[0]?.cid);
 
 
       const netComNetwork = config.NETCOM_NETWORK; // dont change
@@ -1695,15 +1695,15 @@ export class BexioUserService {
     `);
 
       // interconectId = interconectId.rows.length == 0 ?  '' :interconectId.rows[0].cid;
-      console.log('netComNumber', netComNumber);
-      console.log('finalOutfinalOut', finalOut);
+      //console.log('netComNumber', netComNumber);
+      //console.log('finalOutfinalOut', finalOut);
       checkTokenData1[0]['netcomid'] = finalOut;
 
 
       await connectGate2b.$executeRaw`
     UPDATE ediparty SET netcomid = ${finalOut} WHERE cid = ${netComNumber}
     `;
-      console.log('32');
+      //console.log('32');
       return checkTokenData1[0];
 
     };
@@ -1770,7 +1770,7 @@ export class BexioUserService {
         RETURNING cid
       `);
 
-      console.log('newg2b');
+      //console.log('newg2b');
 
       
    
@@ -1799,7 +1799,7 @@ export class BexioUserService {
     )
   `);
      
-      console.log('newg2b');
+      //console.log('newg2b');
  await connectGate2b.$queryRaw<any>(Prisma.sql`
   INSERT INTO phone 
     (fk_ediparty, _type, country_code, phone)
@@ -1829,7 +1829,7 @@ VALUES (
 
     async function savePartyAcc(partyValue, acc, role, partyUser) {
 
-      console.log('savePartyAcc');
+      //console.log('savePartyAcc');
 
 
       const partyValuesSelect = [partyValue, acc];
@@ -1867,7 +1867,7 @@ VALUES (
 
 
         await partyApplicationDetails(partyValue, acc, partyAccount[0]?.cid, role);
-        console.log('savePartyAccDone');
+        //console.log('savePartyAccDone');
 
         return partyAccount[0].cid;
 
@@ -1886,7 +1886,7 @@ VALUES (
 
       let userRoles;
       return new Promise(async function (resolve, reject) {
-        console.log('role', roleValue);
+        //console.log('role', roleValue);
 
         if (roleValue) {
           userRoles = config.BEXIO_ADMIN_ROLE;
@@ -1910,9 +1910,8 @@ VALUES (
       AND r.fk_party IS NULL
   `);
 
-        console.log('userRoles', userRoles);
 
-        console.log('roleData', roleData);
+        //console.log('roleData', roleData);
         for (const element of roleData) {
           // 1. Check if partyapplication already exists
           let partyApplicationId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -1979,7 +1978,7 @@ VALUES (
         `);
         
 
-          console.log("Object ID:", billingCookie.objectid);
+          //console.log("Object ID:", billingCookie.objectid);
           let paymentDetails = activationResult[0]?.paymentdata;
 
           if (paymentDetails) {
@@ -2087,21 +2086,21 @@ console.log('userDetails[0]', userDetails[0]);
     });
   }
   async getToken(req: Request, res: Response): Promise<any> {
-    console.log('getToken request:', req);
+    //console.log('getToken request:', req);
     let partyAccountId = null;
     
     try {
         // Get form data from request body
         const { partyAccount, token } = req.body;
-        console.log('partyAccount', partyAccount);
-        console.log('token', token);
+        //console.log('partyAccount', partyAccount);
+        //console.log('token', token);
         if (!partyAccount || !token) {
             throw new Error('Missing required form fields');
         }
 
-        console.log('Form Data:', { partyAccount, token });
+        //console.log('Form Data:', { partyAccount, token });
         partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(partyAccount));
-        console.log('partyAccountId', partyAccountId);
+        //console.log('partyAccountId', partyAccountId);
         if (!partyAccountId) {
             throw new Error('Invalid party account ID');
         }
@@ -2126,10 +2125,10 @@ console.log('userDetails[0]', userDetails[0]);
         );
         const netcomId = netcomIdResult[0]?.netcomid;
 
-        console.log('netcomId', netcomId);
+        //console.log('netcomId', netcomId);
         
         let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(token));
-        console.log('Decoded Token:', decodedToken);
+        //console.log('Decoded Token:', decodedToken);
         
         const bexioClient = await edit();
         const tokenSet = await bexioClient.refresh(decodedToken);
@@ -2163,9 +2162,9 @@ console.log('userDetails[0]', userDetails[0]);
             isBexioCompany: true
         };
 
-        console.log('bexioTokenCookie', bexioTokenCookie);
-        console.log('tokenCookie', tokenCookie);
-        console.log('userDetails[0]', userDetails[0]);
+        //console.log('bexioTokenCookie', bexioTokenCookie);
+        //console.log('tokenCookie', tokenCookie);
+        //console.log('userDetails[0]', userDetails[0]);
 
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
@@ -2182,15 +2181,15 @@ console.log('userDetails[0]', userDetails[0]);
             secure: false,    // Changed to true to work with sameSite: 'none'
         };
 
-        console.log('Setting cookie with options:', cookieOptions);
-        console.log('Cookie name:', config.TOKEN_COOKIE_BEXIO_NAME);
-        console.log('Cookie value:', encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)));
+        //console.log('Setting cookie with options:', cookieOptions);
+        //console.log('Cookie name:', config.TOKEN_COOKIE_BEXIO_NAME);
+        //console.log('Cookie value:', encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)));
 
         // Set the cookie
         res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), cookieOptions);
 
         // Log response headers to verify cookie was set
-        console.log('Response headers:', res.getHeaders());
+        //console.log('Response headers:', res.getHeaders());
 
         // Convert partyId to string before encryption
         const responseData = encryptionControl.encrypt(String(userDetails[0].partyId));
@@ -2216,21 +2215,21 @@ console.log('userDetails[0]', userDetails[0]);
 }
 
 async getAccessToken(req: any, res: Response): Promise<any>{
-  console.log('getAccessToken request:', req.session);
-  console.log('req.sessionID',req.sessionID);
+  //console.log('getAccessToken request:', req.session);
+  //console.log('req.sessionID',req.sessionID);
 
   let cookie: any = null;
   let isNewCompany;
   let formData = req.body;
   try {
    
-    console.log(req.cookies);
+    //console.log(req.cookies);
     isNewCompany = encryptionControl.decryptCookie(decodeURIComponent(formData['isNewCompany']));
 
-    console.log('isNewCompanyisNewCompany',isNewCompany);
+    //console.log('isNewCompanyisNewCompany',isNewCompany);
     
     cookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME]));
-     console.log('cookie',cookie);
+     console.log('cookie****************',cookie);
      const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       SELECT 
         pa.isuser,
@@ -2247,7 +2246,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       WHERE pa.fk_party = ${parseInt(cookie?.partyID)}
         AND pa.fk_account = ${parseInt(cookie.accId)}
         AND s."statusLabel" = 'active'`);
-    console.log('userDetails',userDetails);
+    //console.log('userDetails',userDetails);
     const data = {
       email: userDetails[0].email,
       userId: userDetails[0].userid,
@@ -2276,23 +2275,23 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       signed: true,
       secure: false
     });
-    console.log('userDetails',userDetails);
+    //console.log('userDetails',userDetails);
     let email = userDetails[0].email;
-    console.log('email',email);
-    console.log('req.sessionID',req.sessionID);
-    console.log(req.sessionID);
+    //console.log('email',email);
+    //console.log('req.sessionID',req.sessionID);
+    //console.log(req.sessionID);
 
     let userLanguage = userDetails[0].userlanguage ? userDetails[0].userlanguage : 'de';    
   
     const selectResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`SELECT * FROM authTable WHERE mail= ${email} AND sessionId = ${req.sessionID}`);
-    // console.log('selectResult',selectResult);
-    console.log('selectResult.length', selectResult.length);
+    // //console.log('selectResult',selectResult);
+    //console.log('selectResult.length', selectResult.length);
     if (selectResult.length === 0) {
         
-    console.log('INSERT start');
+    //console.log('INSERT start');
 
         await connectLibrary.$executeRaw(Prisma.sql`INSERT INTO authTable (mail, refreshToken, sessionId, accessToken) VALUES(${email}, ${refreshToken}, ${req.sessionID}, ${accessToken})`);
-    console.log('INSERT end');
+    //console.log('INSERT end');
 
     } else {
         await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
@@ -2310,7 +2309,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
   if(isNewCompany === "true"){
     await gate2bRegisterInBexio(userLanguage || 'de', formData.module, userDetails[0].email);
   }
-    console.log('formData.module',formData.module);
+    //console.log('formData.module',formData.module);
   
     if(formData.module == 'EBILL')
     {
@@ -2326,7 +2325,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       WHERE pa.fk_account=$1 AND s.code = 'EN' AND pa.fk_party =$2  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
 
     const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`${checkRoleQry}`, [userDetails[0].accountid, userDetails[0].partyid]);
-    console.log('checkRoleData', checkRoleData);
+    //console.log('checkRoleData', checkRoleData);
     if(checkRoleData.length === 0){
       await setEbillRole(userDetails[0].partyid, userDetails[0].accountid, userDetails[0].partyaccountid, userDetails[0].isuser, formData.module);
       await partyServiceUpdate(userDetails[0].partyid, 'EBILL', 'EDI');
@@ -2347,7 +2346,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     // commonErrors['errorTitle'] = req.originalUrl;
     // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
     // warningMessage(commonErrors,error);
-    console.log(error);
+    //console.log(error);
     res.send({
       status_code: 500,
       message: JSON.stringify(error),
@@ -2356,7 +2355,60 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     
   }
 }
+async bexioLogout(req: any, res: Response): Promise<any>{
 
+  let sessionId = req.signedCookies[config.SESSION_COOKIE_NAME];
+  if (!redisClient.isOpen) {
+  await redisClient.connect();
+  }
+
+  const redis_client = await redisClient;
+  let redisKey = req.body.partyId+"_";
+  const keys = await redis_client.keys(redisKey + "*");
+
+for (const key of keys) {
+  await redis_client.del(key);
+}
+
+console.log('inside');
+
+  if(!req.signedCookies[config.TOKEN_COOKIE_NAME]){
+      return res.send({ status: true });
+  }
+  const cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_NAME]));
+  let mtcCookie = req.cookies[config.EXPIRE_MTC_COOKIE_NAME] ? encryptionControl.decryptCookie(req.cookies[config.EXPIRE_MTC_COOKIE_NAME]) : '';
+  console.log('mtcCookie',mtcCookie);
+  const options = {
+      domain: config.SESSION_DOMAIN,
+  };
+  res.clearCookie(config.EXPIRE_EXPIRES_COOKIE_NAME, options);
+
+  if(mtcCookie == '')
+  {
+      if (sessionId && req.sessionID && sessionId === req.sessionID) {
+                await connectLibrary.$executeRaw(
+        Prisma.sql`
+          DELETE FROM authTable
+          WHERE mail = ${cookie.userMail} AND sessionId = ${sessionId}
+        `
+      );
+          sessionId = 'sess:' + sessionId;
+          res.clearCookie(config.SESSION_COOKIE_NAME, options);
+          res.clearCookie(config.TOKEN_COOKIE_NAME, options);
+          res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME, options);
+          req.session.destroy();
+          return res.send({ status: true });
+      } else {
+      console.log('else');
+      return res.send({ status: true });
+        
+      }
+  }else{
+      console.log('else2');
+      return res.send({ status: true });
+  
+  }
+};
 }
 const partyServiceUpdate = async (partyResponse, service, app) => {
   return new Promise(async (resolve, reject) => {
@@ -2378,8 +2430,8 @@ const partyServiceUpdate = async (partyResponse, service, app) => {
       if (getExisted.length) {
         return reject(false)
       }
-      console.log('service', service);
-      console.log('app', app);
+      //console.log('service', service);
+      //console.log('app', app);
 
       const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
       SELECT aa.cid
@@ -2408,10 +2460,10 @@ const partyServiceUpdate = async (partyResponse, service, app) => {
   })
 }
 const companyConfirmation = async(companyname, zip, city, street, state)=> {
-  console.log("companyConfirmation function");
-  console.log({
-    companyname, zip, city, street, state
-  });
+  //console.log("companyConfirmation function");
+  //console.log({
+  //   companyname, zip, city, street, state
+  // });
 
   let keyDatas = {
     companyName: companyname, zip, city, street, state
@@ -2419,7 +2471,7 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
   let mailData = await fetchEmailContent('new_company_register', 'de', keyDatas);
   let message = mailData.message;
   let subject = mailData.subject;
-  console.log("Subject Admin", subject);
+  //console.log("Subject Admin", subject);
 
 
   try {
@@ -2437,9 +2489,9 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
 };
  const addMailChimp = async(fName, lName, email) => {
   try {
-    console.log('fName', fName);
-    console.log('lName', lName);
-    console.log('email', email);
+    //console.log('fName', fName);
+    //console.log('lName', lName);
+    //console.log('email', email);
 
 
     mailchimp.setConfig({
@@ -2450,7 +2502,7 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
     let name = config.MAILCHIMP_TAG_NAME;
 
     const foundLists = response['lists'].filter(list => list.name.toLowerCase().includes(name.toLowerCase()));
-    console.log('foundLists', foundLists[0].id);
+    //console.log('foundLists', foundLists[0].id);
 
     const responseAdd = await mailchimp.lists.addListMember(foundLists[0].id, {
       email_address: email,
@@ -2462,7 +2514,7 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
       tags: [config.MAILCHIMP_TAG_NAME], // Add a source tag, e.g., 'Google Ads'
     });
   } catch (error) {
-    console.log('error', error);
+    //console.log('error', error);
 
   }
 
@@ -2478,14 +2530,14 @@ const planPurchase = async (data) => {
     'url': config.ADMIN_URL + 'payment/planPurchase',
     formData: fomdata
   };
-  console.log('optionsoptions', options);
+  //console.log('optionsoptions', options);
 
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
       if (!error && response.statusCode == 200) {
         resolve(body);
       } else {
-        console.log('er', error);
+        //console.log('er', error);
 
         reject(error);
       }
@@ -2501,14 +2553,14 @@ const packagePayment = async (data) => {
       'url': config.ADMIN_URL+'payment/packagePayment',
        formData: fomdata
     };
-    console.log('optionsoptions',options);
+    //console.log('optionsoptions',options);
     
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
       if (!error && response.statusCode == 200) {
         resolve(body);
       } else {
-          console.log('er',error);
+          //console.log('er',error);
           
         reject(error);
       }
@@ -2578,7 +2630,7 @@ const getUserPermissions = async (partyId,accId) => {
               resolve(redisKey);
           }
       } catch (error) {
-        console.log('getUserPermissions error', error);
+        //console.log('getUserPermissions error', error);
       // commonErrors['errorTitle'] = getUserPermissions.name;
       // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+' '+accId;
       // warningMessage(commonErrors,error);
@@ -2591,7 +2643,7 @@ const getUserPermissions = async (partyId,accId) => {
   });
 }
 const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
-  console.log('gate2bRegisterInBexio');
+  //console.log('gate2bRegisterInBexio');
   
   let subject = '';
   let message = '';
@@ -2636,7 +2688,7 @@ const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
   }
   subject = mailData.subject || '';
   message = mailData.message || '';
-  console.log('messagemessage',message);
+  //console.log('messagemessage',message);
  
   await sendEmail({
       email: config.DEBUG ? config.DEBUG_MAIL : email,
@@ -2646,9 +2698,9 @@ const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
 }
 
 const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
-  console.log('partyId', partyId);
-  console.log('accountId', accountId);
-  console.log('partyAccount', partyAccount);
+  //console.log('partyId', partyId);
+  //console.log('accountId', accountId);
+  //console.log('partyAccount', partyAccount);
 
   try {
     let userRoles;
@@ -2657,7 +2709,7 @@ const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module)
     } else {
       userRoles = "'EBILL_USER'";
     }
-    console.log('userRoles', userRoles);
+    //console.log('userRoles', userRoles);
 
     // Get role data
     const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -2670,7 +2722,7 @@ const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module)
       AND r.fk_party IS NULL
     `);
 
-    console.log('roleData', roleData);
+    //console.log('roleData', roleData);
 
     // Check if party application exists
     const existingPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -2710,7 +2762,7 @@ const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module)
 
     return 1;
   } catch (error) {
-    console.log('error in setEbillRole:', error);
+    //console.log('error in setEbillRole:', error);
     throw error;
   }
 };

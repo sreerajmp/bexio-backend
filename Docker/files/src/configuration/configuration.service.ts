@@ -504,7 +504,7 @@ export class ConfigurationService {
   async getPayementComments(req: Request, res: Response,): Promise<any> {
     let encrToken = req.body;
     try {
-      const getStatusQryRslt = await connectBexio.companyregistered.findFirst({
+      const getStatusQryRslt:any = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
         },
@@ -513,9 +513,10 @@ export class ConfigurationService {
         },
       });
 
+
       // Ensure settings is treated as an object
       const settings = (getStatusQryRslt?.settings as Record<string, any>) || {};
-
+      console.log('getStatusQryRslt',settings);
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
@@ -538,13 +539,12 @@ export class ConfigurationService {
     }
 
   }
-  async changePayementComments(req: Request, res: Response,): Promise<any> {
-
+  async changePayementComments(req: Request, res: Response): Promise<any> {
     let encrToken = req.body;
-
+  
     try {
-
-      const getStatusQryRslt = await connectBexio.companyregistered.findFirst({
+      // Fetch settings for the given party ID
+      const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
         },
@@ -552,68 +552,52 @@ export class ConfigurationService {
           settings: true, // Fetch only the settings JSON field
         },
       });
-
-
-      //console.log.log('encrToken.payementStatus', encrToken.payementStatus);
-      //console.log.log('encrToken.payementStatus', encrToken.commentStatus);
-      if (getStatusQryRslt?.settings !== null) {
-
-        if (encrToken.payementStatus == 'true' || encrToken.payementStatus == 'false') {
-          let payementStatus = encrToken.payementStatus == 'true' ? '"true"' : '"false"';
-          //console.log.log('payementStatus', payementStatus);
-
-          const existingSettings =
-            typeof getStatusQryRslt?.settings === "string"
-              ? JSON.parse(getStatusQryRslt.settings)
-              : getStatusQryRslt?.settings || {};
-
-          const updatedCompany = await connectBexio.companyregistered.updateMany({
-            where: { rk_party: encrToken.partyId },
-            data: {
-              settings: {
-                set: {
-                  ...existingSettings, // Now it's an object
-                  notifyPayment: payementStatus, // Update only notifyPayment
-                },
-              },
-            },
-          });
-
+  
+      // Check if settings exist
+      if (getStatusQryRslt?.length > 0) {
+        const settingsRow = getStatusQryRslt[0];
+        const existingSettings =
+          typeof settingsRow?.settings === 'string'
+            ? JSON.parse(settingsRow.settings)
+            : settingsRow?.settings || {};
+  
+        // Update `notifyPayment` and `notifyComments` if valid
+        const updates: any = {};
+  
+        // Handle `payementStatus`
+        if (encrToken.payementStatus === 'true' || encrToken.payementStatus === 'false') {
+          updates.notifyPayment = encrToken.payementStatus === 'true';
         }
-        if (encrToken.commentStatus == 'true' || encrToken.commentStatus == 'false') {
-          let commentStatus = encrToken.commentStatus == 'true' ? '"true"' : '"false"';
-          const existingSettings =
-            typeof getStatusQryRslt?.settings === "string"
-              ? JSON.parse(getStatusQryRslt.settings)
-              : getStatusQryRslt?.settings || {};
-
+  
+        // Handle `commentStatus`
+        if (encrToken.commentStatus === 'true' || encrToken.commentStatus === 'false') {
+          updates.notifyComments = encrToken.commentStatus === 'true';
+        }
+  
+        // Only update if there are changes
+        if (Object.keys(updates).length > 0) {
           await connectBexio.companyregistered.updateMany({
-            where: { rk_party: encrToken.partyId },
+            where: { rk_party: Number(encrToken.partyId)},
             data: {
               settings: {
                 set: {
                   ...existingSettings,
-                  notifyComments: commentStatus,
+                  ...updates,
                 },
               },
             },
           });
         }
-      }
-      else {
-        const notifyPayment = encrToken.payementStatus ? encrToken.payementStatus : true;
-        const notifyComments = encrToken.commentStatus ? encrToken.commentStatus : true;
-        const existingSettings =
-          typeof getStatusQryRslt.settings === "string"
-            ? JSON.parse(getStatusQryRslt.settings)
-            : getStatusQryRslt.settings ?? {};
-
+      } else {
+        // Handle case when settings are not found
+        const notifyPayment = encrToken.payementStatus || true;
+        const notifyComments = encrToken.commentStatus || true;
+  
         await connectBexio.companyregistered.updateMany({
-          where: { rk_party: encrToken.partyId },
+          where: { rk_party:Number(encrToken.partyId)},
           data: {
             settings: {
               set: {
-                ...existingSettings,
                 notifyPayment,
                 notifyComments,
               },
@@ -621,24 +605,23 @@ export class ConfigurationService {
           },
         });
       }
+  
       return res.status(status_code.OK).json({
         status_code: 200,
         status: true,
       });
-
     } catch (error) {
-      //console.log.log('error', error);
       commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + encrToken;
+      commonErrors['errorDescription'] = `From:${path.basename(__filename)} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
       warningMessage(commonErrors, error);
+  
       return res.status(status_code.INTERNAL_SERVER_ERROR).json({
         status_code: 500,
         status: false,
       });
-
     }
-
   }
+  
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
       let encrToken 
       try {
