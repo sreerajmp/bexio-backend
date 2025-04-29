@@ -4379,3 +4379,121 @@ export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDe
    return Buffer.from(xml).toString('base64');
   
  }
+export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
+  //console.log('partyId', partyId);
+  //console.log('accountId', accountId);
+  //console.log('partyAccount', partyAccount);
+
+  try {
+    let userRoles;
+    if (!roleValue) {
+      userRoles = "'EBILL_ADMIN'";
+    } else {
+      userRoles = "'EBILL_USER'";
+    }
+    //console.log('userRoles', userRoles);
+
+    // Get role data
+    const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      SELECT r.name, rav.fk_application_version, r.cid AS "roleId" 
+      FROM public.role_policy rp
+      INNER JOIN public.role r ON r.cid = rp.fk_role
+      INNER JOIN public.policy p ON p.cid = rp.fk_policy
+      INNER JOIN role_application_version rav ON rav.fk_role = r.cid
+      WHERE r.name IN (${Prisma.raw(userRoles)})
+      AND r.fk_party IS NULL
+    `);
+
+    //console.log('roleData', roleData);
+
+    // Check if party application exists
+    const existingPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      SELECT cid 
+      FROM partyapplication p 
+      WHERE fk_party = ${partyId} 
+      AND fk_application_version = ${roleData[0].fk_application_version}
+    `);
+
+    let partyApplicationId;
+    if (existingPartyApplication.length === 0) {
+      // Insert new party application
+      const newPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        INSERT INTO partyapplication (fk_party, fk_application_version)
+        VALUES (${partyId}, ${roleData[0].fk_application_version})
+        RETURNING cid
+      `);
+      partyApplicationId = newPartyApplication[0].cid;
+    } else {
+      partyApplicationId = existingPartyApplication[0].cid;
+    }
+
+    // Insert party application account
+    const partyApplicationAccount = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      INSERT INTO partyapplication_account 
+        (fk_partyapplication, fk_account, fk_party_account)
+      VALUES (${partyApplicationId}, ${accountId}, ${partyAccount})
+      RETURNING cid
+    `);
+
+    // Insert party application account role
+    await connectLibrary.$queryRaw(Prisma.sql`
+      INSERT INTO partyapplication_account_role 
+        (fk_partyapplication_account, fk_role)
+      VALUES (${partyApplicationAccount[0].cid}, ${roleData[0].roleId})
+    `);
+
+    return true;
+  } catch (error) {
+    //console.log('error in setEbillRole:', error);
+    return false
+  }
+};
+export const partyServiceUpdate = async (partyResponse, service, app) => {
+  return new Promise(async (resolve, reject) => {
+   
+    try {
+
+      const serviceName = service;
+      const partyId = partyResponse;
+      const appName = app;
+      const getExisted = await connectLibrary.$queryRaw<any>(Prisma.sql`
+      SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
+      FROM party_applicationversion_appservice paa
+      INNER JOIN applicationversion_appservice aa ON aa.cid = paa.fk_applicationversion_appservice
+      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+      INNER JOIN application_version av ON av.cid = aa.fk_application_version
+      INNER JOIN application a ON a.cid = av.fk_application
+      WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
+    `);
+      if (getExisted.length) {
+        return reject(false)
+      }
+      //console.log('service', service);
+      //console.log('app', app);
+
+      const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
+      SELECT aa.cid
+      FROM applicationversion_appservice aa
+      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+      INNER JOIN application_version av ON av.cid = aa.fk_application_version
+      INNER JOIN application a ON a.cid = av.fk_application
+      WHERE aps.code = ${serviceName} AND a.code = ${appName}
+    `);
+      await connectLibrary.$executeRaw(
+        Prisma.sql`
+          INSERT INTO party_applicationversion_appservice (fk_party, fk_applicationversion_appservice)
+          VALUES (${partyId}, ${getAppServiceId[0].cid})
+        `
+      );
+      return resolve(true)
+    }
+    catch (error) {
+    
+      let responseValue = JSON.stringify(partyResponse)
+      // commonErrors['errorTitle'] = 'partyServiceUpdate';
+      // commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      // warningMessage(commonErrors, error);
+      return reject(false)
+    }
+  })
+}
