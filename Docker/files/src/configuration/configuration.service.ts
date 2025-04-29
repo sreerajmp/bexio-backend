@@ -18,6 +18,7 @@ const crypto = require("crypto");
 import { resolve } from 'path';
 const fetchEmailContent = require('../common/utils/fetchEmailData');
 const sendEmail = require('../common/utils/email');
+import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -1239,6 +1240,8 @@ console.log('req.body',req.body);
         }
         else {
           let data = JSON.parse(response.body);
+          console.log("response.body:::::::",data);
+          
           if (data.id) {
             const responseData = [
               data.status,
@@ -1712,159 +1715,217 @@ console.log('getPartyAccountId', getPartyAccountId);
     try {
       const correlationId = crypto.randomBytes(15).toString('hex');
       encrToken = encryptionControl.decrypt(req.body.encrToken);
-      const options = {
-        method: 'POST',
-        url: config.SIX_API_CERTIFICATE_BASE + `billers`,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
-          'X-Correlation-Id': correlationId,
-        },
-        body: encrToken.data,
-        key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE) 
-      };
-      await request(options, async function (error, response) {
-        if (error) {
-          console.log(error);
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-        }
-        else {
-          let data = JSON.parse(response.body);
-          if (data.id) {
-            let netcomId = encrToken.netcomId;
-            let companyName = encrToken.companyName;
-            let companyId = encrToken.companyId;
-            let bexioCompanyName = null;
-            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
-              where: {
-                netcomid: netcomId,
-              },
-              select: {
-                cid: true, 
-              }
-            });
-            if (checkBexioCompanyResult.length != 0) {
-              const getParentData = await connectGate2b.$queryRaw<any[]>`
-              SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
-              bexioCompanyName = getParentData[0].rk_party;
-            }
-            let jsonReq = JSON.stringify(data);
+      console.log("encrToken:",encrToken);
+      
 
-            const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-              Prisma.sql`
-              SELECT cid
-              FROM "ebillWallet"
-              WHERE fk_party =  ${Number(companyId)}
-              `
-            );
 
-            if (getPartyEbillResult.length <= 0) {
-              await connectLibrary.$executeRaw(
-                Prisma.sql`
-                  INSERT INTO "ebillWallet" (fk_party, "lastEntered", "billerId")
-                  VALUES (
-                    ${Number(companyId)},
-                    date_trunc('month', now()::timestamp) + interval '6 hour',
-                    ${data.id}
-                  )
-                `
-              );
+      const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        SELECT 
+          pa.isuser,
+          pa.cid AS "partyAccountId",
+          email,
+          u.cid AS "userId",
+          pa.fk_party AS "partyId",
+          a.cid AS "accountId",
+          u."language" AS "userlanguage"
+        FROM party_account pa
+        INNER JOIN account a ON a.cid = pa.fk_account
+        INNER JOIN "user" u ON u.cid = a.fk_user
+        INNER JOIN status s ON s.cid = pa.fk_status
+        WHERE pa.fk_party = ${Number(encrToken.rolePartyId)}
+          AND pa.fk_account = ${Number(encrToken.roleAccId)}
+          AND s."statusLabel" = 'active'
+      `);
+      
+
+
+      const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        SELECT * 
+        FROM partyapplication_account_role par
+        INNER JOIN partyapplication_account paa ON par.fk_partyapplication_account = paa.cid
+        INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
+        INNER JOIN role_spr rs ON rs.fk_role = par.fk_role
+        INNER JOIN spr s ON s.cid = rs.fk_spr
+        INNER JOIN role r ON par.fk_role = r.cid
+        INNER JOIN status st ON st.cid = pa.fk_status
+        WHERE pa.fk_account = ${Number(userDetails[0].accountid)}
+          AND s.code = 'EN'
+          AND pa.fk_party = ${Number(userDetails[0].partyid)}
+          AND r.name IN ('EBILL_ADMIN', 'EBILL_USER')
+      `);
+      
+      console.log('checkRoleData', checkRoleData);
+      
+      if(checkRoleData.length == 0){
+        await setEbillRole(userDetails[0].partyid,userDetails[0].accountid,userDetails[0].partyaccountid,userDetails[0].isuser,'EBILL');
+        await partyServiceUpdate(userDetails[0].partyid,'EBILL','EDI');
+        console.log("encrToken.data:",encrToken.data);
+        
+          const options = {
+            method: 'POST',
+            url: config.SIX_API_CERTIFICATE_BASE + `billers`,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+              'X-Correlation-Id': correlationId,
+            },
+            body: encrToken.data,
+            key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+            cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE) 
+          };
+          await request(options, async function (error, response) {
+            if (error) {
+              console.log("create biller:::",error);
+              return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+                status_code: 500,
+                message: 'something_went_wrong',
+                status: false,
+              });
             }
-            await connectMssql.$executeRaw(
-              Prisma.sql`
-                INSERT INTO biller (
-                  netcomid, billerId, status, legalName, uid,
-                  subscriptionStatus, defaultLanguage, companyJSON, party_parent
-                ) VALUES (
-                  ${netcomId},
-                  ${data.id},
-                  ${data.status},
-                  ${data.legalName},
-                  ${data.accounts[0].iid},
-                  ${data.billRecipientSubscriptionStatus},
-                  ${data.localizedData.defaultLanguage},
-                  ${jsonReq},
-                  ${bexioCompanyName}
-                )
-              `
-            );
-            let createdPythonResponse = await bexioCreatePythonData(netcomId,companyName,encrToken);
-            console.log("createdPythonResponse---",createdPythonResponse,'createdPythonResponse &&');
-            if (checkBexioCompanyResult.length != 0) {
-             let updateBexio = await bexioUpdateBiller(req,data.id);
-             console.log("updateBexio---",updateBexio);
-             if(updateBexio != true){
-              let dataResponse = {"name":"io_market.ebill_pid", "value":`${data.id}`} 
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-bexioUpdateBiller params---'+dataResponse;
-              console.log("commonErrors--",commonErrors);
-              warningMessage(commonErrors, 'bexioUpdateBiller failed...');
-             }
-            }
-            if (companyId != null) {
-            
-              await connectLibrary.$executeRaw(
-                Prisma.sql`
-                  UPDATE commissionagent_party
-                  SET status = 'biller_created',
-                      "module" = 'EBILL'
-                  WHERE fk_party = ${Number(companyId)}
-                `
-              );
+            else {
+              let data = JSON.parse(response.body);
+              console.log("create biller::",data);
               
+              if (data.id) {
+                let netcomId = encrToken.netcomId;
+                let companyName = encrToken.companyName;
+                let companyId = encrToken.companyId;
+                let bexioCompanyName = null;
+                const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
+                  where: {
+                    netcomid: netcomId,
+                  },
+                  select: {
+                    cid: true, 
+                  }
+                });
+                if (checkBexioCompanyResult.length != 0) {
+                  const getParentData = await connectGate2b.$queryRaw<any[]>`
+                  SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
+                  bexioCompanyName = getParentData[0].rk_party;
+                }
+                let jsonReq = JSON.stringify(data);
+    
+                const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+                  Prisma.sql`
+                  SELECT cid
+                  FROM "ebillWallet"
+                  WHERE fk_party =  ${Number(companyId)}
+                  `
+                );
+    
+                if (getPartyEbillResult.length <= 0) {
+                  await connectLibrary.$executeRaw(
+                    Prisma.sql`
+                      INSERT INTO "ebillWallet" (fk_party, "lastEntered", "billerId")
+                      VALUES (
+                        ${Number(companyId)},
+                        date_trunc('month', now()::timestamp) + interval '6 hour',
+                        ${data.id}
+                      )
+                    `
+                  );
+                }
+                await connectMssql.$executeRaw(
+                  Prisma.sql`
+                    INSERT INTO biller (
+                      netcomid, billerId, status, legalName, uid,
+                      subscriptionStatus, defaultLanguage, companyJSON, party_parent
+                    ) VALUES (
+                      ${netcomId},
+                      ${data.id},
+                      ${data.status},
+                      ${data.legalName},
+                      ${data.accounts[0].iid},
+                      ${data.billRecipientSubscriptionStatus},
+                      ${data.localizedData.defaultLanguage},
+                      ${jsonReq},
+                      ${bexioCompanyName}
+                    )
+                  `
+                );
+                let createdPythonResponse = await bexioCreatePythonData(netcomId,companyName,encrToken);
+                console.log("createdPythonResponse---",createdPythonResponse,'createdPythonResponse &&');
+                if (checkBexioCompanyResult.length != 0) {
+                 let updateBexio = await bexioUpdateBiller(req,data.id);
+                 console.log("updateBexio---",updateBexio);
+                 if(updateBexio != true){
+                  let dataResponse = {"name":"io_market.ebill_pid", "value":`${data.id}`} 
+                  commonErrors['errorTitle'] = req.originalUrl;
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-bexioUpdateBiller params---'+dataResponse;
+                  console.log("commonErrors--",commonErrors);
+                  warningMessage(commonErrors, 'bexioUpdateBiller failed...');
+                 }
+                }
+                if (companyId != null) {
+                
+                  await connectLibrary.$executeRaw(
+                    Prisma.sql`
+                      UPDATE commissionagent_party
+                      SET status = 'biller_created',
+                          "module" = 'EBILL'
+                      WHERE fk_party = ${Number(companyId)}
+                    `
+                  );
+                  
+                }
+                const getCompanyDetails = await connectLibrary.$queryRaw<any[]>(
+                Prisma.sql`
+                  SELECT u."language", e.email, l.companyname
+                  FROM party p
+                  INNER JOIN email e ON e.fk_party = p.cid
+                  INNER JOIN "user" u ON e.fk_user = u.cid
+                  INNER JOIN legalparty l ON l.fk_party = p.cid
+                  WHERE p.cid = ${Number(companyId)} AND e."_type" = 'company_contact'
+                `
+              );
+                let language = getCompanyDetails[0]?.language;
+                let ComapnyEmail = getCompanyDetails[0]?.email;
+                let companyname = getCompanyDetails[0]?.companyname;
+               let keyDatas = {
+                id: data.id,
+                companyName: companyname
+               }
+               const mailData = await fetchEmailContent('biller_created_six',language,keyDatas);
+               const message = mailData.message;
+               const subject = mailData.subject;
+                await sendEmail({
+                  email: config.DEBUG ? config.DEBUG_MAIL :ComapnyEmail ,
+                  subject: subject,
+                  message,
+                });
+    
+              
+                return res.status(status_code.OK).json({
+                  status_code: 200,
+                  message: 'created_biller_successfully',
+                  status: true,
+                });          
+              }
+              else {
+                let responseValue = JSON.stringify(encrToken)
+                commonErrors['errorTitle'] = req.originalUrl;
+             
+                commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param six,'+ responseValue;
+                warningMessage(commonErrors, responseValue);
+                var returnData = data.type.replace('/problems/','');
+                return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+                  status_code: 500,
+                  message: returnData.toLowerCase(),
+                  status: false,
+                });
+              }
             }
-            const getCompanyDetails = await connectLibrary.$queryRaw<any[]>(
-            Prisma.sql`
-              SELECT u."language", e.email, l.companyname
-              FROM party p
-              INNER JOIN email e ON e.fk_party = p.cid
-              INNER JOIN "user" u ON e.fk_user = u.cid
-              INNER JOIN legalparty l ON l.fk_party = p.cid
-              WHERE p.cid = ${Number(companyId)} AND e."_type" = 'company_contact'
-            `
-          );
-            let language = getCompanyDetails[0]?.language;
-            let ComapnyEmail = getCompanyDetails[0]?.email;
-            let companyname = getCompanyDetails[0]?.companyname;
-           let keyDatas = {
-            id: data.id,
-            companyName: companyname
-           }
-           const mailData = await fetchEmailContent('biller_created_six',language,keyDatas);
-           const message = mailData.message;
-           const subject = mailData.subject;
-            await sendEmail({
-              email: config.DEBUG ? config.DEBUG_MAIL :ComapnyEmail ,
-              subject: subject,
-              message,
-            });
-          
-            return res.status(status_code.OK).json({
-              status_code: 200,
-              message: 'created_biller_successfully',
-              status: true,
-            });          
-          }
-          else {
-            let responseValue = JSON.stringify(encrToken)
-            commonErrors['errorTitle'] = req.originalUrl;
-         
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param six,'+ responseValue;
-            warningMessage(commonErrors, responseValue);
-            var returnData = data.type.replace('/problems/','');
-            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-              status_code: 500,
-              message: returnData.toLowerCase(),
-              status: false,
-            });
-          }
-        }
-      })
+          })
+        
+  
+      }
+
+
+
+
+
+     
     }
     catch (error) {
    
