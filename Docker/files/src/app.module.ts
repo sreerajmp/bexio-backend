@@ -7,6 +7,7 @@ import { BexioUserModule } from './bexio-user/bexio-user.module';
 import { DebtorsModule } from './debtors/debtors.module';
 import { CreditorsModule } from './creditors/creditors.module';
 import { ConfigurationModule } from './configuration/configuration.module';
+import {DashboardModule} from './dashboard/dashboard.module'
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -14,7 +15,8 @@ import { ConfigurationModule } from './configuration/configuration.module';
     BexioUserModule,
     DebtorsModule,
     CreditorsModule,
-    ConfigurationModule
+    ConfigurationModule,
+    DashboardModule
   ],
   controllers: [AppController],
   providers: [AppService],

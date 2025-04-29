@@ -911,7 +911,7 @@ export class DebtorsService {
                         WHERE netcomid = '${data.netcomId}'
                         AND status = 'ACTIVE'`;
                         const getBillerData = await pool.query(getBiller);
-
+                        console.log('getBillerData',getBillerData);
                         if (getBillerData.recordset.length > 0) {
                             this.pushWorkerHost.run(tempJson, {}, {}, getBillerData?.recordset[0]?.billerid);
                         }
@@ -946,6 +946,41 @@ export class DebtorsService {
                         warningMessage(commonErrors, error);
                     }
                 }
+                if (item.tag === "email") {
+
+                  try {
+                    let bodyParams = {
+                        partyId: data.partyId,
+                        accountId: data.accountId,
+                        netcomId: data.netcomId,
+                    };
+                    async function processInvoices(obj, bodyData): Promise<any[]> {
+                      const results:any = [];
+                      // for (let index = 0; index < obj.length; index++) {
+                        console.log("Processing invoice:", obj);
+                        
+                          // const element = obj;
+                          const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'email');
+                          console.log("result:::", result);
+                          
+                          results.push(result);
+                      // }
+                      return results;
+                  }
+                  // await processInvoices(JSON.parse(data.otherInvoice), bodyParams)
+                  combinedResponse.emailInvoice=[]
+                  combinedResponse.emailInvoice.push(await processInvoices(item, bodyParams));
+                    // Use the PushWorkerHost to run the worker task
+                     this.pushWorkerHost.run(item, bodyParams, {
+                        cookies: req.cookies, // Include cookies
+                        signedCookies: req.signedCookies, // Include signed cookies
+                        url: req.url,
+                    },'','email');
+                } catch (error) {
+                    console.log("error in sendBulkInvoices :: ", error);
+                }
+
+                }
             }
         }
 
@@ -963,7 +998,7 @@ export class DebtorsService {
                     console.log("Processing invoice:", obj[index]);
                     
                       const element = obj[index];
-                      const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId, '', '1', '');
+                      const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId, '', '1', '','EDI');
                       results.push(result);
                   }
                   return results;
@@ -974,7 +1009,7 @@ export class DebtorsService {
                     cookies: req.cookies, // Include cookies
                     signedCookies: req.signedCookies, // Include signed cookies
                     url: req.url,
-                });
+                },'','edi');
             } catch (error) {
                 console.log("error in sendBulkInvoices :: ", error);
             }
