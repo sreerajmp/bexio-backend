@@ -84,8 +84,8 @@ export const getRecipientList = async (contact_idList: number[]) => {
   try {
     // Ensure unique IDs and explicitly cast to number[]
     const uniqueIds: number[] = [...new Set(contact_idList)];
-console.log('uniqueIds',uniqueIds);
-console.log('uniqueIds',uniqueIds.length);
+//console.log('uniqueIds',uniqueIds);
+//console.log('uniqueIds',uniqueIds.length);
     if (uniqueIds.length === 0) return []; // Return empty array if no valid IDs
 
     const contacts = await connectBexio.contact_bc.findMany({
@@ -129,14 +129,14 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
       if(response?.statusCode == 200){
         if(JSON.parse(response.body).length == limit){
          let temp = this.invoiceCountSearch(token,offset+2000,2000)
-        //  ////console.log(('11111111111111111111111111111');
+        //  //////console.log(('11111111111111111111111111111');
          
         }else{
           offset = offset + JSON.parse(response.body).length;
-          // ////console.log(('lengthhh',offset);
+          // //////console.log(('lengthhh',offset);
           resolve(offset)
         }
-        // ////console.log((JSON.parse(response.body).length);
+        // //////console.log((JSON.parse(response.body).length);
         
         // resolve(JSON.parse(response.body).length)
 
@@ -157,7 +157,7 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
         'Authorization': 'Bearer ' + token
       }
     };
-    // ////console.log(({
+    // //////console.log(({
     //   offset: offset,
     //   limit: limit
     // });
@@ -234,7 +234,7 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
         'Authorization': 'Bearer ' + token
       }
     };
-    //console.log({
+    ////console.log({
     //   offset: offset,
     //   limit: limit
     // });
@@ -298,7 +298,7 @@ var options = {
   formData: formData
 
 };
-   //console.log('options',options);
+   ////console.log('options',options);
     
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
@@ -311,7 +311,7 @@ var options = {
         }
         else{
           try{
-            //console.log('response.bodyresponse.body',response.body);
+            ////console.log('response.bodyresponse.body',response.body);
             resolve(JSON.parse(response.body));   
          
           }
@@ -333,7 +333,7 @@ var options = {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
-  console.log('channel:::::::::::::',channel,partyId, invoiceId, invoicenumber, status,error);
+  //console.log('channel:::::::::::::',channel,partyId, invoiceId, invoicenumber, status,error);
   
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
@@ -357,7 +357,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       if (selectQryResult.length == 0) {
-        console.log('createany');
+        //console.log('createany');
 
         const companyregisteredSelectQryResult = await connectBexio.companyregistered.findMany({
           where: {
@@ -380,7 +380,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         sendInvoiceId = result.cid;
       }
       else {
-        console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
+        //console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
         
         sendInvoiceId = selectQryResult[0]?.cid;
         let updateRes= await connectBexio.documents_invoice_send.updateMany({
@@ -394,13 +394,13 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             status: Number(status)
           }
         });
-        console.log('updateRes',updateRes);
+        //console.log('updateRes',updateRes);
         
       }
       resolve(sendInvoiceId);
     } catch (error) {
       reject(error);
-      console.log(error);
+      //console.log(error);
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyId + '-partyId' + invoiceId + '-invoiceId' + invoicenumber + 'invoiceNumber';
       warningMessage(commonErrors, error);
@@ -412,7 +412,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
 }
 export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channel?) => {
   try {
-    console.log("worker processing invoices...");
+    //console.log("worker processing invoices...");
 
     let tempIds = JSON.parse(invoices);
 
@@ -430,14 +430,14 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
         },
       };
 
-      console.log("start processing invoice", tempParam);
+      //console.log("start processing invoice", tempParam);
       try {
         const result = await pushInvoiceBulkTest(tempParam, "",channel);
-        console.log("result:", result);
+        //console.log("result:", result);
       } catch (error) {
         console.error("Error processing invoice:", element.invoiceId, error);
       }
-      console.log("end processing invoice");
+      //console.log("end processing invoice");
     }
   } catch (error) {
     console.error('Error in pushInvoiceBulkxx:', error);
@@ -453,7 +453,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
         return reject('Invalid input data');
       }
 
-      console.log("decryptData ", decryptData);
+      //console.log("decryptData ", decryptData);
       let invoiceCid;
       try {
         let invoice,paymentType
@@ -463,10 +463,10 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
         const accountId = decryptData.body.accountId;
         const invoiceId = decryptData.body.invoiceId;
         invoice = await getInvoiceOT(accessToken,invoiceId);
-        // console.log('invoice::::',invoice);
+        // //console.log('invoice::::',invoice);
         if( !invoice || !invoice.positions ){
           invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,'','0','invoice_invalid',channel);
-          console.log('invoice not found');
+          //console.log('invoice not found');
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_pushInvoiceBulkTest -req param,',JSON.stringify(decryptData);
           warningMessage(commonErrors,'error_getInvoiceOT');
@@ -474,14 +474,14 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
         }
 
         let invitionData:any = await getConnectionDetails(partyId,accountId,invoice.contact_id,req);
-        console.log('invitionDatainvitionDatainvitionDatainvitionData',invitionData);
+        //console.log('invitionDatainvitionDatainvitionDatainvitionData',invitionData);
       
 
         if( invitionData.length != 0){    
 
             let customerIds = await constGetContactId(invitionData[0].rk_businessconnection);
-            console.log(customerIds);
-            console.log('invitionData',invitionData);     
+            //console.log(customerIds);
+            //console.log('invitionData',invitionData);     
             let pdf,fileName,pdfContent;
             pdf = await getInvoicePdf(accessToken,invoiceId);
             if(!pdf){
@@ -498,7 +498,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
             coutryList = await getCountryLists(accessToken);
             if(!coutryList){
               invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','countryList_not_found',channel);
-              console.log('coutryList');
+              //console.log('coutryList');
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'countryList_not_found');
@@ -522,8 +522,8 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
               invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error',channel);
               return resolve('bexio_bank_error');
             }
-            console.log('123');
-            console.log('invoice.currency_id',invoice.currency_id);
+            //console.log('123');
+            //console.log('invoice.currency_id',invoice.currency_id);
             
             let currency = await getCurrency(accessToken,invoice.currency_id);
             if(!currency){
@@ -535,7 +535,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
             }
             invoice['currency'] = currency;
             let temp = await getloginUserCompanyDetails(accessToken);
-            console.log(temp);  
+            //console.log(temp);  
             if(!temp){
               invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
@@ -580,7 +580,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
             // companyDetails = await getloginUserCompanyDetails(accessToken)
         
             await Promise.all(invoice.positions.map(async (items) => {
-              console.log('items.tax_id',items.tax_id);
+              //console.log('items.tax_id',items.tax_id);
               if(items.tax_id){
                 let tempTax = await getTaxs(accessToken,items.tax_id);
                 if(!tempTax){
@@ -593,14 +593,14 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
                 items['tax'] = tempTax;
               }
               let tempItem;
-              console.log('tempItem',tempItem);
+              //console.log('tempItem',tempItem);
               if('article_id' in items){
                 tempItem = await getProducts(accessToken,items.article_id);
                 items['article'] = tempItem;
-                // console.log('articleas',items['article']);
+                // //console.log('articleas',items['article']);
                 
               }else{
-                console.log('items',items);
+                //console.log('items',items);
                 
                 items['article'] = {}
                 items['article']['intern_name'] = items.text;
@@ -611,7 +611,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
               let xml;
     
               xml = await setInvoiceToOt(invoice,coutryList,invitionData[0],pdfContent,fileName,customerIds,invoiceCid,channel);
-              //  console.log('xml',xml);
+              //  //console.log('xml',xml);
               if(xml == false){
                 invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_item_error',channel);
                 return resolve('bexio_item_error');
@@ -649,13 +649,13 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
             'Authorization': 'Bearer '+access_token
           }
         };
-       //console.log('optionsoptions',options);
+       ////console.log('optionsoptions',options);
         
         request(options, function (error, response) {
-          // console.log("response::::",response.statusCode,response.body);
+          // //console.log("response::::",response.statusCode,response.body);
           
           if (error) {  
-           //console.log('errorerrorerror',error);
+           ////console.log('errorerrorerror',error);
             
             commonErrors['errorTitle'] = 'getInvoiceOT';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
@@ -664,7 +664,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
           }
           if(response.statusCode==200)
           {
-           //console.log('JSON.parse(response.body)',JSON.parse(response.body));
+           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
             resolve(JSON.parse(response.body));
             
           }
@@ -677,7 +677,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
 }
 export const getConnectionDetails = async (partyId,accountId,contactId,req,channel?) => {
   try {
-   //console.log(contactId);
+   ////console.log(contactId);
   let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
     const partyObjectId = await connectBexio.contact_bc.findMany({
       where: {
@@ -694,13 +694,13 @@ export const getConnectionDetails = async (partyId,accountId,contactId,req,chann
       commonErrors['errorTitle'] = getConnectionDetails.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+contactId;
       warningMessage(commonErrors,error);
-   //console.log(error);
+   ////console.log(error);
     
   }
 }
 export const constGetContactId = async (code) =>{
   try {
-   //console.log(code);
+   ////console.log(code);
     const getCustomerIdResult = await connectNewGate2b.$queryRaw<any>(Prisma.sql`
   SELECT json_extract_path("ot_updator"::json,'in_custom_id') AS senderId,
   json_extract_path("ot_updator"::json,'out_custom_id')  AS receiverId
@@ -733,8 +733,8 @@ export const getInvoicePdf = async (accessToken,invoiceId)=>{
           resolve(false)
         }
         // console.log('response.statusCode pdf::::',response.statusCode);
-        // console.log('response.body',response.body);
-        // console.log('response',response);
+        // //console.log('response.body',response.body);
+        console.log('response',response);
         
         if(response.statusCode==200)
          resolve(response.body);
@@ -787,7 +787,7 @@ export const getCountryLists = async (access_token)=>{
     }
 }
 export const getBank = async (access_token,id)=>{
- //console.log(id);
+ ////console.log(id);
   return new Promise(async(resolve, reject) => {
     
         var options = {
@@ -799,8 +799,8 @@ export const getBank = async (access_token,id)=>{
           }
         };
         request(options, function (error, response) {
-          console.log('response getBank',response.body);
-          console.log('response.statusCode',response.statusCode);
+          //console.log('response getBank',response.body);
+          //console.log('response.statusCode',response.statusCode);
           
           if (error) {  
             commonErrors['errorTitle'] = 'getBank';
@@ -931,7 +931,7 @@ export const getContact = async (access_token,id)=>{
       });
 }
 export const getProducts = async (access_token,id)=>{
- //console.log('IDDD',id);
+ ////console.log('IDDD',id);
 
   return new Promise(async(resolve, reject) => {
         var options = {
@@ -976,7 +976,7 @@ export const getTaxs = async (access_token,id)=>{
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         //console.log(response?.body);
+         ////console.log(response?.body);
           
           if(response?.statusCode==200)
           resolve(JSON.parse(response?.body));
@@ -987,7 +987,7 @@ export const getTaxs = async (access_token,id)=>{
       });
 }
 export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileName,customerIds,invoiceCid,channel) => {
- //console.log('invoice',JSON.stringify(invoice));
+ ////console.log('invoice',JSON.stringify(invoice));
 
   let emptyValue = 'NA'
   let taxIsAdded;
@@ -997,12 +997,12 @@ export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileNam
     'Stk':'C62',
     'h':'HUR'
   }
-console.log('setInvoiceToOt : invitionData -> ',invitionData);
+//console.log('setInvoiceToOt : invitionData -> ',invitionData);
 let total = '';
-console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
+//console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
 
 total = invoice['total_remaining_payments'];
-console.log('totalqqqqqqqqqqqqqq',total);
+//console.log('totalqqqqqqqqqqqqqq',total);
 
   let obj = JSON.parse(JSON.stringify({
       "OPENTRANS": {
@@ -1153,7 +1153,7 @@ taxIsAdded = invoice.taxs.length;
       }]:undefined
   })))
   let allTax:any = []
-console.log('customerIds.length',customerIds.length);
+//console.log('customerIds.length',customerIds.length);
 
     invoice.positions.forEach(element => {
       const index = allTax.findIndex(object => object.type === element.tax?.type);
@@ -1180,7 +1180,7 @@ invoice.taxs.forEach(element => {
  :obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"]='';
   
 
-console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
+//console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
 
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
@@ -1252,11 +1252,11 @@ console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
   
 }
 export async function invoiceFilePush(netcomId,service,data,filename,type) {
-  // console.log('netcomId',netcomId);
-  // console.log('service',service); 
-  // console.log('data',data);
-  // console.log('filename',filename);
-  // console.log('type',type);
+  // //console.log('netcomId',netcomId);
+  // //console.log('service',service); 
+  // //console.log('data',data);
+  // //console.log('filename',filename);
+  // //console.log('type',type);
   
   let formData 
   return new Promise(async(resolve, reject) => {
@@ -1276,18 +1276,18 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
         formData: formData
       };
     request(options, function (error, response) {
-      // console.log('response bexio-file-drop',response);
+      // //console.log('response bexio-file-drop',response);
       
       if (error) { 
-       console.log('sdfdsfdsf',error);
+       //console.log('sdfdsfdsf',error);
         
         commonErrors['errorTitle'] = 'bexio-file-drop';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
         warningMessage(commonErrors,error);
         resolve(false)
       }
-      console.log('response.statusCode',response.statusCode);
-      console.log('response.body',response.body);
+      //console.log('response.statusCode',response.statusCode);
+      //console.log('response.body',response.body);
       
       return resolve(response?.body)
      
@@ -1303,7 +1303,7 @@ export const deleteRedis = async (api, key) => {
   try {
     delApis.split(",").forEach(async element => { // <--- make this async
       const pattern = key + element + '*';
-     //console.log(pattern);
+     ////console.log(pattern);
 
       const data = await redis_client.keys(pattern); // use await instead of callback
       data.forEach(async apis => {
@@ -1311,26 +1311,27 @@ export const deleteRedis = async (api, key) => {
       });
     });
   } catch (error) {
-   //console.log(error);
+   ////console.log(error);
   }
 };
 
 
 export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel?) => {
   return new Promise(async (resolve, reject) => {
-    // console.log('invoices::::', invoices);
+    console.log('invoices::::', invoices);
     
     const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
+      const bill_recipient_email = invoices?.bill_recipient_email;
       // const contact_pid = invoices?.contact_pid;
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
     let pdf, fileName, pdfContent;
     let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
-    //console.log("decryptData :: ",decryptData);
+    ////console.log("decryptData :: ",decryptData);
      let accessToken = cookie.access_Token;
       pdf = await getInvoicePdf(accessToken, invoice_id);
-      // console.log('pdf::::',pdf);
+      console.log('pdf::::',pdf, invoice_id);
       
       if (!pdf) { 
         console.log('pdf not found');
@@ -1357,11 +1358,11 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       coutryList = JSON.parse(coutryList);
       const invoice :any= await getInvoiceOT(accessToken,invoice_id);
       
-      let xml = await setInvoiceEmailOt(invoice,coutryList, pdfContent, fileName,{}, '', invoice_uuid)
-      console.log('xml:::::',xml);
+      let xml :any= await setInvoiceEmailOt(invoice,bill_recipient_email,coutryList, pdfContent, fileName,{}, '', invoice_uuid)
+      //console.log('xml:::::',xml);
 
       if (xml==false) {
-        console.log('xml==false');
+        //console.log('xml==false');
         
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
         commonErrors['errorTitle'] = invoices.originalUrl;
@@ -1370,15 +1371,15 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('something_went_wrong'+invoiceCid)
 
       }
-      // console.log('xml',xml);
-      // console.log('bodyValues.netcomid',bodyValues);
+      // //console.log('xml',xml);
+      // //console.log('bodyValues.netcomid',bodyValues);
       
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, 'email');
       if (filePush) {
-        console.log('filePush:::::',filePush);
+        //console.log('filePush:::::',filePush);
         
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '','email');
-        console.log("invoiceCid:::",invoiceCid);
+        //console.log("invoiceCid:::",invoiceCid);
         
         resolve(invoiceCid)
 
@@ -1393,7 +1394,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
 })
 }
 export const pushInvoiceTestProcess = async (invoices,billerId)=>{
-console.log('invoices',invoices);
+//console.log('invoices',invoices);
   let tempIds = invoices
   let tempParam = {
     body:{
@@ -1411,9 +1412,9 @@ console.log('invoices',invoices);
       tempParam['body']['contact_pid'] = element.recipientid;
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['token'] = element.accessToken;
-     //console.log('start');
+     ////console.log('start');
       let v = await pushInvoiceTest1(tempParam,'')
-     //console.log('vvv',v);
+     ////console.log('vvv',v);
     }
 }
 export const pushInvoiceTest1 = async (req, res) => {
@@ -1433,7 +1434,7 @@ export const pushInvoiceTest1 = async (req, res) => {
       const biller_pid = decryptData.biller_pid;
       const contact_pid = decryptData.contact_pid;
       const invoice_uuid = decryptData?.invoice_uuid;
-     //console.log('decryptData', decryptData);
+     ////console.log('decryptData', decryptData);
 
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
@@ -1543,7 +1544,7 @@ export const pushInvoiceTest1 = async (req, res) => {
 
       }
 
-     //console.log("checkRecipientData----", checkRecipientData);
+     ////console.log("checkRecipientData----", checkRecipientData);
       if (!checkRecipientData) {
 
         await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
@@ -1583,11 +1584,11 @@ export const pushInvoiceTest1 = async (req, res) => {
       }
 
       const invoiceId = decryptData.invoice_id;
-     //console.log('accessToken', accessToken);
-     //console.log('invoiceId', invoiceId);
+     ////console.log('accessToken', accessToken);
+     ////console.log('invoiceId', invoiceId);
 
       invoice = await getInvoiceOT(accessToken, invoiceId);
-     //console.log('invoice', invoice);
+     ////console.log('invoice', invoice);
       if (!invoice) {
       
         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
@@ -1804,10 +1805,10 @@ export const pushInvoiceTest1 = async (req, res) => {
 }
 export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?) => {
   let sendInvoiceId;
-   //console.log('invoiceId',invoiceId);
-   //console.log('partyId',partyId);
-   //console.log('partyId',partyId);
-   //console.log('formData',formData);
+   ////console.log('invoiceId',invoiceId);
+   ////console.log('partyId',partyId);
+   ////console.log('partyId',partyId);
+   ////console.log('formData',formData);
     let responseBody = error;
     
     return new Promise(async function (resolve, reject) {
@@ -1831,14 +1832,14 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
             },
           });
 
-          console.log('selectQryResult:::',selectQryResult);
+          //console.log('selectQryResult:::',selectQryResult);
           
           let insertQry;
-         //console.log('azaaza',selectQryResult.length);
+         ////console.log('azaaza',selectQryResult.length);
 
           if(selectQryResult.length == 0)
           {
-           //console.log('azaaza');
+           ////console.log('azaaza');
             const selectQryResult = await connectBexio.companyregistered.findMany({
               where: {
                 rk_party: Number(partyId), 
@@ -1860,7 +1861,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 object_id: true,
               },
             });
-            console.log('resultresult',result);
+            //console.log('resultresult',result);
             sendInvoiceId = result.object_id;
           }else{
             sendInvoiceId = selectQryResult[0].object_id;
@@ -1880,13 +1881,13 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
               },
             });
           }
-         //console.log('sendInvoiceIdsendInvoiceId',sendInvoiceId);
-         //console.log('statusstatus1',status);
+         ////console.log('sendInvoiceIdsendInvoiceId',sendInvoiceId);
+         ////console.log('statusstatus1',status);
 
           
           resolve(sendInvoiceId);
         } catch (error) {
-         //console.log(error);
+         ////console.log(error);
         commonErrors['errorTitle'] = setEbillInvoiceSendStatus.name;
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+invoiceId+'-invoiceId'+invoicenumber+'invoiceNumber';
         warningMessage(commonErrors,error);
@@ -1898,7 +1899,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
 }
 export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?,bankId?)=>{
   let options;
- //console.log('refreshToken',token);
+ ////console.log('refreshToken',token);
   let params = {
     refreshToken:token,
     id:id,
@@ -1906,7 +1907,7 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
     amount:amount,
   }
   let tempMsg,erroMsg = '';
- //console.log('typeof(message)',typeof(message));
+ ////console.log('typeof(message)',typeof(message));
   
   if(message){
     if(typeof(message) == 'object')
@@ -1933,15 +1934,15 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
     }
    
   }
- //console.log('erroMsg',erroMsg);
+ ////console.log('erroMsg',erroMsg);
  
- //console.log('id',id);
- //console.log('status',status);
+ ////console.log('id',id);
+ ////console.log('status',status);
   await addBexioCommentBulk(token,id,status,erroMsg,netcomId);
 
   return new Promise(async(resolve, reject) => {
     try {
-     //console.log('bankId',bankId);
+     ////console.log('bankId',bankId);
       
       if(status == 'COMPLETED'){
         let isNotifyBexio = true;
@@ -1969,7 +1970,7 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
         if(getCompanyIdQryResult.length > 0){
           isNotifyBexio = false;
         }
-       //console.log('isNotifyBexio',isNotifyBexio);
+       ////console.log('isNotifyBexio',isNotifyBexio);
         if(isNotifyBexio)
         {
           options = {
@@ -1984,27 +1985,27 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
               "bank_account_id":bankId ? bankId : undefined
             })
           };
-         //console.log('optionsoptions',options);
+         ////console.log('optionsoptions',options);
         request(options, async function (error, response) {
           if (error) {  
-           //console.log('errorr',error);
+           ////console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         //console.log('notifiBexionotifiBexio',options);
+         ////console.log('notifiBexionotifiBexio',options);
     
-         //console.log('notifiBexionotifiBexio',response.body);
-         //console.log('typeoftypeof',typeof(response.body));
+         ////console.log('notifiBexionotifiBexio',response.body);
+         ////console.log('typeoftypeof',typeof(response.body));
   
           let resStatus = 'success' in JSON.parse(response.body) ? true : false;
-         //console.log('statusstatus',resStatus);
+         ////console.log('statusstatus',resStatus);
            if(response.statusCode == 201 || resStatus)
           {
           
             resolve(JSON.parse(response.body));
-           //console.log('JSON.parse(response.body)',JSON.parse(response.body));
+           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
@@ -2028,16 +2029,16 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
         };
         request(options, async function (error, response) {
           if (error) {  
-           //console.log('errorr',error);
+           ////console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         //console.log('notifiBexionotifiBexio',options);
+         ////console.log('notifiBexionotifiBexio',options);
     
-         //console.log('notifiBexionotifiBexio',response.body);
-         //console.log('typeoftypeof',typeof(response.body));
+         ////console.log('notifiBexionotifiBexio',response.body);
+         ////console.log('typeoftypeof',typeof(response.body));
           let resStatus;
           if(typeof(response.body) == 'object'){
             resStatus = 'success' in JSON.parse(response.body) ? true : false;
@@ -2045,14 +2046,14 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
           }else{
             resStatus = false;
           }
-         //console.log('statusstatus',resStatus);
+         ////console.log('statusstatus',resStatus);
           
   
            if(response.statusCode == 201 || resStatus)
           {
           
             resolve(JSON.parse(response.body));
-           //console.log('JSON.parse(response.body)',JSON.parse(response.body));
+           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
@@ -2065,7 +2066,7 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
       }else{
         resolve(true);
       }
-     //console.log('options',options);
+     ////console.log('options',options);
     } catch (error) {
       commonErrors['errorTitle'] = 'notifiBexio';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
@@ -2084,7 +2085,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
   INNER JOIN biller b ON b.id = r.fk_biller 
   WHERE b.billerId = '${billerId}' AND r.recipientId = '${receiptId}'`;
   const getrecipientId = await pool.query(getrecipient);
- //console.log("getrecipientId---",getrecipientId);
+ ////console.log("getrecipientId---",getrecipientId);
   let getCompanydata = await connectBexio.companyregistered.findMany({
     where: {
       netcomid: getrecipientId.recordset[0].netcomid, // Replace with your actual variable
@@ -2110,7 +2111,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
       };
       await request(options, async function (error, response) {
         if (error) {
-         //console.log(error);
+         ////console.log(error);
           commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioConatct'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'billerId--' + billerId + '--receiptId--' + receiptId + '--contactId--' + contactId + '--accessToken--' + accessToken;
           warningMessage(commonErrors, error);
@@ -2164,7 +2165,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
        AND fk_biller = '${getrecipientId.recordset[0].fk_biller}'`;
       await new sql.Request(transaction).query(updateRecipientQuery)
       let bexioUpdate = await updateBexioConatct(contactId, receiptId)
-     //console.log("bexioUpdate from if-----", bexioUpdate);
+     ////console.log("bexioUpdate from if-----", bexioUpdate);
       if (bexioUpdate) {
         await transaction.commit();
         
@@ -2181,7 +2182,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
     const getBiller = `SELECT id,netcomid FROM biller 
                        WHERE billerId = '${billerId}'`;
     const getBillerId = await pool.query(getBiller);
-   //console.log("--------",getBillerId.recordset, receiptId);
+   ////console.log("--------",getBillerId.recordset, receiptId);
 
     const getCompanyDetails = await connectBexio.companyregistered.findMany({
       where: {
@@ -2214,7 +2215,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           });
     }
     let bexioUpdate:any = await updateBexioConatct(contactId, receiptId)
-   //console.log("bexioUpdate from else-----",bexioUpdate);
+   ////console.log("bexioUpdate from else-----",bexioUpdate);
 
     const getCountry = async (countryId) => { 
       return new Promise(async (resolve, reject) => {
@@ -2227,11 +2228,11 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           "Authorization": `Bearer ${accessToken}`,
         }
       };
-     //console.log("options--",options);
+     ////console.log("options--",options);
       
       await request(options, async function (error, response) {
         if (error) {
-         //console.log(error);
+         ////console.log(error);
           commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' get Country'+' '+'countryId ----${countryId}`;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-countryId,' + countryId;
           warningMessage(commonErrors, error);
@@ -2266,7 +2267,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
         {id:5,language:'eng'},  
       ]
       let languageName;
-     //console.log("bexioUpdate['language_id'----",bexioUpdate['language_id']);
+     ////console.log("bexioUpdate['language_id'----",bexioUpdate['language_id']);
       
       if(bexioUpdate['language_id']!=null){
         languages.find(element =>{
@@ -2275,24 +2276,24 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           }
         })
         languageName = languageName == undefined ? 'ger' : languageName; 
-       //console.log("gggggggg",languageName);  
+       ////console.log("gggggggg",languageName);  
       }
       else{
         languageName = 'ger'
         }
         const addReceipient = ` INSERT INTO recipient (fk_biller,recipientId,islinked,source,status) 
         VALUES('${getBillerId.recordset[0].id}','${receiptId}','${1}','BEX','SUBSCRITPTION')`;
-       //console.log("addReceipient----",addReceipient);
+       ////console.log("addReceipient----",addReceipient);
         // receipeint details are may be different in bexio and six, so we can't add details from bexio 
-     //console.log("addReceipient----",addReceipient);
+     ////console.log("addReceipient----",addReceipient);
       await new sql.Request(transaction).query(addReceipient);
         try {
           const addlogs = ` INSERT INTO log (billerId,recipientId,source,status) 
           VALUES('${billerId}','${receiptId}','BEX','')`;
-         //console.log("addReceipient----",addlogs);
+         ////console.log("addReceipient----",addlogs);
           await new sql.Request(transaction).query(addlogs);
         } catch (error) {
-         //console.log('error while adding six logs');
+         ////console.log('error while adding six logs');
         }
    
 
@@ -2308,7 +2309,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
   }
 }
 export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
- //console.log('EBILLLL');
+ ////console.log('EBILLLL');
   
 
   let emptyValue = 'NA'
@@ -2319,19 +2320,18 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
     'h':'HUR'
   }
   let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
-  ////console.log('invoiceinvoiceinvoice',invoice);
+  //////console.log('invoiceinvoiceinvoice',invoice);
   let total = '';
- //console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
+ ////console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
 
   total = invoice['total_remaining_payments'];
- //console.log('totttttal',total);
+ ////console.log('totttttal',total);
 
- //console.log('billDetails',billDetails);
+ ////console.log('billDetails',billDetails);
   
- //console.log('REFERENCE_NUMBER',billerDetails);
+ ////console.log('REFERENCE_NUMBER',billerDetails);
   if(!billDetails)
   {
-   //console.log('QR_code_not_found');
     
     commonErrors['errorTitle'] = 'QR_code_not_found';
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
@@ -2483,7 +2483,7 @@ invoice.taxs.forEach(element => {
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
     let arr,status = true;
-     //console.log('987');
+     ////console.log('987');
       obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
           "$": {
               "type": "order_item"
@@ -2522,7 +2522,7 @@ invoice.taxs.forEach(element => {
 
   let builder = new xml2js.Builder({'xmldec.version':1.0} );
   var xml = builder.buildObject(obj);
- //console.log(xml);
+ ////console.log(xml);
 
   return Buffer.from(xml).toString('base64');
  
@@ -2578,7 +2578,7 @@ export const markAsIssues = async (access_token,id)=>{
       });
 }
 export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) => {
- //console.log('addBexioComment');
+ ////console.log('addBexioComment');
   let parms = {
     token:token,
     id:id,
@@ -2586,16 +2586,16 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
     message:message,
     netcomId:netcomId
   }
- //console.log('parms',parms);
+ ////console.log('parms',parms);
   
   return new Promise(async(resolve, reject) => {
     try {
-     //console.log('config.BEXIO_COMMENTS',config.BEXIO_COMMENTS);
+     ////console.log('config.BEXIO_COMMENTS',config.BEXIO_COMMENTS);
       let commentsData = JSON.parse(config.BEXIO_COMMENTS);
-     //console.log(commentsData[status].replace('[message]','{ '+message+' }'))
+     ////console.log(commentsData[status].replace('[message]','{ '+message+' }'))
       let comments = commentsData[status].replace('[message]','{ '+message+' }')
       let invoiceData = await getInvoiceOT(token,id);
-     //console.log('addBexioComment');
+     ////console.log('addBexioComment');
       
       if(!invoiceData)
       {
@@ -2606,12 +2606,12 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
         return
       }
       let userData = await getUser(token,invoiceData['user_id']);
-     //console.log('userData',userData);
+     ////console.log('userData',userData);
       
       if(!userData){
         userData = await getDefaultUser(token);
       }
-     //console.log('userData',userData);
+     ////console.log('userData',userData);
 
       if(!userData)
       {
@@ -2635,7 +2635,7 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
       };
              request(options, function (error, response) {
           if (error) {  
-           //console.log('errorr',error);
+           ////console.log('errorr',error);
          
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
@@ -2643,18 +2643,18 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
             resolve(false)
           }
          
-         //console.log('options',options);
+         ////console.log('options',options);
     
-         //console.log('response',response.body);
+         ////console.log('response',response.body);
     
           if(response.statusCode == 201)
           {
             resolve(JSON.parse(response.body));
-           //console.log('JSON.parse(response.body)',JSON.parse(response.body));
+           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
             return;
           }
           else{
-           //console.log('errorr',error);
+           ////console.log('errorr',error);
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
             warningMessage(commonErrors,error);
@@ -2665,7 +2665,7 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
         })
       } catch (error) {
        
-       //console.log('errorrrrrrr',error);
+       ////console.log('errorrrrrrr',error);
         commonErrors['errorTitle'] = 'addBexioComment';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
         warningMessage(commonErrors,error);
@@ -2746,7 +2746,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
         request(options, function (error, response) {
           
 
-         //console.log("456",response.body.length);
+         ////console.log("456",response.body.length);
           if(response.body.length < 3)
           {
          
@@ -2767,19 +2767,19 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
           }
          
             let paymentDetails = response.body.split("\\n");
-           //console.log("paymentDetails.indexOf('SCOR')",paymentDetails.indexOf('SCOR'));
+           ////console.log("paymentDetails.indexOf('SCOR')",paymentDetails.indexOf('SCOR'));
             
             let typeIndex = paymentDetails.indexOf('QRR') != -1 ?  paymentDetails.indexOf('QRR') : paymentDetails.indexOf('SCOR');
-           //console.log('typeIndex',typeIndex);
+           ////console.log('typeIndex',typeIndex);
             if(typeIndex == -1){
               typeIndex = paymentDetails.indexOf('NON') != -1 ?  paymentDetails.indexOf('NON') : -1;
             }
             var s = new Date(new Date()); 
-           //console.log(s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds())
+           ////console.log(s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds())
             let v = s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds();
-           //console.log('adasdsad',v);
-           //console.log('adasdsad',v);
-           //console.log('typeIndex',typeIndex);
+           ////console.log('adasdsad',v);
+           ////console.log('adasdsad',v);
+           ////console.log('typeIndex',typeIndex);
             
             let res = {
               iban:paymentDetails[3],
@@ -2788,7 +2788,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
               referenceEbil:invoiceNumber+'_'+v
 
             }
-           //console.log('sdfsdfsdf');
+           ////console.log('sdfsdfsdf');
             
             if(typeIndex == -1){
 
@@ -2804,7 +2804,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
               }
               resolve(res);
             }
-           //console.log('res',res);
+           ////console.log('res',res);
             
             resolve(res);
           
@@ -2813,7 +2813,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
       });
       
     } catch (error) {
-     //console.log('errorerror',error);
+     ////console.log('errorerror',error);
       commonErrors['errorTitle'] = 'getRefrenceNumber';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'ebill_xml_not_found '+'-req param,'+invoiceNumber;
       warningMessage(commonErrors,'ebill_xml_not_found');
@@ -2842,7 +2842,7 @@ export const getTaxListActive = async (access_token) => {
             resolve(false)
           }
           // res.send(response.body)
-         //console.log("getTaxListA :: ",response.body);
+         ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
           else
@@ -2852,7 +2852,7 @@ export const getTaxListActive = async (access_token) => {
       });
 }
 export const getContactDetails = async (access_token,id) => {    
- //console.log(id);
+ ////console.log(id);
   
   try {
     return new Promise(async(resolve, reject) => {
@@ -2872,7 +2872,7 @@ export const getContactDetails = async (access_token,id) => {
           resolve(false)
         }
         // res.send(response.body)
-        //console.log(response.body);
+        ////console.log(response.body);
         if(response.statusCode==200)
           resolve(JSON.parse(response.body));
         else
@@ -2892,7 +2892,7 @@ export const getContactDetails = async (access_token,id) => {
   }
 }
 export const setOrderId = async (id,billId) =>{
- //console.log('error');
+ ////console.log('error');
 
   try {
     const getcustomerIdResult = await connectBexio.documents_order_receive.updateMany({
@@ -2906,7 +2906,7 @@ export const setOrderId = async (id,billId) =>{
     });
     return getcustomerIdResult
   } catch (error) {
-   //console.log(error);
+   ////console.log(error);
       commonErrors['errorTitle'] = 'setOrderId';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+billId;
       warningMessage(commonErrors,error);
@@ -2933,7 +2933,7 @@ export const moveFile = async (netcomId,fileName)=>{
       netcom_id:netcomId,
       filename:fileName
     }
-   //console.log(formData);
+   ////console.log(formData);
     
 
     return new Promise(async(resolve, reject) => {
@@ -2953,8 +2953,8 @@ export const moveFile = async (netcomId,fileName)=>{
         }
       
         // res.send(response.body)
-        //console.log(response.body);
-   //console.log("move",response.body);
+        ////console.log(response.body);
+   ////console.log("move",response.body);
         
         resolve(response.body);
 
@@ -2974,8 +2974,8 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
   let sendDeliveryNotesId;
   return new Promise( async function (resolve, reject) {
     try {
-     //console.log('partyIdpartyIdpartyId',partyId);
-     //console.log('delivery_iddelivery_id',delivery_id);
+     ////console.log('partyIdpartyIdpartyId',partyId);
+     ////console.log('delivery_iddelivery_id',delivery_id);
       const selectQryResult = await connectBexio.documents_dispatchnotification_send.findMany({
         where: {
           rk_deliverynotes: delivery_id,
@@ -2994,14 +2994,14 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
         },
       });
 
-     //console.log('selectQryResult',selectQryResult);
+     ////console.log('selectQryResult',selectQryResult);
       if(selectQryResult.length == 0){
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
             rk_party:Number(partyId),
           },
         });
-       console.log('selectQryResultParty',selectQryResultParty);
+       //console.log('selectQryResultParty',selectQryResultParty);
         
         const result = await connectBexio.documents_dispatchnotification_send.create({
           data: {
@@ -3015,7 +3015,7 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
             cid: true,
           },
         });
-       console.log(result);
+       //console.log(result);
 
         sendDeliveryNotesId = result[0].cid;
       }
@@ -3035,7 +3035,7 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
       }
       resolve(sendDeliveryNotesId);
     } catch (error) {
-     //console.log(error);
+     ////console.log(error);
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+delivery_id+'-deliveryId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
@@ -3046,7 +3046,7 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
 }
 
 export const setPurchaseOrderBulk = async (purchaseOrder, bodyValues, headerParams) => {
- //console.log("worker processing invoices...");
+ ////console.log("worker processing invoices...");
 
   // bodyValues = JSON.parse(bodyValues);
   let tempIds = JSON.parse(purchaseOrder);
@@ -3065,10 +3065,10 @@ export const setPurchaseOrderBulk = async (purchaseOrder, bodyValues, headerPara
       },
     };
 
-   //console.log("start processing Purchase Order");
+   ////console.log("start processing Purchase Order");
     const result = await pushPurchaseOrderBulk(tempParam, "");
-   //console.log("result:", result);
-   //console.log("end processing Purchase Order");
+   ////console.log("result:", result);
+   ////console.log("end processing Purchase Order");
   }
   
 };
@@ -3082,14 +3082,14 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
     try {
       let purchaseOrder,paymentType;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
-     //console.log("decryptData :: ",decryptData);
+     ////console.log("decryptData :: ",decryptData);
       let accessToken = cookie.access_Token;
       const partyId = decryptData.partyId;
       const accountId = decryptData.accountId;
       // const orderData = decryptData.order_id;
       const purchaseOrderId = decryptData.order_id || 1;
       purchaseOrder = await getOrderOT(accessToken,purchaseOrderId); // Get order from bexio using orderId
-     //console.log("purchaseOrder :: ",purchaseOrder);
+     ////console.log("purchaseOrder :: ",purchaseOrder);
       if( !purchaseOrder){ // If there is no purchaseOrder with this orderId, return with error
         purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,'','0','order_not_found');
         commonErrors['errorTitle'] = req.originalUrl;
@@ -3099,7 +3099,7 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
         return resolve('order_not_found');
       }
       let invitationData:any = await getConnectionDetails(partyId,accountId,purchaseOrder.contact_id,req); // Get the connection details using contact_id, party and account
-     //console.log("invitationData: ",invitationData);
+     ////console.log("invitationData: ",invitationData);
       let customerIds = await constGetContactId(invitationData[0].rk_businessconnection); // Get customer Id using businessConnection
       if( invitationData != undefined ){ // If there is any invitationData then do
         let pdf,fileName,pdfContent;
@@ -3118,7 +3118,7 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
 
       
 
-       //console.log("purchaseOrder.currency_id :: ",purchaseOrder.currency_id);
+       ////console.log("purchaseOrder.currency_id :: ",purchaseOrder.currency_id);
         /* Fetch currency from bexio using id. */
         let currency = await getCurrency(accessToken,purchaseOrder.currency_id);
         if( !currency ){
@@ -3182,7 +3182,7 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
         /* Loop over positions in purchaseOrder */
         let taxIsAdded = false;
         for ( const items of purchaseOrder.positions.required ) {
-         //console.log('items.tax_id',items.tax_id);
+         ////console.log('items.tax_id',items.tax_id);
           if(items.tax_id){ // Check tax is there or not
             /* Fetch tax using tax id */
             let tempTax = await getTaxs(accessToken,items.tax_id);
@@ -3267,7 +3267,7 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
       });
       
       if(selectQryResult.length == 0){
-       //console.log('ifffffffffffff');
+       ////console.log('ifffffffffffff');
        
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
@@ -3287,12 +3287,12 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
             cid: true, // This is the equivalent of RETURNING cid
           },
         });
-       //console.log(result);
+       ////console.log(result);
         sendOrderId = result[0].cid;
       }
       else{
-       console.log('elseeeeeeeeeee');
-       console.log('status',status);
+       //console.log('elseeeeeeeeeee');
+       //console.log('status',status);
         sendOrderId = selectQryResult[0]?.cid;
 
 
@@ -3313,7 +3313,7 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
       resolve(sendOrderId);
     } catch (error) {
      
-     //console.log(error);
+     ////console.log(error);
       commonErrors['errorTitle'] =' setInvoiceSendStatus';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+orderId+'-orderId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
@@ -3327,7 +3327,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
  
   let tempString = JSON.stringify(order.delivery_address_manual)
   let tempArray ;
- //console.log("tempString",tempString);
+ ////console.log("tempString",tempString);
 
   
   if(tempString.indexOf("\\r\\n") != -1)
@@ -3346,17 +3346,17 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
     tempArray = tempString;
   }
 
- //console.log('tempArray',tempArray);
+ ////console.log('tempArray',tempArray);
   let deliveryAddress2 = tempArray.split("___________");
- //console.log("deliveryAddress2",deliveryAddress2);
+ ////console.log("deliveryAddress2",deliveryAddress2);
   
   let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
- //console.log('tempAdress',tempAdress);
+ ////console.log('tempAdress',tempAdress);
   if(tempAdress.length == 4){
     tempAdress.splice(1,0," ")
   }
 
- //console.log('tempAdresstempAdress',tempAdress);
+ ////console.log('tempAdresstempAdress',tempAdress);
   let countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.name ==  tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : ''
 
   // return
@@ -3364,7 +3364,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
 
 
   coutryList = JSON.parse(coutryList);
- //console.log("gghghgh");
+ ////console.log("gghghgh");
   let emptyValue = 'NA'
   // let taxIsAdded;
   let priceQuantity = '1'
@@ -3402,9 +3402,9 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
 
   let v = coutryList.filter(coutry => coutry.id == order.contact.country_id)
  
- //console.log("\ntaxIsAdded:: "+taxIsAdded);
+ ////console.log("\ntaxIsAdded:: "+taxIsAdded);
   
- //console.log('contactDetailscontactDetailscontactDetails',contactDetails);
+ ////console.log('contactDetailscontactDetailscontactDetails',contactDetails);
     
   obj.OPENTRANS.ORDER[0]['ORDER_HEADER'][0]['ORDER_INFO'].push(JSON.parse(
     JSON.stringify({
@@ -3489,8 +3489,8 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       }]:undefined
     })
   ));
-  ////console.log(JSON.stringify(obj.OPENTRANS));
- //console.log("-----------------------------------------------------------");
+  //////console.log(JSON.stringify(obj.OPENTRANS));
+ ////console.log("-----------------------------------------------------------");
   let allTax:any = [];
   order.positions.required.forEach(element => {
     const index = allTax.findIndex(object => object.type === element.tax?.type);
@@ -3504,18 +3504,18 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
   let tempTaxArray = [];
   let totalAmount: any = '0.00';
   
- //console.log("order.positions",order.positions.required)
+ ////console.log("order.positions",order.positions.required)
   for (let index = 0; index < order.positions.required.length; index++) {
     let element = order.positions.required[index];
     delete element.internal_pos
-   //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-   //console.log(JSON.stringify(element));    
-   //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-   //console.log("....... :: "+element.tax?.value);
+   ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+   ////console.log(JSON.stringify(element));    
+   ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+   ////console.log("....... :: "+element.tax?.value);
     
     totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
     let arr,status = true;
-   //console.log('element.articleelement.article',element);
+   ////console.log('element.articleelement.article',element);
     
     obj.OPENTRANS.ORDER[0]['ORDER_ITEM_LIST'][0]['ORDER_ITEM'].push(JSON.parse(JSON.stringify({
       "LINE_ITEM_ID": element.pos?element.pos:index,
@@ -3553,9 +3553,9 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
   // return
 
   let builder = new xml2js.Builder({'xmldec.version':1.0} );
- //console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
+ ////console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
   var xml = builder.buildObject(obj);
- //console.log("xml:  ---------------------------\n",xml);
+ ////console.log("xml:  ---------------------------\n",xml);
   return Buffer.from(xml).toString('base64');
 }
 const getOrderOT = async (accessToken,orderId) =>{
@@ -3569,18 +3569,18 @@ const getOrderOT = async (accessToken,orderId) =>{
           'Accept': 'application/json'
         }
       };
-      ////console.log('optionsoptions',options);
+      //////console.log('optionsoptions',options);
       
 
       request( options, function(error, response){
         if(error){
-         //console.log('errorerrorerror',error);
+         ////console.log('errorerrorerror',error);
           commonErrors['errorTitle'] = 'getOrderOT';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+orderId;
           warningMessage(commonErrors,error);
           resolve(error);
         }
-        ////console.log('responseresponse',response);
+        //////console.log('responseresponse',response);
 
         if( response.statusCode == 200){
           resolve(JSON.parse(response.body));
@@ -3598,9 +3598,9 @@ const getOrderOT = async (accessToken,orderId) =>{
   }  
 }
 export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerParams) => {
-  console.log("worker processing invoices...");
-  console.log('deliveryNotes',deliveryNotes);
-  console.log('bodyValues',bodyValues);
+  //console.log("worker processing invoices...");
+  //console.log('deliveryNotes',deliveryNotes);
+  //console.log('bodyValues',bodyValues);
  
   let tempIds = JSON.parse(deliveryNotes);
 
@@ -3618,10 +3618,10 @@ export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerPara
       },
     };
 
-    console.log("start processing delivery notes");
+    //console.log("start processing delivery notes");
     const result = await pushDeliveryNotesBulk(tempParam, "");
-    console.log("result:", result);
-    console.log("end processing delivery notes");
+    //console.log("result:", result);
+    //console.log("end processing delivery notes");
   }
 };
 export const pushDeliveryNotesBulk = async( req, res)=>{
@@ -3689,7 +3689,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
           return resolve('countryList_not_found');
         }
         let bank;
-        console.log("deliveryNotes.currency_id :: ",deliveryNotes.currency_id);
+        //console.log("deliveryNotes.currency_id :: ",deliveryNotes.currency_id);
         /* Fetch currency from bexio using id. */
         let currency = await getCurrency(accessToken,deliveryNotes.currency_id);
         if( !currency ){
@@ -3752,7 +3752,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
 
         /* Loop over positions in deliveryNotes */
         for (const items of deliveryNotes.positions) {
-          console.log('items.tax_id',items.tax_id);
+          //console.log('items.tax_id',items.tax_id);
           if(items.tax_id){ // Check tax is there or not
             /* Fetch tax using tax id */
             let tempTax = await getTaxs(accessToken,items.tax_id);
@@ -3882,7 +3882,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
   const setDeliveryNotesToOt = async(deliveryNotes,coutryList,contactDetails,pdf,fileName,customerIds,delivery_id)=>{
     
     coutryList = JSON.parse(coutryList);
-    console.log("gghghgh");
+    //console.log("gghghgh");
     let emptyValue = 'NA'
     let taxIsAdded;
     let priceQuantity = '1'
@@ -3916,19 +3916,19 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
   
     let v = coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)  
     taxIsAdded = deliveryNotes.taxs.length;
-    console.log("\ntaxIsAdded:: "+taxIsAdded);
-    console.log("JSON.stringify(deliveryNotes) ",JSON.stringify(deliveryNotes.contact));
-    console.log(coutryList[0]);
+    //console.log("\ntaxIsAdded:: "+taxIsAdded);
+    //console.log("JSON.stringify(deliveryNotes) ",JSON.stringify(deliveryNotes.contact));
+    //console.log(coutryList[0]);
     
     
     obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
       "GENERATOR_INFO": new Date(deliveryNotes.updated_at).toISOString()
     })))
-    console.log("-------------------------\n"+new Date(deliveryNotes.updated_at).toISOString()+"\n----------------");
+    //console.log("-------------------------\n"+new Date(deliveryNotes.updated_at).toISOString()+"\n----------------");
     let deliveryAddress = {};
     let tempString = JSON.stringify(deliveryNotes.delivery_address)
     let tempArray = "";
-    console.log("tempString",tempString);
+    //console.log("tempString",tempString);
   
     
     if(tempString.indexOf("\\r\\n") != -1)
@@ -3947,12 +3947,12 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
       tempArray = tempString;
     }
   
-    console.log('tempArray',tempArray);
+    //console.log('tempArray',tempArray);
     let deliveryAddress2 = tempArray.split("___________");
-    console.log("deliveryAddress2",deliveryAddress2);
+    //console.log("deliveryAddress2",deliveryAddress2);
     
     let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
-    console.log('tempAdress',tempAdress);
+    //console.log('tempAdress',tempAdress);
     if(tempAdress.length == 4){
       tempAdress.splice(1,0," ")
     }
@@ -4064,8 +4064,8 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         }]
       })
     ));
-    // console.log(JSON.stringify(obj.OPENTRANS));
-    console.log("-----------------------------------------------------------");
+    // //console.log(JSON.stringify(obj.OPENTRANS));
+    //console.log("-----------------------------------------------------------");
     let allTax:any = [];
     deliveryNotes.positions.forEach(element => {
       const index = allTax.findIndex(object => object.type === element.tax?.type);
@@ -4080,9 +4080,9 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     let totalAmount: any = '0.00';
     for (let index = 0; index < deliveryNotes.positions.length; index++) {
       let element = deliveryNotes.positions[index];
-      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-      console.log(element);    
-      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      //console.log(element);    
+      //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
       
       totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
       let arr,status = true;
@@ -4120,9 +4120,9 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     // return
     
     let builder = new xml2js.Builder({'xmldec.version':1.0} );
-    console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
+    //console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
     var xml = builder.buildObject(obj);
-    console.log("xml:  ---------------------------\n",xml);
+    //console.log("xml:  ---------------------------\n",xml);
     return Buffer.from(xml).toString('base64');
   }
 
@@ -4161,8 +4161,8 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
   }
 
 }
-export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  console.log('EMAIL:::',invoice);
+export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
+  console.log('EMAIL:::',invoice,bill_recipient_email);
    
  
    let emptyValue = 'NA'
@@ -4172,24 +4172,23 @@ export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDe
      'Stk':'C62',
      'h':'HUR'
    }
-   let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
-   ////console.log('invoiceinvoiceinvoice',invoice);
+  //  let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
+   //////console.log('invoiceinvoiceinvoice',invoice);
    let total = '';
  
    total = invoice['total_remaining_payments'];
  
-  //console.log('billDetails',billDetails);
+  ////console.log('billDetails',billDetails);
    
-  //console.log('REFERENCE_NUMBER',billerDetails);
-   if(!billDetails)
-   {
-    //console.log('QR_code_not_found');
+  ////console.log('REFERENCE_NUMBER',billerDetails);
+  //  if(!billDetails)
+  //  {
      
-     commonErrors['errorTitle'] = 'QR_code_not_found';
-     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
-     warningMessage(commonErrors,'QR_code_not_found');
-     return false;
-   }
+  //    commonErrors['errorTitle'] = 'QR_code_not_found';
+  //    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
+  //    warningMessage(commonErrors,'QR_code_not_found');
+  //    return false;
+  //  }
    let obj = JSON.parse(JSON.stringify({
        "OPENTRANS": {
            "$": {
@@ -4297,13 +4296,13 @@ export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDe
        "REMARKS": invoice.title ? invoice.title : undefined,
        "HEADER_UDX":  JSON.parse(JSON.stringify([{
          "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid']??undefined,
-         "EBILL.QR_IBAN": billDetails['iban']??undefined,
-         "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref']??undefined,
-         "EBILL.QR_TYPE": billDetails['type']??undefined,
+        //  "EBILL.QR_IBAN": billDetails['iban']??undefined,
+        //  "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref']??undefined,
+        //  "EBILL.QR_TYPE": billDetails['type']??undefined,
          "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
          "HEADER_UDX_OPT":[{
            "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
-           "RECEIVER_MAIL_ID": invoice?.contact?.mail?invoice.contact.mail:undefined,
+           "RECEIVER_MAIL_ID": bill_recipient_email,
          }]
        }]))
    })))
@@ -4335,7 +4334,7 @@ export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDe
    for (let index = 0; index < invoice.positions.length; index++) {
      let element = invoice.positions[index];
      let arr,status = true;
-      //console.log('987');
+      ////console.log('987');
        obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
            "$": {
                "type": "order_item"
@@ -4374,15 +4373,15 @@ export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDe
  
    let builder = new xml2js.Builder({'xmldec.version':1.0} );
    var xml = builder.buildObject(obj);
-  //console.log(xml);
+  ////console.log(xml);
  
    return Buffer.from(xml).toString('base64');
   
  }
 export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
-  //console.log('partyId', partyId);
-  //console.log('accountId', accountId);
-  //console.log('partyAccount', partyAccount);
+  ////console.log('partyId', partyId);
+  ////console.log('accountId', accountId);
+  ////console.log('partyAccount', partyAccount);
 
   try {
     let userRoles;
@@ -4391,7 +4390,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     } else {
       userRoles = "'EBILL_USER'";
     }
-    //console.log('userRoles', userRoles);
+    ////console.log('userRoles', userRoles);
 
     // Get role data
     const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4404,7 +4403,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
       AND r.fk_party IS NULL
     `);
 
-    //console.log('roleData', roleData);
+    ////console.log('roleData', roleData);
 
     // Check if party application exists
     const existingPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4444,7 +4443,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
 
     return true;
   } catch (error) {
-    //console.log('error in setEbillRole:', error);
+    ////console.log('error in setEbillRole:', error);
     return false
   }
 };
@@ -4468,8 +4467,8 @@ export const partyServiceUpdate = async (partyResponse, service, app) => {
       if (getExisted.length) {
         return reject(false)
       }
-      //console.log('service', service);
-      //console.log('app', app);
+      ////console.log('service', service);
+      ////console.log('app', app);
 
       const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
       SELECT aa.cid
