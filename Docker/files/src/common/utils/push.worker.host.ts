@@ -27,12 +27,12 @@ export class PushWorkerHost implements OnApplicationBootstrap, OnApplicationShut
     await this.worker.terminate();
   }
 
-  async run(invoices: any, bodyParams: any, headerParams: any, billerid?: any): Promise<string> {
+  async run(invoices: any, bodyParams: any, headerParams: any, billerid?: any, channel?: string): Promise<string> {
     const uniqueId = randomUUID(); // Generate a unique ID for the task
 
     try {
         // Send a message to the worker thread
-        this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId, billerId: billerid });
+        this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId, billerId: billerid ,channel: channel});
 
         return firstValueFrom(
           this.messages$.pipe(

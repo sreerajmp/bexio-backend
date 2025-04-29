@@ -332,7 +332,9 @@ var options = {
     }
 
 }
-export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?) => {
+export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
+  console.log('channel:::::::::::::',channel,partyId, invoiceId, invoicenumber, status,error);
+  
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
@@ -340,7 +342,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
         where: {
           rk_invoice: invoiceId,
-          invoice_type: 'EDI',
+          invoice_type: channel,
           companyregistered: {
             rk_party: Number(partyId),
           },
@@ -355,6 +357,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       if (selectQryResult.length == 0) {
+        console.log('createany');
+
         const companyregisteredSelectQryResult = await connectBexio.companyregistered.findMany({
           where: {
             rk_party: Number(partyId), // Equivalent to `WHERE rk_party = $1`
@@ -365,7 +369,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             rk_invoice: invoiceId,
             invoice_number: invoicenumber,
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
-            invoice_type: 'EDI',
+            invoice_type: channel,
             status: Number(status),
             response:errorBody
           },
@@ -376,18 +380,22 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         sendInvoiceId = result.cid;
       }
       else {
+        console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
+        
         sendInvoiceId = selectQryResult[0]?.cid;
-         await connectBexio.documents_invoice_send.updateMany({
+        let updateRes= await connectBexio.documents_invoice_send.updateMany({
           where: {
             fk_companyregistered: Number(selectQryResult[0].cid),
             rk_invoice: invoiceId,
-            invoice_type: 'EDI'
+            // invoice_type: channel
           },
           data: {
             time_stamp: new Date(),
             status: Number(status)
           }
         });
+        console.log('updateRes',updateRes);
+        
       }
       resolve(sendInvoiceId);
     } catch (error) {
@@ -402,7 +410,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
   });
 
 }
-export const pushInvoiceBulk = async (invoices, bodyValues, headerParams) => {
+export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channel?) => {
   try {
     console.log("worker processing invoices...");
 
@@ -418,13 +426,13 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams) => {
         body: {
           partyId: bodyValues.partyId,
           accountId: bodyValues.accountId,
-          invoiceId: element.invoiceId,
+          invoiceId: element.invoiceId??element.doc_id,
         },
       };
 
       console.log("start processing invoice", tempParam);
       try {
-        const result = await pushInvoiceBulkTest(tempParam, "");
+        const result = await pushInvoiceBulkTest(tempParam, "",channel);
         console.log("result:", result);
       } catch (error) {
         console.error("Error processing invoice:", element.invoiceId, error);
@@ -437,7 +445,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams) => {
   }
 };
 
-export const pushInvoiceBulkTest = async (req, res) => {
+export const pushInvoiceBulkTest = async (req, res,channel) => {
   return new Promise(async (resolve, reject) => {
     try {
       let decryptData = req;
@@ -455,9 +463,9 @@ export const pushInvoiceBulkTest = async (req, res) => {
         const accountId = decryptData.body.accountId;
         const invoiceId = decryptData.body.invoiceId;
         invoice = await getInvoiceOT(accessToken,invoiceId);
-        console.log('invoice::::',invoice);
+        // console.log('invoice::::',invoice);
         if( !invoice || !invoice.positions ){
-          invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,'','0','invoice_invalid');
+          invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,'','0','invoice_invalid',channel);
           console.log('invoice not found');
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_pushInvoiceBulkTest -req param,',JSON.stringify(decryptData);
@@ -477,7 +485,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             let pdf,fileName,pdfContent;
             pdf = await getInvoicePdf(accessToken,invoiceId);
             if(!pdf){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','pdf_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','pdf_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'error_getInvoicePdf ');
@@ -489,7 +497,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             let coutryList;
             coutryList = await getCountryLists(accessToken);
             if(!coutryList){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','countryList_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','countryList_not_found',channel);
               console.log('coutryList');
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
@@ -500,7 +508,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             let bank
             bank = await getBank(accessToken,invoice.bank_account_id);
             if(!bank){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bank_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'bank_not_found');
@@ -511,7 +519,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
               invoice['bank'] = bank;
             }
             else{
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error',channel);
               return resolve('bexio_bank_error');
             }
             console.log('123');
@@ -519,7 +527,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             
             let currency = await getCurrency(accessToken,invoice.currency_id);
             if(!currency){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','currency_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','currency_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'currency_not_found');
@@ -529,7 +537,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             let temp = await getloginUserCompanyDetails(accessToken);
             console.log(temp);  
             if(!temp){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
@@ -539,7 +547,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
             paymentType = await getPaymentType(accessToken,invoice.payment_type_id);
             if(!paymentType){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getPaymentType_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getPaymentType_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getPaymentType_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'getPaymentType_not_found');
@@ -549,8 +557,9 @@ export const pushInvoiceBulkTest = async (req, res) => {
             let tempPaymentType = paymentType.filter(e => e.id == invoice.payment_type_id);
             invoice['paymentType'] = tempPaymentType;
             let contact = await getContact(accessToken,invoice.contact_id);
+            
             if(!contact){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','contact_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','contact_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contact_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'contact_not_found');
@@ -560,7 +569,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             // let user = await getUser(accessToken,invoice.user_id);
             let user = true;
             if(!user){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','user_not_found');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','user_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'user_not_found -req param,',JSON.stringify(req.body);
               warningMessage(commonErrors,'user_not_found');
@@ -575,7 +584,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
               if(items.tax_id){
                 let tempTax = await getTaxs(accessToken,items.tax_id);
                 if(!tempTax){
-                  invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','tax_not_Found');
+                  invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','tax_not_Found',channel);
                   commonErrors['errorTitle'] = req.originalUrl;
                   commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
                   warningMessage(commonErrors,'tax_not_Found');
@@ -598,16 +607,16 @@ export const pushInvoiceBulkTest = async (req, res) => {
                 items['article']['intern_description'] = items.text;
     
               }
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'1');
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'1','',channel);
               let xml;
     
-              xml = await setInvoiceToOt(invoice,coutryList,invitionData[0],pdfContent,fileName,customerIds,invoiceCid);
+              xml = await setInvoiceToOt(invoice,coutryList,invitionData[0],pdfContent,fileName,customerIds,invoiceCid,channel);
               //  console.log('xml',xml);
               if(xml == false){
-                invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_item_error');
+                invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_item_error',channel);
                 return resolve('bexio_item_error');
               }
-              await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],'EDI');
+              await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],channel.toUpperCase());
 
               let redisKey = req.body.partyId+"_/";
               await deleteRedis('sendInvoice',redisKey);
@@ -616,7 +625,7 @@ export const pushInvoiceBulkTest = async (req, res) => {
             }));
         }
         else{
-            invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','invoice_push_error');
+            invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','invoice_push_error',channel);
             return resolve('invoice_push_error');
         }
       }
@@ -643,7 +652,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
        //console.log('optionsoptions',options);
         
         request(options, function (error, response) {
-          console.log("response::::",response.statusCode,response.body);
+          // console.log("response::::",response.statusCode,response.body);
           
           if (error) {  
            //console.log('errorerrorerror',error);
@@ -666,7 +675,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
         });
       });
 }
-export const getConnectionDetails = async (partyId,accountId,contactId,req) => {
+export const getConnectionDetails = async (partyId,accountId,contactId,req,channel?) => {
   try {
    //console.log(contactId);
   let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
@@ -674,7 +683,7 @@ export const getConnectionDetails = async (partyId,accountId,contactId,req) => {
       where: {
         rk_netcomidsender: dataCookie.netcomId,
         rk_sendercontactid: contactId,
-        type: 'EDI',
+        type: channel?? 'EDI',
         rk_businessconnection: {
           not: null,
         },
@@ -723,6 +732,10 @@ export const getInvoicePdf = async (accessToken,invoiceId)=>{
           warningMessage(commonErrors,error);
           resolve(false)
         }
+        // console.log('response.statusCode pdf::::',response.statusCode);
+        // console.log('response.body',response.body);
+        // console.log('response',response);
+        
         if(response.statusCode==200)
          resolve(response.body);
         else
@@ -973,7 +986,7 @@ export const getTaxs = async (access_token,id)=>{
         });
       });
 }
-export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileName,customerIds,invoiceCid) => {
+export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileName,customerIds,invoiceCid,channel) => {
  //console.log('invoice',JSON.stringify(invoice));
 
   let emptyValue = 'NA'
@@ -1073,6 +1086,7 @@ taxIsAdded = invoice.taxs.length;
               "ADDRESS": [{
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
+                  "bmecat:EMAIL": invoice.contact.mail?invoice.contact.mail:undefined,
 
                   "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
@@ -1238,6 +1252,12 @@ console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
   
 }
 export async function invoiceFilePush(netcomId,service,data,filename,type) {
+  // console.log('netcomId',netcomId);
+  // console.log('service',service); 
+  // console.log('data',data);
+  // console.log('filename',filename);
+  // console.log('type',type);
+  
   let formData 
   return new Promise(async(resolve, reject) => {
     formData = {
@@ -1256,14 +1276,19 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
         formData: formData
       };
     request(options, function (error, response) {
+      // console.log('response bexio-file-drop',response);
+      
       if (error) { 
-       //console.log('sdfdsfdsf',error);
+       console.log('sdfdsfdsf',error);
         
         commonErrors['errorTitle'] = 'bexio-file-drop';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
         warningMessage(commonErrors,error);
         resolve(false)
       }
+      console.log('response.statusCode',response.statusCode);
+      console.log('response.body',response.body);
+      
       return resolve(response?.body)
      
     });
@@ -1289,6 +1314,84 @@ export const deleteRedis = async (api, key) => {
    //console.log(error);
   }
 };
+
+
+export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel?) => {
+  return new Promise(async (resolve, reject) => {
+    // console.log('invoices::::', invoices);
+    
+    const decryptData = invoices;
+      const invoice_id = invoices?.doc_id;
+      // const contact_pid = invoices?.contact_pid;
+      const invoice_uuid = invoices?.invoice_uuid;
+      const partyId = bodyValues?.partyId;
+    let pdf, fileName, pdfContent;
+    let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+    //console.log("decryptData :: ",decryptData);
+     let accessToken = cookie.access_Token;
+      pdf = await getInvoicePdf(accessToken, invoice_id);
+      // console.log('pdf::::',pdf);
+      
+      if (!pdf) { 
+        console.log('pdf not found');
+        
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_pdf_not_found');
+        resolve('something_went_wrong'+invoiceCid)
+      }
+
+      pdfContent = JSON.parse(pdf).content;
+      fileName = JSON.parse(pdf).name;
+
+      let coutryList;
+      coutryList = await getCountryLists(accessToken);
+      if (!coutryList) {
+        // commonErrors['errorTitle'] = invoices.originalUrl;
+        // commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_coutryList_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        // warningMessage(commonErrors, 'ebill_coutryList_not_found');
+        resolve('coutryList not found')
+
+      }
+      coutryList = JSON.parse(coutryList);
+      const invoice :any= await getInvoiceOT(accessToken,invoice_id);
+      
+      let xml = await setInvoiceEmailOt(invoice,coutryList, pdfContent, fileName,{}, '', invoice_uuid)
+      console.log('xml:::::',xml);
+
+      if (xml==false) {
+        console.log('xml==false');
+        
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_xml_not_found');
+        resolve('something_went_wrong'+invoiceCid)
+
+      }
+      // console.log('xml',xml);
+      // console.log('bodyValues.netcomid',bodyValues);
+      
+      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, 'email');
+      if (filePush) {
+        console.log('filePush:::::',filePush);
+        
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '','email');
+        console.log("invoiceCid:::",invoiceCid);
+        
+        resolve(invoiceCid)
+
+      }
+      if(!filePush) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        resolve(invoiceCid)
+      }
+        
+      // await issueEbillInvoice(accessToken, decryptData.invoice_id);
+      // await markAsIssues(accessToken, decryptData.invoice_id);
+})
+}
 export const pushInvoiceTestProcess = async (invoices,billerId)=>{
 console.log('invoices',invoices);
   let tempIds = invoices
@@ -3777,9 +3880,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     
   }
   const setDeliveryNotesToOt = async(deliveryNotes,coutryList,contactDetails,pdf,fileName,customerIds,delivery_id)=>{
-    console.log({
-      deliveryNotes,coutryList,contactDetails,fileName,customerIds,delivery_id
-    });
+    
     coutryList = JSON.parse(coutryList);
     console.log("gghghgh");
     let emptyValue = 'NA'
@@ -4060,3 +4161,221 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
   }
 
 }
+export const setInvoiceEmailOt = async (invoice,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
+  console.log('EMAIL:::',invoice);
+   
+ 
+   let emptyValue = 'NA'
+   let taxIsAdded;
+   let priceQuantity = '1'
+   let orderUnit = {
+     'Stk':'C62',
+     'h':'HUR'
+   }
+   let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
+   ////console.log('invoiceinvoiceinvoice',invoice);
+   let total = '';
+ 
+   total = invoice['total_remaining_payments'];
+ 
+  //console.log('billDetails',billDetails);
+   
+  //console.log('REFERENCE_NUMBER',billerDetails);
+   if(!billDetails)
+   {
+    //console.log('QR_code_not_found');
+     
+     commonErrors['errorTitle'] = 'QR_code_not_found';
+     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
+     warningMessage(commonErrors,'QR_code_not_found');
+     return false;
+   }
+   let obj = JSON.parse(JSON.stringify({
+       "OPENTRANS": {
+           "$": {
+               "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+               "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+               "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+           },
+           "INVOICE": [{
+               "$": {
+                   "version": "2.1"
+               },
+               "INVOICE_HEADER": [{
+                   "CONTROL_INFO":[],
+                   "INVOICE_INFO": []
+               }],
+               "INVOICE_ITEM_LIST": [{
+                   "INVOICE_ITEM": []
+               }],
+               "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
+                   "TOTAL_ITEM_NUM": invoice.positions.length,
+                   "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
+                   "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
+                   "TOTAL_TAX": {
+                     "TAX_DETAILS_FIX":[]
+                   }
+               }]))
+           }]
+       }
+   }))
+ 
+ // let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
+ taxIsAdded = invoice.taxs.length;
+   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
+       "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
+   }))),
+   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
+       "INVOICE_ID": invoice.document_nr,
+       "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+       "INVOICE_TYPE": "invoice",
+       "DELIVERY_DATE": [{
+        "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+        "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+       }],
+       "bmecat:LANGUAGE": 'deu',
+       "PARTIES": [{
+           "PARTY": [{
+               "bmecat:PARTY_ID": [{
+                   "_": billerDetails['billerid']??undefined,
+                   "$": {
+                       "type": "party_specific"
+                   }
+                  
+               }],
+               "PARTY_ROLE": "invoice_issuer",
+               "ADDRESS": [{
+                    "bmecat:NAME": invoice?.companyProfile?.companyProfile[0].name || undefined,
+                    "bmecat:STREET": invoice?.companyProfile?.companyProfile[0].address || undefined,
+                    "bmecat:ZIP": invoice?.companyProfile?.companyProfile[0].postcode || undefined,
+                    "bmecat:CITY": invoice?.companyProfile?.companyProfile[0].city || undefined,
+                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
+                }]
+ 
+           }, {
+               "bmecat:PARTY_ID": [{
+                   "_": billerDetails['recipientid']||undefined,
+                   "$": {
+                       "type": "party_specific"
+                   }
+               }],
+               "PARTY_ROLE": "invoice_recipient",
+               "ADDRESS": [{
+                   "bmecat:NAME": invoice?.contact?.name_1??undefined,
+                   "bmecat:NAME2": invoice?.contact?.name_2??undefined,
+ 
+                   "bmecat:STREET": invoice?.contact?.address?invoice.contact.address:undefined,
+                   "bmecat:ZIP": invoice?.contact?.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+                   "bmecat:CITY": invoice?.contact?.city?invoice.contact.city:undefined,
+                   "bmecat:COUNTRY_CODED": invoice?.contact?.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
+               }]
+           }]
+       }],
+       "INVOICE_ISSUER_IDREF": [{
+        "_": billerDetails['recipientid']??undefined,
+           "$": {
+             "type": "party_specific"
+         }
+       }],
+       "INVOICE_RECIPIENT_IDREF": [{
+           "_": billerDetails['recipientid']??undefined,
+           "$": {
+               "type": "party_specific"
+           }
+       }],
+       "bmecat:CURRENCY": invoice?.currency?.currency['name']|| undefined,
+       "MIME_INFO":[{
+         "MIME":[{
+           "MIME_EMBEDDED":{
+             "MIME_DATA":[{
+               "_":pdf,
+           
+             }],
+             "FILE_NAME":fileName?fileName:'temp'}
+         }]
+       }],
+       "REMARKS": invoice.title ? invoice.title : undefined,
+       "HEADER_UDX":  JSON.parse(JSON.stringify([{
+         "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid']??undefined,
+         "EBILL.QR_IBAN": billDetails['iban']??undefined,
+         "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref']??undefined,
+         "EBILL.QR_TYPE": billDetails['type']??undefined,
+         "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
+         "HEADER_UDX_OPT":[{
+           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
+           "RECEIVER_MAIL_ID": invoice?.contact?.mail?invoice.contact.mail:undefined,
+         }]
+       }]))
+   })))
+ 
+   let allTax:any = []
+ 
+     invoice.positions.forEach(element => {
+       const index = allTax.findIndex(object => object.type === element.tax?.type);
+       if (index === -1) {
+           allTax.push({
+               type: element.tax?.type,
+               value: element.tax?.value,
+           });
+       }
+   })
+   let tempTaxArray = [];
+  
+  invoice.taxs.length!=0?
+ invoice.taxs.forEach(element => {
+   JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
+     {
+         "bmecat:TAX": element.percentage,
+         "TAX_AMOUNT": element.value
+     }
+     )))
+ })
+  :obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"]='';
+   
+   for (let index = 0; index < invoice.positions.length; index++) {
+     let element = invoice.positions[index];
+     let arr,status = true;
+      //console.log('987');
+       obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
+           "$": {
+               "type": "order_item"
+           },
+           "LINE_ITEM_ID": element.pos?element.pos:index,
+           "PRODUCT_ID": [{
+               "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code:undefined,
+               "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, 
+               "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
+           }],
+           "QUANTITY": element.amount?Math.trunc(element.amount):1,
+           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62',
+           "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
+               "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+               "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded>0? [{
+                   "bmecat:TAX_TYPE": element.tax?.type,
+                   "bmecat:TAX": element.tax?.value
+                  
+               }]:undefined,
+   
+         
+           "bmecat:PRICE_QUANTITY": priceQuantity, 
+           })),
+         ],
+         "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
+         "DELIVERY_REFERENCE": [{
+           "DELIVERY_DATE": [{
+               "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+               "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString()
+           }]
+         }]
+       })))
+     
+        element.discount_in_percent==null?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX']:'';
+   }
+ 
+   let builder = new xml2js.Builder({'xmldec.version':1.0} );
+   var xml = builder.buildObject(obj);
+  //console.log(xml);
+ 
+   return Buffer.from(xml).toString('base64');
+  
+ }
