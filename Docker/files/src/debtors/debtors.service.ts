@@ -947,7 +947,10 @@ export class DebtorsService {
                     }
                 }
                 if (item.tag === "email") {
-
+                  console.log("email tag");
+                  console.log("data.otherInvoice", data.otherInvoice);
+                  
+                 let selectedItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
                   try {
                     let bodyParams = {
                         partyId: data.partyId,
@@ -969,9 +972,10 @@ export class DebtorsService {
                   }
                   // await processInvoices(JSON.parse(data.otherInvoice), bodyParams)
                   combinedResponse.emailInvoice=[]
-                  combinedResponse.emailInvoice.push(await processInvoices(item, bodyParams));
+                  combinedResponse.emailInvoice.push(await processInvoices(selectedItem[0], bodyParams));
+                  console.log("processInvoices:::", selectedItem[0]);
                     // Use the PushWorkerHost to run the worker task
-                     this.pushWorkerHost.run(item, bodyParams, {
+                     this.pushWorkerHost.run(selectedItem[0], bodyParams, {
                         cookies: req.cookies, // Include cookies
                         signedCookies: req.signedCookies, // Include signed cookies
                         url: req.url,
