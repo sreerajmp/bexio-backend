@@ -30,6 +30,7 @@ export class DashboardService {
       const filterType = formData.type?.toLowerCase();
       const filterDocNumber = formData.documentNo?.toLowerCase();
       const filterInvoiceNo = formData.InvoiceNo;
+      const filterTitle = formData.title?.toLowerCase();
   
       // Fetch data
       const [invoiceSend, invoiceReceive, deliveryNotesSend, orderSend, orderReceive] = await Promise.all([
@@ -66,6 +67,8 @@ export class DashboardService {
           type: 'invoice',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
+          process:'invoicesend',
+          title:''
         })),
         ...invoiceReceive.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -76,6 +79,8 @@ export class DashboardService {
           type: 'invoice',
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
+          process:'invoicereceive',
+           title:item.title
         })),
         ...deliveryNotesSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -86,6 +91,8 @@ export class DashboardService {
           type: 'deliverynotes',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
+          process:'deliverynotessend',
+           title:''
         })),
         ...orderSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -96,6 +103,9 @@ export class DashboardService {
           type: 'order',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
+          process:'ordersend',
+           title:''
+
         })),
         ...orderReceive.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -106,46 +116,56 @@ export class DashboardService {
           type: 'order',
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
+          process:'orderreceive',
+           title:item.title
         })),
       ];
   
      
-      let filteredData:any = mergedData.filter((item) => {
-        const matchesType = filterType ? item.type.toLowerCase().includes(filterType) : true;
-        const matchesDocNumber = filterDocNumber ? (item.documentnumber || '').toLowerCase().includes(filterDocNumber) : true;
-        const matchesInvoiceNo = filterInvoiceNo ?(item.rk_invoice || '').toLowerCase().includes(filterInvoiceNo) : true;
-        return matchesType && matchesDocNumber && matchesInvoiceNo;
-      });
-  
+      // STEP 1: Filter only by type — for `totalCounts`
+let baseFilteredData = mergedData.filter((item) => {
+  const matchesType = filterType ? item.type.toLowerCase().includes(filterType) : true;
+  return matchesType;
+});
+
+// STEP 2: Filter further with title, doc number, and invoice no — for `filteredCount` and paginated data
+let finalFilteredData:any = baseFilteredData.filter((item) => {
+  const matchesDocNumber = filterDocNumber ? (item.documentnumber || '').toLowerCase().includes(filterDocNumber) : true;
+  const matchesInvoiceNo = filterInvoiceNo ? (item.rk_invoice || '').toLowerCase().includes(filterInvoiceNo) : true;
+  const matchesTitle = filterTitle ? (item.title || '').toLowerCase().includes(filterTitle) : true;
+  return matchesDocNumber && matchesInvoiceNo && matchesTitle;
+});
       
-      filteredData = filteredData.map((item) => {
-        if (item.companyregistered && item.companyregistered.refresh_token) {
-          const { refresh_token, ...rest } = item.companyregistered;
-          return {
-            ...item,
-            companyregistered: rest,
-          };
-        }
-        return item;
-      });
+finalFilteredData = finalFilteredData.map((item) => {
+  if (item.companyregistered && item.companyregistered.refresh_token) {
+    const { refresh_token, ...rest } = item.companyregistered;
+    return {
+      ...item,
+      companyregistered: rest,
+    };
+  }
+  return item;
+});
+
+// Sort by timestamp
+finalFilteredData.sort((a, b) => {
+  const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+  const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+  return dateB - dateA;
+});
+
+// Paginate
+const paginatedData = finalFilteredData.slice(showFrom, showTo);
+
   
-      // Sort by timestamp
-      filteredData.sort((a, b) => {
-        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return dateB - dateA;
-      });
-  
-      // Paginate
-      const paginatedData = filteredData.slice(showFrom, showTo);
-  
-      return res.status(200).json({
-        status: 200,
-        message: 'Success',
-        data: paginatedData,
-        totalCounts: mergedData.length,
-        filteredCount: filteredData.length,
-      });
+return res.status(200).json({
+  status: 200,
+  message: 'Success',
+  data: paginatedData,
+  totalCounts: baseFilteredData.length,    // Type filter only
+  filteredCount: finalFilteredData.length, // Type + search filters
+});
+
   
     } catch (error) {
       console.error(error);
