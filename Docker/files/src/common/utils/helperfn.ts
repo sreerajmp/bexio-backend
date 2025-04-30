@@ -4271,13 +4271,13 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
            }]
        }],
        "INVOICE_ISSUER_IDREF": [{
-        "_": billerDetails['recipientid']??undefined,
+        "_": billerDetails['recipientid']??"0000000000000000",
            "$": {
              "type": "party_specific"
          }
        }],
        "INVOICE_RECIPIENT_IDREF": [{
-           "_": billerDetails['recipientid']??undefined,
+           "_": billerDetails['recipientid']??"0000000000000000",
            "$": {
                "type": "party_specific"
            }
