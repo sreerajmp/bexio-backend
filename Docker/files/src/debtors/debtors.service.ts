@@ -867,9 +867,11 @@ export class DebtorsService {
 
             for (const item of getTag?.data || []) {
                 if (item.tag === "ebill") {
+                 let selectedEbillItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
+
                     try {
                         const pool = await connectMssql;
-                        const getRecipient = await connectBexio.companyregistered.findMany({
+                        const getRecipientToken = await connectBexio.companyregistered.findMany({
                             where: {
                                 netcomid: data.netcomId,
                             },
@@ -877,44 +879,41 @@ export class DebtorsService {
                                 refresh_token: true,
                             },
                         });
-                        let tokenSet = await bexioClient.refresh(getRecipient[0]?.refresh_token || '');
+                        let tokenSet = await bexioClient.refresh(getRecipientToken[0]?.refresh_token || '');
 
-                        let tempJson = JSON.parse(data.otherInvoice);
-                        console.log('getRecipient tempJson',tempJson)
+                        // let tempJson = JSON.parse(data.otherInvoice);
+                        console.log('getRecipient tempJson',tokenSet.access_token)
                         
-                        for (let index = 0; index < tempJson.length; index++) {
-                            const element = tempJson[index];
-                            console.log('getRecipient element',element)
-                            const getRecipient = await connectBexio.contact_bc.findFirst({
-                                where: {
-                                    rk_contact: element.contactId,
-                                    companyregistered: {
-                                        netcomid: data.netcomId,
-                                    },
-                                },
-                                select: {
-                                    recipient_id: true,
-                                    companyregistered: {
-                                        select: {
-                                            refresh_token: true,
-                                        },
-                                    },
-                                },
-                            });
-                            console.log('getRecipient',element, getRecipient);
+                        // for (let index = 0; index < tempJson.length; index++) {
+                            // const element = tempJson[index];
+                            console.log('getRecipient element',selectedEbillItem)
+                            // const getRecipient = await connectBexio.contact_bc.findFirst({
+                            //     where: {
+                            //         rk_contact: selectedEbillItem.contactId,
+                            //         companyregistered: {
+                            //             netcomid: data.netcomId,
+                            //         },
+                            //     },
+                            //     select: {
+                            //         recipient_id: true,
+                            //         companyregistered: {
+                            //             select: {
+                            //                 refresh_token: true,
+                            //             },
+                            //         },
+                            //     },
+                            // });
+                            console.log('getRecipient',selectedEbillItem);
                             
-                            element['recipientid'] = getRecipient?.recipient_id;
-                            element['accessToken'] = tokenSet['access_token'];
-                        }
+                            // selectedEbillItem['recipientid'] = getRecipient?.recipient_id;
+                            selectedEbillItem['accessToken'] = tokenSet.access_token;
+                        // }
 
                         const getBiller = `SELECT billerid  FROM biller  
                         WHERE netcomid = '${data.netcomId}'
                         AND status = 'ACTIVE'`;
                         const getBillerData = await pool.query(getBiller);
-                        console.log('getBillerData',getBillerData);
-                        if (getBillerData.recordset.length > 0) {
-                            this.pushWorkerHost.run(tempJson, {}, {}, getBillerData?.recordset[0]?.billerid);
-                        }
+                        console.log('getBillerData',getBillerData);                      
 
                         let bexioTokenCookie = {
                             access_Token: tokenSet.access_token,
@@ -937,6 +936,9 @@ export class DebtorsService {
                             signed: true,
                             secure: true
                         });
+                        if (getBillerData.recordset.length > 0) {
+                          this.pushWorkerHost.run(selectedEbillItem, {}, {}, getBillerData?.recordset[0]?.billerid, 'EBILL');
+                      }
                     } catch (error) {
                         console.log('error', error);
 
@@ -1013,7 +1015,7 @@ export class DebtorsService {
                     cookies: req.cookies, // Include cookies
                     signedCookies: req.signedCookies, // Include signed cookies
                     url: req.url,
-                },'','edi');
+                },'','EDI');
             } catch (error) {
                 console.log("error in sendBulkInvoices :: ", error);
             }
