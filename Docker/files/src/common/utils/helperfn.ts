@@ -383,9 +383,9 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         //console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
         
         sendInvoiceId = selectQryResult[0]?.cid;
-        let updateRes= await connectBexio.documents_invoice_send.updateMany({
+       await connectBexio.documents_invoice_send.updateMany({
           where: {
-            fk_companyregistered: Number(selectQryResult[0].cid),
+            fk_companyregistered: selectQryResult[0].companyregistered?.cid,
             rk_invoice: invoiceId,
             // invoice_type: channel
           },
@@ -412,9 +412,9 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
 }
 export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channel?) => {
   try {
-    //console.log("worker processing invoices...");
+    console.log("worker processing invoices...",invoices);
 
-    let tempIds = JSON.parse(invoices);
+    let tempIds = invoices;
 
     for (let index = 0; index < tempIds.length; index++) {
       const element = tempIds[index];
@@ -649,7 +649,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
             'Authorization': 'Bearer '+access_token
           }
         };
-       ////console.log('optionsoptions',options);
+       console.log('optionsoptions',options);
         
         request(options, function (error, response) {
           // //console.log("response::::",response.statusCode,response.body);
@@ -734,7 +734,7 @@ export const getInvoicePdf = async (accessToken,invoiceId)=>{
         }
         // console.log('response.statusCode pdf::::',response.statusCode);
         // //console.log('response.body',response.body);
-        console.log('response',response);
+        // console.log('response',response);
         
         if(response.statusCode==200)
          resolve(response.body);
@@ -1394,7 +1394,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
 })
 }
 export const pushInvoiceTestProcess = async (invoices,billerId)=>{
-//console.log('invoices',invoices);
+console.log('pushInvoiceTestProcess',invoices);
   let tempIds = invoices
   let tempParam = {
     body:{
@@ -1409,9 +1409,10 @@ export const pushInvoiceTestProcess = async (invoices,billerId)=>{
       const element = tempIds[index];
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
-      tempParam['body']['contact_pid'] = element.recipientid;
+      tempParam['body']['contact_pid'] = element.bill_recipient_id;
+      tempParam['body']['contact_email'] = element.bill_recipient_email;
       tempParam['body']['invoice_uuid'] = '';
-      tempParam['body']['token'] = element.accessToken;
+      tempParam['body']['token'] = tempIds.accessToken;
      ////console.log('start');
       let v = await pushInvoiceTest1(tempParam,'')
      ////console.log('vvv',v);
@@ -1584,11 +1585,11 @@ export const pushInvoiceTest1 = async (req, res) => {
       }
 
       const invoiceId = decryptData.invoice_id;
-     ////console.log('accessToken', accessToken);
+     console.log('accessToken', accessToken);
      ////console.log('invoiceId', invoiceId);
 
       invoice = await getInvoiceOT(accessToken, invoiceId);
-     ////console.log('invoice', invoice);
+     console.log('invoice', invoice);
       if (!invoice) {
       
         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
@@ -1805,10 +1806,7 @@ export const pushInvoiceTest1 = async (req, res) => {
 }
 export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?) => {
   let sendInvoiceId;
-   ////console.log('invoiceId',invoiceId);
-   ////console.log('partyId',partyId);
-   ////console.log('partyId',partyId);
-   ////console.log('formData',formData);
+   console.log('invoiceId',invoiceId);
     let responseBody = error;
     
     return new Promise(async function (resolve, reject) {
@@ -1816,7 +1814,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
           const selectQryResult = await connectBexio.documents_invoice_send.findMany({
             where: {
               rk_invoice: invoiceId,
-              invoice_type: 'EBILL',
+              // invoice_type: 'EBILL',
               companyregistered: {
                 rk_party: Number(partyId),
               },
@@ -1824,6 +1822,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
             select: {
               cid: true, 
               object_id: true,
+              rk_invoice: true,
               companyregistered: {
                 select: {
                   cid: true,
@@ -1832,15 +1831,9 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
             },
           });
 
-          //console.log('selectQryResult:::',selectQryResult);
-          
-          let insertQry;
-         ////console.log('azaaza',selectQryResult.length);
-
           if(selectQryResult.length == 0)
           {
-           ////console.log('azaaza');
-            const selectQryResult = await connectBexio.companyregistered.findMany({
+            const selectCompanyregisteredQryResult = await connectBexio.companyregistered.findMany({
               where: {
                 rk_party: Number(partyId), 
                 
@@ -1850,9 +1843,9 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
               data: {
                 rk_invoice: invoiceId,
                 invoice_number: invoicenumber,
-                fk_companyregistered:Number(selectQryResult[0].cid),
+                fk_companyregistered:Number(selectCompanyregisteredQryResult[0].cid),
                 invoice_type: 'EBILL',
-                invoice_params: formData, // Assuming `formData` is a valid JSON object
+                invoice_params: formData,
                 response: responseBody,
                 status: Number(status),
                 is_notifyed: false,
@@ -1861,33 +1854,33 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 object_id: true,
               },
             });
-            //console.log('resultresult',result);
             sendInvoiceId = result.object_id;
           }else{
-            sendInvoiceId = selectQryResult[0].object_id;
+            sendInvoiceId = selectQryResult[0].object_id;           
+            
             await connectBexio.documents_invoice_send.updateMany({
               where: {
-                fk_companyregistered: selectQryResult[0].cid,
-                rk_invoice: invoiceId,
-                invoice_type: 'EBILL',
+                fk_companyregistered: selectQryResult[0].companyregistered?.cid,
+                rk_invoice: BigInt(invoiceId),
               },
               data: {
-                time_stamp: new Date(), // equivalent to NOW()
-                invoice_params: formData, // assuming it's a valid JSON object
+                time_stamp: new Date(), 
+                invoice_params: formData, 
                 is_notifyed: false,
                 reference_id: null,
                 response: responseBody,
-                status: Number(status), // Ensure status is passed as an integer
+                status: Number(status),
+                invoice_type: 'EBILL',
+
               },
             });
+
           }
-         ////console.log('sendInvoiceIdsendInvoiceId',sendInvoiceId);
-         ////console.log('statusstatus1',status);
 
           
           resolve(sendInvoiceId);
         } catch (error) {
-         ////console.log(error);
+         console.log(error);
         commonErrors['errorTitle'] = setEbillInvoiceSendStatus.name;
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+invoiceId+'-invoiceId'+invoicenumber+'invoiceNumber';
         warningMessage(commonErrors,error);
