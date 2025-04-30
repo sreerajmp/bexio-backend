@@ -948,7 +948,7 @@ export class DebtorsService {
                         warningMessage(commonErrors, error);
                     }
                 }
-                if (item.tag === "email") {
+                if (item.tag === "email" || item.tag === "print") {
                   console.log("email tag");
                   console.log("data.otherInvoice", data.otherInvoice);
                   
@@ -965,7 +965,7 @@ export class DebtorsService {
                         console.log("Processing invoice:", obj);
                         
                           // const element = obj;
-                          const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'email');
+                          const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
                           console.log("result:::", result);
                           
                           results.push(result);
@@ -981,7 +981,7 @@ export class DebtorsService {
                         cookies: req.cookies, // Include cookies
                         signedCookies: req.signedCookies, // Include signed cookies
                         url: req.url,
-                    },'','email');
+                    },'',item.tag);
                 } catch (error) {
                     console.log("error in sendBulkInvoices :: ", error);
                 }

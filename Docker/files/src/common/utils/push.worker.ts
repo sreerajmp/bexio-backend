@@ -12,10 +12,10 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
       // Call the pushInvoiceTestProcess if billerId is provided
        pushInvoiceTestProcess(invoices, billerId);
     } 
-    if(channel=='email'){
+    if(channel=='email' || channel=='print') {
       console.log('Push Worker Received email:', { bodyParams, invoices });
       // Perform the bulk push task
-      pushEmailInvoice(invoices, bodyParams,headerParams, 'email');
+      pushEmailInvoice(invoices, bodyParams,headerParams, channel);
     }
     if (channel=='EDI') {
         // Perform the task
