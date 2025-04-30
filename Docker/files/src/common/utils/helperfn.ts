@@ -677,8 +677,10 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
 }
 export const getConnectionDetails = async (partyId,accountId,contactId,req,channel?) => {
   try {
-   ////console.log(contactId);
+   console.log(contactId);
   let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+  console.log('dataCookie',dataCookie);
+  
     const partyObjectId = await connectBexio.contact_bc.findMany({
       where: {
         rk_netcomidsender: dataCookie.netcomId,
@@ -689,6 +691,8 @@ export const getConnectionDetails = async (partyId,accountId,contactId,req,chann
         },
       },
     });
+    console.log('partyObjectId',partyObjectId);
+    
     return partyObjectId;
   } catch (error) {
       commonErrors['errorTitle'] = getConnectionDetails.name;
@@ -1322,7 +1326,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     
     const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
-      const bill_recipient_email = invoices?.bill_recipient_email;
+      const bill_recipient_email = invoices?.bill_recipient_email??'';
       // const contact_pid = invoices?.contact_pid;
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
@@ -1336,7 +1340,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       if (!pdf) { 
         console.log('pdf not found');
         
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'email_pdf_not_found');
@@ -1364,7 +1368,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       if (xml==false) {
         //console.log('xml==false');
         
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'email_xml_not_found');
@@ -1374,18 +1378,18 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       // //console.log('xml',xml);
       // //console.log('bodyValues.netcomid',bodyValues);
       
-      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, 'email');
+      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
       if (filePush) {
         //console.log('filePush:::::',filePush);
         
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '','email');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '',channel);
         //console.log("invoiceCid:::",invoiceCid);
         
         resolve(invoiceCid)
 
       }
       if(!filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong','email');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
         resolve(invoiceCid)
       }
         
@@ -1410,7 +1414,7 @@ console.log('pushInvoiceTestProcess',invoices);
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id;
-      tempParam['body']['contact_email'] = element.bill_recipient_email;
+      tempParam['body']['contact_email'] = element?.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['token'] = tempIds.accessToken;
      ////console.log('start');
@@ -3091,8 +3095,10 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
        
         return resolve('order_not_found');
       }
+      console.log("getConnectionDetails",purchaseOrder.contact_id,req);
+      
       let invitationData:any = await getConnectionDetails(partyId,accountId,purchaseOrder.contact_id,req); // Get the connection details using contact_id, party and account
-     ////console.log("invitationData: ",invitationData);
+     console.log("invitationData: ",invitationData);
       let customerIds = await constGetContactId(invitationData[0].rk_businessconnection); // Get customer Id using businessConnection
       if( invitationData != undefined ){ // If there is any invitationData then do
         let pdf,fileName,pdfContent;
@@ -4295,7 +4301,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
          "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
          "HEADER_UDX_OPT":[{
            "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
-           "RECEIVER_MAIL_ID": bill_recipient_email,
+           "RECEIVER_MAIL_ID": bill_recipient_email??'',
          }]
        }]))
    })))
