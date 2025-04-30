@@ -383,9 +383,9 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         //console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
         
         sendInvoiceId = selectQryResult[0]?.cid;
-        let updateRes= await connectBexio.documents_invoice_send.updateMany({
+       await connectBexio.documents_invoice_send.updateMany({
           where: {
-            fk_companyregistered: Number(selectQryResult[0].cid),
+            fk_companyregistered: selectQryResult[0].companyregistered?.cid,
             rk_invoice: invoiceId,
             // invoice_type: channel
           },
@@ -1858,7 +1858,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
           }else{
             sendInvoiceId = selectQryResult[0].object_id;           
             
-            let update = await connectBexio.documents_invoice_send.updateMany({
+            await connectBexio.documents_invoice_send.updateMany({
               where: {
                 fk_companyregistered: selectQryResult[0].companyregistered?.cid,
                 rk_invoice: BigInt(invoiceId),
