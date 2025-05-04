@@ -1,0 +1,147 @@
+name: Publish live Docker image to GitHub Container Registry
+
+on:
+  push:
+    # Publish `main` as Docker `latest` image.
+    branches:
+      - main
+      - test
+      - staging
+      - custom_release/*
+    paths:
+      - Docker/**
+      - test/**
+concurrency:
+  group: ci-tests-${{ github.ref }}-1
+  cancel-in-progress: true
+
+jobs:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log into registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Install dependencies
+        run: |
+          if [ -f test/apt_requirements.txt ]; then
+            xargs -a test/apt_requirements.txt sudo apt-get install
+          fi
+          if [ -f test/pip_requirements.txt ]; then
+            sudo apt-get install python3-setuptools
+            sudo pip3 install -r test/pip_requirements.txt
+          fi
+
+      - name: Run tests
+        env:
+          LOCAL_USERNAME: ${{ secrets.LOCAL_USERNAME }}
+          LOCAL_USERSECRET: ${{ secrets.LOCAL_USERSECRET }}
+          LOCAL_USERPASSWORD: ${{ secrets.LOCAL_USERPASSWORD }}
+          AUTOTEST_AWS_ENCRYPT_KEY: ${{ secrets.AUTOTEST_AWS_ENCRYPT_KEY }}
+          AUTOTEST_AWS_ACCESS_KEY_ID: ${{ secrets.AUTOTEST_AWS_ACCESS_KEY_ID }}
+          AUTOTEST_AWS_SECRET_ACCESS_KEY: ${{ secrets.AUTOTEST_AWS_SECRET_ACCESS_KEY }}
+          AUTOTEST_AWS_INITIALIZATION_VECTOR: ${{ secrets.AUTOTEST_AWS_INITIALIZATION_VECTOR }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -f test/test.sh ]; then
+            chmod +x test/test.sh
+            #test/test.sh
+          else
+            python3 test/test.py
+          fi
+
+  # Push image to Github Container registry
+  push_live:
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log into registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Build image
+        run: | 
+          branch=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          DOCKER_NAME=$(echo "$GITHUB_REPOSITORY" | sed -e 's/^io-market-AG\/Docker-//')
+          GITHUB_URL=https://github.com/${{ github.repository }}
+          docker build ./Docker --tag "tmp" --build-arg NAME=$DOCKER_NAME --build-arg REPO=$GITHUB_URL --build-arg BUILD_DATE=$(date +'%d.%m.%Y') --build-arg branch=$branch
+
+      - name: Push image
+        run: |
+          IMAGE_ID=ghcr.io/io-market-ag/$(echo "$GITHUB_REPOSITORY" | sed -e 's/^io-market-AG\/Docker-//')
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # Strip git ref prefix from version
+          branch=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          VERSION=${GITHUB_SHA::8}-$branch
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "main" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          # Push image
+          docker tag "tmp" $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
+
+      - name: update the helm chart
+        env: 
+          PAT: ${{ secrets.PAT }}
+        run: |
+          branch=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          VERSION=${GITHUB_SHA::8}-$branch
+          echo $VERSION
+          git config --global user.email "contact@io-market.com"
+          git config --global user.name "System User"
+          git clone https://${{secrets.PAT}}@github.com/io-market-AG/Docker-helmcharts
+          ls
+          if [ "$branch" = "test" ]; then
+            cd Docker-helmcharts
+            git checkout main
+            ls
+            cd bexio_interface/backend
+            cat values.yaml
+            sed -i '/tag:/d' values.yaml
+            sed -i "/repository/a \ \ tag: $VERSION " values.yaml
+            git add values.yaml
+            git commit -m "updated the docker image tag values"
+            git push
+          elif [ "$branch" = "staging" ]; then
+            cd Docker-helmcharts
+            git checkout main
+            ls
+            cd bexio_interface/backend
+            cat values-staging.yaml
+            sed -i '/tag:/d' values-staging.yaml
+            sed -i "/repository/a \ \ tag: $VERSION " values-staging.yaml
+            git add values-staging.yaml
+            git commit -m "updated the docker image tag values"
+            git push
+          elif [ "$branch" = "main" ]; then
+            cd Docker-helmcharts
+            git checkout main
+            ls
+            cd bexio_interface/backend
+            cat values-prod.yaml
+            sed -i '/tag:/d' values-prod.yaml
+            sed -i "/repository/a \ \ tag: $VERSION " values-prod.yaml
+            git add values-prod.yaml
+            git commit -m "updated the docker image tag values"
+            git push
+          else
+            echo "no braches matched"
+          fi

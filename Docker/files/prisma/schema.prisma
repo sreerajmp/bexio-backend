@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model companyregistered {
+  cid          Int       @id(map: "companyregistered_pkey1") @default(autoincrement())
+  object_id     String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rk_party     Int?
+  rk_csn       String?   @db.VarChar(250)
+  created_date  DateTime? @db.Timestamptz(6)
+  netcomid     String?   @db.VarChar
+  refresh_token String?   @db.VarChar
+  is_authorized Boolean?
+  authorized_by Int?
+  tax_type     String?   @db.VarChar
+  settings     Json?     @db.Json
+  contact_bc contact_bc[]           // one-to-many relation
+  documents_dispatchnotification_send documents_dispatchnotification_send[]
+  documents_invoice_receive documents_invoice_receive[]
+  documents_invoice_send documents_invoice_send[]
+  documents_order_receive documents_order_receive[]
+  documents_order_send documents_order_send[]
+}
+
+model contact_bc {
+  cid                   Int    @id @default(autoincrement())
+  fk_companyregistered  Int?
+  rk_contact            Int?
+  rk_businessconnection Int?
+  rk_party_account      Int?
+  rk_partyreceived      Int?
+  rk_netcomidsender     String?   @db.VarChar
+  sendercustomerid      String?   @db.VarChar
+  rk_netcomidreceived   String?   @db.VarChar
+  receiver_customerid    String?   @db.VarChar
+  receiver_email         String?   @db.VarChar
+  invite_code            Int?
+  created_date           DateTime? @default(now()) @db.Timestamptz(6)
+  accepted_date          DateTime? @db.Timestamptz(6)
+  status                Int?
+  type                  String?   @db.VarChar
+  recipient_id           String?   @db.VarChar(17)
+  rk_sendercontactid    BigInt?
+  rk_receivercontactid  BigInt?
+  // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
+
+model documents_dispatchnotification_send {
+  cid                  Int       @id(map: "companyregistered_documentsdispatchnotificationsend_pkey") @default(autoincrement())
+  fk_companyregistered Int?
+  rk_deliverynotes     BigInt?
+  time_stamp            DateTime? @default(now()) @db.Timestamptz(6)
+  deliverynotes_number  String?   @db.VarChar
+  rk_globaltransaction String?   @db.Uuid
+  status               Int?
+  sender_contactid     BigInt?
+  receiver_contactid   BigInt?
+  deliverynotes_type    String?   @db.VarChar
+  deliverynotes_params  Json?     @db.Json
+  object_id             String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ebill_referenceId     String?   @db.VarChar
+    // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
+
+model documents_invoice_receive {
+  cid                   Int    @id(map: "documents_bill_pkey") @default(autoincrement())
+  fk_companyregistered  Int
+  rk_globaltransaction  String    @db.Uuid
+  rk_invoice            String?   @db.VarChar
+  created_date           DateTime? @db.Timestamptz(6)
+  invoice_date           DateTime? @db.Timestamptz(6)
+  duedate               DateTime? @db.Timestamptz(6)
+  document_number        String?   @db.VarChar
+  gross_amount           Decimal?  @db.Decimal
+  net_amount             Decimal?  @db.Decimal
+  company_name           String?   @db.VarChar
+  vendor_name            String?   @db.VarChar
+  vendor_reference       String?   @db.VarChar
+  title                 String?   @db.VarChar
+  status                String?   @db.VarChar
+  filepath              String?   @db.VarChar
+  rk_businessconnection Int?
+    // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
+
+model documents_invoice_send {
+  cid                  Int    @id(map: "companyregistered_invoicesend_pkey") @default(autoincrement())
+  fk_companyregistered Int?
+  rk_invoice           BigInt?
+  time_stamp            DateTime? @default(now()) @db.Timestamptz(6)
+  invoice_number        String?   @db.VarChar
+  rk_globaltransaction String?   @db.Uuid
+  status               Int?
+  sender_contactid     BigInt?
+  receiver_contactid   BigInt?
+  invoice_type          String?   @db.VarChar
+  invoice_params        Json?     @db.Json
+  object_id             String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  is_notifyed           Boolean?  @default(true)
+  reference_id          String?   @db.VarChar
+  response              String?   @db.VarChar
+    // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
+
+model documents_order_receive {
+  cid                   Int    @id(map: "documents_order_pkey") @default(autoincrement())
+  fk_companyregistered  Int
+  rk_globaltransaction  String    @db.Uuid
+  rk_order              String?   @db.VarChar
+  created_date           DateTime? @db.Timestamptz(6)
+  order_date             DateTime? @db.Timestamptz(6)
+  document_number        String?   @db.VarChar
+  gross_amount           Decimal?  @db.Decimal
+  net_amount             Decimal?  @db.Decimal
+  company_name           String?   @db.VarChar
+  vendor_name            String?   @db.VarChar
+  vendor_reference       String?   @db.VarChar
+  title                 String?   @db.VarChar
+  status                String?   @db.VarChar
+  filepath              String?   @db.VarChar
+  rk_businessconnection Int?
+    // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
+
+model documents_order_send {
+  cid                  Int    @id(map: "companyregistered_ordersend_pkey") @default(autoincrement())
+  fk_companyregistered Int?
+  rk_order             BigInt?
+  time_stamp            DateTime? @default(now()) @db.Timestamptz(6)
+  order_number          String?   @db.VarChar
+  rk_globaltransaction String?   @db.Uuid
+  status               Int?
+  sender_contactid     BigInt?
+  receiver_contactid   BigInt?
+  order_type            String?   @db.VarChar
+  order_params          Json?     @db.Json
+  object_id             String?   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ebill_referenceId     String?   @db.VarChar
+    // Foreign key relation
+  companyregistered     companyregistered? @relation(fields: [fk_companyregistered], references: [cid])
+}
