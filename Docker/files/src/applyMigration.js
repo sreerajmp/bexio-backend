@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function applyMigration() {
     try {
-        const migrationSQL = readFileSync('../migration.sql', 'utf-8');
+        const migrationSQL = readFileSync('./migration.sql', 'utf-8');
 
         // Split SQL commands (ensure it works for multiple lines)
         const statements = migrationSQL
