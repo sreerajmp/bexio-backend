@@ -21,10 +21,11 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc } from 'src/common/utils/helperfn';
+import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
+import status_code from 'src/common/utils/statusCodes';
 
 @Injectable()
 export class DebtorsService {
@@ -1487,5 +1488,63 @@ export class DebtorsService {
       });
     }
     res.send({});
+  }
+  async viewInvoicePdf(req: Request, res: Response,): Promise<any> {
+    try {
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+      let invoiceId =req.body.invoice_id;
+      let pdf,fileName,pdfContent;
+      pdf = await getInvoicePdf(accessToken,invoiceId);
+      if(pdf.response == 401){
+        
+      
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'error_getInvoicePdf ');
+        //return resolve('unauthorized');
+
+        return res.status(status_code.UNAUTHORISED).json({
+          status_code: 401,
+          message: 'common_error',
+        });
+  
+      }
+      if(!pdf){
+       
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'error_getInvoicePdf ');
+      //  return resolve('pdf_not_found');
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'pdf_not_found',
+      });
+      }
+      let pdf_parsed = JSON.parse(pdf);
+      pdfContent = pdf_parsed.content;
+      fileName = pdf_parsed.name;
+      
+      return res.status(status_code.OK).json({
+        status_code: 200,
+        message: 'common_success',
+        status: true,
+        data:{pdf_parsed,pdfContent,fileName},
+      });
+
+      
+    } catch (error) {
+      console.log("error in viewInvoicePdf :: ",error);      
+      let responseValue = req.body.invoiceId;
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+   
   }
 }
