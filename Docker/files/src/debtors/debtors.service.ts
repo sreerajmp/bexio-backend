@@ -25,6 +25,7 @@ import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurr
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
+import {getInvoiceOT,getUser,getDefaultUser} from 'src/common/utils/helperfn';
 import status_code from 'src/common/utils/statusCodes';
 
 @Injectable()
@@ -359,7 +360,7 @@ export class DebtorsService {
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
-            resData[invoice]['invoice_type'] = resultArray.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
+            resData[invoice]['invoice_type'] = ''; 
             
             for (let qryInvoice in invoiceList) {
               if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
@@ -859,7 +860,6 @@ export class DebtorsService {
     let data = req.body;
     const bexioClient = await edit();
     let combinedResponse :any = {};
-    combinedResponse.emailInvoice=[]
 
     try {
         if (data.otherInvoice) {
@@ -963,16 +963,19 @@ export class DebtorsService {
                     };
                     async function processInvoices(obj, bodyData): Promise<any[]> {
                       const results:any = [];
-                        console.log("Processing invoice:", obj);                        
+                      // for (let index = 0; index < obj.length; index++) {
+                        console.log("Processing invoice:", obj);
+                        
+                          // const element = obj;
                           const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
-                          console.log("result:::", result);                          
+                          console.log("result:::", result);
+                          
                           results.push(result);
+                      // }
                       return results;
                   }
                   // await processInvoices(JSON.parse(data.otherInvoice), bodyParams)
-                  let invoice_uuid = await processInvoices(selectedItem[0], bodyParams)
-                  console.log("invoice_uuid:::", invoice_uuid);
-                  selectedItem[0]['invoice_uuid'] = invoice_uuid[0];
+                  combinedResponse.emailInvoice=[]
                   combinedResponse.emailInvoice.push(await processInvoices(selectedItem[0], bodyParams));
                   console.log("processInvoices:::", selectedItem[0]);
                     // Use the PushWorkerHost to run the worker task
@@ -1547,4 +1550,420 @@ export class DebtorsService {
     }
    
   }
+  async changeInvoiceSendStatus(req: Request, res: Response,): Promise<any> {
+  
+    let formData 
+    formData = req.body;
+    try {
+        const referenceId = formData.referenceId ;
+        let status;
+        
+        console.log('formData',formData);
+        switch (formData.status.trim()) {
+          case 'ERROR':
+          case 'INCORRECT':
+          case 'REJECTED':
+            status = 0;
+            break;
+          case 'COMPLETED':
+            status = 2;
+            break;
+          case 'OPEN ':
+          case 'APPROVED':  
+            status = 1;
+          default:
+            status = 1;
+            break;
+        }
+        
+
+          const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
+            where: {
+              reference_id: referenceId,  // use colon, not equal sign
+            },
+            include: {
+              companyregistered: true,
+            },
+          });          
+          
+        if(refDataQueryResult.length>0){
+          const updateQueryResult = await connectBexio.documents_invoice_send.updateMany({
+            where: {
+              reference_id: referenceId,
+            },
+            data: {
+              status: status,
+              is_notifyed: true,
+            },
+          });
+          
+
+
+
+          const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
+
+          const resultGetPartyApplication = await connectLibrary.$queryRaw<any>`
+            SELECT pa.cid, lp.companyname, a.code AS app, av.version AS appversion
+            FROM partyapplication pa
+            INNER JOIN application_version av ON av.cid = pa.fk_application_version
+            INNER JOIN application a ON a.cid = av.fk_application
+            INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
+            WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
+          `;
+          
+          const partyApplicationId = resultGetPartyApplication[0].objectid;
+          console.log('12333');
+          
+          let invoiceCid:any;
+          const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
+         
+          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token,updateQueryResult[0].rk_invoice,formData.status.trim(),formData.message,refDataQueryResult[0].companyregistered?.netcomid,formData.amount,bankId);
+          
+          return res.status(200).json({
+            status_code: 200,
+            message: 'success',
+            status: true
+          });
+        }else{
+          console.log('errorr','error_refDataQueryResult');
+          
+          return res.status(200).json({
+            status_code: 200,
+            message: 'something_went_wrong',
+            status: false
+          });
+        }
+        
+    } catch (error) {
+      
+        console.log(error);
+        let responseValue = JSON.stringify(formData)
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+responseValue;
+        warningMessage(commonErrors,error);
+        return res.status(500).json({
+            message: 'something_went_wrong',
+            status: false
+        });
+    }
+  }
+}
+const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{
+  const bexioClient = await edit();
+  let options;
+  console.log('refreshToken',refreshToken);
+  let params = {
+    refreshToken:refreshToken,
+    id:id,
+    status:status,
+    amount:amount,
+  }
+  let tempMsg,erroMsg = '';
+  console.log('typeof(message)',typeof(message));
+  
+  if(message){
+    if(typeof(message) == 'object')
+       tempMsg = message;
+    else
+      try {
+       tempMsg = JSON.parse(message);
+        
+      } catch (error) {
+        tempMsg = message;
+      }
+
+    if(typeof(tempMsg) == 'object')
+    {
+      if('detail' in tempMsg){
+        erroMsg = erroMsg + tempMsg['detail'];
+      }
+      if('technicalReason' in tempMsg){
+        erroMsg = erroMsg + ' - '+ tempMsg['technicalReason'];
+      }
+    }else{
+      erroMsg = erroMsg + message;
+
+    }
+   
+  }
+  console.log('erroMsg',erroMsg);
+  const tokenSet = await bexioClient.refresh(refreshToken);
+  console.log('tokenSet',tokenSet);
+  console.log('id',id);
+  console.log('status',status);
+
+  await addBexioComment(tokenSet.access_token,id,status,erroMsg,netcomId);
+
+  
+  return new Promise(async(resolve, reject) => {
+    try {
+      console.log('bankId',bankId);
+      let isNotifyBexio = true;
+      if(status == 'COMPLETED'){
+        const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
+          where: {
+            netcomid: netcomId,
+            settings: {
+              // Using 'contains' to search for the 'notifyPayment' key with value 'false' in the JSON
+              path: ['notifyPayment'],
+              equals: 'false', // Checks if the value of 'notifyPayment' is 'false'
+            },
+          },
+          select: {
+            settings: true, // Fetching the settings JSON
+          },
+        });
+        
+        if(getCompanyIdQryResult.length > 0){
+          isNotifyBexio = false;
+        }
+        console.log('isNotifyBexio',isNotifyBexio);
+
+        if(isNotifyBexio)
+          {
+
+            options = {
+              'method': 'POST',
+              'url': `https://api.bexio.com/2.0/kb_invoice/${id}/payment`,
+              'headers': {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer '+tokenSet.access_token
+              },
+              body: JSON.stringify({
+                "value": amount,
+                "bank_account_id":bankId ? bankId : undefined
+              })
+            };
+            console.log('optionsoptions',options);
+            request(options, async function (error, response) {
+              if (error) {  
+                console.log('errorr',error);
+                commonErrors['errorTitle'] = 'notifiBexio';
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+                warningMessage(commonErrors,error);
+                resolve(false)
+              }
+              // res.send(response.body)
+              //console.log(response.body);
+              console.log('notifiBexionotifiBexio',options);
+        
+              console.log('notifiBexionotifiBexio',response.body);
+              console.log('typeoftypeof',typeof(response.body));
+      
+              let resStatus = 'success' in JSON.parse(response.body) ? true : false;
+              console.log('statusstatus',resStatus);
+              
+      
+              if(response.statusCode == 201 || resStatus)
+              {
+              
+                resolve(JSON.parse(response.body));
+                console.log('JSON.parse(response.body)',JSON.parse(response.body));
+              }
+              else{
+              // resolve(false)
+                commonErrors['errorTitle'] = 'notifiBexio';
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
+                warningMessage(commonErrors,error);
+                resolve(false)
+              }
+          });
+        }else{
+          resolve(false)
+        }
+      }else if(status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL'){
+        options = {
+          'method': 'POST',
+          'url': `https://office.bexio.com/api.php/kb_invoice/${id}/mark_as_ebill_failed`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+tokenSet.access_token
+          }
+        };
+        request(options, async function (error, response) {
+          if (error) {  
+            console.log('errorr',error);
+            commonErrors['errorTitle'] = 'notifiBexio';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+          //console.log(response.body);
+          console.log('notifiBexionotifiBexio',options);
+    
+          console.log('notifiBexionotifiBexio',response.body);
+          console.log('typeoftypeof',typeof(response.body));
+          let resStatus;
+          if(typeof(response.body) == 'object'){
+            resStatus = 'success' in JSON.parse(response.body) ? true : false;
+
+          }else{
+            resStatus = false;
+          }
+          console.log('statusstatus',resStatus);
+          
+  
+           if(response.statusCode == 201 || resStatus)
+          {
+          
+            resolve(JSON.parse(response.body));
+            console.log('JSON.parse(response.body)',JSON.parse(response.body));
+          }
+          else{
+          // resolve(false)
+            commonErrors['errorTitle'] = 'notifiBexio';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
+            warningMessage(commonErrors,error);
+            resolve(false);
+          }
+  
+        });
+      }else{
+        resolve(true);
+      }
+      console.log('options',options);
+      
+  
+    } catch (error) {
+      
+      commonErrors['errorTitle'] = 'notifiBexio';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+      warningMessage(commonErrors,error);
+      resolve(false)
+
+    }
+  }); 
+
+ 
+}
+const addBexioComment = async (token,id,status,message?,netcomId?) => {
+ 
+  console.log('addBexioComment');
+  let parms = {
+    token:token,
+    id:id,
+    status:status,
+    message:message,
+    netcomId:netcomId
+  }
+  console.log('parms',parms);
+  
+  return new Promise(async(resolve, reject) => {
+    try {
+      // const tokenSet = await bexioClient.refresh(refreshToken);
+      console.log('config.BEXIO_COMMENTS',config.BEXIO_COMMENTS);
+      let commentsData = JSON.parse(config.BEXIO_COMMENTS);
+      console.log(commentsData[status].replace('[message]','{ '+message+' }'))
+      let comments = commentsData[status].replace('[message]','{ '+message+' }')
+      let invoiceData = await getInvoiceOT(token,id);
+      console.log('addBexioComment');
+      
+      if(!invoiceData)
+      {
+        commonErrors['errorTitle'] = 'addBexioComment';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'addBexioComment '+'-bexio param,'+JSON.stringify(parms);
+        warningMessage(commonErrors,'error');
+        resolve(false)
+        return
+      }
+      let userData = await getUser(token,invoiceData['user_id']);
+      console.log('userData',userData);
+      
+      if(!userData){
+        userData = await getDefaultUser(token);
+      }
+      console.log('userData',userData);
+
+      if(!userData)
+      {
+        commonErrors['errorTitle'] = 'addBexioComment';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'addBexioComment '+'-bexio param,'+JSON.stringify(parms);
+        warningMessage(commonErrors,'error');
+        resolve(false)
+        return
+      }
+      let isNotifyBexio = true;
+        const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
+          where: {
+            netcomid: netcomId,
+            settings: {
+              path: ['notifyComments'], // Specify the key in the JSON
+              equals: 'false', // Checks if the value of 'notifyComments' is 'false'
+            },
+          },
+          select: {
+            settings: true, // Fetch the settings JSON field
+          },
+        });
+        
+
+        if(getCompanyIdQryResult.length > 0){
+           isNotifyBexio = false;
+        }
+        console.log('isNotifyBexio',isNotifyBexio);
+        
+      let options = {
+        'method': 'POST',
+        'url': `https://api.bexio.com/2.0/kb_invoice/${id}/comment`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+token
+        },
+        body: JSON.stringify({
+          "text": comments,
+          "user_name":'iomarket AG'
+        })
+      };
+      // console.log(options);
+      if(isNotifyBexio)
+        {
+          request(options, function (error, response) {
+            if (error) {  
+              console.log('errorr',error);
+          
+              commonErrors['errorTitle'] = 'addBexioComment';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
+              warningMessage(commonErrors,error);
+              resolve(false)
+            }
+            // res.send(response.body)
+            //console.log(response.body);
+            console.log('options',options);
+      
+            console.log('response',response.body);
+      
+            if(response.statusCode == 201)
+            {
+              resolve(JSON.parse(response.body));
+              console.log('JSON.parse(response.body)',JSON.parse(response.body));
+              return;
+            }
+            else{
+              console.log('errorr',error);
+              commonErrors['errorTitle'] = 'addBexioComment';
+              // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?response.body.toString():''+'-bexio param,'+JSON.stringify(parms);
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
+              warningMessage(commonErrors,error);
+              resolve(false)
+              return;
+            }
+            resolve(false)
+          })
+        }else{
+          resolve(false)
+        }
+      } catch (error) {
+       
+        console.log('errorrrrrrr',error);
+        commonErrors['errorTitle'] = 'addBexioComment';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
+        warningMessage(commonErrors,error);
+        resolve(false);
+        return;
+        
+      }
+    })
+
+    
 }
