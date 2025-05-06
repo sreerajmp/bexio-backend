@@ -858,6 +858,7 @@ export class DebtorsService {
     let data = req.body;
     const bexioClient = await edit();
     let combinedResponse :any = {};
+    combinedResponse.emailInvoice=[]
 
     try {
         if (data.otherInvoice) {
@@ -961,19 +962,16 @@ export class DebtorsService {
                     };
                     async function processInvoices(obj, bodyData): Promise<any[]> {
                       const results:any = [];
-                      // for (let index = 0; index < obj.length; index++) {
-                        console.log("Processing invoice:", obj);
-                        
-                          // const element = obj;
+                        console.log("Processing invoice:", obj);                        
                           const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
-                          console.log("result:::", result);
-                          
+                          console.log("result:::", result);                          
                           results.push(result);
-                      // }
                       return results;
                   }
                   // await processInvoices(JSON.parse(data.otherInvoice), bodyParams)
-                  combinedResponse.emailInvoice=[]
+                  let invoice_uuid = await processInvoices(selectedItem[0], bodyParams)
+                  console.log("invoice_uuid:::", invoice_uuid);
+                  selectedItem[0]['invoice_uuid'] = invoice_uuid[0];
                   combinedResponse.emailInvoice.push(await processInvoices(selectedItem[0], bodyParams));
                   console.log("processInvoices:::", selectedItem[0]);
                     // Use the PushWorkerHost to run the worker task
