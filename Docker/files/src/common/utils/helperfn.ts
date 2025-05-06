@@ -482,6 +482,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
             let pdf,fileName,pdfContent;
             pdf = await getInvoicePdf(accessToken,invoiceId);
             if(pdf.response == 401){
+              
               invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','unauthorized',channel);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
