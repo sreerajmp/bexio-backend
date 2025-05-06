@@ -51,5 +51,10 @@ export class DebtorsController {
   async sendDeliveryNotes(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.sendDeliveryNotes(req,res);
   }
+  @Post('viewInvoicePdf')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async viewInvoicePdf(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.viewInvoicePdf(req,res);
+  }
   
 }
