@@ -414,7 +414,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
   try {
     console.log("worker processing invoices...",invoices);
 
-    let tempIds = invoices;
+    let tempIds = JSON.parse(invoices);
 
     for (let index = 0; index < tempIds.length; index++) {
       const element = tempIds[index];
@@ -426,7 +426,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
         body: {
           partyId: bodyValues.partyId,
           accountId: bodyValues.accountId,
-          invoiceId: element.invoiceId??element.doc_id,
+          invoiceId: element.invoiceId,
         },
       };
 
@@ -453,7 +453,6 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
         return reject('Invalid input data');
       }
 
-      //console.log("decryptData ", decryptData);
       let invoiceCid;
       try {
         let invoice,paymentType
@@ -473,9 +472,7 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
           return resolve('invoice_invalid');
         }
 
-        let invitionData:any = await getConnectionDetails(partyId,accountId,invoice.contact_id,req);
-        //console.log('invitionDatainvitionDatainvitionDatainvitionData',invitionData);
-      
+        let invitionData:any = await getConnectionDetails(partyId,accountId,invoice.contact_id,req);     
 
         if( invitionData.length != 0){    
 
@@ -484,6 +481,13 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
             //console.log('invitionData',invitionData);     
             let pdf,fileName,pdfContent;
             pdf = await getInvoicePdf(accessToken,invoiceId);
+            if(pdf.response == 401){
+              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','unauthorized',channel);
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
+              warningMessage(commonErrors,'error_getInvoicePdf ');
+              return resolve('unauthorized');
+            }
             if(!pdf){
               invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','pdf_not_found',channel);
               commonErrors['errorTitle'] = req.originalUrl;
@@ -616,7 +620,8 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
                 invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_item_error',channel);
                 return resolve('bexio_item_error');
               }
-              await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],channel.toUpperCase());
+              let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],channel.toUpperCase());
+console.log('invoiceFilePushD',invoiceFilePushD);
 
               let redisKey = req.body.partyId+"_/";
               await deleteRedis('sendInvoice',redisKey);
@@ -649,7 +654,7 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
             'Authorization': 'Bearer '+access_token
           }
         };
-       console.log('optionsoptions',options);
+      //  console.log('optionsoptions',options);
         
         request(options, function (error, response) {
           // //console.log("response::::",response.statusCode,response.body);
@@ -736,12 +741,14 @@ export const getInvoicePdf = async (accessToken,invoiceId)=>{
           warningMessage(commonErrors,error);
           resolve(false)
         }
-        // console.log('response.statusCode pdf::::',response.statusCode);
+        console.log('response.statusCode pdf::::',response.statusCode);
         // //console.log('response.body',response.body);
-        // console.log('response',response);
+        // console.log('response pdf',response);
         
         if(response.statusCode==200)
          resolve(response.body);
+        if(response.statusCode==401)
+          resolve({response:response.statusCode,message:'unauthorized'});
         else
          resolve(false);
 
@@ -1322,29 +1329,38 @@ export const deleteRedis = async (api, key) => {
 
 export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel?) => {
   return new Promise(async (resolve, reject) => {
-    console.log('invoices::::', invoices);
-    
-    const decryptData = invoices;
+    try {
+      console.log('invoices::::', invoices);
+
+      const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
-      const bill_recipient_email = invoices?.bill_recipient_email??'';
-      // const contact_pid = invoices?.contact_pid;
+      const bill_recipient_email = invoices?.bill_recipient_email ?? '';
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
-    let pdf, fileName, pdfContent;
-    let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
-    ////console.log("decryptData :: ",decryptData);
-     let accessToken = cookie.access_Token;
+      let pdf, fileName, pdfContent;
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+
       pdf = await getInvoicePdf(accessToken, invoice_id);
-      console.log('pdf::::',pdf, invoice_id);
-      
-      if (!pdf) { 
+      console.log('pdf::::', pdf, invoice_id);
+      if (pdf?.response == 401) {
+        console.log('unauthorized');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'unauthorized');
+        resolve('unauthorized' + invoiceCid);
+        return;
+      }
+      if (!pdf) {
         console.log('pdf not found');
-        
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
+
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'email_pdf_not_found');
-        resolve('something_went_wrong'+invoiceCid)
+        resolve('something_went_wrong' + invoiceCid);
+        return;
       }
 
       pdfContent = JSON.parse(pdf).content;
@@ -1353,50 +1369,41 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       let coutryList;
       coutryList = await getCountryLists(accessToken);
       if (!coutryList) {
-        // commonErrors['errorTitle'] = invoices.originalUrl;
-        // commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_coutryList_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        // warningMessage(commonErrors, 'ebill_coutryList_not_found');
-        resolve('coutryList not found')
-
+        resolve('coutryList not found');
+        return;
       }
       coutryList = JSON.parse(coutryList);
-      const invoice :any= await getInvoiceOT(accessToken,invoice_id);
-      
-      let xml :any= await setInvoiceEmailOt(invoice,bill_recipient_email,coutryList, pdfContent, fileName,{}, '', invoice_uuid)
-      //console.log('xml:::::',xml);
+      const invoice: any = await getInvoiceOT(accessToken, invoice_id);
 
-      if (xml==false) {
-        //console.log('xml==false');
-        
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
+      let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
+
+      if (xml == false) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'email_xml_not_found');
-        resolve('something_went_wrong'+invoiceCid)
-
+        resolve('something_went_wrong' + invoiceCid);
+        return;
       }
-      // //console.log('xml',xml);
-      // //console.log('bodyValues.netcomid',bodyValues);
-      
+
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
       if (filePush) {
-        //console.log('filePush:::::',filePush);
-        
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '',channel);
-        //console.log("invoiceCid:::",invoiceCid);
-        
-        resolve(invoiceCid)
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+        resolve(invoiceCid);
+        return;
+      }
 
+      if (!filePush) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        resolve(invoiceCid);
+        return;
       }
-      if(!filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong',channel);
-        resolve(invoiceCid)
-      }
-        
-      // await issueEbillInvoice(accessToken, decryptData.invoice_id);
-      // await markAsIssues(accessToken, decryptData.invoice_id);
-})
-}
+    } catch (error) {
+      console.error('Error in pushEmailInvoice:', error);
+      reject(error);
+    }
+  });
+};
 export const pushInvoiceTestProcess = async (invoices,billerId)=>{
 console.log('pushInvoiceTestProcess',invoices);
   let tempIds = invoices
@@ -1626,6 +1633,16 @@ export const pushInvoiceTest1 = async (req, res) => {
 
       let pdf, fileName, pdfContent;
       pdf = await getInvoicePdf(accessToken, invoiceId);
+      if (pdf?.response == 401) {
+        console.log('unauthorized');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'unauthorized');
+
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'unauthorized');
+
+        resolve('unauthorized' + invoiceCid)
+      }
       if (!pdf) {
        
 
@@ -4300,7 +4317,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
         //  "EBILL.QR_TYPE": billDetails['type']??undefined,
          "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
          "HEADER_UDX_OPT":[{
-           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
+           "BEX_INVOICE_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
            "RECEIVER_MAIL_ID": bill_recipient_email??'',
          }]
        }]))
