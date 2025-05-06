@@ -19,6 +19,7 @@ import { resolve } from 'path';
 const fetchEmailContent = require('../common/utils/fetchEmailData');
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
+import { log } from 'console';
 @Injectable()
 export class ConfigurationService {
 
@@ -228,10 +229,16 @@ export class ConfigurationService {
     const data = req.body;
 
     try {
+
+      // console.log('***********************',data);
+      
       let docType = data.docType || 'Invoice';
       let direction = data.direction || 'Receive';
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+
       let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+      // console.log('***********************',dataCookie);
+      
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
       const partyAccountCheckRaw = await connectBexio.contact_bc.findMany({
@@ -303,6 +310,7 @@ export class ConfigurationService {
         let resData;
         let countryList = {};
         resData = await getCountryLists(accessToken);
+        console.log('***********************resData',resData);
 
         if (!resData) {
           commonErrors['errorTitle'] = req.originalUrl;
@@ -314,7 +322,14 @@ export class ConfigurationService {
             status: false,
 
           });
-          return
+        
+        }
+        if (resData == 401) {
+          return res.status(401).json({
+            status: true,
+            data: [],
+            message: "unauthorized",
+          });
         }
         resData = JSON.parse(resData);
         resData['message'] != 'Unauthorized' ? resData.forEach((country) => {
@@ -1980,6 +1995,8 @@ const getBcDetails = async (bc_id, netcomId) => {
 }
 const getCountryLists = async (access_token) => {
   try {
+    console.log('acce',access_token);
+    
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'GET',
@@ -1998,8 +2015,13 @@ const getCountryLists = async (access_token) => {
         }
         if (response.statusCode == 200)
           resolve(response.body);
-        else
+        else if(response.statusCode == 401){
+          resolve(response.statusCode);
+        }
+        else{
+        
           resolve(false)
+        }
 
       });
     });
