@@ -1093,7 +1093,7 @@ taxIsAdded = invoice.taxs.length;
           "_": invitionData.sendercustomerid
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": invitionData.receivercustomerid,
+          "_": invitionData.receiver_customerid,
           "$": {
               "type": "supplier_specific"
           }
