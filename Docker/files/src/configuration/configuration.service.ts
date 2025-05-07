@@ -19,7 +19,6 @@ import { resolve } from 'path';
 const fetchEmailContent = require('../common/utils/fetchEmailData');
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
-import { log } from 'console';
 @Injectable()
 export class ConfigurationService {
 

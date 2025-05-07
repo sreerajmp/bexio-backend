@@ -863,7 +863,7 @@ export class DebtorsService {
 
     try {
         if (data.otherInvoice) {
-            let getTag: any = await getTagName(data.otherInvoice);
+            let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
             console.log('getTag', getTag);
             combinedResponse.otherInvoiceResults = getTag?.data || [];
 

@@ -261,37 +261,18 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-export const getTagName = async(details)=>{
+export const getTagName = async(netcom_id,details)=>{
     
-  try {
-  
-     let responseData = null
+  try { 
   
     const data = {
-      config_id: 1,
+      netcom_id: netcom_id,
       module: 'BEX',
       file_list:JSON.parse(details)
     };
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
     };
-    
-//  let invoice_issuerid ='';
-//  let emailAddress='';
-//  let billRecipientId ='';
-//  let sender_name='';
-//  let receiver_name='';
-//  let doc_type='';
-//  let in_cust_id='';
-//  let out_cust_id='';
-//  let doc_format='';
-//  let mode='';
-//  let doc_module='';
-//  let recipient_email='';
-//  let recipient_name='';
-//  let receiver_street='';
-//  let receiver_city='';
-//  let receiver_zip='';
 var options = {
   'method': 'POST',
   'url': `${config.OCTOPUS_URL}/bexio_file_check`,
