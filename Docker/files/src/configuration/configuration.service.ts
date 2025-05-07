@@ -89,7 +89,7 @@ export class ConfigurationService {
 
       let fomdata = {
         name: data.netcom_id,
-        config: JSON.stringify(data.config),
+        config: data.config,
         status: 1,
         module: 'BEX'
       }
@@ -118,7 +118,7 @@ export class ConfigurationService {
           else {
             try {
 
-              //console.log.log(response.body);
+              // console.log("UpdateConfiguration:",response.body);
               responseData = JSON.parse(response.body)
 
 
