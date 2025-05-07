@@ -360,7 +360,7 @@ export class DebtorsService {
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
-            resData[invoice]['invoice_type'] = ''; 
+            resData[invoice]['invoice_type'] = resultArray.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
             
             for (let qryInvoice in invoiceList) {
               if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
