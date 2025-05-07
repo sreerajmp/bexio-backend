@@ -1139,6 +1139,7 @@ taxIsAdded = invoice.taxs.length;
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX": customerIds.length != 0 || invoiceCid ? [{
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_INVOICE_DOCUMENT_ID": invoiceCid ? invoiceCid : undefined
         }],
         "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
@@ -2447,6 +2448,7 @@ taxIsAdded = invoice.taxs.length;
         "EBILL.QR_TYPE": billDetails['type'],
         "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
         }]
       }]))
@@ -3480,6 +3482,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       "REMARKS": order.title ? order.title : undefined,
       "HEADER_UDX": customerIds.length != 0 || orderId ? [{
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_ORDER_DOCUMENT_ID": orderId ? orderId : undefined
         }],
         "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
@@ -4055,6 +4058,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         "REMARKS": deliveryNotes.title ? deliveryNotes.title : undefined,
         "HEADER_UDX":[{
           "HEADER_UDX_OPT": [{
+          "BEX_VERSION": "VER1",
             "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
           }],
           "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
@@ -4299,6 +4303,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
         //  "EBILL.QR_TYPE": billDetails['type']??undefined,
          "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
          "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
            "BEX_INVOICE_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
            "RECEIVER_MAIL_ID": bill_recipient_email??'',
          }]
