@@ -30,7 +30,7 @@ export class ConfigurationService {
 
       let fomdata = {
         name: data.netcom_id,
-        config: JSON.stringify(data.config),
+        config: data.config,
         status: 1,
         module: 'BEX'
       }
