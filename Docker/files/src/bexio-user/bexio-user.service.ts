@@ -1886,12 +1886,8 @@ VALUES (
 
     }
     async function partyApplicationDetails(partyId, accountId, partyAccount, roleValue) {
-
-
       let userRoles;
       return new Promise(async function (resolve, reject) {
-        //console.log('role', roleValue);
-
         if (roleValue) {
           userRoles = config.BEXIO_ADMIN_ROLE;
         } else {
@@ -1902,59 +1898,61 @@ VALUES (
 
 
         const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-    SELECT 
-      r.name,
-      rav.fk_application_version,
-      r.cid AS "roleId"
-    FROM public.role_policy rp
-    INNER JOIN public.role r ON r.cid = rp.fk_role
-    INNER JOIN public.policy p ON p.cid = rp.fk_policy
-    INNER JOIN role_application_version rav ON rav.fk_role = r.cid
-    WHERE r.name IN (${Prisma.join(userRoles)})
-      AND r.fk_party IS NULL
-  `);
+          SELECT 
+            r.name,
+            rav.fk_application_version,
+            r.cid AS "roleId"
+          FROM public.role_policy rp
+          INNER JOIN public.role r ON r.cid = rp.fk_role
+          INNER JOIN public.policy p ON p.cid = rp.fk_policy
+          INNER JOIN role_application_version rav ON rav.fk_role = r.cid
+          WHERE r.name IN (${Prisma.join(userRoles)})
+            AND r.fk_party IS NULL
+        `);
 
+        if (!Array.isArray(roleData)) {
+          console.error('Expected roleData to be an array, but got:', roleData);
+          return reject(new Error('Invalid role data format'));
+        }
 
-        //console.log('roleData', roleData);
         for (const element of roleData) {
           // 1. Check if partyapplication already exists
           let partyApplicationId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-        SELECT * FROM partyapplication
-        WHERE fk_party = ${partyId}
-        AND fk_application_version = ${element.fk_application_version}
-      `);
+            SELECT * FROM partyapplication
+            WHERE fk_party = ${partyId}
+            AND fk_application_version = ${element.fk_application_version}
+          `);
 
           // 2. Insert if not exists
           if (partyApplicationId.length === 0) {
             partyApplicationId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-          INSERT INTO partyapplication (fk_party, fk_application_version)
-          VALUES (${partyId}, ${element.fk_application_version})
-          RETURNING cid
-        `);
+              INSERT INTO partyapplication (fk_party, fk_application_version)
+              VALUES (${partyId}, ${element.fk_application_version})
+              RETURNING cid
+            `);
           }
 
           const partyApplication = partyApplicationId[0].cid;
 
           // 3. Insert partyapplication_account
           const partyApplicationAccountId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-        INSERT INTO partyapplication_account (fk_partyapplication, fk_account, fk_party_account)
-        VALUES (${partyApplication}, ${accountId}, ${partyAccount})
-        RETURNING cid
-      `);
+            INSERT INTO partyapplication_account (fk_partyapplication, fk_account, fk_party_account)
+            VALUES (${partyApplication}, ${accountId}, ${partyAccount})
+            RETURNING cid
+          `);
 
           const partyApplicationAccount = partyApplicationAccountId[0].cid;
 
           // 4. Insert partyapplication_account_role
           await connectLibrary.$executeRaw(
             Prisma.sql`
-          INSERT INTO partyapplication_account_role (fk_partyapplication_account, fk_role)
-          VALUES (${partyApplicationAccount}, ${element.roleid})
-        `
+              INSERT INTO partyapplication_account_role (fk_partyapplication_account, fk_role)
+              VALUES (${partyApplicationAccount}, ${element.roleId})
+            `
           );
         }
-        resolve(1)
+        resolve(1);
       });
-
     };
 
     async function addSubscriptionParty(partyValue, accountValue, planId, subScriptionType, netcomIdG2b) {
