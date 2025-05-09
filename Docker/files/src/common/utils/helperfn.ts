@@ -1261,27 +1261,24 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
       filename:filename+'.xml',
       module:type
     }
+console.log('bexio-file-drop formData',formData);
 
     let  options = {
-        'method': 'POST',
-        // 'url':'http://192.168.2.63:5005/api/bexio-file-drop',
+        'method': 'POST',        
         'url':config.PYTHON_API+'bexio-file-drop',
         // 'headers': headers,
         formData: formData
       };
     request(options, function (error, response) {
-      // //console.log('response bexio-file-drop',response);
       
       if (error) { 
-       //console.log('sdfdsfdsf',error);
         
         commonErrors['errorTitle'] = 'bexio-file-drop';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
         warningMessage(commonErrors,error);
         resolve(false)
       }
-      //console.log('response.statusCode',response.statusCode);
-      //console.log('response.body',response.body);
+      
       
       return resolve(response?.body)
      
@@ -1357,7 +1354,17 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
       coutryList = JSON.parse(coutryList);
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
-
+      let contact = await getContact(accessToken, invoice.contact_id);
+      if (!contact) {
+        console.log('contact not found');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_contact_not_found');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+      invoice.contact = contact;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
@@ -1370,8 +1377,12 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+      console.log('filePush::::', filePush);
+      
       if (filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+        console.log('invoiceCid::::', invoiceCid);
+
         resolve(invoiceCid);
         return;
       }
