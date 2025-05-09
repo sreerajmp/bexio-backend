@@ -261,37 +261,18 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-export const getTagName = async(details)=>{
+export const getTagName = async(netcom_id,details)=>{
     
-  try {
-  
-     let responseData = null
+  try { 
   
     const data = {
-      config_id: 1,
+      netcom_id: netcom_id,
       module: 'BEX',
       file_list:JSON.parse(details)
     };
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
     };
-    
-//  let invoice_issuerid ='';
-//  let emailAddress='';
-//  let billRecipientId ='';
-//  let sender_name='';
-//  let receiver_name='';
-//  let doc_type='';
-//  let in_cust_id='';
-//  let out_cust_id='';
-//  let doc_format='';
-//  let mode='';
-//  let doc_module='';
-//  let recipient_email='';
-//  let recipient_name='';
-//  let receiver_street='';
-//  let receiver_city='';
-//  let receiver_zip='';
 var options = {
   'method': 'POST',
   'url': `${config.OCTOPUS_URL}/bexio_file_check`,
@@ -1112,7 +1093,7 @@ taxIsAdded = invoice.taxs.length;
           "_": invitionData.sendercustomerid
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": invitionData.receivercustomerid,
+          "_": invitionData.receiver_customerid,
           "$": {
               "type": "supplier_specific"
           }
@@ -1158,6 +1139,7 @@ taxIsAdded = invoice.taxs.length;
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX": customerIds.length != 0 || invoiceCid ? [{
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_INVOICE_DOCUMENT_ID": invoiceCid ? invoiceCid : undefined
         }],
         "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
@@ -2466,6 +2448,7 @@ taxIsAdded = invoice.taxs.length;
         "EBILL.QR_TYPE": billDetails['type'],
         "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
         }]
       }]))
@@ -3499,6 +3482,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       "REMARKS": order.title ? order.title : undefined,
       "HEADER_UDX": customerIds.length != 0 || orderId ? [{
         "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
           "BEX_ORDER_DOCUMENT_ID": orderId ? orderId : undefined
         }],
         "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
@@ -4074,6 +4058,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         "REMARKS": deliveryNotes.title ? deliveryNotes.title : undefined,
         "HEADER_UDX":[{
           "HEADER_UDX_OPT": [{
+          "BEX_VERSION": "VER1",
             "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
           }],
           "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
@@ -4318,6 +4303,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
         //  "EBILL.QR_TYPE": billDetails['type']??undefined,
          "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
          "HEADER_UDX_OPT":[{
+          "BEX_VERSION": "VER1",
            "BEX_INVOICE_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
            "RECEIVER_MAIL_ID": bill_recipient_email??'',
          }]

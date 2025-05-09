@@ -30,7 +30,7 @@ export class ConfigurationService {
 
       let fomdata = {
         name: data.netcom_id,
-        config: JSON.stringify(data.config),
+        config: data.config,
         status: 1,
         module: 'BEX'
       }
@@ -89,7 +89,7 @@ export class ConfigurationService {
 
       let fomdata = {
         name: data.netcom_id,
-        config: JSON.stringify(data.config),
+        config: data.config,
         status: 1,
         module: 'BEX'
       }
@@ -118,7 +118,7 @@ export class ConfigurationService {
           else {
             try {
 
-              //console.log.log(response.body);
+              // console.log("UpdateConfiguration:",response.body);
               responseData = JSON.parse(response.body)
 
 
@@ -228,10 +228,16 @@ export class ConfigurationService {
     const data = req.body;
 
     try {
+
+      // console.log('***********************',data);
+      
       let docType = data.docType || 'Invoice';
       let direction = data.direction || 'Receive';
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+
       let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+      // console.log('***********************',dataCookie);
+      
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
       const partyAccountCheckRaw = await connectBexio.contact_bc.findMany({
@@ -303,6 +309,7 @@ export class ConfigurationService {
         let resData;
         let countryList = {};
         resData = await getCountryLists(accessToken);
+        console.log('***********************resData',resData);
 
         if (!resData) {
           commonErrors['errorTitle'] = req.originalUrl;
@@ -314,7 +321,14 @@ export class ConfigurationService {
             status: false,
 
           });
-          return
+        
+        }
+        if (resData == 401) {
+          return res.status(401).json({
+            status: true,
+            data: [],
+            message: "unauthorized",
+          });
         }
         resData = JSON.parse(resData);
         resData['message'] != 'Unauthorized' ? resData.forEach((country) => {
@@ -1392,7 +1406,7 @@ console.log('req.body',req.body);
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
-      formData = encryptionControl.decrypt(req.body.encrToken);
+      formData = req.body;
       const contactData = await getContact(accessToken,formData.contact_id);
       console.log('contactData',contactData);
       
@@ -1961,6 +1975,8 @@ const getBcDetails = async (bc_id, netcomId) => {
             warningMessage(commonErrors, error);
             resolve(false)
           } else {
+            console.log('output',config.PYTHON_API + 'get-contact-bc');
+            
             resolve(JSON.parse(response.body));
           }
         });
@@ -1980,6 +1996,8 @@ const getBcDetails = async (bc_id, netcomId) => {
 }
 const getCountryLists = async (access_token) => {
   try {
+    console.log('acce',access_token);
+    
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'GET',
@@ -1998,8 +2016,13 @@ const getCountryLists = async (access_token) => {
         }
         if (response.statusCode == 200)
           resolve(response.body);
-        else
+        else if(response.statusCode == 401){
+          resolve(response.statusCode);
+        }
+        else{
+        
           resolve(false)
+        }
 
       });
     });

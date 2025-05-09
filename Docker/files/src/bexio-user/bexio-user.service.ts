@@ -81,7 +81,9 @@ export class BexioUserService {
       !tempJson['postcode'] ||
       !tempJson['country_id']
     ) {
-      return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+      console.log('unauthorized tempJson', tempJson);
+      
+      return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
     }
     //console.log('test',tempJson);
     const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
@@ -92,7 +94,7 @@ export class BexioUserService {
     //console.log('validationUser',validationUser);
 
     if (!validationCompany || !validationUser) {
-      return res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+      return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
     }
     if (validationCompany && validationUser) {
       let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
@@ -172,7 +174,7 @@ export class BexioUserService {
             maxAge: config.SESSION_EXPIRY,
             secure: false,
             httpOnly: false,
-            signed: false,
+            signed: true,
           };
           
           //console.log('8. Billing Cookie Options:', billingCookieOptions);
