@@ -1406,7 +1406,7 @@ console.log('req.body',req.body);
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
-      formData = encryptionControl.decrypt(req.body.encrToken);
+      formData = req.body;
       const contactData = await getContact(accessToken,formData.contact_id);
       console.log('contactData',contactData);
       
@@ -1975,6 +1975,8 @@ const getBcDetails = async (bc_id, netcomId) => {
             warningMessage(commonErrors, error);
             resolve(false)
           } else {
+            console.log('output',config.PYTHON_API + 'get-contact-bc');
+            
             resolve(JSON.parse(response.body));
           }
         });

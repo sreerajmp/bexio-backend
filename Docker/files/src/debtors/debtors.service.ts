@@ -974,9 +974,11 @@ export class DebtorsService {
                       // }
                       return results;
                   }
-                  // await processInvoices(JSON.parse(data.otherInvoice), bodyParams)
+                  let invoice_uuid = await processInvoices(selectedItem[0], bodyParams)
+                  console.log("invoice_uuid:::", invoice_uuid);
+                  selectedItem[0]['invoice_uuid'] = invoice_uuid[0];
                   combinedResponse.emailInvoice=[]
-                  combinedResponse.emailInvoice.push(await processInvoices(selectedItem[0], bodyParams));
+                  combinedResponse.emailInvoice.push(invoice_uuid[0])
                   console.log("processInvoices:::", selectedItem[0]);
                     // Use the PushWorkerHost to run the worker task
                      this.pushWorkerHost.run(selectedItem[0], bodyParams, {
