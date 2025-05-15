@@ -954,8 +954,8 @@ export class BexioUserService {
             `
           );
 
-          // Proceed only if a biller record is found
-          if( fetchBillerId.length != 0 ){
+          // Proceed only if a biller record is not found
+          if( fetchBillerId.length == 0 ){
 
             // Fetch user and account details from the current (Library) DB
             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
