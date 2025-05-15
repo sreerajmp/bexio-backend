@@ -21,7 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf } from 'src/common/utils/helperfn';
+import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -361,7 +361,6 @@ export class DebtorsService {
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
             resData[invoice]['invoice_type'] = resultArray.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
-            
             for (let qryInvoice in invoiceList) {
               if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
                 resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
@@ -382,21 +381,41 @@ export class DebtorsService {
           }
 
         let contactList :any = await getContactById(accessToken, contact_idList);
-
-          if (!contactList) {
+        
+        if (!contactList) {
           return res.status(500).send({
               status: 500,
               data: []
-            });
-          }
+          });
+        }
+        
+        // Fetch the contact group list using the provided access token
+        let contactGroupList: any = await getContactGroupList(accessToken);
 
+        // If contact group list could not be retrieved, return 500 error response
+        if (!contactGroupList) {
+          return res.status(500).send({
+              status: 500,
+              data: []
+          });
+        }
         let contactNameList = {};
         let contactEmailList = {};
+        let contactGroup = {}; // key: contact ID, value: array of group names
           contactList.forEach(element => {
             let name_1 = element.name_1 ? element.name_1 : '';
             let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
             contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
             contactEmailList[element.id] = element.mail ? element.mail : '';
+            // Process and assign group names based on contact_group_ids
+            let contactGroupNames = [];
+            if( element.contact_group_ids){
+              let group_ids = element.contact_group_ids.split(',');
+
+              // Map group IDs to their respective names from contactGroupList
+              contactGroupNames = group_ids.map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(name => !!name); // removes undefined;
+              contactGroup[element.id] = contactGroupNames;
+            }
           });
 
           let currencyList = {};
@@ -418,6 +437,23 @@ export class DebtorsService {
             second.currency = currencyList[second['currency_id']];
             second.email = contactEmailList[second["contact_id"]];
             second.recipient_id = recipientList[second["contact_id"]] ? recipientList[second["contact_id"]] : '';
+
+            // Check if invoice_type is empty
+            if( second.invoice_type == ''){     
+              // Get the contact group names for the current contact ID or default to an empty array      
+              const contactGroupName = contactGroup[second["contact_id"]] || [];
+
+              // If contact belongs to any group
+              if( contactGroupName.length ) {
+                // Determine preferred group: prioritize "Print" over "Post" if both exist
+                const preferredGroup =
+                  contactGroupName.includes('print') ? 'print' :
+                  contactGroupName.includes('print')  ? 'post'  : "";
+                
+                // Assign preferred group to invoice_type
+                second.invoice_type = preferredGroup;
+              }
+            }
           });
 
           let redisKey = req.body.partyId + "_" + req.url + "_";
