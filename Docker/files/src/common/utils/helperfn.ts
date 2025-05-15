@@ -4510,3 +4510,39 @@ export const partyServiceUpdate = async (partyResponse, service, app) => {
     }
   })
 }
+
+// Function to fetch contact groups from bexio
+
+export const getContactGroupList = async(accessToken) => {
+  try {
+    return new Promise( async( resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/contact_group`,
+        'headers': {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      };  
+      request( options, function(error, response){
+        if(error){
+          commonErrors['errorTitle'] = 'getContactGroupList';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
+          warningMessage(commonErrors,error);
+          resolve(error);
+        }
+        if( response.statusCode == 200){
+          resolve(JSON.parse(response.body));
+        }
+        else{
+          resolve(false);
+        }
+      })
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = 'getContactGroupList';
+    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
+    warningMessage(commonErrors,error);
+    return;
+  } 
+}
