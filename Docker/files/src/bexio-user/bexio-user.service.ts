@@ -924,9 +924,76 @@ export class BexioUserService {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
         }
       }
-
-      ;
       if (accountIdFinal != 0) {
+
+        // Check whether the company already has a biller role (EBILL_ADMIN or EBILL_USER)
+        let checkRoleQry = `SELECT * 
+        FROM 
+        partyapplication_account_role par
+        INNER JOIN partyapplication_account paa ON par.fk_partyapplication_account = paa.cid
+        INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
+        INNER JOIN role r on par.fk_role = r.cid
+        INNER JOIN status st on st.cid = pa.fk_status
+        WHERE pa.fk_account=$1 AND pa.fk_party =$2  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
+
+        // Execute the role check query using parameterized inputs to prevent SQL injection
+        const checkRoleData = await connectLibrary.$queryRaw<any[]>(
+          Prisma.sql`${checkRoleQry}`,
+          [accountIdFinal, partyId]
+        );
+
+        // If no EBILL role is found for this account and party
+        if(checkRoleData.length === 0){
+          
+          // Fetch the billerId from Gate2B database using netcomId
+          const fetchBillerId = await connectGate2b.$queryRaw<{ id: any; billerId: any }[]>(
+            Prisma.sql`
+              SELECT id, billerId
+              FROM biller
+              WHERE netcomid = ${netcomIdG2b}
+            `
+          );
+
+          // Proceed only if a biller record is found
+          if( fetchBillerId.length != 0 ){
+
+            // Fetch user and account details from the current (Library) DB
+            const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+              SELECT 
+                pa.isuser,
+                pa.cid AS "partyAccountId",
+                u.email,
+                u.cid AS "userId",
+                pa.fk_party AS "partyId",
+                a.cid AS "accountId",
+                u.language AS "userlanguage"
+              FROM party_account pa
+              INNER JOIN account a ON a.cid = pa.fk_account
+              INNER JOIN public.user u ON u.cid = a.fk_user
+              INNER JOIN status s ON s.cid = pa.fk_status
+              WHERE pa.fk_party = ${parseInt(partyId)}
+                AND pa.fk_account = ${accountIdFinal}
+                AND s."statusLabel" = 'active'`
+            );
+
+            // Assign the EBILL role to the party-account-user
+            await setEbillRole(
+              partyId,
+              accountIdFinal,
+              userDetails[0].partyaccountid,
+              !isAdmin,     // Flag indicating whether this is an admin or regular user
+              'EBILL'       // Role name
+            );
+            
+            // Update the party's service subscription to include EBILL with EDI integration
+            await partyServiceUpdate(
+              userDetails[0].partyid,
+              'EBILL',
+              'EDI'
+            );
+          }
+        }
+
         const partyAccountResult = await connectLibrary.$queryRaw<
           { cid: any; fk_status: any }[]
         >(Prisma.sql`
@@ -1886,12 +1953,8 @@ VALUES (
 
     }
     async function partyApplicationDetails(partyId, accountId, partyAccount, roleValue) {
-
-
       let userRoles;
       return new Promise(async function (resolve, reject) {
-        //console.log('role', roleValue);
-
         if (roleValue) {
           userRoles = config.BEXIO_ADMIN_ROLE;
         } else {
@@ -1902,59 +1965,61 @@ VALUES (
 
 
         const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-    SELECT 
-      r.name,
-      rav.fk_application_version,
-      r.cid AS "roleId"
-    FROM public.role_policy rp
-    INNER JOIN public.role r ON r.cid = rp.fk_role
-    INNER JOIN public.policy p ON p.cid = rp.fk_policy
-    INNER JOIN role_application_version rav ON rav.fk_role = r.cid
-    WHERE r.name IN (${Prisma.join(userRoles)})
-      AND r.fk_party IS NULL
-  `);
+          SELECT 
+            r.name,
+            rav.fk_application_version,
+            r.cid AS "roleId"
+          FROM public.role_policy rp
+          INNER JOIN public.role r ON r.cid = rp.fk_role
+          INNER JOIN public.policy p ON p.cid = rp.fk_policy
+          INNER JOIN role_application_version rav ON rav.fk_role = r.cid
+          WHERE r.name IN (${Prisma.join(userRoles)})
+            AND r.fk_party IS NULL
+        `);
 
+        if (!Array.isArray(roleData)) {
+          console.error('Expected roleData to be an array, but got:', roleData);
+          return reject(new Error('Invalid role data format'));
+        }
 
-        //console.log('roleData', roleData);
         for (const element of roleData) {
           // 1. Check if partyapplication already exists
           let partyApplicationId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-        SELECT * FROM partyapplication
-        WHERE fk_party = ${partyId}
-        AND fk_application_version = ${element.fk_application_version}
-      `);
+            SELECT * FROM partyapplication
+            WHERE fk_party = ${partyId}
+            AND fk_application_version = ${element.fk_application_version}
+          `);
 
           // 2. Insert if not exists
           if (partyApplicationId.length === 0) {
             partyApplicationId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-          INSERT INTO partyapplication (fk_party, fk_application_version)
-          VALUES (${partyId}, ${element.fk_application_version})
-          RETURNING cid
-        `);
+              INSERT INTO partyapplication (fk_party, fk_application_version)
+              VALUES (${partyId}, ${element.fk_application_version})
+              RETURNING cid
+            `);
           }
 
           const partyApplication = partyApplicationId[0].cid;
 
           // 3. Insert partyapplication_account
           const partyApplicationAccountId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-        INSERT INTO partyapplication_account (fk_partyapplication, fk_account, fk_party_account)
-        VALUES (${partyApplication}, ${accountId}, ${partyAccount})
-        RETURNING cid
-      `);
+            INSERT INTO partyapplication_account (fk_partyapplication, fk_account, fk_party_account)
+            VALUES (${partyApplication}, ${accountId}, ${partyAccount})
+            RETURNING cid
+          `);
 
           const partyApplicationAccount = partyApplicationAccountId[0].cid;
 
           // 4. Insert partyapplication_account_role
           await connectLibrary.$executeRaw(
             Prisma.sql`
-          INSERT INTO partyapplication_account_role (fk_partyapplication_account, fk_role)
-          VALUES (${partyApplicationAccount}, ${element.roleid})
-        `
+              INSERT INTO partyapplication_account_role (fk_partyapplication_account, fk_role)
+              VALUES (${partyApplicationAccount}, ${element.roleId})
+            `
           );
         }
-        resolve(1)
+        resolve(1);
       });
-
     };
 
     async function addSubscriptionParty(partyValue, accountValue, planId, subScriptionType, netcomIdG2b) {
