@@ -15,6 +15,7 @@ const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
 import redisClient from '../common/utils/redisDB';
 import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
+import connectMssql from '../db/mssql-client'
 
 @Injectable()
 export class BexioUserService {
@@ -195,7 +196,7 @@ export class BexioUserService {
         }
         else {
           let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
-          //console.log('responseResult', responseResult);
+          console.log('responseResult', responseResult);
           if(responseResult.status) {
             //console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
             //console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
@@ -437,6 +438,7 @@ export class BexioUserService {
     let technicalContactId;
     let billingContactId;
     let companyContactId;
+    const pool = await connectMssql;
 
 
     let rk_csn = jwt.decode(accessToken)['company_id']
@@ -449,7 +451,8 @@ export class BexioUserService {
       const isCompanyAlreadyExists = await connectBexio.companyregistered.findMany({
         where: { rk_csn: rk_csn },
       });
-
+      console.log("isCompanyAlreadyExists",);
+      
       if (isCompanyAlreadyExists.length === 0) {
 
         const companyDeatails = companyDetails[0];
@@ -484,7 +487,8 @@ export class BexioUserService {
 
         }
         //console.log('companyDeatails', companyDeatails);
-
+        console.log("isPartyExists",isPartyExists);
+        
         if (isPartyExists.length == 0) {
           newCompany = true;
           isNewCompany = true;
@@ -558,7 +562,7 @@ export class BexioUserService {
           //console.log('4444444444444444444444444444444');
 
           netcomeAddress = await netcomGate2b(companyDeatails, party.partyResponse, ediPartyId, coutryCode, newGate2bId[0]?.cid, email);
-          //console.log('ediPartyId', ediPartyId);
+          console.log('ediPartyId', ediPartyId);
 
 
           await saveLegal(party.partyResponse, companyDeatails);
@@ -575,8 +579,8 @@ export class BexioUserService {
           const objectId = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
                 SELECT netcomid  FROM ediparty  WHERE  rk_party == ${isPartyExists[0]?.objectid}
               `);
-
-
+          console.log("objectId",objectId);
+          
           netcomIdG2b = objectId[0]?.netcomid;
           //console.log(netcomIdG2b);
 
@@ -659,7 +663,7 @@ export class BexioUserService {
             SELECT cid  FROM ediparty e WHERE e.netcomid = ${netComId}
           `);
 
-
+          netcomIdG2b = netComId;
 
         //console.log('55');
         //console.log('netComId', netComId);
@@ -846,7 +850,8 @@ export class BexioUserService {
         }
         netcomeAddress = await getPartyId(partyId);
       }
-
+      console.log('6666666666666666666666666666666');
+      
       let userId = await userCheck(userDetails);
       if (!userId) {
         userId = await saveUser(userDetails);
@@ -934,26 +939,51 @@ export class BexioUserService {
         INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
         INNER JOIN role r on par.fk_role = r.cid
         INNER JOIN status st on st.cid = pa.fk_status
-        WHERE pa.fk_account=$1 AND pa.fk_party =$2  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
+        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
 
         // Execute the role check query using parameterized inputs to prevent SQL injection
-        const checkRoleData = await connectLibrary.$queryRaw<any[]>(
-          Prisma.sql`${checkRoleQry}`,
-          [accountIdFinal, partyId]
+        console.log("accountIdFinal",checkRoleQry);
+
+        
+        const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        SELECT * 
+        FROM 
+        partyapplication_account_role par
+        INNER JOIN partyapplication_account paa ON par.fk_partyapplication_account = paa.cid
+        INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
+        INNER JOIN role r on par.fk_role = r.cid
+        INNER JOIN status st on st.cid = pa.fk_status
+        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
         );
+
+
+      //   const userLanguage = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      //   SELECT 
+      //     u.language, 
+      //     u.email, 
+      //     u.cid 
+      //   FROM "user" u 
+      //   WHERE u.email = ${email}
+      // `);
+
 
         // If no EBILL role is found for this account and party
         if(checkRoleData.length === 0){
+          console.log("netcomIdG2b",netcomIdG2b);
           
           // Fetch the billerId from Gate2B database using netcomId
-          const fetchBillerId = await connectGate2b.$queryRaw<{ id: any; billerId: any }[]>(
-            Prisma.sql`
-              SELECT id, billerId
-              FROM biller
-              WHERE netcomid = ${netcomIdG2b}
-            `
-          );
-
+          let getBiller = `SELECT id, billerId
+          FROM biller
+          WHERE netcomid = '${netcomIdG2b}'`
+          // const fetchBillerId = await connectGate2b.$queryRaw<{ id: any; billerId: any }[]>(
+          //   Prisma.sql`
+          //     SELECT id, billerId
+          //     FROM biller
+          //     WHERE netcomid = ${netcomIdG2b}
+          //   `
+          // );
+          // connectMssql
+          const fetchBillerId = await pool.query(getBiller);
           // Proceed only if a biller record is not found
           if( fetchBillerId.length == 0 ){
 
@@ -1032,7 +1062,9 @@ export class BexioUserService {
 
       // commonErrors['errorTitle'] = bexioUserCreate.name;
       // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
-      // warningMessage(commonErrors,error); 
+      // warningMessage(commonErrors,error);
+      console.log("error",error);
+       
       return ({
         status_code: 500,
         message: 'something_went_wrong',
