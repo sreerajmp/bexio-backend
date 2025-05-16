@@ -991,26 +991,56 @@ console.log('****************************');
 
           let doc_type = data.docType ? data.docType : 'Invoice';
           let direction = data.direction ? data.direction.toUpperCase() == 'SEND' ? 'IN' : 'OUT' : 'IN';
-          let parms = (config.BEXIO_INVITE_CONFIG || '')
-            .replace('$netcom_id$', netComId[0].netcomid)
-
-            .replace("$name$", getPartyAccountId[0].companyname)
-            .replace("$language$", 'EN')
-            .replace("$in_customer_id$", "1")
-            .replace("$partner_email$", data.email)
-            .replace("$bexio_invite_id$", idToPython)
-            .replace("$out_customer_id$", senderNr['id'])
-            .replace("$user_email$", data.email)
-            .replace("$invited_company_name$", data.invitedcompanyname)
-            .replace("$customer_name$", data.userName)
-            .replace("$direction$", direction)
-            .replace("$doc_type$", doc_type);
-
-
-          parms = JSON.parse(parms);
-
-          parms['config']['inviter_netcom_id'] = data.inviterNetcomId;
-          parms['config']['inviter_company_name'] = data.inviterCompanyName;
+          // Build the invite config JSON directly instead of using .replace
+          const parms = {
+            config: {
+              mode: "LIVE",
+              payee_details: {
+                company_payee: "self",
+                partner_company_payee: ""
+              },
+              user_email: data.email,
+              invited_company_name: data.invitedcompanyname,
+              partner_netcomid: "",
+              netcom_id: netComId[0].netcomid,
+              name: getPartyAccountId[0].companyname,
+              direction: direction,
+              fk_doc_type: doc_type,
+              fk_doc_format: "OpenTrans2.1",
+              fk_netcomid_doc_interface: "WS",
+              status: "1",
+              fk_step_encoding: "utf-8",
+              fk_culture: "en-us",
+              "create-pdf": "0",
+              "create-signed-doc": "0",
+              "export-doc-ref": "0",
+              "validate-sign": "0",
+              language: "EN",
+              ot_updator: {
+                in_cust_id: "1",
+                out_cust_id: senderNr['id'],
+                in_customer_id: "",
+                out_customer_id: ""
+              },
+              partner_email: data.email,
+              third_party: "BEX",
+              bexio_invite_id: idToPython,
+              field_status: {
+                data: [
+                  {
+                    business_connection_connectionStatus: { in: true, out: false, label: "business_connection_connectionStatus" },
+                    business_connection_invitation_sent_received: { in: true, out: false, label: "business_connection_invitation_sent_received" },
+                    business_connection_connection_active: { in: true, out: false, label: "business_connection_connection_active" },
+                    business_connection_format_check: { in: false, out: false, label: "business_connection_format_check" },
+                    business_connection_running_mode_test: { in: false, out: false, label: "business_connection_running_mode_test" },
+                    business_connection_running_mode_live: { in: false, out: false, label: "business_connection_running_mode_live" }
+                  }
+                ]
+              },
+              inviter_netcom_id: data.inviterNetcomId,
+              inviter_company_name: data.inviterCompanyName
+            }
+          };
           console.log('url', parms);
           let inviteStatus;
           if (doc_type != 'Invoice') {
@@ -1277,8 +1307,7 @@ console.log('req.body',req.body);
                                     WHERE billerid='${data.id}'`
   
             await pool.query(updateBillerData, responseData)
-              const companyIdNumber = Number(companyId); // Ensure companyId is a number
-              const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
+              const companyIdNumber = Number(companyId);              const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
               WHERE fk_party = ${companyIdNumber}`;
               console.log('getPartyEbillResult:::',getPartyEbillResult);
@@ -1835,7 +1864,7 @@ console.log('getPartyAccountId', getPartyAccountId);
                 );
     
                 if (getPartyEbillResult.length <= 0) {
-                  await connectLibrary.$executeRaw(
+                  await connectLibrary.$queryRaw(
                     Prisma.sql`
                       INSERT INTO "ebillWallet" (fk_party, "lastEntered", "billerId")
                       VALUES (
@@ -2060,10 +2089,18 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
         resolve(false)
       }
       if (response.statusCode == 200) {
-        if (JSON.parse(response.body).length == limit) {
+        let parsedBody;
+        try {
+          parsedBody = JSON.parse(response.body);
+        } catch (e) {
+          warningMessage(commonErrors, 'Invalid JSON in response.body: ' + response.body);
+          resolve(false);
+          return;
+        }
+        if (Array.isArray(parsedBody) && parsedBody.length == limit) {
           let temp = contactListCountSearch(token, offset + 2000, 2000)
         } else {
-          offset = offset + JSON.parse(response.body).length;
+          offset = offset + (Array.isArray(parsedBody) ? parsedBody.length : 0);
           resolve(offset)
         }
       }
@@ -2074,7 +2111,7 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
 }
 const contactListCount = async (token, offset, limit?) => {
   return new Promise(async (resolve, reject) => {
-   
+
     var options = {
       'method': 'GET',
       'url': `${config.BEXIO_API}2.0/contact/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
