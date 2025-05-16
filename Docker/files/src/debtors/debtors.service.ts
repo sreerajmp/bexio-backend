@@ -86,9 +86,9 @@ export class DebtorsService {
         }
       });
 
-      const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
+      // const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
-      if (ediInvoices.length > 0) {
+      // if (ediInvoices.length > 0) {
         const getNetcomId = await connectBexio.$queryRaw<any>(
           Prisma.sql`
                     SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
@@ -102,6 +102,7 @@ export class DebtorsService {
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
         );
+        console.log('getInviteCompanyId',getInviteCompanyId,getNetcomId[0].netcomid);
 
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
@@ -129,8 +130,8 @@ export class DebtorsService {
         resultArray = getConnectionBcResult[0]?.array_agg;
         console.log('resultArray',resultArray);
         
-      }
-      if (ebillInvoices.length > 0) {
+      // }
+      // if (ebillInvoices.length > 0) {
         // const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
         //   Prisma.sql`
         //           SELECT array_agg(rk_contact) 
@@ -148,7 +149,7 @@ export class DebtorsService {
         //   contactArray = [];
         //   contactArray = [req.body.contactId];
         // }
-      }
+      // }
 
       let options;
       let searchJson: any[] = [];
