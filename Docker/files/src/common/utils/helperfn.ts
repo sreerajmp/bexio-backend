@@ -414,7 +414,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
       //console.log("start processing invoice", tempParam);
       try {
         const result = await pushInvoiceBulkTest(tempParam, "",channel);
-        //console.log("result:", result);
+        console.log("result:", result);
       } catch (error) {
         console.error("Error processing invoice:", element.invoiceId, error);
       }
@@ -980,7 +980,7 @@ export const getTaxs = async (access_token,id)=>{
       });
 }
 export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileName,customerIds,invoiceCid,channel) => {
- ////console.log('invoice',JSON.stringify(invoice));
+ console.log('invitionData',invitionData);
 
   let emptyValue = 'NA'
   let taxIsAdded;
@@ -1079,13 +1079,13 @@ taxIsAdded = invoice.taxs.length;
               "ADDRESS": [{
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
-                  "bmecat:EMAIL": invoice.contact.mail?invoice.contact.mail:undefined,
-
                   "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                   "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
                   // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
-                  "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
+                  "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined,
+                  "bmecat:EMAIL": invoice.contact.mail?invoice.contact.mail:undefined,
+
               }]
           }]
       }],

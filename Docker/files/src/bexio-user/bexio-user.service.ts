@@ -2159,7 +2159,7 @@ VALUES (
   FROM ediparty 
   WHERE rk_party = ${userDetails[0].objectid}::uuid
 `);
-console.log('userDetails[0]', userDetails[0]);
+// console.log('userDetails[0]', userDetails[0]);
     const datetimeToken = {
       cookieCreatedTime: new Date(new Date(new Date().getTime() + 15 * 60000).toUTCString()),
       userMail: userDetails[0].email,
@@ -2263,9 +2263,6 @@ console.log('userDetails[0]', userDetails[0]);
             isBexioCompany: true
         };
 
-        //console.log('bexioTokenCookie', bexioTokenCookie);
-        //console.log('tokenCookie', tokenCookie);
-        //console.log('userDetails[0]', userDetails[0]);
 
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
