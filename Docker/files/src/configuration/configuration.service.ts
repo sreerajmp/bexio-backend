@@ -290,8 +290,11 @@ export class ConfigurationService {
 
 
       let resultBc: any = [];
-      if (businessConnectionIds != null) {
+      if (businessConnectionIds != null && businessConnectionIds.length > 0) {
+        console.log('businessConnectionIds', businessConnectionIds);
         let bcResult: any = await getBcDetails(businessConnectionIds, dataCookie.netcomId);
+        console.log('bcResult', bcResult);
+        
         resultBc = bcResult['data'];
       }
 
@@ -1254,7 +1257,7 @@ console.log('req.body',req.body);
         }
         else {
           let data = JSON.parse(response.body);
-          console.log("response.body:::::::",data);
+          console.log("response.body:::::::",companyId);
           
           if (data.id) {
             const responseData = [
@@ -1274,15 +1277,18 @@ console.log('req.body',req.body);
                                     WHERE billerid='${data.id}'`
   
             await pool.query(updateBillerData, responseData)
+              const companyIdNumber = Number(companyId); // Ensure companyId is a number
               const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
-              WHERE fk_party = '${companyId}'`
-              if (getPartyEbillResult.rows.length <= 0) {
+              WHERE fk_party = ${companyIdNumber}`;
+              console.log('getPartyEbillResult:::',getPartyEbillResult);
+              
+              if (getPartyEbillResult.length <= 0) {
               await connectLibrary.$queryRaw<any>`INSERT INTO "ebillWallet" 
               (fk_party,"lastEntered","billerId") 
               VALUES (${companyId},date_trunc('month', now()::timestamp) + interval '6 hour',${data.id})`
               }
-           let updateconnection = await updateConnection(encrToken.form);
+           let updateconnection = await updateConnection(encrToken);
            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
             where: {
               rk_party: Number(encrToken.partyId), // Make sure this is the correct type
@@ -2332,10 +2338,13 @@ const getPythonData = async (netcomId) => {
   })
 }
 const updateConnection = async(data)=>{
+  console.log('updateConnection');
+  console.log('data',data);
+  
   return new Promise(async (resolve, reject) => {
     let responseData = null
     try {
-      let tempData = JSON.parse(data).data;
+      let tempData = data.pythonData;
       let formData = {
         con_id:tempData.con_id,
         doc_type:tempData.fk_doc_type,
