@@ -384,11 +384,17 @@ console.log('sdasssssssssssssssssssssssssssssssssssssssss');
                     request(options, async function (error, response, body) {
                         console.log('counts',response.body);
                         
-                        if (!error && JSON.parse(response.body).status == true) {
+                        if (!error && response && response.body && JSON.parse(response.body).status == true) {
                             console.log("status true");
                             Object.assign(result[0], JSON.parse(response.body).data);
                         } else {
                             console.log("status false",response.body);
+                            return res.status(500).json({
+                            data: [],
+                            status_code: 500,
+                            message: 'get_company_list',
+                            status: true,
+                        });
                         }
                         return res.status(status_code.OK).json({
                             data: result,
