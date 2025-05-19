@@ -2578,7 +2578,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           let validationCompanyStatus;
           // console.log(JSON.parse(companyDetails));
           
-          let coutryCode = await this.getConutryCode(tokenSet.access_token, JSON.parse(companyDetails)[0]['country_name'])
+          let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
           if(!coutryCode)
           {
             // commonErrors['errorTitle'] = req.originalUrl;
@@ -2591,12 +2591,14 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           });
           return
           }
-          companyDetails ? validationCompanyStatus = await validation(JSON.parse(companyDetails)[0], ['name', 'address', 'city', 'postcode', 'country_id']) : '';
+          companyDetails ? validationCompanyStatus = await validation(companyDetails[0], ['name', 'address', 'city', 'postcode', 'country_id']) : '';
           console.log('validationCompanyStatus',validationCompanyStatus);
           console.log('companyDetails',companyDetails);
           let token = tokenSet.refresh_token;
           let userDetails
           userDetails = await this.getLoginUserInfo(tokenSet.access_token)
+          console.log("userDetails",userDetails);
+          
           console.log(tokenSet.access_token);
           if(!userDetails)
           {
@@ -2641,7 +2643,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                   isAdmin = false;
               }
               
-              let companyCreateStatus = await this.checkCompanyStatus(JSON.parse(companyDetails)[0]['name'],isAdmin);
+              let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'],isAdmin);
               console.log('companyCreateStatus',companyCreateStatus);
               if(companyCreateStatus)
               {  
