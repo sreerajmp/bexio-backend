@@ -148,7 +148,7 @@ export class BexioUserService {
           let billingCookie = {
             bexio: true,
             objectid: insertData[0]?.objectid,
-            url:`${config.API_URL}/api/v1/bexio-user/bexioCompanyCreate`
+            url:`${config.API_URL}api/v1/bexio-user/bexioCompanyCreate`
           }
           
           //console.log('4. Billing Cookie Data:', billingCookie);
