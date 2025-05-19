@@ -462,7 +462,7 @@ export class BexioUserService {
 
         const isPartyExists = await connectLibrary.$queryRaw<any[]>(
           Prisma.sql`
-                  SELECT lp.companyName, a.city, a.zip, a.country_code, p.cid, p.objectid
+                  SELECT lp.companyName, a.city, a.zip, a.country_code, p.cid AS fk_party, p.objectid
                   FROM legalparty lp 
                   INNER JOIN address a ON a.fk_party = lp.fk_party
                   INNER JOIN party p ON p.cid = lp.fk_party
