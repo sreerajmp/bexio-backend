@@ -2006,7 +2006,10 @@ VALUES (
         // WHERE name IN (${config.SUPERADMIN})`;
 
         console.log("userRolesuserRoles",userRoles);
-        
+        const userRolesArray = userRoles
+        .split(',')
+        .map(role => role.trim().replace(/^'+|'+$/g, ''));
+        userRoles = config.BEXIO_USER_ROLE;
 
         const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
           SELECT 
@@ -2017,7 +2020,7 @@ VALUES (
           INNER JOIN public.role r ON r.cid = rp.fk_role
           INNER JOIN public.policy p ON p.cid = rp.fk_policy
           INNER JOIN role_application_version rav ON rav.fk_role = r.cid
-          WHERE r.name IN (${Prisma.join(userRoles)})
+          WHERE r.name IN (${Prisma.join(userRolesArray)})
             AND r.fk_party IS NULL
         `);
 
@@ -2521,7 +2524,7 @@ console.log('inside');
 };
 async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
   console.log('55555555555555555555');
-  
+
     let params = null;
     let decryptData;
   
