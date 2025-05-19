@@ -69,4 +69,11 @@ async refreshTokenCreate(
 async bexioLogout(@Req() req: Request, @Res() res: Response): Promise<any> {
 return this.bexioUserService.bexioLogout(req,res);
 }
+
+@Post('bexioCompanyCreate')
+@UseInterceptors(AnyFilesInterceptor())
+async bexioCompanyCreate(@Req() req: Request, @Res() res: Response): Promise<any> {
+
+return this.bexioUserService.bexioCompanyCreate(req,res);
+}
 }
