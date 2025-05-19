@@ -462,7 +462,7 @@ export class BexioUserService {
 
         const isPartyExists = await connectLibrary.$queryRaw<any[]>(
           Prisma.sql`
-                  SELECT lp.companyName, a.city, a.zip, a.country_code, lp.fk_party, p.objectid
+                  SELECT lp.companyName, a.city, a.zip, a.country_code, p.cid, p.objectid
                   FROM legalparty lp 
                   INNER JOIN address a ON a.fk_party = lp.fk_party
                   INNER JOIN party p ON p.cid = lp.fk_party
@@ -516,6 +516,8 @@ export class BexioUserService {
 
           party = await partyCreate(companyDeatails, coutryCode, email, getCurrencyCode[0].cid);
           partyId = party.companyCreated;
+          console.log("partyId1234",Number(partyId));
+          
           await partyServiceUpdate(partyId, 'EDI', 'EDI');
           await addReferenceDetails(partyId)
           async function addReferenceDetails(companyId) {
@@ -555,8 +557,9 @@ export class BexioUserService {
           const networkIdG2b = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
                 SELECT cid FROM network  WHERE name = ${'Bexio'}
                 `);
-
-          const newGate2bId = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
+          console.log("objectId[0]?.objectidobjectId[0]?.objectid",objectId[0]?.objectid);
+          
+          const newGate2bId = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
                 INSERT INTO ediparty (fk_network,rk_party,netcomid,fk_currency)
                 VALUES (${networkIdG2b[0]?.cid}, ${objectId[0]?.objectid}::uuid, ${ediPartyId.netcomid}, ${getCurrencyCode[0].cid})
                 RETURNING *
@@ -577,10 +580,11 @@ export class BexioUserService {
           partyUser = false;
         } else {
 
+          console.log("objectId11111111111",isPartyExists[0]?.objectid);
 
 
-          const objectId = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
-                SELECT netcomid  FROM ediparty  WHERE  rk_party == ${isPartyExists[0]?.objectid}
+          const objectId = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
+                SELECT netcomid  FROM ediparty  WHERE  rk_party = ${isPartyExists[0]?.objectid}::uuid
               `);
           console.log("objectId",objectId);
           
@@ -589,6 +593,8 @@ export class BexioUserService {
 
           newCompany = false;
           partyId = isPartyExists[0]?.fk_party;
+          console.log();
+          
           party = {
             addressMain: '',
             partyResponse: partyId,
@@ -599,7 +605,7 @@ export class BexioUserService {
           }
         }
 
-        //console.log('partyId1', partyId);
+        console.log('partyId1', partyId);
 
         await setBexioCompany(partyId, rk_csn, netcomIdG2b);
         //console.log('setBexioCompany');
@@ -1139,7 +1145,8 @@ export class BexioUserService {
 
 
     async function setBexioCompany(partyId, rk_csn, netcomIdG2b) {
-
+      console.log("partyId",partyId);
+      
       await connectBexio.companyregistered.create({
         data: {
           rk_party: partyId,
@@ -1873,7 +1880,7 @@ export class BexioUserService {
         
             await connectLibrary.$queryRaw<any>(Prisma.sql`
         INSERT INTO "_party_gate2b" (fk_party, rk_uid)
-        VALUES (${companyId}, ${ediPartyId.objectid})
+        VALUES (${companyId}, ${ediPartyId.objectid}::uuid)
         RETURNING cid
       `);
 
@@ -1998,7 +2005,8 @@ VALUES (
         }
         // WHERE name IN (${config.SUPERADMIN})`;
 
-
+        console.log("userRolesuserRoles",userRoles);
+        
 
         const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
           SELECT 
