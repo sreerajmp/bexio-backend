@@ -2614,7 +2614,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           return
           }
           let validationUserStatus;
-          userDetails ? validationUserStatus = await validation(JSON.parse(userDetails), ['given_name', 'family_name', 'email']) : '';
+          userDetails ? validationUserStatus = await validation(userDetails, ['given_name', 'family_name', 'email']) : '';
           console.log('validationCompanyStatus',validationCompanyStatus);
           console.log('userDetails',userDetails);
   
