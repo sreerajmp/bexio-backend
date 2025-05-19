@@ -147,7 +147,8 @@ export class BexioUserService {
           
           let billingCookie = {
             bexio: true,
-            objectid: insertData[0]?.objectid
+            objectid: insertData[0]?.objectid,
+            url:`${config.API_URL}/api/v1/bexio-user/bexioCompanyCreate`
           }
           
           //console.log('4. Billing Cookie Data:', billingCookie);
@@ -2507,6 +2508,237 @@ console.log('inside');
   
   }
 };
+async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
+  console.log('55555555555555555555');
+  
+    let params = null;
+    let decryptData;
+  
+    try {
+        decryptData = encryptionControl.decrypt(req.body.encrToken);
+        if('subScriptionType' in decryptData && 'planId' in decryptData)
+        {
+          const bexioClient = await edit();
+          let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+          let refreshToken = cookie.refresh_Token;
+          const tokenSet = await bexioClient.refresh(refreshToken);
+          console.log(tokenSet);
+          let planId = decryptData?.planId;
+          let subScriptionType = decryptData?.subScriptionType;
+          // console.log('bexioRedirect');
+          
+          // let issuer = await Issuer.discover('https://idp.bexio.com');
+          // console.log('API_URL',config.API_URL);
+          // params = bexioClient.callbackParams(req);
+          // console.log('params',params);
+          // console.log('redirect',`${config.API_URL}api/v1/gate2bAPI/bexio-redirect`);
+          // let tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/gate2bAPI/bexio-redirect`, params, {
+          //     code_verifier
+          // });
+          // console.log('tokenSet');
+          // console.log(tokenSet);
+  
+          let companyDetails;
+          let temp = await  this.getloginUserCompanyDetails(tokenSet.access_token);
+          if(!temp)
+          {
+            // commonErrors['errorTitle'] = req.originalUrl;
+            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
+            // warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
+            res.send({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+            });
+            return;
+          }
+          companyDetails = temp;
+          console.log(companyDetails);
+          let tempJson = JSON.parse(companyDetails)[0];
+          if(tempJson['country_name'] == '' || tempJson['name'] == '' || tempJson['address'] == '' || tempJson['city'] == '' || tempJson['postcode'] == '' || tempJson['country_id'] == '')
+          {
+            
+            res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+            return;
+          }
+          const validation = async (data, fields) => {
+              let status;
+              for (const element of fields) {
+  
+                  if (!data[element]) {
+                    console.log(element);
+                    return false;
+  
+                  }
+              }
+              return true;
+          };
+          let validationCompanyStatus;
+          console.log(JSON.parse(companyDetails));
+          
+          let coutryCode = await this.getConutryCode(tokenSet.access_token, JSON.parse(companyDetails)[0]['country_name'])
+          if(!coutryCode)
+          {
+            // commonErrors['errorTitle'] = req.originalUrl;
+            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getConutryCode_not_found -req param,',JSON.parse(req.body);
+            // warningMessage(commonErrors,'getConutryCode_not_found');
+            res.end({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+          });
+          return
+          }
+          companyDetails ? validationCompanyStatus = await validation(JSON.parse(companyDetails)[0], ['name', 'address', 'city', 'postcode', 'country_id']) : '';
+          console.log('validationCompanyStatus',validationCompanyStatus);
+          console.log('companyDetails',companyDetails);
+          let token = tokenSet.refresh_token;
+          let userDetails
+          userDetails = await this.getLoginUserInfo(tokenSet.access_token)
+          console.log(tokenSet.access_token);
+          if(!userDetails)
+          {
+            // commonErrors['errorTitle'] = req.originalUrl;
+            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserInfo_not_found -req param,',JSON.stringify(req.body);
+            // warningMessage(commonErrors,'getLoginUserInfo_not_found');
+            res.end({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+          }); 
+          return
+          }
+          let validationUserStatus;
+          userDetails ? validationUserStatus = await validation(JSON.parse(userDetails), ['given_name', 'family_name', 'email']) : '';
+          console.log('validationCompanyStatus',validationCompanyStatus);
+          console.log('userDetails',userDetails);
+  
+          
+          if (validationUserStatus && validationCompanyStatus) {
+              let rolesDetails;
+              rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
+              if(!rolesDetails)
+              {
+                // commonErrors['errorTitle'] = req.originalUrl;
+                // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserRoles_not_found -req param,',JSON.stringify(req.body);
+                // warningMessage(commonErrors,'getLoginUserRoles_not_found');
+                res.end({
+                  status_code: 500,
+                  message: 'something_went_wrong',
+                  status: false,
+              });
+              return
+              }
+              
+              let isAdmin;
+              if (rolesDetails.indexOf('is_superadmin') != -1) {
+                  isAdmin = true;
+              } else {
+                  isAdmin = false;
+              }
+              
+              let companyCreateStatus = await this.checkCompanyStatus(JSON.parse(companyDetails)[0]['name'],isAdmin);
+              console.log('companyCreateStatus',companyCreateStatus);
+              if(companyCreateStatus)
+              {  
+                let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode,res,req)
+                console.log('responseResult', responseResult);
+                if(responseResult.status)
+                  {
+                    const options = {
+                      domain: config.SESSION_DOMAIN,
+                    };
+                   
+                    let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
+                    console.log("Object ID:", billingCookie.objectid );
+                    // const delUserDetailsQry = `DELETE FROM activation WHERE objectid = $1`
+                    // await pool.query(delUserDetailsQry, [billingCookie.objectid ]);
+                    const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+                    DELETE FROM activation WHERE objectid = ${billingCookie.objectid}
+                  `);
+                    // res.clearCookie(config.BILLING_COOKIE_NAME, options);
+                    // logs.action = 'BEXIO_LOGIN';
+                    // logs.level = 'NOTIFICATION';
+                    // logs.item = 'EDI';
+                    // addlogs(logs,data.rolePartyId,data.roleAccId);
+                    console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
+                    console.log(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+                    res.send({
+                      status_code: 200,
+                      message: 'success',
+                      status: true,
+                      redirectUrl:`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`
+                    });
+                    return;
+                    // res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.accountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`)
+                  }
+                else
+                  {
+                console.log('111');
+                  
+                    // res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+                    res.send({
+                      status_code: 200,
+                      message: 'success',
+                      status: true,
+                      redirectUrl:`${config.BEXIO_APP_URL}#/login/error`
+                    });
+                    return;
+  
+                  }
+                  // something went wrong
+              }
+              else{
+                res.send({
+                  status_code: 200,
+                  message: 'success',
+                  status: true,
+                  redirectUrl:`${config.BEXIO_APP_URL}#/login/permissiondenied`
+                });
+                return;
+                // res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
+                // return;
+  
+                // permission
+            }
+          } else {
+            console.log('258258');
+            
+              // res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+              res.send({
+                status_code: 200,
+                message: 'success',
+                status: true,
+                redirectUrl:`${config.BEXIO_APP_URL}#/login/unauthorized`
+              });
+              return;
+              // Correct
+            }
+        }else{
+          res.send({
+            status_code: 500,
+            message: 'validation_error',
+            status: false,
+            
+          });
+        }
+  
+  
+    } catch (error) {
+     
+        // logs.action = 'BEXIO_LOGIN';
+        // logs.level = 'ERROR';
+        // logs.item = 'EDI';
+        // addlogs(logs,data.rolePartyId,data.roleAccId);
+        console.log('error',error);
+        console.log(config.BEXIO_APP_URL);
+          // commonErrors['errorTitle'] = req.originalUrl;
+          // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;  
+          // warningMessage(commonErrors,error);
+         res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+      
+    }
+  };
 }
 
 const companyConfirmation = async(companyname, zip, city, street, state)=> {
