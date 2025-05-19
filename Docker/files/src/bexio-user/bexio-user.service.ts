@@ -559,7 +559,7 @@ export class BexioUserService {
 
           const newGate2bId = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
                 INSERT INTO ediparty (fk_network,rk_party,netcomid,fk_currency)
-                VALUES (${networkIdG2b[0]?.cid}, ${objectId[0]?.objectid}, ${ediPartyId.netcomid}, ${getCurrencyCode[0].cid})
+                VALUES (${networkIdG2b[0]?.cid}, ${objectId[0]?.objectid}::uuid, ${ediPartyId.netcomid}, ${getCurrencyCode[0].cid})
                 RETURNING *
               `);
 
@@ -1773,10 +1773,11 @@ export class BexioUserService {
     FROM network 
     WHERE name = ${'Bexio'}
   `);
-
+      console.log("objectId",objectId[0]?.objectid);
+      
       const checkTokenData1 = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
   INSERT INTO ediparty (fk_network, rk_party, fk_currency, netcomid)
-  VALUES (${networkId[0]?.cid}, ${objectId[0]?.objectid}, ${currency}, ${''})
+  VALUES (${networkId[0]?.cid}, ${objectId[0]?.objectid}::uuid, ${currency}, ${''})
   RETURNING *
 `);
 
