@@ -38,14 +38,14 @@ const fetchEmailContent = async(subjectkey, language,keyDatas = null,partyConfig
 
 
       const getConfigRslt = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-  SELECT 
-    config->>'domain' AS domainname,
-    config AS configdata
-  FROM 
-    public.commissionagent 
-  WHERE config->>'domain' = $1
-    AND config IS NOT NULL
-`, domainName);
+        SELECT 
+          config->>'domain' AS domainname,
+          config AS configdata
+        FROM 
+          public.commissionagent 
+        WHERE config->>'domain' = ${domainName}
+          AND config IS NOT NULL
+      `);
 
       if( getConfigRslt.length != 0 ){
         configData = getConfigRslt[0].configdata;
