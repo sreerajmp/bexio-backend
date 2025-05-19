@@ -13,19 +13,19 @@ const sendEmail = async (options) => {
     console.log(options.message);
 
     let transporter;
-    if (config.MAIL_PASSWORD) {
-        console.log('iffffffffffff');
+    // if (config.MAIL_PASSWORD) {
+    //     console.log('iffffffffffff');
         
-        transporter = nodemailer.createTransport({
-            host: config.MAIL_SERVER,
-            port: config.MAIL_PORT,
-            auth: {
-                user: config.MAIL_USERNAME,
-                pass: config.MAIL_PASSWORD,
-            },
-            name: process.env.MAIL_INTERNAL_DOMAIN,
-        });
-    } else {
+    //     transporter = nodemailer.createTransport({
+    //         host: config.MAIL_SERVER,
+    //         port: config.MAIL_PORT,
+    //         auth: {
+    //             user: config.MAIL_USERNAME,
+    //             pass: config.MAIL_PASSWORD,
+    //         },
+    //         name: process.env.MAIL_INTERNAL_DOMAIN,
+    //     });
+    // } else {
         console.log('elseeeeeee');
 
         transporter = nodemailer.createTransport({
@@ -33,7 +33,7 @@ const sendEmail = async (options) => {
             port: config.MAIL_PORT,
             name: process.env.MAIL_INTERNAL_DOMAIN,
         });
-    }
+    // }
     
     
  
