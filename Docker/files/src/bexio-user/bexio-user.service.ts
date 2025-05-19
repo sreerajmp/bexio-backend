@@ -147,11 +147,10 @@ export class BexioUserService {
           
           let billingCookie = {
             bexio: true,
-            objectid: insertData[0]?.objectid,
-            url:`${config.BEXIO_INTERNAL_URL}api/v1/bexio-user/bexioCompanyCreate`
+            objectid: insertData[0]?.objectid
           }
-          
-          //console.log('4. Billing Cookie Data:', billingCookie);
+
+          console.log('4. Billing Cookie Data:', billingCookie);
           //console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
           
           // Encrypt cookie values
