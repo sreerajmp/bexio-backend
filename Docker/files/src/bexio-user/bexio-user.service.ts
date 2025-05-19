@@ -149,6 +149,7 @@ export class BexioUserService {
             bexio: true,
             objectid: insertData[0]?.objectid,
             isNew:true
+
           }
 
           console.log('4. Billing Cookie Data:', billingCookie);
