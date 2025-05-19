@@ -99,6 +99,8 @@ export class BexioUserService {
     }
     if (validationCompany && validationUser) {
       let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
+      console.log("rolesDetails",rolesDetails);
+      
       if (!rolesDetails) {
         return res.status(500).send({
           status_code: 500,
@@ -2553,8 +2555,8 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
             return;
           }
           companyDetails = temp;
-          console.log(companyDetails);
-          let tempJson = JSON.parse(companyDetails)[0];
+          console.log("companyDetails",companyDetails);
+          let tempJson = companyDetails[0];
           if(tempJson['country_name'] == '' || tempJson['name'] == '' || tempJson['address'] == '' || tempJson['city'] == '' || tempJson['postcode'] == '' || tempJson['country_id'] == '')
           {
             
@@ -2574,7 +2576,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
               return true;
           };
           let validationCompanyStatus;
-          console.log(JSON.parse(companyDetails));
+          // console.log(JSON.parse(companyDetails));
           
           let coutryCode = await this.getConutryCode(tokenSet.access_token, JSON.parse(companyDetails)[0]['country_name'])
           if(!coutryCode)
@@ -2617,6 +2619,8 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           if (validationUserStatus && validationCompanyStatus) {
               let rolesDetails;
               rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
+              console.log("rolesDetails",rolesDetails);
+              
               if(!rolesDetails)
               {
                 // commonErrors['errorTitle'] = req.originalUrl;
