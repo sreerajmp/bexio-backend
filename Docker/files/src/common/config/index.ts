@@ -97,7 +97,7 @@ export default {
 	// // test server   
 	//   BEXIO_REDIRECT_URIS: ['https://jlegl.api.io-market.net/api/v1/gate2bAPI/bexio-redirect'],
 	//   API_URL: process.env.API_URL,
-	   BEXIO_APP_URL: process.env.BEXIO_APP_URL || 'https://bexio.io-market.net/',
+	   BEXIO_APP_URL: process.env.BEXIO_APP_URL || 'https://gate2b-bexio.io-market.net/',
 	//   DB_NAME_BEXIO : process.env.DB_NAME_BEXIO,
 
 	  BEXIO_API:'https://api.bexio.com/',
@@ -228,5 +228,7 @@ export default {
 	  MAILCHIMP_KEY:  process.env.MAILCHIMP_KEY ,
 	  MAILCHIMP_TAG_NAME:  process.env.MAILCHIMP_TAG_NAME || "iomarket AG Test",
 	  OCTOPUS_URL:  process.env.OCTOPUS_URL,
-	  BEXIO_INTERNAL_URL:"http://bexio-interface-backend.gate2b.svc.cluster.local/"
+	  BEXIO_INTERNAL_URL:"http://bexio-interface-backend.gate2b.svc.cluster.local/",
+	  BILLING_URL: process.env.BILLING_URL || 'https://billing.io-market.net/'
+	  
 };
