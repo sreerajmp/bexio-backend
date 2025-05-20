@@ -1265,6 +1265,8 @@ console.log('req.body',req.body);
       console.log('********companyId',companyId);
       const billerData = encrToken.data
       let billerId = JSON.parse(billerData)
+      console.log('billerId',billerId);
+      
       const options = {
         method: 'PUT',
         url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId.id}`,
@@ -1278,6 +1280,10 @@ console.log('req.body',req.body);
         cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
       };
       await request(options, async function (error, response) {
+        // console.log('response', response);
+        console.log('response.body', response.body);
+        console.log('response.statusCode', response.statusCode);
+        
         if (error) {
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 500,
