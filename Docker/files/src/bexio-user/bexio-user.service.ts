@@ -924,7 +924,11 @@ export class BexioUserService {
         await setBusinessConnector(parms);
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
+        console.log("contactUpdatecontactUpdate");
+        
         await contactUpdateUser(userLanguage[0].cid, partyId)
+        console.log("contactUpdateUsercontactUpdateUser");
+
 
       } else {
 
@@ -938,7 +942,7 @@ export class BexioUserService {
 
         if (decryptData?.planId && decryptData?.subScriptionType) {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
-        }
+      }
       }
       if (accountIdFinal != 0) {
 
@@ -967,6 +971,7 @@ export class BexioUserService {
         WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
         );
 
+        console.log("checkRoleDatacheckRoleDatacheckRoleData",checkRoleData);
 
       //   const userLanguage = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       //   SELECT 
@@ -1360,23 +1365,25 @@ export class BexioUserService {
 
       const userCid = getUserResult[0].cid;
       const checkEmailResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-  SELECT email 
-  FROM email 
-  WHERE fk_party = ${companyID} AND _type = 'company_contact'
+        SELECT email 
+        FROM email 
+        WHERE fk_party = ${companyID} AND _type = 'company_contact'
 `);
 
-      const getResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-    SELECT objectid FROM party p WHERE p.cid = ${companyID}
-  `);
+            const getResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+          SELECT objectid FROM party p WHERE p.cid = ${companyID}
+        `);
 
+        console.log('555555555555555555555555555555555555555555555');
+        
+            const getEdiPartyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
+          SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
+        `);
+        console.log('getEdiResultgetEdiResultgetEdiResultgetEdiResultgetEdiResult');
 
-      const getEdiPartyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
-    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
-  `);
-
-      const getEdiResult = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
-    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
-  `);
+            const getEdiResult = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
+          SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
+        `);
 
       const gate2bId = getEdiPartyResult[0]?.cid;
       const newGate2bId = getEdiResult[0]?.cid;
@@ -2094,11 +2101,11 @@ VALUES (
         }
         else {
           let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
-        
+          let objectid =  billingCookie.objectid
           const activationResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
           SELECT paymentData, detail 
           FROM activation 
-          WHERE objectid = ${billingCookie.objectid}
+          WHERE objectid = ${objectid}::uuid
         `);
         
 
@@ -2122,7 +2129,7 @@ VALUES (
                 to_jsonb(${accountValue}::text), 
                 true
               )
-            WHERE objectid = ${billingCookie.objectid}
+            WHERE objectid = ${objectid}::uuid
             RETURNING paymentdata
           `);
           
