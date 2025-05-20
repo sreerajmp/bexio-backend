@@ -297,7 +297,11 @@ export class DebtorsService {
           const parseResponse = (response: any) => {
             if (response && response.body) {
               try {
+                console.log("response.body",response.body);
+
                 let parsedData = JSON.parse(response.body);
+                console.log("parsedData",parsedData);
+                
                 if (Array.isArray(parsedData)) {
                   return parsedData;
                 } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
@@ -320,8 +324,10 @@ export class DebtorsService {
           return null;
           });
           console.log('searchJson',searchJson);
+          console.log('getOptions',getOptions);
+
           console.log('getResponse',getResponse.statusCode);
-          console.log('getResponse message',getResponse.message);
+          // console.log('getResponse message',getResponse);
          
           if (getResponse.statusCode == 401) {
             return res.status(401).json({
@@ -351,6 +357,7 @@ export class DebtorsService {
       if (resData && resData.length > 0) {
           let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
           let contact_idList: any = [];
+          console.log('resultArrayresultArrayresultArray',resultArray);
         
           for (let invoice in resData) {
           resData[invoice]['allowSend'] =  true;
@@ -361,7 +368,7 @@ export class DebtorsService {
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
-            resData[invoice]['invoice_type'] = resultArray.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
+            resData[invoice]['invoice_type'] = resultArray?.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
             for (let qryInvoice in invoiceList) {
               if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
                 resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
