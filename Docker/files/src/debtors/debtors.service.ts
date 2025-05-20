@@ -1122,7 +1122,7 @@ export class DebtorsService {
                   }
                   return results;
               }
-              combinedResponse.ediResults = await processInvoices(JSON.parse(data.invoices), bodyParams);
+              combinedResponse.ediResults = await processInvoices(data.invoices, bodyParams);
                 // Use the PushWorkerHost to run the worker task
                  this.pushWorkerHost.run(data.invoices, bodyParams, {
                     cookies: req.cookies, // Include cookies
