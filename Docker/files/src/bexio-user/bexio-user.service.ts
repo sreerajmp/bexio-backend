@@ -3029,7 +3029,7 @@ const createOctConfig = async (netComId)  => {
 
     let fomdata = {
       name: netComId,
-      config: {"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true,"Print":false}},
+      config: JSON.stringify({"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true,"Print":false}}),
       status: 1,
       module: 'BEX'
     }
