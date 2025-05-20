@@ -43,6 +43,12 @@ const sendEmail = async (options) => {
         subject: config.MAIL_SUBJECT_START + options.subject,
         html: options.message,
     };
+    try {
     await transporter.sendMail(mailOptions);
+        
+    } catch (error) {
+        console.log("errorMail:",error);
+        
+    }
 };
 module.exports = sendEmail;
