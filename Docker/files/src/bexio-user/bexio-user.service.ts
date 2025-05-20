@@ -957,7 +957,7 @@ export class BexioUserService {
         INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
         INNER JOIN role r on par.fk_role = r.cid
         INNER JOIN status st on st.cid = pa.fk_status
-        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
+        WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
 
         // Execute the role check query using parameterized inputs to prevent SQL injection
         console.log("accountIdFinal",checkRoleQry);
@@ -971,7 +971,7 @@ export class BexioUserService {
         INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
         INNER JOIN role r on par.fk_role = r.cid
         INNER JOIN status st on st.cid = pa.fk_status
-        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
+        WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
         );
 
         console.log("checkRoleDatacheckRoleDatacheckRoleData",checkRoleData);
@@ -1004,7 +1004,11 @@ export class BexioUserService {
           // connectMssql
           const fetchBillerId = await pool.query(getBiller);
           // Proceed only if a biller record is not found
-          if( fetchBillerId.length == 0 ){
+          console.log(fetchBillerId);
+          console.log("fetchBillerId.recordset",fetchBillerId.recordset);
+
+          
+          if( fetchBillerId.recordset.length != 0 ){
 
             // Fetch user and account details from the current (Library) DB
             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -1021,15 +1025,21 @@ export class BexioUserService {
               INNER JOIN public.user u ON u.cid = a.fk_user
               INNER JOIN status s ON s.cid = pa.fk_status
               WHERE pa.fk_party = ${parseInt(partyId)}
-                AND pa.fk_account = ${accountIdFinal}
+                AND pa.fk_account = ${accountId}
                 AND s."statusLabel" = 'active'`
             );
+            console.log("accountIdFinal",accountId);
+            console.log("parseInt(partyId)",parseInt(partyId));
+            
 
+            console.log(userDetails);
+            console.log("userDetails[0].partyAccountId",userDetails[0].partyAccountId);
+            
             // Assign the EBILL role to the party-account-user
             await setEbillRole(
               partyId,
-              accountIdFinal,
-              userDetails[0].partyaccountid,
+              accountId,
+              userDetails[0].partyAccountId,
               !isAdmin,     // Flag indicating whether this is an admin or regular user
               'EBILL'       // Role name
             );
@@ -3030,7 +3040,7 @@ const createOctConfig = async (netComId)  => {
 
     let fomdata = {
       name: netComId,
-      config: {"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true,"Print":false}},
+      config: JSON.stringify({"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true,"Print":false}}),
       status: 1,
       module: 'BEX'
     }

@@ -1377,7 +1377,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-      console.log('filePush::::', filePush);
+      console.log('filePush::::', filePush,channel);
       
       if (filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
@@ -4417,7 +4417,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
       AND r.fk_party IS NULL
     `);
 
-    ////console.log('roleData', roleData);
+    console.log('roleData', roleData);
 
     // Check if party application exists
     const existingPartyApplication = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4426,6 +4426,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
       WHERE fk_party = ${partyId} 
       AND fk_application_version = ${roleData[0].fk_application_version}
     `);
+    console.log('existingPartyApplication', existingPartyApplication);
 
     let partyApplicationId;
     if (existingPartyApplication.length === 0) {
@@ -4439,6 +4440,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     } else {
       partyApplicationId = existingPartyApplication[0].cid;
     }
+    console.log('partyApplicationId', partyApplicationId);
 
     // Insert party application account
     const partyApplicationAccount = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4447,6 +4449,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
       VALUES (${partyApplicationId}, ${accountId}, ${partyAccount})
       RETURNING cid
     `);
+    console.log('partyApplicationId2');
 
     // Insert party application account role
     await connectLibrary.$queryRaw(Prisma.sql`
@@ -4457,7 +4460,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
 
     return true;
   } catch (error) {
-    ////console.log('error in setEbillRole:', error);
+    console.log('error in setEbillRole:', error);
     return false
   }
 };
@@ -4465,6 +4468,7 @@ export const partyServiceUpdate = async (partyResponse, service, app) => {
   return new Promise(async (resolve, reject) => {
    
     try {
+      console.log("partyServiceUpdate");
 
       const serviceName = service;
       const partyId = partyResponse;
