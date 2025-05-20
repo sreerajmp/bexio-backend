@@ -876,9 +876,10 @@ export class BexioUserService {
 
       if (!userAccountStatus) {
         //console.log('paraccountaccountaccountaccountaccountaccountaccountaccountty', party);
+        console.log("accountaccountaccountaccountaccountaccount");
 
         const accountIdResult = await account(userId, party, userDetails, netcomeAddress, jwt.decode(accessToken)['user_id']);
-        //console.log('accountIdResult', accountIdResult);
+        console.log('accountIdResult', accountIdResult);
 
         accountId = accountIdResult.accountId;
         partyId = accountIdResult.partyKey;
@@ -1575,6 +1576,7 @@ export class BexioUserService {
       const currentDate = new Date();
       //   const pool = await connectPostgres;
       let sex = decryptData.gender.slice(0, 3);
+      
       const values = [
         decryptData.given_name || '',
         decryptData.family_name || '',
@@ -1582,18 +1584,23 @@ export class BexioUserService {
         sex,
         currentDate
       ];
+      console.log("values",values);
+
       const result = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-  INSERT INTO "user" 
-    (givenname, familyname, email, sex, email_verified)
-  VALUES (
-    ${values[0]},
-    ${values[1]},
-    ${values[2]},
-    ${values[3]},
-    ${values[4]}
-  )
-  RETURNING cid
-`);
+      INSERT INTO "user" 
+        (givenname, familyname, email, sex, email_verified)
+      VALUES (
+        ${values[0]},
+        ${values[1]},
+        ${values[2]},
+        ${values[3]},
+        ${values[4]}
+      )
+      RETURNING cid
+    `);
+
+    console.log("resultresultresult",result[0]?.cid);
+
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
@@ -1654,18 +1661,19 @@ export class BexioUserService {
       //console.log('4');
 
       //console.log(valuesaccount);
+      console.log("valuesaccountvaluesaccount",valuesaccount);
 
       const accountSave = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-  INSERT INTO account 
-    (fk_user, authenticateid, commonname, notificationemail) 
-  VALUES (
-    ${valuesaccount[0]},
-    ${valuesaccount[1]},
-    ${valuesaccount[2]},
-    ${valuesaccount[3]}
-  )
-  RETURNING cid
-`);
+        INSERT INTO account 
+          (fk_user, authenticateid, commonname, notificationemail) 
+        VALUES (
+          ${valuesaccount[0]},
+          ${valuesaccount[1]},
+          ${valuesaccount[2]},
+          ${valuesaccount[3]}
+        )
+        RETURNING cid
+      `);
       //console.log('5');
 
       if (partyData.addressMain) {
