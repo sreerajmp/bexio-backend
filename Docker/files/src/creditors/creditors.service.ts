@@ -1031,10 +1031,18 @@ let transporter;
    
     if( getDistinctCompany.length){
       for( let j= 0; j< getDistinctCompany.length; j++){
-        const tokenSet = await bexioClient.refresh(getDistinctCompany[j].refresh_token || '');
-        console.log(tokenSet);
-        accessToken = tokenSet.access_token
-        console.log("accessToken",accessToken);
+        console.log("getDistinctCompany",getDistinctCompany[j]);
+        try {
+          const tokenSet = await bexioClient.refresh(getDistinctCompany[j].refresh_token || '');
+          console.log(tokenSet);
+          accessToken = tokenSet.access_token
+          console.log("accessToken",accessToken);
+        } catch (error) {
+          console.log("errorerror",error);
+          
+          continue
+        }
+
         
         let companyregistered = getDistinctCompany[j].fk_companyregistered;
         let company_partyid = getDistinctCompany[j].partyid;
