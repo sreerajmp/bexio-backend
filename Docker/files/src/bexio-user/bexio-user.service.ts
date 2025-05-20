@@ -956,7 +956,7 @@ export class BexioUserService {
         INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
         INNER JOIN role r on par.fk_role = r.cid
         INNER JOIN status st on st.cid = pa.fk_status
-        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
+        WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
 
         // Execute the role check query using parameterized inputs to prevent SQL injection
         console.log("accountIdFinal",checkRoleQry);
@@ -970,7 +970,7 @@ export class BexioUserService {
         INNER JOIN party_account pa ON paa.fk_party_account = pa.cid
         INNER JOIN role r on par.fk_role = r.cid
         INNER JOIN status st on st.cid = pa.fk_status
-        WHERE pa.fk_account=${accountIdFinal} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
+        WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
         );
 
         console.log("checkRoleDatacheckRoleDatacheckRoleData",checkRoleData);
@@ -1024,10 +1024,10 @@ export class BexioUserService {
               INNER JOIN public.user u ON u.cid = a.fk_user
               INNER JOIN status s ON s.cid = pa.fk_status
               WHERE pa.fk_party = ${parseInt(partyId)}
-                AND pa.fk_account = ${accountIdFinal}
+                AND pa.fk_account = ${accountId}
                 AND s."statusLabel" = 'active'`
             );
-            console.log("accountIdFinal",accountIdFinal);
+            console.log("accountIdFinal",accountId);
             console.log("parseInt(partyId)",parseInt(partyId));
             
 
@@ -1036,7 +1036,7 @@ export class BexioUserService {
             // Assign the EBILL role to the party-account-user
             await setEbillRole(
               partyId,
-              accountIdFinal,
+              accountId,
               userDetails[0].partyaccountid,
               !isAdmin,     // Flag indicating whether this is an admin or regular user
               'EBILL'       // Role name
