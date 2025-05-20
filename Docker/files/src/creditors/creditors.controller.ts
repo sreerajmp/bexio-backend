@@ -46,5 +46,10 @@ export class CreditorsController {
   async passTog2bGet(@Req() req: Request, @Res() res: Response,@Param('path') path: string): Promise<any> {
   return this.creditorsService.passTog2b(req,res,'GET',path);
   }
+  @Post('emailSendingScheduler')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async emailSendingScheduler(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.creditorsService.emailSendingScheduler(req,res);
+  }
   
 }
