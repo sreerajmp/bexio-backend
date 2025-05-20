@@ -13,7 +13,7 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
        pushInvoiceTestProcess(invoices, billerId);
     } 
     if(channel=='email' || channel=='print') {
-      console.log('Push Worker Received email:', { bodyParams, invoices });
+      console.log('Push Worker Received email or print:', { bodyParams, invoices });
       // Perform the bulk push task
       pushEmailInvoice(invoices, bodyParams,headerParams, channel);
     }
