@@ -1032,12 +1032,13 @@ export class BexioUserService {
             
 
             console.log(userDetails);
+            console.log("userDetails[0].partyAccountId",userDetails[0].partyAccountId);
             
             // Assign the EBILL role to the party-account-user
             await setEbillRole(
               partyId,
               accountId,
-              userDetails[0].partyaccountid,
+              userDetails[0].partyAccountId,
               !isAdmin,     // Flag indicating whether this is an admin or regular user
               'EBILL'       // Role name
             );
