@@ -1701,6 +1701,7 @@ export class BexioUserService {
         '',
         '',
         '',
+        '',
         resultdata // this is fk_user
       ];
 
@@ -1772,13 +1773,13 @@ export class BexioUserService {
       )
       RETURNING cid
     `);
-      //console.log('10');
+      console.log('10');
 
       let data = {
         partyKey: partyKey,
         accountId: accountSave[0].cid
       }
-      //console.log('done account');
+      console.log('done account');
 
       return data
 
