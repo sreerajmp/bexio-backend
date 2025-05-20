@@ -16,6 +16,8 @@ import { Prisma } from '@prisma/client';
 import redisClient from '../common/utils/redisDB';
 import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
 import connectMssql from '../db/mssql-client'
+import commonErrors from '../common/utils/commonError'
+import warningMessage from '../common/utils/warningMessage'
 
 @Injectable()
 export class BexioUserService {
@@ -929,7 +931,7 @@ export class BexioUserService {
         await contactUpdateUser(userLanguage[0].cid, partyId)
         console.log("contactUpdateUsercontactUpdateUser");
 
-
+        createOctConfig(netcomIdG2b)
       } else {
 
       }
@@ -3018,5 +3020,55 @@ const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
       subject: subject,
       message,
   });
+}
+
+const createOctConfig = async (netComId)  => {
+  try {
+    // let data = req.body
+    let responseData = null
+
+    let fomdata = {
+      name: netComId,
+      config: {"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true,"Print":false}},
+      status: 1,
+      module: 'BEX'
+    }
+    var options = {
+      'method': 'POST',
+      'url': `${config.OCTOPUS_URL}/create_config`,
+      formData: fomdata
+    };
+
+    console.log('options',options);
+
+    return new Promise(function (resolve, reject) {
+      request(options, async function (error, response, body) {
+
+        if (error) {
+          commonErrors['errorTitle'] = 'setConfiguration';
+          commonErrors['errorDescription'] = 'From:' +  ' ' + error.toString();
+          warningMessage(commonErrors, error);
+          return resolve(error)
+        }
+        else {
+          try {
+
+            console.log(response.body);
+            responseData = JSON.parse(response.body)
+
+            resolve(responseData)
+          }
+          catch {
+            return resolve(responseData)
+          }
+        }
+      })
+
+    });
+
+  }
+  catch {
+    // return resolve(responseData)
+  }
 }
 
