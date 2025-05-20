@@ -1377,7 +1377,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-      console.log('filePush::::', filePush);
+      console.log('filePush::::', filePush,channel);
       
       if (filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);

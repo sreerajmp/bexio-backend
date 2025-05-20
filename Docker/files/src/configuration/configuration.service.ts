@@ -1265,6 +1265,7 @@ console.log('req.body',req.body);
       console.log('********companyId',companyId);
       const billerData = encrToken.data
       let billerId = JSON.parse(billerData)
+      console.log('encrToken',encrToken);
       console.log('billerId',billerId);
       
       const options = {
@@ -1275,7 +1276,7 @@ console.log('req.body',req.body);
           'x-networkpartner-id':config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
-        body: billerData,
+        body:billerData,
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
         cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
       };
@@ -2382,12 +2383,14 @@ const getPythonData = async (netcomId) => {
 }
 const updateConnection = async(data)=>{
   console.log('updateConnection');
-  console.log('data',data);
+  // console.log('data',data);
   
   return new Promise(async (resolve, reject) => {
     let responseData = null
     try {
-      let tempData = data.pythonData;
+      console.log('data.form',data.form);
+      
+      let tempData = JSON.parse(data.form).data;
       let formData = {
         con_id:tempData.con_id,
         doc_type:tempData.fk_doc_type,
