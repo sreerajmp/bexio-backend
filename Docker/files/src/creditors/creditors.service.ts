@@ -17,6 +17,7 @@ import { resolve } from 'path';
 var xml2js = require('xml2js');
 import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
+import { edit } from '../common/utils/bexioClient';
 
 @Injectable()
 export class CreditorsService {
@@ -990,10 +991,11 @@ let transporter;
     //     })
     // }
     // const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-    let accessToken = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NjI1Nzc1MzYsImlhdCI6MTc0Njc2NjMzOSwianRpIjoiZDhhODU2MDMtZmVkMS00MGMwLThiM2YtNWYzMWMyMmI5MDQ2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJiZXhpb19wYXRfcHJvdmlkZXIiLCJzaWQiOiI3ZTk3Y2RjYi1hNzUwLTQ3NWEtOTM1MS01Y2Y0NjkyNTViMWMiLCJzY29wZSI6Im9wZW5pZCBhY2NvdW50aW5nIGtiX2RlbGl2ZXJ5X3Nob3cgYmFua19wYXltZW50X3Nob3cgcHJvamVjdF9lZGl0IGtiX2NyZWRpdF92b3VjaGVyX3Nob3cga2Jfb2ZmZXJfZWRpdCBmaWxlIHByb2plY3Rfc2hvdyBjb21wYW55X3Byb2ZpbGUga2JfYmlsbF9zaG93IGNvbnRhY3RfZWRpdCBub3RlX3Nob3cga2JfZGVsaXZlcnlfZWRpdCBrYl9leHBlbnNlX3Nob3cgcGF5cm9sbF9wYXlzdHViX3Nob3cgcGF5cm9sbF9lbXBsb3llZV9zaG93IGtiX2FydGljbGVfb3JkZXJfZWRpdCBhcnRpY2xlX2VkaXQga2JfaW52b2ljZV9lZGl0IG9mZmxpbmVfYWNjZXNzIGtiX29yZGVyX3Nob3cga2JfYXJ0aWNsZV9vcmRlcl9zaG93IHBheXJvbGxfdGltZV9hY2NvdW50X2VkaXQgcGF5cm9sbF90aW1lX2FjY291bnRfc2hvdyBzdG9ja19lZGl0IHBheXJvbGxfYWJzZW5jZV9zaG93IGVtYWlsIGtiX29yZGVyX2VkaXQgcGF5cm9sbF9lbXBsb3llZV9lZGl0IHJldm9jYWJsZSBrYl9jcmVkaXRfdm91Y2hlcl9lZGl0IGJhbmtfcGF5bWVudF9lZGl0IG1vbml0b3JpbmdfZWRpdCB0YXNrX2VkaXQgbGVhZF9lZGl0IGtiX2JpbGxfZWRpdCBtb25pdG9yaW5nX3Nob3cgdGVjaG5pY2FsIGxlYWRfc2hvdyB0YXNrX3Nob3cgYXJ0aWNsZV9zaG93IGZpbmFuY2VfcmVwb3J0cyBrYl9pbnZvaWNlX3Nob3cgc3Vic2NyaXB0aW9uX2FuZF9wZXJtaXNzaW9ucyBrYl9vZmZlcl9zaG93IHBheXJvbGxfYWJzZW5jZV9lZGl0IGJhbmtfYWNjb3VudF9zaG93IG5vdGVfZWRpdCBrYl9leHBlbnNlX2VkaXQgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.EsTZn7msqofItd_kh8UijEYjsK5SA-wLv2kdkMVQdmCE3Ypn9iZ7rJSh2iCp5Yhtxa-Z1kGT267j-Wsn8LwKxEvT8h8c9iBUXbETRl0lxfJAArepFsjUCjr_mtyorlw38xA13EEVy8SiLy6jOWUfUu3GcZAMaB2BhbUa0ch8gPQrTaoEvUonqWO9p4yFmiLJhXp4CtWn9Mi0VtBxF59TZn3mEmmvzuCpHFFjtj3jZM9NXfz_pWmV1lIa6Xjp2q_pv9w7fSyFIWkzKLSKyiMMOnY1kKJoyzWFLwz_7Uih24UKb-tsYEFmkmSLU-V_1xLIz_0qqzhoqR6gWTFqjzR_OA";
+    // let accessToken = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NjI1Nzc1MzYsImlhdCI6MTc0Njc2NjMzOSwianRpIjoiZDhhODU2MDMtZmVkMS00MGMwLThiM2YtNWYzMWMyMmI5MDQ2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJiZXhpb19wYXRfcHJvdmlkZXIiLCJzaWQiOiI3ZTk3Y2RjYi1hNzUwLTQ3NWEtOTM1MS01Y2Y0NjkyNTViMWMiLCJzY29wZSI6Im9wZW5pZCBhY2NvdW50aW5nIGtiX2RlbGl2ZXJ5X3Nob3cgYmFua19wYXltZW50X3Nob3cgcHJvamVjdF9lZGl0IGtiX2NyZWRpdF92b3VjaGVyX3Nob3cga2Jfb2ZmZXJfZWRpdCBmaWxlIHByb2plY3Rfc2hvdyBjb21wYW55X3Byb2ZpbGUga2JfYmlsbF9zaG93IGNvbnRhY3RfZWRpdCBub3RlX3Nob3cga2JfZGVsaXZlcnlfZWRpdCBrYl9leHBlbnNlX3Nob3cgcGF5cm9sbF9wYXlzdHViX3Nob3cgcGF5cm9sbF9lbXBsb3llZV9zaG93IGtiX2FydGljbGVfb3JkZXJfZWRpdCBhcnRpY2xlX2VkaXQga2JfaW52b2ljZV9lZGl0IG9mZmxpbmVfYWNjZXNzIGtiX29yZGVyX3Nob3cga2JfYXJ0aWNsZV9vcmRlcl9zaG93IHBheXJvbGxfdGltZV9hY2NvdW50X2VkaXQgcGF5cm9sbF90aW1lX2FjY291bnRfc2hvdyBzdG9ja19lZGl0IHBheXJvbGxfYWJzZW5jZV9zaG93IGVtYWlsIGtiX29yZGVyX2VkaXQgcGF5cm9sbF9lbXBsb3llZV9lZGl0IHJldm9jYWJsZSBrYl9jcmVkaXRfdm91Y2hlcl9lZGl0IGJhbmtfcGF5bWVudF9lZGl0IG1vbml0b3JpbmdfZWRpdCB0YXNrX2VkaXQgbGVhZF9lZGl0IGtiX2JpbGxfZWRpdCBtb25pdG9yaW5nX3Nob3cgdGVjaG5pY2FsIGxlYWRfc2hvdyB0YXNrX3Nob3cgYXJ0aWNsZV9zaG93IGZpbmFuY2VfcmVwb3J0cyBrYl9pbnZvaWNlX3Nob3cgc3Vic2NyaXB0aW9uX2FuZF9wZXJtaXNzaW9ucyBrYl9vZmZlcl9zaG93IHBheXJvbGxfYWJzZW5jZV9lZGl0IGJhbmtfYWNjb3VudF9zaG93IG5vdGVfZWRpdCBrYl9leHBlbnNlX2VkaXQgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.EsTZn7msqofItd_kh8UijEYjsK5SA-wLv2kdkMVQdmCE3Ypn9iZ7rJSh2iCp5Yhtxa-Z1kGT267j-Wsn8LwKxEvT8h8c9iBUXbETRl0lxfJAArepFsjUCjr_mtyorlw38xA13EEVy8SiLy6jOWUfUu3GcZAMaB2BhbUa0ch8gPQrTaoEvUonqWO9p4yFmiLJhXp4CtWn9Mi0VtBxF59TZn3mEmmvzuCpHFFjtj3jZM9NXfz_pWmV1lIa6Xjp2q_pv9w7fSyFIWkzKLSKyiMMOnY1kKJoyzWFLwz_7Uih24UKb-tsYEFmkmSLU-V_1xLIz_0qqzhoqR6gWTFqjzR_OA";
     // let isBexioUser = cookie.isBexioUser;
     
     // Get yesterday's date
+    let accessToken:any = "";
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -1009,10 +1011,10 @@ let transporter;
     const endTimestamp = `${targetDate} 23:59:59+05:30`;
 
     const getDistinctCompany = await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
-                              c.rk_party AS partyid
+                              c.rk_party AS partyid,refresh_token 
                               FROM documents_invoice_send dis
                               INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered WHERE time_stamp  
-                              BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz `;
+                              BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz`;
                               console.log("startTimestamp",startTimestamp);
                               console.log("endTimestamp",endTimestamp);
 
@@ -1025,8 +1027,15 @@ let transporter;
     // INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered`;
     // console.log("getDistinctCompany :: ",getDistinctCompany);
     // accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NjI1Nzc1MzYsImlhdCI6MTc0Njc2NjMzOSwianRpIjoiZDhhODU2MDMtZmVkMS00MGMwLThiM2YtNWYzMWMyMmI5MDQ2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJiZXhpb19wYXRfcHJvdmlkZXIiLCJzaWQiOiI3ZTk3Y2RjYi1hNzUwLTQ3NWEtOTM1MS01Y2Y0NjkyNTViMWMiLCJzY29wZSI6Im9wZW5pZCBhY2NvdW50aW5nIGtiX2RlbGl2ZXJ5X3Nob3cgYmFua19wYXltZW50X3Nob3cgcHJvamVjdF9lZGl0IGtiX2NyZWRpdF92b3VjaGVyX3Nob3cga2Jfb2ZmZXJfZWRpdCBmaWxlIHByb2plY3Rfc2hvdyBjb21wYW55X3Byb2ZpbGUga2JfYmlsbF9zaG93IGNvbnRhY3RfZWRpdCBub3RlX3Nob3cga2JfZGVsaXZlcnlfZWRpdCBrYl9leHBlbnNlX3Nob3cgcGF5cm9sbF9wYXlzdHViX3Nob3cgcGF5cm9sbF9lbXBsb3llZV9zaG93IGtiX2FydGljbGVfb3JkZXJfZWRpdCBhcnRpY2xlX2VkaXQga2JfaW52b2ljZV9lZGl0IG9mZmxpbmVfYWNjZXNzIGtiX29yZGVyX3Nob3cga2JfYXJ0aWNsZV9vcmRlcl9zaG93IHBheXJvbGxfdGltZV9hY2NvdW50X2VkaXQgcGF5cm9sbF90aW1lX2FjY291bnRfc2hvdyBzdG9ja19lZGl0IHBheXJvbGxfYWJzZW5jZV9zaG93IGVtYWlsIGtiX29yZGVyX2VkaXQgcGF5cm9sbF9lbXBsb3llZV9lZGl0IHJldm9jYWJsZSBrYl9jcmVkaXRfdm91Y2hlcl9lZGl0IGJhbmtfcGF5bWVudF9lZGl0IG1vbml0b3JpbmdfZWRpdCB0YXNrX2VkaXQgbGVhZF9lZGl0IGtiX2JpbGxfZWRpdCBtb25pdG9yaW5nX3Nob3cgdGVjaG5pY2FsIGxlYWRfc2hvdyB0YXNrX3Nob3cgYXJ0aWNsZV9zaG93IGZpbmFuY2VfcmVwb3J0cyBrYl9pbnZvaWNlX3Nob3cgc3Vic2NyaXB0aW9uX2FuZF9wZXJtaXNzaW9ucyBrYl9vZmZlcl9zaG93IHBheXJvbGxfYWJzZW5jZV9lZGl0IGJhbmtfYWNjb3VudF9zaG93IG5vdGVfZWRpdCBrYl9leHBlbnNlX2VkaXQgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.EsTZn7msqofItd_kh8UijEYjsK5SA-wLv2kdkMVQdmCE3Ypn9iZ7rJSh2iCp5Yhtxa-Z1kGT267j-Wsn8LwKxEvT8h8c9iBUXbETRl0lxfJAArepFsjUCjr_mtyorlw38xA13EEVy8SiLy6jOWUfUu3GcZAMaB2BhbUa0ch8gPQrTaoEvUonqWO9p4yFmiLJhXp4CtWn9Mi0VtBxF59TZn3mEmmvzuCpHFFjtj3jZM9NXfz_pWmV1lIa6Xjp2q_pv9w7fSyFIWkzKLSKyiMMOnY1kKJoyzWFLwz_7Uih24UKb-tsYEFmkmSLU-V_1xLIz_0qqzhoqR6gWTFqjzR_OA'
+    const bexioClient = await edit();
+   
     if( getDistinctCompany.length){
       for( let j= 0; j< getDistinctCompany.length; j++){
+        const tokenSet = await bexioClient.refresh(getDistinctCompany[j].refresh_token || '');
+        console.log(tokenSet);
+        accessToken = tokenSet.access_token
+        console.log("accessToken",accessToken);
+        
         let companyregistered = getDistinctCompany[j].fk_companyregistered;
         let company_partyid = getDistinctCompany[j].partyid;
         let invoicedCompanyName = '';
@@ -1034,10 +1043,14 @@ let transporter;
           companyregistered,company_partyid
         })
         const getCompanyName = await connectLibrary.$queryRaw<any>
-                                `SELECT p.cid, l.companyname
+                                `SELECT p.cid, l.companyname,e.email
                                 FROM party p
                                 INNER JOIN legalparty l ON l.fk_party = p.cid
-                                WHERE p.cid = ${company_partyid}`;
+                                INNER JOIN email e ON e.fk_party = l.fk_party
+                                WHERE p.cid = ${company_partyid} AND e."_type"='billing_contact'`;
+
+                                console.log('getCompanyName',getCompanyName);
+                                
         if( getCompanyName.length > 0 ) {
           invoicedCompanyName = getCompanyName[0].companyname;
         }
@@ -1145,10 +1158,12 @@ let transporter;
           </table>`;
 
         console.log("message",message);
+        console.log("getCompanyName[0].email",getCompanyName[0].email);
+
         let subject = `Invoice Summary :${targetDate}`
         try {
           await sendEmail({
-            email: 'r.murali@iomarket.in',
+            email: getCompanyName[0].email,
             subject,
             message,
           });
