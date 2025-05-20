@@ -1003,7 +1003,11 @@ export class BexioUserService {
           // connectMssql
           const fetchBillerId = await pool.query(getBiller);
           // Proceed only if a biller record is not found
-          if( fetchBillerId.length == 0 ){
+          console.log(fetchBillerId);
+          console.log("fetchBillerId.recordset",fetchBillerId.recordset);
+
+          
+          if( fetchBillerId.recordset == 0 ){
 
             // Fetch user and account details from the current (Library) DB
             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
