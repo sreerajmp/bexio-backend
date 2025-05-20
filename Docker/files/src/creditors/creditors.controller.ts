@@ -36,5 +36,15 @@ export class CreditorsController {
   async getAllUsers(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.creditorsService.getAllUsers(req,res);
   }
+  @Post('getG2b/:path')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async passTog2b(@Req() req: Request, @Res() res: Response,@Param('path') path: string): Promise<any> {
+  return this.creditorsService.passTog2b(req,res,'POST',path);
+  }
+  @Get('getG2b/:path')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async passTog2bGet(@Req() req: Request, @Res() res: Response,@Param('path') path: string): Promise<any> {
+  return this.creditorsService.passTog2b(req,res,'GET',path);
+  }
   
 }
