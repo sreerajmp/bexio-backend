@@ -920,7 +920,7 @@ export class BexioUserService {
           .replace('$netcom_id$', netcomIdG2b)
           .replace("$name$", companyNameGate2b)
         //console.log('parms', parms.slice(1, -1));
-        //console.log('parms', parms);
+        console.log('parms', parms);
         await setBusinessConnector(parms);
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
@@ -1095,7 +1095,7 @@ export class BexioUserService {
         let fomdata = {
           data: params
         }
-        //console.log('stringfuu', fomdata);
+        console.log('stringfuu', fomdata);
 
         let options = {
           'method': 'POST',
@@ -2687,7 +2687,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                     // const delUserDetailsQry = `DELETE FROM activation WHERE objectid = $1`
                     // await pool.query(delUserDetailsQry, [billingCookie.objectid ]);
                     const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-                    DELETE FROM activation WHERE objectid = ${billingCookie.objectid}
+                    DELETE FROM activation WHERE objectid = ${billingCookie.objectid}::uuid
                   `);
                     // res.clearCookie(config.BILLING_COOKIE_NAME, options);
                     // logs.action = 'BEXIO_LOGIN';
