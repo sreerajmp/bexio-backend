@@ -304,13 +304,13 @@ var options = {
       
       });
      
-   }
+  }
    catch (error) {
     commonErrors['errorTitle'] = 'getPythonData';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
     warningMessage(commonErrors, error);
     
-    }
+  }
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
@@ -4545,4 +4545,97 @@ export const getContactGroupList = async(accessToken) => {
     warningMessage(commonErrors,error);
     return;
   } 
+}
+
+
+// Function to fetch units from the bexio
+
+export const getUnitList = async (access_token) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/unit`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+         ////console.log("getTaxListA :: ",response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else
+           resolve(false)
+
+        });
+      });
+}
+
+
+// Function to fetch accounts
+export const getActiveAccounts = async (access_token) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/accounts`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+         ////console.log("getTaxListA :: ",response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else
+           resolve(false)
+
+        });
+      });
+}
+
+
+export const getActiveArticle = async (access_token) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/2.0/article`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+         ////console.log("getTaxListA :: ",response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else
+           resolve(false)
+
+        });
+      });
 }
