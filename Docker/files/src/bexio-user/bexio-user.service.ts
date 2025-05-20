@@ -1007,7 +1007,7 @@ export class BexioUserService {
           console.log("fetchBillerId.recordset",fetchBillerId.recordset);
 
           
-          if( fetchBillerId.recordset.length == 0 ){
+          if( fetchBillerId.recordset.length != 0 ){
 
             // Fetch user and account details from the current (Library) DB
             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
