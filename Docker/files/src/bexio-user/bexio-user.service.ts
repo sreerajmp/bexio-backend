@@ -423,7 +423,8 @@ export class BexioUserService {
 
   private async bexioUserCreate(userDetails, companyDetails, accessToken, isAdmin, coutryCode, res, req): Promise<any> {
     //console.log('bexioUserCreate::',req);
-
+ 
+ 
     let legalname, streetno, phoneNumber;
     let isNewCompany = false, paymentData, orderId;
     //console.log('1');
@@ -454,7 +455,7 @@ export class BexioUserService {
       const isCompanyAlreadyExists = await connectBexio.companyregistered.findMany({
         where: { rk_csn: rk_csn },
       });
-      console.log("isCompanyAlreadyExists",);
+      console.log("isCompanyAlreadyExists",isCompanyAlreadyExists);
       
       if (isCompanyAlreadyExists.length === 0) {
 
@@ -1369,11 +1370,11 @@ export class BexioUserService {
 
 
       const getEdiPartyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
-    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}
+    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
   `);
 
       const getEdiResult = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
-    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}
+    SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
   `);
 
       const gate2bId = getEdiPartyResult[0]?.cid;
@@ -2023,7 +2024,8 @@ VALUES (
           WHERE r.name IN (${Prisma.join(userRolesArray)})
             AND r.fk_party IS NULL
         `);
-
+        console.log('333333333333');
+        
         if (!Array.isArray(roleData)) {
           console.error('Expected roleData to be an array, but got:', roleData);
           return reject(new Error('Invalid role data format'));
@@ -2036,6 +2038,7 @@ VALUES (
             WHERE fk_party = ${partyId}
             AND fk_application_version = ${element.fk_application_version}
           `);
+          console.log('qqqqqqqqqqq');
 
           // 2. Insert if not exists
           if (partyApplicationId.length === 0) {
@@ -2045,6 +2048,7 @@ VALUES (
               RETURNING cid
             `);
           }
+          console.log('zzzzzzzzzzzzzzzz');
 
           const partyApplication = partyApplicationId[0].cid;
 
@@ -2054,6 +2058,7 @@ VALUES (
             VALUES (${partyApplication}, ${accountId}, ${partyAccount})
             RETURNING cid
           `);
+          console.log('vvvvvvvvvvvvvv');
 
           const partyApplicationAccount = partyApplicationAccountId[0].cid;
 
@@ -2064,6 +2069,8 @@ VALUES (
               VALUES (${partyApplicationAccount}, ${element.roleId})
             `
           );
+          console.log('b');
+
         }
         resolve(1);
       });
