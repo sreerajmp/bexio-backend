@@ -904,21 +904,24 @@ export class DebtorsService {
     let data = req.body;
     const bexioClient = await edit();
     let combinedResponse :any = {};
+    combinedResponse.otherInvoiceResults = []
+
     data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
     try {
 
       // Added codes to handle print invoices. Currently the same worker used for email is added. we have to change
         if( data.printInvoices ){
           // Fetch tag information based on netcomId and the list of printInvoices
-          let getTag: any = await getTagName(data.netcomId,data.printInvoices);
-          console.log('Print', getTag);
+          // let getTag: any = await getTagName(data.netcomId,data.printInvoices);
+          // console.log('Print', getTag);
           console.log("data.printInvoices", data.printInvoices);
-          combinedResponse.otherInvoiceResults = getTag?.data || [];
+          // combinedResponse.otherInvoiceResults = getTag?.data || [];
           // Loop through each tag item from the response
-          for (const item of getTag?.data || []) {
+          for (const item of JSON.parse(data.printInvoices)|| []) {
 
             // Find the invoice(s) from printInvoices that match the current tag item's doc_id
-            let selectedItem = JSON.parse(data.printInvoices).filter((invoice) => invoice.doc_id === item.doc_id);
+            // let selectedItem = JSON.parse(data.printInvoices).filter((invoice) => invoice.doc_id === item.doc_id);
+            let selectedItem = item;
             console.log("selectedItem :: ",selectedItem);
             try {
 
@@ -948,24 +951,24 @@ export class DebtorsService {
               }
 
               // Process the selected invoice and get a unique invoice UUID
-              let invoice_uuid = await processInvoices(selectedItem[0], bodyParams)
+              let invoice_uuid = await processInvoices(selectedItem, bodyParams)
               console.log("invoice_uuid:::", invoice_uuid);
 
               // Attach the UUID to the invoice object
-              selectedItem[0]['invoice_uuid'] = invoice_uuid[0];
+              selectedItem['invoice_uuid'] = invoice_uuid[0];
+              selectedItem['tag'] = 'print';
 
               // Initialize or reset the emailInvoice array in the combined response
-              combinedResponse.otherInvoiceResults = []
-              combinedResponse.otherInvoiceResults.push(invoice_uuid[0]);
-              console.log("processInvoices:::", selectedItem[0]);
+              combinedResponse.otherInvoiceResults.push(selectedItem);
+              console.log("processInvoices:::", selectedItem);
               // Use the PushWorkerHost to run the worker task
 
               // Trigger a background worker task to handle invoice processing (e.g., print job)
-              this.pushWorkerHost.run(selectedItem[0], bodyParams, {
+              this.pushWorkerHost.run(selectedItem, bodyParams, {
                     cookies: req.cookies, // Include cookies
                     signedCookies: req.signedCookies, // Include signed cookies
                     url: req.url,
-              },'',item.tag);
+              },'','print');
             } catch (error) {
               console.log("error in sendBulkInvoices :: ", error);
             }
@@ -1059,7 +1062,7 @@ export class DebtorsService {
                         warningMessage(commonErrors, error);
                     }
                 }
-                if (item.tag === "email") {
+                if (item.tag === "email"|| item.tag === "print") {
                   console.log("email tag");
                   console.log("data.otherInvoice", data.otherInvoice);
                   
