@@ -395,7 +395,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
   try {
     console.log("worker processing invoices...",invoices);
 
-    let tempIds = JSON.parse(invoices);
+    let tempIds = invoices;
 
     for (let index = 0; index < tempIds.length; index++) {
       const element = tempIds[index];
