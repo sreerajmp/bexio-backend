@@ -2586,7 +2586,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           if(tempJson['country_name'] == '' || tempJson['name'] == '' || tempJson['address'] == '' || tempJson['city'] == '' || tempJson['postcode'] == '' || tempJson['country_id'] == '')
           {
             
-            res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+            res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
             return;
           }
           const validation = async (data, fields) => {
@@ -2694,12 +2694,12 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                     // logs.item = 'EDI';
                     // addlogs(logs,data.rolePartyId,data.roleAccId);
                     console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-                    console.log(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+                    console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
                     res.send({
                       status_code: 200,
                       message: 'success',
                       status: true,
-                      redirectUrl:`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`
+                      redirectUrl:`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`
                     });
                     return;
                     // res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.accountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`)
@@ -2713,7 +2713,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                       status_code: 200,
                       message: 'success',
                       status: true,
-                      redirectUrl:`${config.BEXIO_APP_URL}#/login/error`
+                      redirectUrl:`${config.BEXIO_APP_URL}/login/error`
                     });
                     return;
   
@@ -2725,7 +2725,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                   status_code: 200,
                   message: 'success',
                   status: true,
-                  redirectUrl:`${config.BEXIO_APP_URL}#/login/permissiondenied`
+                  redirectUrl:`${config.BEXIO_APP_URL}/login/permissiondenied`
                 });
                 return;
                 // res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
@@ -2741,7 +2741,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                 status_code: 200,
                 message: 'success',
                 status: true,
-                redirectUrl:`${config.BEXIO_APP_URL}#/login/unauthorized`
+                redirectUrl:`${config.BEXIO_APP_URL}/login/unauthorized`
               });
               return;
               // Correct
@@ -2767,7 +2767,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           // commonErrors['errorTitle'] = req.originalUrl;
           // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;  
           // warningMessage(commonErrors,error);
-         res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+         res.redirect(`${config.BEXIO_APP_URL}/login/error`);
       
     }
   };
