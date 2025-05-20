@@ -1024,7 +1024,12 @@ export class BexioUserService {
                 AND pa.fk_account = ${accountIdFinal}
                 AND s."statusLabel" = 'active'`
             );
+            console.log("accountIdFinal",accountIdFinal);
+            console.log("parseInt(partyId)",parseInt(partyId));
+            
 
+            console.log(userDetails);
+            
             // Assign the EBILL role to the party-account-user
             await setEbillRole(
               partyId,
