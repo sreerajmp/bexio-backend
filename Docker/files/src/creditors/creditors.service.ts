@@ -205,7 +205,6 @@ export class CreditorsService {
       return res
       .status(200)
       .json({ status: 500, message: 'something_went_wrong' });
-        
     }
   }
   async getOrderList(req: Request, res: Response,): Promise<any> {
@@ -923,6 +922,58 @@ async getAllUsers(req: Request, res: Response,): Promise<any> {
     });
     }
 }
+async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
+
+  // const sendToPythonAPI = (api,reqBody,method,path) => {
+  console.log('5555555555555');
+  
+    let keys =Object.keys(req.body)
+    let formData={
+      dummyData:''
+    };
+    keys.forEach(element => {
+      formData[element] = req.body[element];
+    });
+    // headers.host = 'api.gate2b.io-procurement.com'
+    try 
+    {
+      let  options = {
+          'method': method,
+          'url': config.GATE2BURL + path,
+          // 'headers': headers,
+           formData: formData
+        };
+        console.log(options);
+        
+      return new Promise(function (resolve, reject) {
+        request(options, async function (error, response, body) {
+          if (!error && response.statusCode == 200) {
+            // console.log('body',http://192.168.55.248:5005/api/document-type);
+            res.send(body)
+          } else {
+              // console.log('er',error);
+              return res.status(500).json({
+                status_code: 500,
+                message: 'something_went_wrong',
+                status: false,
+              });
+            // reject(error);
+          }
+        });
+      });
+    } catch (error) {
+      console.log("error",error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+      // Logger.errorAndMail(error);
+  }
+// }
+    
+}
+
 }
 const orderListCountSearch = async (token,offset,limit?) => {
   return new Promise(async(resolve, reject) => {
