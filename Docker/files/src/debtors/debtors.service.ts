@@ -21,7 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
+import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxList } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -1761,7 +1761,7 @@ export class DebtorsService {
         });
     }
   }
-  async getActiveTaxes(req: Request, res: Response): Promise<any> {
+  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
       const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
@@ -1774,7 +1774,7 @@ export class DebtorsService {
       }
       
       let accessToken = cookie.access_Token;
-      const taxList: any = await getTaxListActive(accessToken);
+      const taxList: any = await getActiveSalesTaxList(accessToken);
       if( !taxList ){
         return res.send({
           status_code: 500,
@@ -1885,7 +1885,6 @@ export class DebtorsService {
      
     }
   }
-
   
 }
 const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{

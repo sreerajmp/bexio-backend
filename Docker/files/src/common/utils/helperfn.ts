@@ -4643,3 +4643,32 @@ export const getActiveArticle = async (access_token) => {
         });
       });
 }
+
+export const getActiveSalesTaxList = async (access_token) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `https://api.bexio.com/3.0/taxes?types=sales_tax&scope=active`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          // res.send(response.body)
+         ////console.log("getTaxListA :: ",response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else
+           resolve(false)
+
+        });
+      });
+}
