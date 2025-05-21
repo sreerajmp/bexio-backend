@@ -108,4 +108,29 @@ export class ConfigurationController {
   
   return this.configurationService.changePayementComments(req,res);
   }
+
+
+  @Post('getActiveSalesTaxList')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getActiveSalesTaxList(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.configurationService.getActiveSalesTaxList(req,res);
+  }
+
+  @Post('getUnitList')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getUnitList(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.configurationService.getUnitList(req,res);
+  }
+
+  @Post('getActiveAccounts')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getActiveAccounts(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.configurationService.getActiveAccounts(req,res);
+  }
+
+  @Post('getActiveArticle')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getActiveArticle(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.configurationService.getActiveArticle(req,res);
+  }
 }

@@ -21,7 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxList } from 'src/common/utils/helperfn';
+import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList} from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -1759,130 +1759,6 @@ export class DebtorsService {
             message: 'something_went_wrong',
             status: false
         });
-    }
-  }
-  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
-      
-      let accessToken = cookie.access_Token;
-      const taxList: any = await getActiveSalesTaxList(accessToken);
-      if( !taxList ){
-        return res.send({
-          status_code: 500,
-          message: 'tax_not_Found',
-          status: false,
-        })
-      }
-      console.log("taxList ",taxList);
-      return res.send({
-        status: 200,
-        data: taxList,
-      });
-    } catch (error) {
-     
-    }
-  }
-
-  async getUnitList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
-      
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-      const unitList: any = await getUnitList(accessToken);
-      if( !unitList ){
-        return res.send({
-          status_code: 500,
-          message: 'units_not_Found',
-          status: false,
-        })
-      }
-      console.log("unitList ",unitList);
-      return res.send({
-        status: 200,
-        data: unitList,
-      });
-    } catch (error) {
-     
-    }
-  }
-  async getActiveAccounts(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
-      
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-      const activeAccounts: any = await getActiveAccounts(accessToken);
-      if( !activeAccounts ){
-        return res.send({
-          status_code: 500,
-          message: 'accounts_not_Found',
-          status: false,
-        })
-      }
-      console.log("activeAccounts ",activeAccounts);
-      return res.send({
-        status: 200,
-        data: activeAccounts,
-      });
-    } catch (error) {
-     
-    }
-  }
-  async getActiveArticle(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
-      
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-      const articleList: any = await getActiveArticle(accessToken);
-      if( !articleList ){
-        return res.send({
-          status_code: 500,
-          message: 'articles_not_Found',
-          status: false,
-        })
-      }
-      console.log("articleList ",articleList);
-      return res.send({
-        status: 200,
-        data: articleList,
-      });
-    } catch (error) {
-     
     }
   }
   
