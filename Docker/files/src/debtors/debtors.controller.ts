@@ -61,30 +61,5 @@ export class DebtorsController {
   async changeInvoiceSendStatus(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.changeInvoiceSendStatus(req,res);
   }
-
-  @Post('getActiveSalesTaxList')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getActiveSalesTaxList(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.debtorsService.getActiveSalesTaxList(req,res);
-  }
-
-  @Post('getUnitList')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getUnitList(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.debtorsService.getUnitList(req,res);
-  }
-
-  @Post('getActiveAccounts')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getActiveAccounts(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.debtorsService.getActiveAccounts(req,res);
-  }
-
-  @Post('getActiveArticle')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getActiveArticle(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.debtorsService.getActiveArticle(req,res);
-  }
-
   
 }
