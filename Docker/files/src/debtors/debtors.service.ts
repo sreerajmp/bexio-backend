@@ -21,7 +21,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxList } from 'src/common/utils/helperfn';
+import { getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -94,7 +94,7 @@ export class DebtorsService {
           Prisma.sql`
           SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
           INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${channel})
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
           `
           );
           console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
