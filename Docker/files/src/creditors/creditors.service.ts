@@ -929,27 +929,43 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
 
   // const sendToPythonAPI = (api,reqBody,method,path) => {
   console.log('5555555555555');
+    let keys,body;
+    let formData,options;
+    if(method != 'GET'){
+      if("encrToken" in req.body){
+        let decryptData = encryptionControl.decrypt(req.body.encrToken);
+        keys = Object.keys(decryptData)
+        body = decryptData;
   
-    let keys =Object.keys(req.body)
-    let formData={
-      dummyData:''
-    };
-    keys.forEach(element => {
-      formData[element] = req.body[element];
-    });
-    // headers.host = 'api.gate2b.io-procurement.com'
+      }else{
+        keys = Object.keys(req.body)
+        body = req.body;
+      }
+       formData={
+        dummyData:''
+      };
+      keys.forEach(element => {
+        formData[element] = body[element];
+      });
+       options = {
+        'method': method,
+        'url': config.GATE2BURL + path,
+        // 'headers': headers,
+         formData: formData
+      };
+    }else{
+      options = {
+        'method': method,
+        'url': config.GATE2BURL + path
+      };
+    }
     try 
     {
-      let  options = {
-          'method': method,
-          'url': config.GATE2BURL + path,
-          // 'headers': headers,
-           formData: formData
-        };
-        console.log(options);
-        
+      console.log(options);
       return new Promise(function (resolve, reject) {
         request(options, async function (error, response, body) {
+          // console.log(response);
+          
           if (!error && response.statusCode == 200) {
             // console.log('body',http://192.168.55.248:5005/api/document-type);
             res.send(body)
