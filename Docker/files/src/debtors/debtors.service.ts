@@ -134,7 +134,7 @@ export class DebtorsService {
               WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
               `
               );
-            tempContact =  getInvoiceIdRslt[0]['contacts']
+            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
             //  let printId = contactGroupList.forEach(element => {
