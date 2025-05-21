@@ -40,7 +40,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [];
+    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice;
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -88,79 +88,7 @@ export class DebtorsService {
         }
       });
 
-      if("channel" in data){
-  
-        const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
-          `
-          );
-          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
-        const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
-          `
-          );
-          console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
-          if(getInvoiceIdRslt[0]['invoices']){
-            console.log('22222222222222222222222');
-            
-            let searchJson: any[] = [];
-            searchJson.push({
-              "field": "id",
-              "value": getInvoiceIdRslt[0]['invoices'],
-              "criteria": "in"
-            });
-
-            invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
-          }
-
-          console.log("contactGroupList",invoiceListTemp);
-          if(invoiceListTemp){
-            invoiceContactListIds = invoiceListTemp.map(inv => inv.contact_id);
-            console.log("invoiceContactListIds",invoiceContactListIds);
-          }
-       
-          
-          if(data.channel.toLowerCase() == 'edi'){
-            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-              Prisma.sql`
-              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
-              ON cr.cid = c.fk_companyregistered
-              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
-              `
-              );
-            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
-          }else if(data.channel.toLowerCase() == 'print'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            //  let printId = contactGroupList.forEach(element => {
-               
-            //  });
-            const targetNames = ['Print', 'Post'];
-
-            const ids = contactGroupList
-              .filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchJson: any[] = [];
-              searchJson.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contectIds:any = await getContactSearch(accessToken,searchJson);
-            arrayContactIds = contectIds.map(contact => contact.id);
-              console.log("arrayContactIds",arrayContactIds);
-              // invoiceNumbers = getInvoiceIdRslt[0]['invoices']
-            //  contactGroupList
-          }
-       
-      }
+    
       
       // const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
@@ -303,30 +231,115 @@ export class DebtorsService {
           "criteria": "="
         });
       }
+    
+      if("channel" in data){
+  
+        const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
+          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
+          `
+          );
+          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
+        const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
+          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
+          `
+          );
+          console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
+
+          if(getInvoiceIdRslt[0]['invoices']){
+            console.log('22222222222222222222222');
+             dbInvoice = getInvoiceIdRslt[0]['invoices']
+            let searchJson: any[] = [];
+            searchJson.push({
+              "field": "id",
+              "value": getInvoiceIdRslt[0]['invoices'],
+              "criteria": "in"
+            });
+
+            invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
+          }
+
+          console.log("invoiceListTemp",invoiceListTemp);
+          if(invoiceListTemp){
+            invoiceContactListIds = invoiceListTemp.map(inv => inv.contact_id);
+            console.log("invoiceContactListIds",invoiceContactListIds);
+          }
+       
+          
+          if(data.channel.toLowerCase() == 'edi'){
+            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+              Prisma.sql`
+              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
+              ON cr.cid = c.fk_companyregistered
+              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
+              `
+              );
+            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
+          }else if(data.channel.toLowerCase() == 'print'){
+             let contactGroupList: any = await getContactGroupList(accessToken);
+            //  let printId = contactGroupList.forEach(element => {
+               
+            //  });
+            const targetNames = ['Print', 'Post'];
+
+            const ids = contactGroupList
+              .filter(group => targetNames.includes(group.name))
+              .map(group => group.id);
+
+             console.log("contactGroupList",contactGroupList);
+             let searchJson: any[] = [];
+              searchJson.push({
+                "field": "contact_group_ids",
+                "value": ids,
+                "criteria": "in"
+              });
+            let contectIds:any = await getContactSearch(accessToken,searchJson);
+            arrayContactIds = contectIds.map(contact => contact.id);
+              console.log("arrayContactIds",arrayContactIds);
+              // invoiceNumbers = getInvoiceIdRslt[0]['invoices']
+            //  contactGroupList
+          }
+       
+      }
       console.log("arrayContactIds1111111111",arrayContactIds);
       console.log("arrayContactIds1111111111",invoiceContactListIds);
-
-      
       if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
         let tempArray = [...arrayContactIds,...invoiceContactListIds]
-        if(data.channel.toLowerCase() == 'edi'){
+        if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'){
           tempArray = [...tempArray,...tempContact]
-        }
         searchJson.push({
           "field": "contact_id",
           "value": tempArray,
           "criteria": "in"
         });
-
-      }
-      if("channel" in data){
+        
         if(getNotInvoiceId.length != 0)
           searchJson.push({
             "field": "id",
             "value": getNotInvoiceId,
             "criteria": "not_in"
           });
+      }else{
+        if(dbInvoice){
+          searchJson.push({
+            "field": "id",
+            "value": dbInvoice,
+            "criteria": "in"
+          });
+        }
+        
       }
+
+      }
+      
+      // if("channel" in data){
+      
+      // }
       // if(){
       //   searchJson.push({
       //     "field": "contact_id",
