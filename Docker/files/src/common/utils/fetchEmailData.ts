@@ -3,7 +3,7 @@ import {connectLibrary} from '../../db/prisma-clients';
 const fs = require('fs');
 const path =require('path')
 import { Prisma } from '@prisma/client';
-const fetchEmailContent = async(subjectkey, language,keyDatas = null,partyConfig = null) =>{
+const fetchEmailContent = async(subjectkey, language,keyDatas:any = null,partyConfig = null) =>{
     console.log({
       subjectkey,keyDatas,language
     })
@@ -119,4 +119,4 @@ const replaceCommonFields = (template, fields) => {
     return output;
 };
 
-module.exports = fetchEmailContent
+export default fetchEmailContent
