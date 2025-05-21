@@ -4576,8 +4576,14 @@ export const getUnitList = async (access_token) => {
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
-          else
-           resolve(false)
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject)
+          }
 
         });
       });
@@ -4604,12 +4610,18 @@ export const getActiveAccounts = async (access_token) => {
             resolve(false)
           }
           // res.send(response.body)
-         ////console.log("getTaxListA :: ",response.body);
+         console.log("response.statusCode :: ",response.statusCode);
+         
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
-          else
-           resolve(false)
-
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject);
+          }
         });
       });
 }
@@ -4637,14 +4649,20 @@ export const getActiveArticle = async (access_token) => {
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
-          else
-           resolve(false)
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject)
+          }
 
         });
       });
 }
 
-export const getActiveSalesTaxList = async (access_token) => {
+export const getActiveSalesTaxBexio = async (access_token) => {
 
   return new Promise(async(resolve, reject) => {
         var options = {
@@ -4666,8 +4684,14 @@ export const getActiveSalesTaxList = async (access_token) => {
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
-          else
-           resolve(false)
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject)
+          }
 
         });
       });

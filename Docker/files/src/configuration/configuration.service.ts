@@ -18,7 +18,7 @@ const crypto = require("crypto");
 import { resolve } from 'path';
 const fetchEmailContent = require('../common/utils/fetchEmailData');
 const sendEmail = require('../common/utils/email');
-import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
+import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -1994,6 +1994,136 @@ console.log('getPartyAccountId', getPartyAccountId);
         message: 'something_went_wrong',
         status: false,
       });
+    }
+  }
+
+  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
+    try {
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      if (!cookieData) {
+        return res.status(500).send({
+            status_code: 500,
+            message: 'Missing_cookie',
+            status: false,
+          })
+      }
+      
+      let accessToken = cookie.access_Token;
+      const taxList: any = await getActiveSalesTaxBexio(accessToken);
+      console.log("taxList :: ",taxList);
+      if( taxList?.status === false ){
+        return res.status(taxList.statuscode).send({
+          status_code: taxList.statuscode,
+          message: taxList.message,
+          status: false,
+        })
+      }
+      console.log("taxList ",taxList);
+      return res.status(200).send({
+        status: 200,
+        data: taxList,
+      });
+    } catch (error) {
+      console.log("Error getActiveSalesTaxList :: ",error);
+    }
+  }
+
+  async getUnitList(req: Request, res: Response): Promise<any> {
+    try {
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      if (!cookieData) {
+        return res.status(500).send({
+            status_code: 500,
+            message: 'Missing_cookie',
+            status: false,
+          })
+      }
+      
+      let accessToken = cookie.access_Token;
+      const unitList: any = await getUnitList(accessToken);
+      if( unitList?.status == false ){
+        return res.status(unitList.statuscode).send({
+          status_code: unitList.statuscode,
+          message: unitList.message,
+          status: false,
+        })
+      }
+      console.log("unitList ",unitList);
+      return res.send({
+        status: 200,
+        data: unitList,
+      });
+    } catch (error) {
+      console.log("Error getUnitList :: ",error);
+    }
+  }
+  async getActiveAccounts(req: Request, res: Response): Promise<any> {
+    console.log("getActiveAccounts")
+    try {
+      let reqTaxId = req.body.tax_id;
+      console.log(reqTaxId)
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      if (!cookieData) {
+        return res.status(500).send({
+            status_code: 500,
+            message: 'Missing_cookie',
+            status: false,
+          })
+      }
+      
+      let accessToken = cookie.access_Token;
+      let isBexioUser = cookie.isBexioUser;
+      const activeAccounts: any = await getActiveAccounts(accessToken);
+      if( activeAccounts?.status == false ){
+        return res.status(activeAccounts.statuscode).send({
+          status_code: activeAccounts.statuscode,
+          message: activeAccounts.message,
+          status: false,
+        })
+      }
+      let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
+      console.log("newAccountList :: ",newAccountList.length);
+      console.log("activeAccounts ",activeAccounts.length);
+      return res.send({
+        status: 200,
+        data: newAccountList,
+      });
+    } catch (error) {
+
+      console.log("Error getActiveAccounts :: ",error);
+    }
+  }
+  async getActiveArticle(req: Request, res: Response): Promise<any> {
+    try {
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      if (!cookieData) {
+        return res.status(500).send({
+            status_code: 500,
+            message: 'Missing_cookie',
+            status: false,
+          })
+      }
+      
+      let accessToken = cookie.access_Token;
+      const articleList: any = await getActiveArticle(accessToken);
+      if( articleList?.status == false ){
+        return res.status(articleList.statuscode).send({
+          status_code: articleList.statuscode,
+          message: articleList.message,
+          status: false,
+        })
+      }
+      console.log("articleList ",articleList);
+      return res.send({
+        status: 200,
+        data: articleList,
+      });
+    } catch (error) {
+      console.log("Error getActiveArticle :: ",error);
     }
   }
 }
