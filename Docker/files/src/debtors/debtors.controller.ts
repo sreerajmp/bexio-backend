@@ -62,10 +62,10 @@ export class DebtorsController {
   return this.debtorsService.changeInvoiceSendStatus(req,res);
   }
 
-  @Post('getActiveTaxes')
+  @Post('getActiveSalesTaxList')
   @UseInterceptors(AnyFilesInterceptor())
-  async getActiveTaxes(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.debtorsService.getActiveTaxes(req,res);
+  async getActiveSalesTaxList(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.debtorsService.getActiveSalesTaxList(req,res);
   }
 
   @Post('getUnitList')
