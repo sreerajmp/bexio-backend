@@ -229,6 +229,7 @@ export default {
 	  MAILCHIMP_TAG_NAME:  process.env.MAILCHIMP_TAG_NAME || "iomarket AG Test",
 	  OCTOPUS_URL:  process.env.OCTOPUS_URL,
 	  BEXIO_INTERNAL_URL:"http://bexio-interface-backend.gate2b.svc.cluster.local/",
-	  BILLING_URL: process.env.BILLING_URL || 'https://billing.io-market.net/'
+	  BILLING_URL: process.env.BILLING_URL || 'https://billing.io-market.net/',
+	  MAIL_INTERNAL_DOMAIN: process.env.MAIL_INTERNAL_DOMAIN || 'io-market.net'
 	  
 };
