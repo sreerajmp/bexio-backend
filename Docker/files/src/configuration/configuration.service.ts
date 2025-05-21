@@ -2051,7 +2051,7 @@ console.log('getPartyAccountId', getPartyAccountId);
         })
       }
       console.log("unitList ",unitList);
-      return res.send({
+      return res.status(200).send({
         status: 200,
         data: unitList,
       });
@@ -2078,7 +2078,7 @@ console.log('getPartyAccountId', getPartyAccountId);
       let isBexioUser = cookie.isBexioUser;
       const activeAccounts: any = await getActiveAccounts(accessToken);
       if( activeAccounts?.status == false ){
-        return res.status(activeAccounts.statuscode).send({
+        return res.status(200).status(activeAccounts.statuscode).send({
           status_code: activeAccounts.statuscode,
           message: activeAccounts.message,
           status: false,
@@ -2118,7 +2118,7 @@ console.log('getPartyAccountId', getPartyAccountId);
         })
       }
       console.log("articleList ",articleList);
-      return res.send({
+      return res.status(200).send({
         status: 200,
         data: articleList,
       });
