@@ -40,7 +40,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [];
+    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [];
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -90,6 +90,14 @@ export class DebtorsService {
 
       if("channel" in data){
   
+        const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
+          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
+          `
+          );
+          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
         const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
           SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
@@ -121,11 +129,12 @@ export class DebtorsService {
           if(data.channel.toLowerCase() == 'edi'){
             const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
               Prisma.sql`
-              SELECT  array_agg(rk_contact) AS invoices FROM contact_bc c INNER JOIN companyregistered cr
+              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
               ON cr.cid = c.fk_companyregistered
               WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
               `
               );
+            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
             //  let printId = contactGroupList.forEach(element => {
@@ -299,12 +308,32 @@ export class DebtorsService {
 
       
       if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
+        let tempArray = [...arrayContactIds,...invoiceContactListIds]
+        if(data.channel.toLowerCase() == 'edi'){
+          tempArray = [...tempArray,...tempContact]
+        }
         searchJson.push({
           "field": "contact_id",
-          "value": [...arrayContactIds,...invoiceContactListIds],
+          "value": tempArray,
           "criteria": "in"
         });
+
       }
+      if("channel" in data){
+        if(getNotInvoiceId.length != 0)
+          searchJson.push({
+            "field": "id",
+            "value": getNotInvoiceId,
+            "criteria": "not_in"
+          });
+      }
+      // if(){
+      //   searchJson.push({
+      //     "field": "contact_id",
+      //     "value": tempArray,
+      //     "criteria": "in"
+      //   });
+      // }
       // if(invoiceNumbers){
       //   searchJson.push({
       //     "field": "id",
@@ -539,10 +568,10 @@ export class DebtorsService {
 
               // If contact belongs to any group
               if( contactGroupName.length ) {
-                // Determine preferred group: prioritize "Print" over "Post" if both exist
+                
                 const preferredGroup =
-                  contactGroupName.includes('print') ? 'print' :
-                  contactGroupName.includes('print')  ? 'post'  : "";
+                  (contactGroupName.includes('print') || contactGroupName.includes('post')) ? 'print' : ""
+                  // contactGroupName.includes('post')  ? 'print'  : "";
                 
                 // Assign preferred group to invoice_type
                 second.invoice_type = preferredGroup;
@@ -1027,7 +1056,7 @@ export class DebtorsService {
                 console.log("Processing invoice:", obj);
 
                 // Update the invoice's send status (likely for logging or tracking purposes)
-                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
+                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'print');
                 console.log("result:::", result);
 
                 // Push the result into results array
