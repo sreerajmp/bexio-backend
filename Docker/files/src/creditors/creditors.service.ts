@@ -18,6 +18,7 @@ var xml2js = require('xml2js');
 import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
 import { edit } from '../common/utils/bexioClient';
+import fetchEmailContent from "../common/utils/fetchEmailData";
 
 @Injectable()
 export class CreditorsService {
@@ -1145,7 +1146,7 @@ let transporter;
         console.log("enrichedInvoices :: ",enrichedInvoices);
         console.log("invoicedCompanyName :: ",invoicedCompanyName);
         let text = '';
-
+        
         for (let i = 0; i < enrichedInvoices.length; i++) {
           const element = enrichedInvoices[i];
           text = text + `<tr>
@@ -1154,6 +1155,48 @@ let transporter;
                           <td style="text-align:left">${element.channel}</td>
                         </tr>`
         }
+        let mailBody = `<table width="100%" style="max-width:600px">
+                              <tr>
+                                  <td>
+
+                                      <table width="100%">
+                                          <tr>
+                                              <td style="padding-bottom:10px">
+                                                  Die folgenden Rechnungen wurden heute von ${invoicedCompanyName}
+                                                  über die iomarket Bexio-App versandt:
+                                              </td>
+                                          </tr>
+                                      </table>
+                                  </td>
+                              </tr>
+                              <tr>
+                                  <td>
+                                      <table width="100%"
+                                          style="max-width:600px;font-size:14px;font-weight:400;line-height:24px">
+                                          <tr>
+                                              <td style="padding-bottom:10px">
+                                                  <table border="0" cellpadding="5" cellspacing="0" width="100%">
+                                                      <tr>
+                                                          <td>
+                                                              <b>Belegnummer</b>
+                                                          </td>
+                                                          <td>
+                                                              <b>Kunde</b>
+                                                          </td>
+                                                          <td>
+                                                              <b>Kanal</b>
+                                                          </td>
+                                                      </tr>
+                                                      ${text}                                                    
+                                                  </table>
+                                              </td>
+                                          </tr>
+                                      </table>
+                                  </td>
+                              </tr>
+
+                            </table>`;
+        console.log("htmlContent :: ",mailBody);
         let message =
           `<div>Die folgenden Rechnungen wurden heute von ${invoicedCompanyName} über die iomarket Bexio-App versandt:</div><br><br>
           <table cellpadding="5" cellspacing="0">
@@ -1168,7 +1211,18 @@ let transporter;
         console.log("message",message);
         console.log("getCompanyName[0].email",getCompanyName[0].email);
 
+        let keyDatas = {
+          invoicemessage: mailBody
+        }
+        const getConfig = await connectLibrary.$queryRaw<any>`
+                  SELECT * FROM commissionagent WHERE config ->> 'domain' = ${config.MAIL_INTERNAL_DOMAIN}::text`
         let subject = `Invoice Summary :${targetDate}`
+        const getEmailContent = await fetchEmailContent('bexio_invoice_summery','DE',keyDatas,getConfig[0]);
+        if( getEmailContent ){
+          subject =  getEmailContent.subject.replace('[date]',targetDate);
+          message = getEmailContent.message;
+        }
+        console.log("subject :: ",subject);
         try {
           await sendEmail({
             email: getCompanyName[0].email,
