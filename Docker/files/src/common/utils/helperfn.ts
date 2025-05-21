@@ -314,7 +314,7 @@ var options = {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
-  console.log('channel:::::::::::::',channel);
+  console.log('channel::::::::::::',channel);
   
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
