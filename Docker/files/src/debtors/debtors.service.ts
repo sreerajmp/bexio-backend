@@ -568,10 +568,10 @@ export class DebtorsService {
 
               // If contact belongs to any group
               if( contactGroupName.length ) {
-                // Determine preferred group: prioritize "Print" over "Post" if both exist
+                
                 const preferredGroup =
-                  contactGroupName.includes('print') ? 'print' :
-                  contactGroupName.includes('print')  ? 'post'  : "";
+                  (contactGroupName.includes('print') || contactGroupName.includes('post')) ? 'print' : ""
+                  // contactGroupName.includes('post')  ? 'print'  : "";
                 
                 // Assign preferred group to invoice_type
                 second.invoice_type = preferredGroup;
@@ -1056,7 +1056,7 @@ export class DebtorsService {
                 console.log("Processing invoice:", obj);
 
                 // Update the invoice's send status (likely for logging or tracking purposes)
-                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
+                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'print');
                 console.log("result:::", result);
 
                 // Push the result into results array
