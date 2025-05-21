@@ -943,11 +943,13 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
         body = req.body;
       }
        formData={
-        dummyData:''
       };
       keys.forEach(element => {
         formData[element] = body[element];
       });
+      if(typeof(formData) == 'object'){
+        formData = JSON.stringify(formData)
+      }
        options = {
         'method': method,
         'url': config.GATE2BURL + path,

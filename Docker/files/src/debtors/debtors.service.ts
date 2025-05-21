@@ -21,12 +21,13 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList} from 'src/common/utils/helperfn';
+import { getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
 import {getInvoiceOT,getUser,getDefaultUser} from 'src/common/utils/helperfn';
 import status_code from 'src/common/utils/statusCodes';
+
 
 @Injectable()
 export class DebtorsService {
@@ -35,11 +36,12 @@ export class DebtorsService {
  
 
   async getInvoice(req: Request, res: Response): Promise<any> {
-    console.log('getInvoice');
+    console.log('getInvoice1');
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-
+    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [];
+    let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
       if (!cookieData) {
@@ -86,6 +88,71 @@ export class DebtorsService {
         }
       });
 
+      if("channel" in data){
+  
+        const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
+          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
+          `
+          );
+          console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
+          if(getInvoiceIdRslt[0]['invoices']){
+            console.log('22222222222222222222222');
+            
+            let searchJson: any[] = [];
+            searchJson.push({
+              "field": "id",
+              "value": getInvoiceIdRslt[0]['invoices'],
+              "criteria": "in"
+            });
+
+            invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
+          }
+
+          console.log("contactGroupList",invoiceListTemp);
+          if(invoiceListTemp){
+            invoiceContactListIds = invoiceListTemp.map(inv => inv.contact_id);
+            console.log("invoiceContactListIds",invoiceContactListIds);
+          }
+       
+          
+          if(data.channel.toLowerCase() == 'edi'){
+            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+              Prisma.sql`
+              SELECT  array_agg(rk_contact) AS invoices FROM contact_bc c INNER JOIN companyregistered cr
+              ON cr.cid = c.fk_companyregistered
+              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
+              `
+              );
+          }else if(data.channel.toLowerCase() == 'print'){
+             let contactGroupList: any = await getContactGroupList(accessToken);
+            //  let printId = contactGroupList.forEach(element => {
+               
+            //  });
+            const targetNames = ['Print', 'Post'];
+
+            const ids = contactGroupList
+              .filter(group => targetNames.includes(group.name))
+              .map(group => group.id);
+
+             console.log("contactGroupList",contactGroupList);
+             let searchJson: any[] = [];
+              searchJson.push({
+                "field": "contact_group_ids",
+                "value": ids,
+                "criteria": "in"
+              });
+            let contectIds:any = await getContactSearch(accessToken,searchJson);
+            arrayContactIds = contectIds.map(contact => contact.id);
+              console.log("arrayContactIds",arrayContactIds);
+              // invoiceNumbers = getInvoiceIdRslt[0]['invoices']
+            //  contactGroupList
+          }
+       
+      }
+      
       // const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
       const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
       // if (ediInvoices.length > 0) {
@@ -220,18 +287,33 @@ export class DebtorsService {
           "criteria": "<="
         });
       }
-      if (data['comapnyUser'] != '' && data['comapnyUser']) {
+      if (data['customerId'] != '' && data['customerId']) {
         searchJson.push({
           "field": "user_id",
-          "value": data.comapnyUser,
+          "value": data.customerId,
           "criteria": "="
         });
       }
-     
+      console.log("arrayContactIds1111111111",arrayContactIds);
+      console.log("arrayContactIds1111111111",invoiceContactListIds);
 
+      
+      if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
+        searchJson.push({
+          "field": "contact_id",
+          "value": [...arrayContactIds,...invoiceContactListIds],
+          "criteria": "in"
+        });
+      }
+      // if(invoiceNumbers){
+      //   searchJson.push({
+      //     "field": "id",
+      //     "value": invoiceNumbers,
+      //     "criteria": "="
+      //   });
+      // }
       let resData: any[] = [];
       console.log('searchJson:::',searchJson);
-      
       if (searchJson.length > 0) {
       console.log('searchJson 2:::',searchJson);
 
@@ -245,7 +327,8 @@ export class DebtorsService {
             },
             body: JSON.stringify(searchJson)
           };
-
+          console.log("optionsoptions",options);
+          
         const response = await new Promise<any>((resolve, reject) => {
           request(options, (error, response) => {
             if (error) reject(error);
@@ -297,15 +380,18 @@ export class DebtorsService {
           const parseResponse = (response: any) => {
             if (response && response.body) {
               try {
-                console.log("response.body",response.body);
+                // console.log("response.body",response.body);
 
                 let parsedData = JSON.parse(response.body);
-                console.log("parsedData",parsedData);
+                // console.log("parsedData",parsedData);
                 
                 if (Array.isArray(parsedData)) {
                   return parsedData;
                 } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
                 return [];
+                }else{
+                  return [];
+
                 }
               } catch (error) {
                 console.error("Error parsing response:", error);
