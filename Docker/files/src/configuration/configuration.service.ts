@@ -2078,7 +2078,7 @@ console.log('getPartyAccountId', getPartyAccountId);
       let isBexioUser = cookie.isBexioUser;
       const activeAccounts: any = await getActiveAccounts(accessToken);
       if( activeAccounts?.status == false ){
-        return res.status(200).status(activeAccounts.statuscode).send({
+        return res.status(activeAccounts.statuscode).send({
           status_code: activeAccounts.statuscode,
           message: activeAccounts.message,
           status: false,
@@ -2087,7 +2087,7 @@ console.log('getPartyAccountId', getPartyAccountId);
       let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
       console.log("newAccountList :: ",newAccountList.length);
       console.log("activeAccounts ",activeAccounts.length);
-      return res.send({
+      return res.status(200).send({
         status: 200,
         data: newAccountList,
       });
