@@ -314,7 +314,7 @@ var options = {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
-  //console.log('channel:::::::::::::',channel,partyId, invoiceId, invoicenumber, status,error);
+  console.log('channel:::::::::::::',channel);
   
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
@@ -1261,7 +1261,7 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
       filename:filename+'.xml',
       module:type
     }
-console.log('bexio-file-drop formData',formData);
+// console.log('bexio-file-drop formData',formData);
 
     let  options = {
         'method': 'POST',        
@@ -1307,10 +1307,10 @@ export const deleteRedis = async (api, key) => {
 };
 
 
-export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel?) => {
+export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log('invoices::::', invoices);
+      console.log('invoices::::', invoices,channel);
 
       const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
@@ -4175,7 +4175,7 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
 
 }
 export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  console.log('EMAIL:::',invoice,bill_recipient_email);
+  // console.log('EMAIL:::',invoice,bill_recipient_email);
    
  
    let emptyValue = 'NA'
