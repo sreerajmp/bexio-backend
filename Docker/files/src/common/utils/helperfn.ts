@@ -4696,3 +4696,71 @@ export const getActiveSalesTaxBexio = async (access_token) => {
         });
       });
 }
+export const getContactSearch = async (accessToken,searchJson) => {
+
+  return new Promise(async(resolve, reject) => {
+   
+    let optionsContact = {
+      'method': 'POST',
+      'url': `${config.BEXIO_API}2.0/contact/search`,
+      // 'url': `${config.BEXIO_API}${data.api}`,
+      // url = `${url}`;
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer '+accessToken
+      },
+      body: JSON.stringify(searchJson)
+    };
+    console.log('optionsContact',optionsContact);
+    request(optionsContact, async function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getContactById';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
+        warningMessage(commonErrors,error);
+        resolve(error);
+      }
+   
+      
+      if(response.statusCode == 200){
+        resolve(JSON.parse(response.body));      
+      }else{
+        resolve(false)
+      }
+    }); 
+  });
+          
+ 
+}
+export const getInvoiceSearch = async (accessToken,searchJson) => {
+  return new Promise(async(resolve, reject) => {
+  let optionsContact = {
+    'method': 'POST',
+    'url': `${config.BEXIO_API}2.0/kb_invoice/search`,
+    // 'url': `${config.BEXIO_API}${data.api}`,
+    // url = `${url}`;
+    'headers': {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer '+accessToken
+    },
+    body: JSON.stringify(searchJson)
+  };
+  console.log('optionsContact',optionsContact);
+  request(optionsContact, async function (error, response) {
+    if (error) {
+      commonErrors['errorTitle'] = 'getContactById';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
+      warningMessage(commonErrors,error);
+      resolve(error);
+    }
+ 
+      console.log("response.body",response.statusCode);
+      
+    if(response.statusCode == 200){
+      resolve(JSON.parse(response.body));      
+    }else{
+      resolve(false)
+    }
+  }); 
+});
+
+}
