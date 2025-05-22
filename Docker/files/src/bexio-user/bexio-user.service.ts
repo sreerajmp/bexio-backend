@@ -2581,28 +2581,10 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           let refreshToken = cookie.refresh_Token;
           const tokenSet = await bexioClient.refresh(refreshToken);
           console.log(tokenSet);
-          let planId = decryptData?.planId;
-          let subScriptionType = decryptData?.subScriptionType;
-          // console.log('bexioRedirect');
-          
-          // let issuer = await Issuer.discover('https://idp.bexio.com');
-          // console.log('API_URL',config.API_URL);
-          // params = bexioClient.callbackParams(req);
-          // console.log('params',params);
-          // console.log('redirect',`${config.API_URL}api/v1/gate2bAPI/bexio-redirect`);
-          // let tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/gate2bAPI/bexio-redirect`, params, {
-          //     code_verifier
-          // });
-          // console.log('tokenSet');
-          // console.log(tokenSet);
-
           let companyDetails;
           let temp = await  this.getloginUserCompanyDetails(tokenSet.access_token);
           if(!temp)
           {
-            // commonErrors['errorTitle'] = req.originalUrl;
-            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
-            // warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
             res.send({
               status_code: 500,
               message: 'something_went_wrong',
