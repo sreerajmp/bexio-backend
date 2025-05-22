@@ -1772,7 +1772,7 @@ console.log('getPartyAccountId', getPartyAccountId);
     try {
       const correlationId = crypto.randomBytes(15).toString('hex');
       encrToken = encryptionControl.decrypt(req.body.encrToken);
-      console.log("encrToken:",encrToken);
+      console.log("encrToken:",encrToken,req.body);
       
 
 
@@ -1789,13 +1789,15 @@ console.log('getPartyAccountId', getPartyAccountId);
         INNER JOIN account a ON a.cid = pa.fk_account
         INNER JOIN "user" u ON u.cid = a.fk_user
         INNER JOIN status s ON s.cid = pa.fk_status
-        WHERE pa.fk_party = ${Number(encrToken.rolePartyId)}
-          AND pa.fk_account = ${Number(encrToken.roleAccId)}
+        WHERE pa.fk_party = ${Number(req.body.partyIdLog)}
+          AND pa.fk_account = ${Number(req.body.accIdLog)}
           AND s."statusLabel" = 'active'
       `);
       
 
-
+        console.log('userDetails',userDetails);
+        // return
+        
       const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
         SELECT * 
         FROM partyapplication_account_role par
@@ -1814,7 +1816,7 @@ console.log('getPartyAccountId', getPartyAccountId);
       console.log('checkRoleData', checkRoleData);
       
       if(checkRoleData.length == 0){
-        await setEbillRole(userDetails[0].partyid,userDetails[0].accountid,userDetails[0].partyaccountid,userDetails[0].isuser,'EBILL');
+        await setEbillRole(userDetails[0].partyId,userDetails[0].accountId,userDetails[0].partyaccountId,userDetails[0].isuser,'EBILL');
         await partyServiceUpdate(userDetails[0].partyid,'EBILL','EDI');
         console.log("encrToken.data:",encrToken.data);
         
@@ -1856,9 +1858,13 @@ console.log('getPartyAccountId', getPartyAccountId);
                     cid: true, 
                   }
                 });
+                console.log("checkBexioCompanyResult:",checkBexioCompanyResult);
+                
                 if (checkBexioCompanyResult.length != 0) {
                   const getParentData = await connectGate2b.$queryRaw<any[]>`
                   SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
+                  console.log("getParentData:",getParentData);
+                  
                   bexioCompanyName = getParentData[0].rk_party;
                 }
                 let jsonReq = JSON.stringify(data);
@@ -1883,24 +1889,25 @@ console.log('getPartyAccountId', getPartyAccountId);
                     `
                   );
                 }
-                await connectMssql.$executeRaw(
-                  Prisma.sql`
-                    INSERT INTO biller (
-                      netcomid, billerId, status, legalName, uid,
-                      subscriptionStatus, defaultLanguage, companyJSON, party_parent
-                    ) VALUES (
-                      ${netcomId},
-                      ${data.id},
-                      ${data.status},
-                      ${data.legalName},
-                      ${data.accounts[0].iid},
-                      ${data.billRecipientSubscriptionStatus},
-                      ${data.localizedData.defaultLanguage},
-                      ${jsonReq},
-                      ${bexioCompanyName}
-                    )
-                  `
-                );
+      const pool = await connectMssql;
+
+                const insertBillerQuery = `
+                  INSERT INTO biller (
+                  netcomid, billerId, status, legalName, uid,
+                  subscriptionStatus, defaultLanguage, companyJSON, party_parent
+                  ) VALUES (
+                  '${netcomId}',
+                  '${data.id}',
+                  '${data.status}',
+                  '${data.legalName}',
+                  '${data.accounts[0].iid}',
+                  '${data.billRecipientSubscriptionStatus}',
+                  '${data.localizedData.defaultLanguage}',
+                  '${jsonReq}',
+                  '${bexioCompanyName}'
+                  )
+                `;
+               await pool.query(insertBillerQuery);
                 let createdPythonResponse = await bexioCreatePythonData(netcomId,companyName,encrToken);
                 console.log("createdPythonResponse---",createdPythonResponse,'createdPythonResponse &&');
                 if (checkBexioCompanyResult.length != 0) {
@@ -2798,68 +2805,71 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
       warningMessage(commonErrors,error);
   }
 }
-const bexioCreatePythonData = async (netcomId,companyName,encrToken) => {
-  return new Promise(async (resolve, reject) => {
-  let data 
-  try{ 
-  if(companyName === 'Bexio'){
-    data = JSON.parse(config.BEXIO_CREATE_BUSSINESS_CONNECTION||'')
-   }
-else{
-  data = JSON.parse(config.CREATE_BUSSINESS_CONNECTION||'')
-  let response = JSON.parse(encrToken.config)
-  data.config.platform["config"] = {}
-  data.config["fk_doc_type"] = response.fk_doc_type || '',
-  data.config["fk_doc_format"] = response.fk_doc_format || '',
-  data.config["fk_netcomid_doc_interface"] = response.fk_netcomid_doc_interface || ''
-  data.config["include_pdf"] = response.include_pdf || 0
-}
-  data.config['netcom_id'] = `${netcomId}`
-  let docTypeFormat = encrToken.docTypeFormat ? JSON.parse(encrToken.docTypeFormat) : '';
-  let doc_type = docTypeFormat ? docTypeFormat.doc_type : data.config["fk_doc_type"].toUpperCase();
-  let doc_format = docTypeFormat ? docTypeFormat.doc_type : data.config["fk_doc_format"];
-  data.config['name'] = `EBILL_$SEND$_${doc_type}_${doc_format}_${netcomId}`;
-  const options = {
-    method: 'POST',
-    url: `${config.GATE2BURL}no-invite-process`,
-    headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    },
-    form: { 'data': JSON.stringify(data) }
-  };
-  await request(options, async function (error, response) {
-    if (error) {
-      let responseValue = JSON.stringify(data)
-      commonErrors['errorTitle'] = ' bexioCreatePythonData';
-      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-      warningMessage(commonErrors, error);
-      return  resolve(false);
-    }
-    else {
-      let dataValue = JSON.parse(response.body)
-      if (dataValue.status) {
-        return resolve(true);
+const bexioCreatePythonData = async (
+  netcomId: string,
+  companyName: string,
+  encrToken: { config: string; docTypeFormat?: string }
+): Promise<boolean> => {
+  return new Promise<boolean>(async (resolve, reject) => {
+    let data: any;
+    try {
+      if (companyName === 'Bexio') {
+        data = JSON.parse(config.BEXIO_CREATE_BUSSINESS_CONNECTION || '');
+      } else {
+        data = JSON.parse(config.CREATE_BUSSINESS_CONNECTION || '');
+        const response: any = JSON.parse(encrToken.config);
+        data.config.platform["config"] = {};
+        data.config["fk_doc_type"] = response.fk_doc_type || '';
+        data.config["fk_doc_format"] = response.fk_doc_format || '';
+        data.config["fk_netcomid_doc_interface"] = response.fk_netcomid_doc_interface || '';
+        data.config["include_pdf"] = response.include_pdf || 0;
       }
-      else{
-      let responseValue = JSON.stringify(data)
+      data.config['netcom_id'] = `${netcomId}`;
+      let docTypeFormat: any = encrToken.docTypeFormat ? JSON.parse(encrToken.docTypeFormat) : '';
+      let doc_type = docTypeFormat ? docTypeFormat.doc_type : (data.config["fk_doc_type"] ? data.config["fk_doc_type"].toUpperCase() : '');
+      let doc_format = docTypeFormat ? docTypeFormat.doc_format : data.config["fk_doc_format"];
+      data.config['name'] = `EBILL_$SEND$_${doc_type}_${doc_format}_${netcomId}`;
+      const options = {
+        method: 'POST',
+        url: `${config.GATE2BURL}no-invite-process`,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        form: { 'data': JSON.stringify(data) }
+      };
+      await request(options, async function (error: any, response: any) {
+        if (error) {
+          let responseValue = JSON.stringify(data);
+          commonErrors['errorTitle'] = 'bexioCreatePythonData';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+          warningMessage(commonErrors, error);
+          return resolve(false);
+        } else {
+          let dataValue = JSON.parse(response.body);
+          if (dataValue.status) {
+            return resolve(true);
+          } else {
+            let responseValue = JSON.stringify(data);
+            commonErrors['errorTitle'] = 'bexioCreatePythonData';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'something wrong' + responseValue;
+            warningMessage(commonErrors, responseValue);
+            return resolve(false);
+          }
+        }
+      });
+    } catch (error: any) {
+      let responseValue = JSON.stringify(data);
       commonErrors['errorTitle'] = 'bexioCreatePythonData';
-      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'something wrong'+responseValue;
-      warningMessage(commonErrors,responseValue);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + 'req param-' + responseValue;
+      warningMessage(commonErrors, error);
       return resolve(false);
-      }
     }
-  })
-}
-catch(error){
-  let responseValue = JSON.stringify(data)
-  commonErrors['errorTitle'] = 'bexioCreatePythonData';
-  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString()+'req param-'+responseValue;
-  warningMessage(commonErrors, error);
-  return reject(false);
- }
-})
-}
+  }).catch((err) => {
+    warningMessage(commonErrors, err);
+    return false;
+  });
+};
 const bexioUpdateBiller = async (req, billerId) => {
   return new Promise( async (resolve,reject)=>{
   let cookie;
