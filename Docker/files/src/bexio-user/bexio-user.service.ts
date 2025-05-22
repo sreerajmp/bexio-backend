@@ -38,191 +38,198 @@ export class BexioUserService {
 
   }
   async bexioRedirect(req: Request, res: Response, ): Promise<any> {
-    // Use prisma to access your DB, example:
-    let params
-    //console.log('data::', req);
-    //console.log('data::', req.body);
-    //console.log('API_URL', config.API_URL);
-    // make sure this is inside an async function
-    const bexioClient = await edit();
-    //console.log('bexioClient', bexioClient);
+    try {
+      // Use prisma to access your DB, example:
+      let params
+      //console.log('data::', req);
+      //console.log('data::', req.body);
+      //console.log('API_URL', config.API_URL);
+      // make sure this is inside an async function
+      const bexioClient = await edit();
+      //console.log('bexioClient', bexioClient);
 
-    params = bexioClient.callbackParams(req);
-    //console.log('params', params);
-    //console.log('config.API_URL', config.API_URL);
-
-    //console.log('code_verifier', code_verifier);
-    const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
-
-  //  console.log('tokenSet', tokenSet.access_token);
-    // //console.log(tokenSet);
-
-    let companyDetails = await this.getloginUserCompanyDetails(tokenSet.access_token);
-    //console.log('companyDetails',companyDetails);
-    let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
-    //console.log('coutryCode',coutryCode);
-    let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
-    //console.log('userDetails',userDetails);
-    
-    if (!companyDetails || !coutryCode || !userDetails) {
-      return res.status(500).send({
-        status_code: 500,
-        message: 'something_went_wrong',
-        status: false,
-      });
-    }
-    //console.log('typeof companyDetails:', typeof companyDetails);
-    //console.log('tempJson1',companyDetails);
-    //console.log('tempJson2',companyDetails[0]);
-    const tempJson = companyDetails[0];
-    //console.log('tempJson3',tempJson);
-
-    if (
-      !tempJson['country_name'] ||
-      !tempJson['name'] ||
-      !tempJson['address'] ||
-      !tempJson['city'] ||
-      !tempJson['postcode'] ||
-      !tempJson['country_id']
-    ) {
-      console.log('unauthorized tempJson', tempJson);
+      params = bexioClient.callbackParams(req);
+      console.log('params', params);
+      //console.log('config.API_URL', config.API_URL);
+      if(params.error){
+        return res.redirect(`${config.BEXIO_APP_URL}/logout`);
+      }
+      //console.log('code_verifier', code_verifier);
+      const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
       
-      return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
-    }
-    //console.log('test',tempJson);
-    const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
-    const validationCompany = this.validateFields(companyDetails[0], requiredCompanyFields);
-    //console.log('validationCompany',validationCompany);
-    const requiredUserFields = ['given_name', 'family_name', 'email'];
-    const validationUser = this.validateFields(userDetails, requiredUserFields);
-    //console.log('validationUser',validationUser);
+    //  console.log('tokenSet', tokenSet.access_token);
+      // //console.log(tokenSet);
 
-    if (!validationCompany || !validationUser) {
-      return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
-    }
-    if (validationCompany && validationUser) {
-      let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
-      console.log("rolesDetails",rolesDetails);
+      let companyDetails = await this.getloginUserCompanyDetails(tokenSet.access_token);
+      //console.log('companyDetails',companyDetails);
+      let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
+      //console.log('coutryCode',coutryCode);
+      let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
+      //console.log('userDetails',userDetails);
       
-      if (!rolesDetails) {
+      if (!companyDetails || !coutryCode || !userDetails) {
         return res.status(500).send({
           status_code: 500,
           message: 'something_went_wrong',
           status: false,
         });
       }
+      //console.log('typeof companyDetails:', typeof companyDetails);
+      //console.log('tempJson1',companyDetails);
+      //console.log('tempJson2',companyDetails[0]);
+      const tempJson = companyDetails[0];
+      //console.log('tempJson3',tempJson);
 
-      let isAdmin;
-      if (rolesDetails.indexOf('is_superadmin') != -1) {
-        isAdmin = true;
-      } else {
-        isAdmin = false;
+      if (
+        !tempJson['country_name'] ||
+        !tempJson['name'] ||
+        !tempJson['address'] ||
+        !tempJson['city'] ||
+        !tempJson['postcode'] ||
+        !tempJson['country_id']
+      ) {
+        console.log('unauthorized tempJson', tempJson);
+        
+        return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
       }
-      let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
-      //console.log('companyCreateStatus', companyCreateStatus);
-      if (companyCreateStatus) {
+      //console.log('test',tempJson);
+      const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
+      const validationCompany = this.validateFields(companyDetails[0], requiredCompanyFields);
+      //console.log('validationCompany',validationCompany);
+      const requiredUserFields = ['given_name', 'family_name', 'email'];
+      const validationUser = this.validateFields(userDetails, requiredUserFields);
+      //console.log('validationUser',validationUser);
 
-        let token = tokenSet.access_token;
-        let refreshToken = tokenSet.refresh_token;
-       //console.log('rk_csn',jwt.decode(token)['company_id']);
-
-        let rk_csn = jwt.decode(token)['company_id']
-        const check = await connectBexio.companyregistered.findMany({
-          where: { rk_csn: rk_csn },
-        });
-
-        if (check.length == 0) {
-
-          const insertData = await connectLibrary.$queryRaw<any[]>`
-          INSERT INTO activation(detail) VALUES (${userDetails}) RETURNING objectid
-        `;
-
-          let bexioTokenCookie = {
-            access_Token: tokenSet.access_token,
-            refresh_Token: tokenSet.refresh_token,
-            isBexioUser: true
-          }
-          //console.log('=== Cookie Debug Logs ===');
-          //console.log('1. Cookie Names:', {
-          //   BILLING_COOKIE: config.BILLING_COOKIE_NAME,
-          //   TOKEN_COOKIE: config.TOKEN_COOKIE_BEXIO_NAME
-          // });
-          //console.log('2. Session Domain:', config.SESSION_DOMAIN);
-          //console.log('3. Session Expiry:', config.SESSION_EXPIRY);
-          
-          let billingCookie = {
-            bexio: true,
-            objectid: insertData[0]?.objectid,
-            isNew:true
-          }
-
-          console.log('4. Billing Cookie Data:', billingCookie);
-          //console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
-          
-          // Encrypt cookie values
-          const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
-          const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
-          
-          //console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
-          //console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
-          
-          // Set cookies with detailed options
-          const billingCookieOptions = {
-            domain: config.SESSION_DOMAIN,
-            maxAge: config.SESSION_EXPIRY,
-            httpOnly: false,
-            signed: false,
-            secure: false,
-            path: '/'
-          };
-          
-          const bexioTokenCookieOptions = {
-            domain: config.SESSION_DOMAIN,
-            maxAge: config.SESSION_EXPIRY,
-            secure: false,
-            httpOnly: false,
-            signed: true,
-          };
-          
-          //console.log('8. Billing Cookie Options:', billingCookieOptions);
-          //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
-          
-          // Set cookies
-          res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
-          res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
-          
-          // Log response headers
-          //console.log('10. Response Headers:', res.getHeaders());
-          
-          let bexioURL = config.BILLING_APP;
-          //console.log('11. Redirecting to:', bexioURL);
-          //console.log('=== End Cookie Debug Logs ===');
-          
-          return res.redirect(`${bexioURL}`);
-        }
-        else {
-          let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
-          console.log('responseResult', responseResult);
-          if(responseResult.status) {
-            //console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-            //console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
-            return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
-          } else {
-            //console.log('111');
-            return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
-          }
-        }
-      } else {
-        return res.redirect(`${config.BEXIO_APP_URL}/login/permissiondenied`);
+      if (!validationCompany || !validationUser) {
+        return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
       }
+      if (validationCompany && validationUser) {
+        let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
+        console.log("rolesDetails",rolesDetails);
+        
+        if (!rolesDetails) {
+          return res.status(500).send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+
+        let isAdmin;
+        if (rolesDetails.indexOf('is_superadmin') != -1) {
+          isAdmin = true;
+        } else {
+          isAdmin = false;
+        }
+        let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
+        //console.log('companyCreateStatus', companyCreateStatus);
+        if (companyCreateStatus) {
+
+          let token = tokenSet.access_token;
+          let refreshToken = tokenSet.refresh_token;
+         //console.log('rk_csn',jwt.decode(token)['company_id']);
+
+          let rk_csn = jwt.decode(token)['company_id']
+          const check = await connectBexio.companyregistered.findMany({
+            where: { rk_csn: rk_csn },
+          });
+
+          if (check.length == 0) {
+
+            const insertData = await connectLibrary.$queryRaw<any[]>`
+            INSERT INTO activation(detail) VALUES (${userDetails}) RETURNING objectid
+          `;
+
+            let bexioTokenCookie = {
+              access_Token: tokenSet.access_token,
+              refresh_Token: tokenSet.refresh_token,
+              isBexioUser: true
+            }
+            //console.log('=== Cookie Debug Logs ===');
+            //console.log('1. Cookie Names:', {
+            //   BILLING_COOKIE: config.BILLING_COOKIE_NAME,
+            //   TOKEN_COOKIE: config.TOKEN_COOKIE_BEXIO_NAME
+            // });
+            //console.log('2. Session Domain:', config.SESSION_DOMAIN);
+            //console.log('3. Session Expiry:', config.SESSION_EXPIRY);
+            
+            let billingCookie = {
+              bexio: true,
+              objectid: insertData[0]?.objectid,
+              isNew:true
+            }
+
+            console.log('4. Billing Cookie Data:', billingCookie);
+            //console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
+            
+            // Encrypt cookie values
+            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+            const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
+            
+            //console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
+            //console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
+            
+            // Set cookies with detailed options
+            const billingCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              httpOnly: false,
+              signed: false,
+              secure: false,
+              path: '/'
+            };
+            
+            const bexioTokenCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              secure: false,
+              httpOnly: false,
+              signed: true,
+            };
+            
+            //console.log('8. Billing Cookie Options:', billingCookieOptions);
+            //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
+            
+            // Set cookies
+            res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
+            res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
+            
+            // Log response headers
+            //console.log('10. Response Headers:', res.getHeaders());
+            
+            let bexioURL = config.BILLING_APP;
+            //console.log('11. Redirecting to:', bexioURL);
+            //console.log('=== End Cookie Debug Logs ===');
+            
+            return res.redirect(`${bexioURL}`);
+          }
+          else {
+            let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
+            console.log('responseResult', responseResult);
+            if(responseResult.status) {
+              //console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
+              //console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+              return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+            } else {
+              //console.log('111');
+              return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
+            }
+          }
+        } else {
+          return res.redirect(`${config.BEXIO_APP_URL}/login/permissiondenied`);
+        }
+      }
+    } catch (error) {
+      if (error?.error === 'invalid_grant' && error?.error_description?.includes('PKCE verification failed: Code mismatch')) {
+        return res.redirect(`${config.BEXIO_APP_URL}/logout`);
+      }
+      // Optionally, handle other errors as before
+      return res.status(500).send({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
     }
-    //console.log('result');
-
-    return res.status(200).send({
-      status_code: 200,
-      message: 'sucess',
-      status: true,
-    });
   }
   async refreshTokenCreate(req: Request, res: Response,): Promise<any> {
     let data = req.body;
@@ -916,8 +923,8 @@ export class BexioUserService {
         let parmsSend = config.BEXIO_CONNECTION_CONFIG_SEND || ''
           .replace('$netcom_id$', netcomIdG2b)
           .replace("$name$", companyNameGate2b)
-        //console.log('parms', parmsSend.slice(1, -1));
-        //console.log('parms', parmsSend);
+        //console.log('parms', parms.slice(1, -1));
+        //console.log('parms', parms);
         await setBusinessConnector(parmsSend);
         let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
           .replace('$netcom_id$', netcomIdG2b)
@@ -1643,8 +1650,7 @@ export class BexioUserService {
             UPDATE address 
             SET fk_user = ${resultdata}
             WHERE cid = ${partyData.addressCid}
-          `
-        );
+          `);
 
 
       }
@@ -1832,7 +1838,7 @@ export class BexioUserService {
       const moduloResult = parseInt(netcome || '') - (parseInt(beforeModulo) % parseInt(modulo1 || ''));
       const finalOut = finalNetcom.substr(0, 5) + '-' + finalNetcom.substr(5, 14) + '-' + moduloResult;
 
-      const edipartyNetwork = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
+      const edipartyNetwork = await connectGate2b.$queryRaw<any>(Prisma.sql`
       INSERT INTO ediparty_network
       (fk_ediparty,fk_network)
       VALUES (${checkTokenData1[0]?.cid}, ${networkId[0]?.cid})
@@ -2589,7 +2595,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           // });
           // console.log('tokenSet');
           // console.log(tokenSet);
-  
+
           let companyDetails;
           let temp = await  this.getloginUserCompanyDetails(tokenSet.access_token);
           if(!temp)
@@ -2693,10 +2699,10 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                   isAdmin = false;
               }
               
-              let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'],isAdmin);
-              console.log('companyCreateStatus',companyCreateStatus);
-              if(companyCreateStatus)
-              {  
+              let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
+              console.log('companyCreateStatus', companyCreateStatus);
+              if (companyCreateStatus) {
+
                 let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode,res,req)
                 console.log('responseResult', responseResult);
                 if(responseResult.status)
