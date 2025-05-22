@@ -2296,7 +2296,7 @@ const contactListCount = async (token, offset, limit?) => {
       }
       if (response.statusCode == 200) {
         if (JSON.parse(response.body).length == limit) {
-          let temp = await contactListCount(token, offset + 20, 20);
+          let temp = await contactListCount(token, offset + 200, 200);
           resolve(temp)
         } else {
           offset = offset + JSON.parse(response.body).length;
