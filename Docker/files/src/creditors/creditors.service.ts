@@ -973,11 +973,13 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
             // console.log('body',http://192.168.55.248:5005/api/document-type);
             res.send(body)
           } else {
-              // console.log('er',error);
+              console.log('response',response.body);
               return res.status(500).json({
+
                 status_code: 500,
                 message: 'something_went_wrong',
                 status: false,
+                body:response.body
               });
             // reject(error);
           }
