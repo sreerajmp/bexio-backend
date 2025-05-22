@@ -2119,7 +2119,9 @@ VALUES (
             user_email: email,
             language: 'DE'
           };
-          // let planResponse = await planPurchase(formData);
+        console.log('********************planPurchasefomdata',formData);
+
+          let planResponse = await planPurchase(formData);
         }
         else {
           let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
@@ -2867,7 +2869,7 @@ const planPurchase = async (data) => {
     'url': config.ADMIN_URL + 'payment/planPurchase',
     formData: fomdata
   };
-  //console.log('optionsoptions', options);
+  console.log('optionsoptions', options);
 
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
