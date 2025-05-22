@@ -37,11 +37,12 @@ export class DebtorsService {
  
 
   async getInvoice(req: Request, res: Response): Promise<any> {
+   
     
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice;
+    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData;;
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -54,7 +55,9 @@ export class DebtorsService {
       }
       let configDetails:any = await getOctConfig(netcomId);
       
-    
+      if(configDetails.filtered_records != 0){
+        configData =  configDetails.records[0].config.serviceStatus
+      }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       console.log('cookie.access_Token', cookie.access_Token);
 
@@ -229,7 +232,7 @@ export class DebtorsService {
       }
       if (data['customerId'] != '' && data['customerId']) {
         searchJson.push({
-          "field": "user_id",
+          "field": "contact_id",
           "value": data.customerId,
           "criteria": "="
         });
@@ -613,7 +616,7 @@ export class DebtorsService {
             status: 200,
             data: resultData,
             totalCount: totalCount,
-            configStatus:configDetails.status
+            configStatus:configData,
         });
       } 
       // else {
