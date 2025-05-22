@@ -16,7 +16,8 @@ import connectMssql from '../db/mssql-client'
 import status_code from '../common/utils/statusCodes';
 const crypto = require("crypto");
 import { resolve } from 'path';
-const fetchEmailContent = require('../common/utils/fetchEmailData');
+// const fetchEmailContent = require('../common/utils/fetchEmailData');
+import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
 @Injectable()
@@ -2126,6 +2127,35 @@ console.log('getPartyAccountId', getPartyAccountId);
       console.log("Error getActiveArticle :: ",error);
     }
   }
+  async getContacts(req: Request, res: Response): Promise<any> {
+
+    try {
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+
+      let data = [];
+      let totalCount:any = await getAllcontacts(accessToken, 0, 2000,data);
+
+      console.log("totalCount",totalCount.length);
+      let result = totalCount.map((contact) => ({
+        id: contact.id,
+        name: (contact.name_1 ? contact.name_1 : '') +' '+(contact.name_2 ? contact.name_2 : '')
+      }))
+      return res.status(200).send({
+        status: 200,
+        data: result,
+      });
+   
+    } catch (error) {
+      return res.status(500).send({
+        status_code: 500,
+        message: '',
+        status: false,
+      })
+    }
+    
+   
+  }
 }
 const getBcDetails = async (bc_id, netcomId) => {
   try {
@@ -2266,7 +2296,7 @@ const contactListCount = async (token, offset, limit?) => {
       }
       if (response.statusCode == 200) {
         if (JSON.parse(response.body).length == limit) {
-          let temp = await contactListCount(token, offset + 2000, 2000);
+          let temp = await contactListCount(token, offset + 200, 200);
           resolve(temp)
         } else {
           offset = offset + JSON.parse(response.body).length;
@@ -2869,4 +2899,58 @@ const bexioUpdateBiller = async (req, billerId) => {
     resolve(false);
   }
 })
+}
+const getAllcontacts = async (token, offset, limit?,data?) => {
+  return new Promise(async (resolve, reject) => {
+
+    var options = {
+      'method': 'GET',
+      'url': `${config.BEXIO_API}2.0/contact/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    };
+    request(options, async function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'contactListCount';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
+        warningMessage(commonErrors, error);
+        resolve(false)
+      }
+      if (response.statusCode === 200) {
+        const currentData = JSON.parse(response.body);
+        data = [...data, ...currentData];
+
+        if (currentData.length === limit) {
+          // More data likely exists, fetch next page
+          const nextData = await getAllcontacts(token, offset + limit, limit, data);
+          return resolve(nextData);
+        } else {
+          // No more data to fetch
+          return resolve(data);
+        }
+      } else {
+        return resolve(false);
+      }
+      // if (response.statusCode == 200) {
+      //   console.log("JSON.parse(response.body).length",JSON.parse(response.body).length);
+      //   if (JSON.parse(response.body).length == limit) {
+      //     console.log("44444444444egth");
+
+      //     let temp:any = await contactAllCounts(token, offset + 20, 20,JSON.parse(response.body));
+      //     console.log("temp.legth",temp.legth);
+      //     resolve(temp);
+      //   } else {
+      //       console.log("data.legth",data.legth);
+            
+      //      [...data,...JSON.parse(response.body)]
+      //     resolve(data)
+      //     return
+      //   }
+      // }
+      // else
+      //   resolve(false)
+    });
+  });
 }

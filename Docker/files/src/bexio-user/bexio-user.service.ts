@@ -8,7 +8,8 @@ import { edit } from '../common/utils/bexioClient';
 import * as request from 'request';
 import { Request, Response } from 'express';
 const encryptionControl = require("../common/utils/jwt-decode");
-const fetchEmailContent = require('../common/utils/fetchEmailData');
+// const fetchEmailContent = require('../common/utils/fetchEmailData');
+import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
@@ -2118,7 +2119,9 @@ VALUES (
             user_email: email,
             language: 'DE'
           };
-          // let planResponse = await planPurchase(formData);
+        console.log('********************planPurchasefomdata',formData);
+
+          let planResponse = await planPurchase(formData);
         }
         else {
           let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
@@ -2866,7 +2869,7 @@ const planPurchase = async (data) => {
     'url': config.ADMIN_URL + 'payment/planPurchase',
     formData: fomdata
   };
-  //console.log('optionsoptions', options);
+  console.log('optionsoptions', options);
 
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {

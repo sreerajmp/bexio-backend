@@ -133,4 +133,12 @@ export class ConfigurationController {
   async getActiveArticle(@Req() req: Request, @Res() res: Response): Promise<any>{
     return this.configurationService.getActiveArticle(req,res);
   }
+
+  @Post('getContacts')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getContacts(@Req() req: Request, @Res() res: Response): Promise<any>{
+    return this.configurationService.getContacts(req,res);
+  }
+
+  
 }
