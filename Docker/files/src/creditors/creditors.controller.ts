@@ -57,5 +57,15 @@ export class CreditorsController {
   async emailSendingScheduler(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.creditorsService.emailSendingScheduler(req,res);
   }
-  
+  @All('gate2bApi/*')
+  @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
+  async byPassApi(@Req() req: Request, @Res() res: Response,@Param('path') path: string,@Param('id') id: string): Promise<any> {
+    let pathValue = (path.length > 1 ? path[0]+'/'+path[1] : path[0]);
+    console.log("path",path);
+    console.log("id",id);
+    console.log("pathValue",pathValue);
+    console.log("HTTP Method:", req.method);
+    
+  return this.creditorsService.byPassApi(req,res,req.method,pathValue);
+  }
 }
