@@ -16,7 +16,8 @@ import connectMssql from '../db/mssql-client'
 import status_code from '../common/utils/statusCodes';
 const crypto = require("crypto");
 import { resolve } from 'path';
-const fetchEmailContent = require('../common/utils/fetchEmailData');
+// const fetchEmailContent = require('../common/utils/fetchEmailData');
+import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
 @Injectable()
