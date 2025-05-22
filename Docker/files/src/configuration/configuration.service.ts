@@ -2866,7 +2866,6 @@ const bexioCreatePythonData = async (
       return resolve(false);
     }
   }).catch((err) => {
-    // Handle any unhandled rejection
     warningMessage(commonErrors, err);
     return false;
   });
