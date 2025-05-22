@@ -22,7 +22,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -37,11 +37,12 @@ export class DebtorsService {
  
 
   async getInvoice(req: Request, res: Response): Promise<any> {
-    console.log('getInvoice1');
+   
+    
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice;
+    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData;;
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -52,7 +53,11 @@ export class DebtorsService {
           status: false,
         });
       }
-
+      let configDetails:any = await getOctConfig(netcomId);
+      
+      if(configDetails.filtered_records != 0){
+        configData =  configDetails.records[0].config.serviceStatus
+      }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       console.log('cookie.access_Token', cookie.access_Token);
 
@@ -227,7 +232,7 @@ export class DebtorsService {
       }
       if (data['customerId'] != '' && data['customerId']) {
         searchJson.push({
-          "field": "user_id",
+          "field": "contact_id",
           "value": data.customerId,
           "criteria": "="
         });
@@ -610,7 +615,8 @@ export class DebtorsService {
         return res.send({
             status: 200,
             data: resultData,
-            totalCount: totalCount
+            totalCount: totalCount,
+            configStatus:configData,
         });
       } 
       // else {

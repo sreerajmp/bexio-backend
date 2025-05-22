@@ -926,6 +926,47 @@ async getAllUsers(req: Request, res: Response,): Promise<any> {
     });
     }
 }
+async byPassApi(req: Request, res: Response,method:any,path:any,): Promise<any> {
+  let keys =Object.keys(req.body)
+  let formData={
+    dummyData:''
+  };
+  keys.forEach(element => {
+    formData[element] = req.body[element];
+  });
+  // headers.host = 'api.gate2b.io-procurement.com'
+  try 
+  {
+    let  options = {
+        'method': method,
+        'url': 'http://192.168.55.248:5005/api/' + path,
+        // 'headers': headers,
+         formData: formData
+      };
+      console.log("options",options);
+      
+    return new Promise(function (resolve, reject) {
+      request(options, async function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          // console.log('body',body);
+          res.send(body)
+        } else {
+            // console.log('er',error);
+            
+          reject(error);
+        }
+      });
+    });
+  } catch (error) {
+    return res.status(500).json({
+
+      status_code: 500,
+      message: 'something_went_wrong',
+      status: false,
+      
+    });
+}
+}
 async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
 
   // const sendToPythonAPI = (api,reqBody,method,path) => {
@@ -947,14 +988,18 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
       keys.forEach(element => {
         formData[element] = body[element];
       });
+      let dummy ={
+      }
       if(typeof(formData) == 'object'){
-        formData = JSON.stringify(formData)
+        dummy ={
+          form:JSON.stringify(formData)
+        }
       }
        options = {
         'method': method,
         'url': config.GATE2BURL + path,
         // 'headers': headers,
-         formData: formData
+        form:dummy
       };
     }else{
       options = {
@@ -964,7 +1009,7 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
     }
     try 
     {
-      console.log(options);
+      console.log('optionsoptionsoptions',options);
       return new Promise(function (resolve, reject) {
         request(options, async function (error, response, body) {
           // console.log(response);
@@ -973,11 +1018,12 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
             // console.log('body',http://192.168.55.248:5005/api/document-type);
             res.send(body)
           } else {
-              // console.log('er',error);
               return res.status(500).json({
+
                 status_code: 500,
                 message: 'something_went_wrong',
                 status: false,
+                body:response.body
               });
             // reject(error);
           }
@@ -995,6 +1041,7 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
 // }
     
 }
+
 async emailSendingScheduler(req: Request, res: Response): Promise<any>{
 let transporter;
 

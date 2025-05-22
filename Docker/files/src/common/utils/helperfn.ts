@@ -4762,5 +4762,56 @@ export const getInvoiceSearch = async (accessToken,searchJson) => {
     }
   }); 
 });
-
+ 
 }
+export const getOctConfig = async (netComId) => {
+
+  try {
+    let responseData = {};
+    let formdata = {
+      module: 'BEX',
+      exact_name: netComId
+    };
+
+    const queryParams = new URLSearchParams(formdata).toString();
+    var options = {
+      'method': 'GET',
+      'url': `${config.OCTOPUS_URL}/read_config?${queryParams}`,
+
+    };
+
+    //console.log.log('options',options);
+
+    return new Promise(function (resolve, reject) {
+      request(options, async function (error, response, body) {
+
+        if (error) {
+          commonErrors['errorTitle'] = 'getConfiguration';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+          warningMessage(commonErrors, error);
+          return resolve(error)
+        }
+        else {
+          try {
+
+            //console.log.log(response.body);
+            responseData = JSON.parse(response.body)
+
+            return resolve(responseData)
+          }
+          catch {
+            return resolve(responseData)
+          }
+        }
+      })
+
+    });
+
+  }
+  catch (error) {
+    commonErrors['errorTitle'] = 'getConfiguration';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+    warningMessage(commonErrors, error);
+
+  }
+  }
