@@ -1281,8 +1281,11 @@ let transporter;
         }
         const getConfig = await connectLibrary.$queryRaw<any>`
                   SELECT * FROM commissionagent WHERE config ->> 'domain' = ${config.MAIL_INTERNAL_DOMAIN}::text`
+        console.log("getConfig",getConfig);
+
         let subject = `Invoice Summary :${targetDate}`
         const getEmailContent = await fetchEmailContent('bexio_invoice_summery','DE',keyDatas,getConfig[0]);
+        
         if( getEmailContent ){
           subject =  getEmailContent.subject.replace('[date]',targetDate);
           message = getEmailContent.message;
