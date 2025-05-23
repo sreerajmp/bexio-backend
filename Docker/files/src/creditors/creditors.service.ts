@@ -1238,7 +1238,7 @@ let transporter;
                                       <table width="100%">
                                           <tr>
                                               <td style="padding-bottom:10px">
-                                              Die folgenden Rechnungen wurden am : ${germanDate} von ${invoicedCompanyName} - Company über die iomarket Bexio-App versandt:
+                                              Die folgenden Rechnungen wurden am ${germanDate} von der ${invoicedCompanyName} über die iomarket Bexio App versendet.
                                               </td>
                                           </tr>
                                       </table>
@@ -1273,7 +1273,7 @@ let transporter;
                             </table>`;
         console.log("htmlContent :: ",mailBody);
         let message =
-          `<div>Die folgenden Rechnungen wurden am : ${germanDate} von ${invoicedCompanyName} -  Company über die iomarket Bexio-App versandt:</div><br><br>
+          `<div>Die folgenden Rechnungen wurden am ${germanDate} von der ${invoicedCompanyName} über die iomarket Bexio App versendet.</div><br><br>
           <table cellpadding="5" cellspacing="0">
             <tr>
               <th style="text-align:left">Belegnummer</th>
