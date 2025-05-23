@@ -4895,6 +4895,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
+      console.log('contact::::', contact);
       // If contact exists, check for required keys
       if (!contact?.name_1 || !contact?.address || !contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
