@@ -1324,7 +1324,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       let accessToken = cookie.access_Token;
 
       pdf = await getInvoicePdf(accessToken, invoice_id);
-      console.log('pdf::::', pdf, invoice_id);
+      // console.log('pdf::::', pdf, invoice_id);
       if (pdf?.response == 401) {
         console.log('unauthorized');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
@@ -4862,11 +4862,14 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
 export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
     try {
+      console.log('pushPrintInvoice',bodyValues);
+      // return resolve('success');
        const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
       const bill_recipient_email = invoices?.bill_recipient_email ?? '';
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
+      let article:any = null;
       let pdf, fileName, pdfContent;
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
@@ -4902,10 +4905,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
-      let article 
       let formData = {
-        netcom_id: bodyValues.netcom_id,
-        doc_type: '1'
+        netcom_id: bodyValues.netcomId,
+        doc_type: 'Invoice',
       };
       let options = {
         method: 'POST',
@@ -4914,10 +4916,23 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       };
       request(options, async function (error, response) {
         console.log('error', error);
+            console.log('response.getArticle', response.statusCode);
+
         // Parse response.body and extract "Article" from client_json
         try {
+          if(error) {
+            console.log('error article', error);
+            commonErrors['errorTitle'] = 'getArticle';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
+            warningMessage(commonErrors,error);
+            return resolve(error);
+          }
+
+          if(response.statusCode == 200) {
           const resp = JSON.parse(response.body);
-          // Defensive: check if resp.data?.client_json?.Article exists
+          
+          console.log('Extracted article:', article);
+          console.log('resp', resp);
             article = resp?.data?.client_json?.Article;
             // Validate that article has all required fields and none are empty/undefined/null
             const requiredFields = [
@@ -4935,7 +4950,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             );
             if (!isArticleValid) {
               console.error('Article is missing required fields or has empty values:', article);
-              article = null;
+              
               // Stop the process if article is invalid or null
               let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
               commonErrors['errorTitle'] = invoices.originalUrl;
@@ -4943,33 +4958,13 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               warningMessage(commonErrors, 'invalid_article');
               resolve('something_went_wrong' + invoiceCid);
               return;
-            }
-          console.log('Extracted article:', article);
-        } catch (err) {
-          console.error('Failed to parse response or extract Article:', err);
-        }
+            }}
 
-      });
-      // return
-      console.log("options",options);
-  //    const article = {
-  //   "amount": "1.000000",
-  //   "unit_id": 2,
-  //   "account_id": 152,
-  //   "tax_id": 16,
-  //   "text": "apple",
-  //   "unit_price": "12.00",
-  //   "discount_in_percent": "0.000000",
-  //   "article_id": 39
-  // }
-      console.log('invoices::::', invoices,channel);
-
-     
-      const invPosUpdate:any = null
-      const hasMatchingPosition = invoice.positions.some((item: any) => isArticleMatch(item, article));
-      if (!hasMatchingPosition ) {
+             const invPosUpdate:any = null
+      const hasMatchingPosition = article ? invoice.positions.some((item: any) => isArticleMatch(item, article)) : false;
+      if (!hasMatchingPosition && article) {
        const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
-      } else {
+      } else if (hasMatchingPosition) {
         console.log('Article already present in invoice.positions, skipping update.');
       }
       console.log('invPosUpdate::::', invPosUpdate);
@@ -4977,7 +4972,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       console.log('invoice::::2', invoice2);      
 
       pdf = await getInvoicePdf(accessToken, invoice_id);
-      console.log('pdf::::', pdf, invoice_id);
+      // console.log('pdf::::', pdf, invoice_id);
       if (pdf?.response == 401) {
         console.log('unauthorized');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
@@ -5037,6 +5032,19 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve(invoiceCid);
         return;
       }
+
+        } catch (err) {
+          console.error('Failed to parse response or extract Article:', err);
+        }
+
+      });
+      // return
+      console.log("options",options);
+      console.log('invoices::::', invoices,channel);
+
+     
+
+     
     } catch (error) {
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
@@ -5045,6 +5053,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 };
 
 export const isArticleMatch = async(item: any, article: any)=>  {
+  console.log('item', item);
+  console.log('article', article);
+  
   // Only compare if article_id exists in both
   if (item.article_id !== article.article_id) return false;
   // Compare all relevant fields (add/remove as needed)
