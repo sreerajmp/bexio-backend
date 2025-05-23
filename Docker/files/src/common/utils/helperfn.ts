@@ -372,7 +372,9 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           },
           data: {
             time_stamp: new Date(),
-            status: Number(status)
+            status: Number(status),
+            response:errorBody
+
           }
         });
         //console.log('updateRes',updateRes);
@@ -4815,3 +4817,244 @@ export const getOctConfig = async (netComId) => {
 
   }
   }
+export const updateInvoicePosition = async (invoiceId,article,access_token) => {
+  console.log('invoiceId', invoiceId);
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'POST',
+          'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/kb_position_article`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          },
+          body: JSON.stringify(article)
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            console.log('error', error);
+            // commonErrors['errorTitle'] = 'kb_position_article';
+            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            // warningMessage(commonErrors,error);
+            resolve(false)
+          }
+          console.log("response.statusCode :: ",response.statusCode);
+          
+          if( response.statusCode == 201){
+         console.log("kb_position_article :: ",response.body);
+
+            return resolve(JSON.parse(response.body));
+              // res.send(response.body)
+         console.log("kb_position_article :: ",response.body);
+          }      
+        
+          // else{
+          //   let returnObject = {
+          //     statuscode: response.statusCode,
+          //     message: response.statusMessage,
+          //     status: false
+          //   }
+          //   resolve(returnObject)
+          // }
+
+        });
+      });
+}
+export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+       const decryptData = invoices;
+      const invoice_id = invoices?.doc_id;
+      const bill_recipient_email = invoices?.bill_recipient_email ?? '';
+      const invoice_uuid = invoices?.invoice_uuid;
+      const partyId = bodyValues?.partyId;
+      let pdf, fileName, pdfContent;
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+      const invoice: any = await getInvoiceOT(accessToken, invoice_id);
+      console.log('invoice::::', typeof(invoice.positions ));
+      console.log('invoice::::', invoice.positions);
+       let contact :any = await getContact(accessToken, invoice.contact_id);
+      if (!contact) {
+        console.log('contact not found');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_contact_not_found');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+      if (!contact) {
+        console.log('contact not found');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_contact_not_found');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+      // If contact exists, check for required keys
+      if (!contact?.name_1 || !contact?.address || !contact?.city || !contact?.country_id || !contact?.postcode) {
+        console.log('contact missing address or postal');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_missing_address_or_postal', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_missing_address_or_postal ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'contact_missing_address_or_postal');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+      let article 
+      let formData = {
+        netcom_id: bodyValues.netcom_id,
+        doc_type: '1'
+      };
+      let options = {
+        method: 'POST',
+        url: config.PYTHON_API+'get-print-settings',
+        form: { form: JSON.stringify(formData) }
+      };
+      request(options, async function (error, response) {
+        console.log('error', error);
+        // Parse response.body and extract "Article" from client_json
+        try {
+          const resp = JSON.parse(response.body);
+          // Defensive: check if resp.data?.client_json?.Article exists
+            article = resp?.data?.client_json?.Article;
+            // Validate that article has all required fields and none are empty/undefined/null
+            const requiredFields = [
+            "amount",
+            "unit_id",
+            "account_id",
+            "tax_id",
+            "text",
+            "unit_price",
+            "discount_in_percent",
+            "article_id"
+            ];
+            const isArticleValid = article && requiredFields.every(
+            key => article[key] !== undefined && article[key] !== null && article[key] !== ""
+            );
+            if (!isArticleValid) {
+              console.error('Article is missing required fields or has empty values:', article);
+              article = null;
+              // Stop the process if article is invalid or null
+              let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
+              warningMessage(commonErrors, 'invalid_article');
+              resolve('something_went_wrong' + invoiceCid);
+              return;
+            }
+          console.log('Extracted article:', article);
+        } catch (err) {
+          console.error('Failed to parse response or extract Article:', err);
+        }
+
+      });
+      // return
+      console.log("options",options);
+  //    const article = {
+  //   "amount": "1.000000",
+  //   "unit_id": 2,
+  //   "account_id": 152,
+  //   "tax_id": 16,
+  //   "text": "apple",
+  //   "unit_price": "12.00",
+  //   "discount_in_percent": "0.000000",
+  //   "article_id": 39
+  // }
+      console.log('invoices::::', invoices,channel);
+
+     
+      const invPosUpdate:any = null
+      const hasMatchingPosition = invoice.positions.some((item: any) => isArticleMatch(item, article));
+      if (!hasMatchingPosition ) {
+       const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
+      } else {
+        console.log('Article already present in invoice.positions, skipping update.');
+      }
+      console.log('invPosUpdate::::', invPosUpdate);
+      const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
+      console.log('invoice::::2', invoice2);      
+
+      pdf = await getInvoicePdf(accessToken, invoice_id);
+      console.log('pdf::::', pdf, invoice_id);
+      if (pdf?.response == 401) {
+        console.log('unauthorized');
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'unauthorized');
+        resolve('unauthorized' + invoiceCid);
+        return;
+      }
+      if (!pdf) {
+        console.log('pdf not found');
+
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_pdf_not_found');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+
+      pdfContent = JSON.parse(pdf).content;
+      fileName = JSON.parse(pdf).name;
+
+      let coutryList;
+      coutryList = await getCountryLists(accessToken);
+      if (!coutryList) {
+        resolve('coutryList not found');
+        return;
+      }
+      coutryList = JSON.parse(coutryList);
+     
+      invoice.contact = contact;
+      let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
+
+      if (xml == false) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'email_xml_not_found');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
+
+      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+      console.log('filePush::::', filePush,channel);
+      
+      if (filePush) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+        console.log('invoiceCid::::', invoiceCid);
+
+        resolve(invoiceCid);
+        return;
+      }
+
+      if (!filePush) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        resolve(invoiceCid);
+        return;
+      }
+    } catch (error) {
+      console.error('Error in pushEmailInvoice:', error);
+      reject(error);
+    }
+  });
+};
+
+export const isArticleMatch = async(item: any, article: any)=>  {
+  // Only compare if article_id exists in both
+  if (item.article_id !== article.article_id) return false;
+  // Compare all relevant fields (add/remove as needed)
+  return (
+    String(item.amount) === String(article.amount) &&
+    String(item.unit_id) === String(article.unit_id) &&
+    String(item.account_id) === String(article.account_id) &&
+    String(item.tax_id) === String(article.tax_id) &&
+    String(item.text || '') === String(article.text || '') &&
+    String(item.unit_price) === String(article.unit_price) &&
+    String(item.discount_in_percent) === String(article.discount_in_percent)
+  );
+}
