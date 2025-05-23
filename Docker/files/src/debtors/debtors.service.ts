@@ -22,7 +22,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -1004,19 +1004,11 @@ export class DebtorsService {
 
     data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
     try {
-
-      // Added codes to handle print invoices. Currently the same worker used for email is added. we have to change
         if( data.printInvoices ){
-          // Fetch tag information based on netcomId and the list of printInvoices
-          // let getTag: any = await getTagName(data.netcomId,data.printInvoices);
-          // console.log('Print', getTag);
+       
           console.log("data.printInvoices", data.printInvoices);
-          // combinedResponse.otherInvoiceResults = getTag?.data || [];
-          // Loop through each tag item from the response
           for (const item of JSON.parse(data.printInvoices)|| []) {
 
-            // Find the invoice(s) from printInvoices that match the current tag item's doc_id
-            // let selectedItem = JSON.parse(data.printInvoices).filter((invoice) => invoice.doc_id === item.doc_id);
             let selectedItem = item;
             console.log("selectedItem :: ",selectedItem);
             try {
@@ -1078,7 +1070,8 @@ export class DebtorsService {
             for (const item of getTag?.data || []) {
                 if (item.tag === "ebill") {
                  let selectedEbillItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
-
+                  console.log("selectedEbillItem", selectedEbillItem);
+                  
                     try {
                         const pool = await connectMssql;
                         const getRecipientToken = await connectBexio.companyregistered.findMany({
@@ -1087,37 +1080,18 @@ export class DebtorsService {
                             },
                             select: {
                                 refresh_token: true,
+                                rk_party:true
                             },
                         });
-                        let tokenSet = await bexioClient.refresh(getRecipientToken[0]?.refresh_token || '');
 
-                        // let tempJson = JSON.parse(data.otherInvoice);
-                        console.log('getRecipient tempJson',tokenSet.access_token)
+                        let invoiceCidSucess = await setEbillInvoiceSendStatus(getRecipientToken[0]?.rk_party, selectedEbillItem[0].doc_id, '', selectedEbillItem, '1');
+                        console.log('invoiceCidSucess', invoiceCidSucess);
                         
-                        // for (let index = 0; index < tempJson.length; index++) {
-                            // const element = tempJson[index];
-                            console.log('getRecipient element',selectedEbillItem)
-                            // const getRecipient = await connectBexio.contact_bc.findFirst({
-                            //     where: {
-                            //         rk_contact: selectedEbillItem.contactId,
-                            //         companyregistered: {
-                            //             netcomid: data.netcomId,
-                            //         },
-                            //     },
-                            //     select: {
-                            //         recipient_id: true,
-                            //         companyregistered: {
-                            //             select: {
-                            //                 refresh_token: true,
-                            //             },
-                            //         },
-                            //     },
-                            // });
+                        let tokenSet = await bexioClient.refresh(getRecipientToken[0]?.refresh_token || '');
+                        console.log('getRecipient tempJson',tokenSet.access_token)
+                        console.log('getRecipient element',selectedEbillItem)
                             console.log('getRecipient',selectedEbillItem);
-                            
-                            // selectedEbillItem['recipientid'] = getRecipient?.recipient_id;
-                            selectedEbillItem['accessToken'] = tokenSet.access_token;
-                        // }
+                            selectedEbillItem['accessToken'] = tokenSet.access_token;                      
 
                         const getBiller = `SELECT billerid  FROM biller  
                         WHERE netcomid = '${data.netcomId}'
@@ -1171,15 +1145,12 @@ export class DebtorsService {
                     };
                     async function processInvoices(obj, bodyData): Promise<any[]> {
                       const results:any = [];
-                      // for (let index = 0; index < obj.length; index++) {
                         console.log("Processing invoice:", obj);
                         
-                          // const element = obj;
                           const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
                           console.log("result:::", result);
                           
                           results.push(result);
-                      // }
                       return results;
                   }
                   let invoice_uuid = await processInvoices(selectedItem[0], bodyParams)
