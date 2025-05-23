@@ -11,7 +11,11 @@ const fetchEmailContent = async(subjectkey, language,keyDatas:any = null,partyCo
   
     
     try {
+      console.log("partyConfig",partyConfig);
+
       defaultConfig = partyConfig || JSON.parse(config.DEFAULT_CONFIG);
+      console.log("defaultConfig",defaultConfig);
+      
       // Query to get the email template based on the key and language
       
      
@@ -43,10 +47,11 @@ const fetchEmailContent = async(subjectkey, language,keyDatas:any = null,partyCo
           config AS configdata
         FROM 
           public.commissionagent 
-        WHERE config->>'domain' = ${domainName}
+        WHERE config->>'domain' = ${domainName}::text
           AND config IS NOT NULL
       `);
-
+      console.log("getConfigRslt",getConfigRslt);
+      
       if( getConfigRslt.length != 0 ){
         configData = getConfigRslt[0].configdata;
       }

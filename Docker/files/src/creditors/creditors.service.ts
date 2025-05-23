@@ -1211,15 +1211,26 @@ let transporter;
         console.log("enrichedInvoices :: ",enrichedInvoices);
         console.log("invoicedCompanyName :: ",invoicedCompanyName);
         let text = '';
-        
+        let chanelKeys = {
+          "print":"Print",
+          "EDI":"EDI",
+          "EBILL":"eBill",
+          "email":"eMail",
+          "EMAIL":"eMail"
+        }
         for (let i = 0; i < enrichedInvoices.length; i++) {
           const element = enrichedInvoices[i];
           text = text + `<tr>
                           <td style="text-align:left">${element.doc_number}</td>
                           <td style="text-align:left">${element.contact_name}</td>
-                          <td style="text-align:left">${element.channel}</td>
+                          <td style="text-align:left">${chanelKeys[element.channel]}</td>
                         </tr>`
         }
+        const date = new Date();
+        const germanDate = date.toLocaleDateString('de-DE');
+      
+        console.log(germanDate)
+        let subject = `Übersicht der versendeten Rechnungen – ${invoicedCompanyName} - ${germanDate}`
         let mailBody = `<table width="100%" style="max-width:600px">
                               <tr>
                                   <td>
@@ -1227,8 +1238,7 @@ let transporter;
                                       <table width="100%">
                                           <tr>
                                               <td style="padding-bottom:10px">
-                                                  Die folgenden Rechnungen wurden heute von ${invoicedCompanyName}
-                                                  über die iomarket Bexio-App versandt:
+                                              Die folgenden Rechnungen wurden am ${germanDate} von der ${invoicedCompanyName} über die iomarket Bexio App versendet.
                                               </td>
                                           </tr>
                                       </table>
@@ -1263,7 +1273,7 @@ let transporter;
                             </table>`;
         console.log("htmlContent :: ",mailBody);
         let message =
-          `<div>Die folgenden Rechnungen wurden heute von ${invoicedCompanyName} über die iomarket Bexio-App versandt:</div><br><br>
+          `<div>Die folgenden Rechnungen wurden am ${germanDate} von der ${invoicedCompanyName} über die iomarket Bexio App versendet.</div><br><br>
           <table cellpadding="5" cellspacing="0">
             <tr>
               <th style="text-align:left">Belegnummer</th>
@@ -1281,10 +1291,12 @@ let transporter;
         }
         const getConfig = await connectLibrary.$queryRaw<any>`
                   SELECT * FROM commissionagent WHERE config ->> 'domain' = ${config.MAIL_INTERNAL_DOMAIN}::text`
-        let subject = `Invoice Summary :${targetDate}`
+        console.log("getConfig",getConfig);
+ 
         const getEmailContent = await fetchEmailContent('bexio_invoice_summery','DE',keyDatas,getConfig[0]);
+        
         if( getEmailContent ){
-          subject =  getEmailContent.subject.replace('[date]',targetDate);
+          subject =  subject;
           message = getEmailContent.message;
         }
         console.log("subject :: ",subject);
