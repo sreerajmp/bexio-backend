@@ -1238,8 +1238,7 @@ let transporter;
                                       <table width="100%">
                                           <tr>
                                               <td style="padding-bottom:10px">
-                                                  Die folgenden Rechnungen wurden heute von ${invoicedCompanyName}
-                                                  über die iomarket Bexio-App versandt:
+                                              Die folgenden Rechnungen wurden am : ${germanDate} von ${invoicedCompanyName} - Company über die iomarket Bexio-App versandt:
                                               </td>
                                           </tr>
                                       </table>
