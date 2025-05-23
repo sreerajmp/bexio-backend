@@ -342,24 +342,6 @@ export class DebtorsService {
       }
 
       }
-      
-      // if("channel" in data){
-      
-      // }
-      // if(){
-      //   searchJson.push({
-      //     "field": "contact_id",
-      //     "value": tempArray,
-      //     "criteria": "in"
-      //   });
-      // }
-      // if(invoiceNumbers){
-      //   searchJson.push({
-      //     "field": "id",
-      //     "value": invoiceNumbers,
-      //     "criteria": "="
-      //   });
-      // }
       let resData: any[] = [];
       console.log('searchJson:::',searchJson);
       if (searchJson.length > 0) {
@@ -395,26 +377,10 @@ export class DebtorsService {
 
         resData = JSON.parse(response.body);
       } else {
-          // searchJson.push({
-          //   "field": "contact_id",
-          //   "value": contactArray,
-          //   "criteria": "in"
-          // });
-
           let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
           let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
           totalCount = totalCountInvoiceList + totalCountInvoiceCount;
-          console.log('searchJson:',searchJson);
-          
-          // const postOptions = {
-          //   'method': 'POST',
-          //   'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-          //   'headers': {
-          //     'Accept': 'application/json',
-          //     'Authorization': 'Bearer ' + accessToken
-          //   },
-          //   body: JSON.stringify(searchJson)
-          // };
+          console.log('searchJson:',searchJson);          
 
           const getOptions = {
             'method': 'GET',
@@ -607,6 +573,7 @@ export class DebtorsService {
           await redisClient.set(redisKey, JSON.stringify({
             status: 200,
             data: resData,
+            configStatus:configData,
             totalCount: totalCount
           }), {
           EX: 24 * 60 * 60 * 2
@@ -619,18 +586,12 @@ export class DebtorsService {
             configStatus:configData,
         });
       } 
-      // else {
-      //   return res.status(401).json({
-      //     status: 'fail',
-      //     message: 'unauthorized',
-      //   });
-      // }
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
       warningMessage(commonErrors, error);
 
-      return res.status(200).json({ 
+      return res.status(500).json({ 
         status: 500, 
         message: 'something_went_wrong' 
       });
