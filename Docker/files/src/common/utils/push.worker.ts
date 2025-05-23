@@ -1,5 +1,5 @@
 const { parentPort } = require('worker_threads');
-const { pushInvoiceBulk, pushInvoiceTestProcess,pushEmailInvoice } = require('./helperfn');
+const { pushInvoiceBulk, pushInvoiceTestProcess,pushEmailInvoice,pushPrintInvoice } = require('./helperfn');
 
 // Listen for messages from the main thread
 parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, billerId,channel }) => {
@@ -12,10 +12,15 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
       // Call the pushInvoiceTestProcess if billerId is provided
        pushInvoiceTestProcess(invoices, billerId);
     } 
-    if(channel=='email' || channel=='print') {
-      console.log('Push Worker Received email or print:', { bodyParams, invoices });
+    if(channel=='email') {
+      console.log('Push Worker Received email:', { bodyParams, invoices });
       // Perform the bulk push task
       pushEmailInvoice(invoices, bodyParams,headerParams, channel);
+    }
+    if(channel=='print') {
+      console.log('Push Worker Received print:', { bodyParams, invoices });
+      // Perform the bulk push task
+      pushPrintInvoice(invoices, bodyParams,headerParams, channel);
     }
     if (channel=='EDI') {
         // Perform the task
