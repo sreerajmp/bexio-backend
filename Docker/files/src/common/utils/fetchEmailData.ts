@@ -11,7 +11,11 @@ const fetchEmailContent = async(subjectkey, language,keyDatas:any = null,partyCo
   
     
     try {
+      console.log("partyConfig",partyConfig);
+
       defaultConfig = partyConfig || JSON.parse(config.DEFAULT_CONFIG);
+      console.log("defaultConfig",defaultConfig);
+      
       // Query to get the email template based on the key and language
       
      
