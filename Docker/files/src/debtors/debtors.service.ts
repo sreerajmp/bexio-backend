@@ -1927,7 +1927,7 @@ export class DebtorsService {
         status_code: 500,
         message: 'something_went_wrong',
         status: false,
-        error:'something_went_wrong'
+        error:error.toString()
 
       });
     }
