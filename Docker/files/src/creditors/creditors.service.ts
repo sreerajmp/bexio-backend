@@ -939,7 +939,7 @@ async byPassApi(req: Request, res: Response,method:any,path:any,): Promise<any> 
   {
     let  options = {
         'method': method,
-        'url': 'http://192.168.55.248:5005/api/' + path,
+        'url': config.GATE2BURL + path,
         // 'headers': headers,
          formData: formData
       };

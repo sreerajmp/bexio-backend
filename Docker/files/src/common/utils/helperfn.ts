@@ -4963,15 +4963,26 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 
              const invPosUpdate:any = null
              console.log("article::::",article);
-             
-      // const hasMatchingPosition = article ? invoice.positions.some((item: any) => isArticleMatch(item, article)) : false;
-      // console.log('hasMatchingPosition::::', hasMatchingPosition);
       
-      if (article && invoice.positions.some((item: any) => isArticleMatch(item, article))) {
-       const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
-      } else {
-        console.log('Article already present in invoice.positions, skipping update.');
-      }
+          if (article) {
+            let isArticleFound = false;
+            for (const item of invoice.positions) {
+              if (isArticleMatch(item, article)) {
+                console.log('Matching position found:', item);
+                isArticleFound = true;
+                break;
+              }
+              
+            }
+            if(! isArticleFound){
+                console.log('No matching position found for item:');
+                const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
+
+            }
+
+          } else {
+            console.log('Article not found in config, skipping update.');
+          }
       console.log('invPosUpdate::::', invPosUpdate);
       const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
       console.log('invoice::::2', invoice2);      
@@ -5057,16 +5068,22 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
   });
 };
 
-export const isArticleMatch = async(item: any, article: any)=>  { 
-    
-    return (
-      String(item.amount) !== String(article.amount) &&
-      String(item.unit_id) !== String(article.unit_id) &&
-      String(item.account_id) !== String(article.account_id) &&
-      String(item.tax_id) !== String(article.tax_id) &&
-      String(item.text || '') !== String(article.text || '') &&
-      String(item.unit_price) !== String(article.unit_price) &&
-      String(item.discount_in_percent) !== String(article.discount_in_percent)
-    ) 
+export function isArticleMatch(item: any, article: any): boolean {
+    console.log('item::::', item);
+    console.log('article::::', article);
+    console.log('item.amount::::', item.amount,article.amount); 
+    console.log('item.unit_id::::', item.unit_id,article.unit_id);
+    console.log('item.account_id::::', item.account_id,article.account_id);
+    console.log('item.tax_id::::', item.tax_id,article.tax_id);
+    console.log('item.text::::', item.text,article.text);
+    console.log('item.unit_price::::', item.unit_price,article.unit_price);
+    console.log('item.discount_in_percent::::', item.discount_in_percent,article.discount_in_percent);
+    return ( Number(item.amount) == Number(article.amount) &&
+      String(item.unit_id) == String(article.unit_id) &&
+      String(item.account_id) == String(article.account_id) &&
+      String(item.tax_id) == String(article.tax_id) &&
+      String(item.text || '') == String(article.text || '') &&
+      Number(item.unit_price) == Number(article.unit_price) &&
+      Number(item.discount_in_percent) == Number(article.discount_in_percent))
   
 }
