@@ -1831,7 +1831,7 @@ export class DebtorsService {
   async markAsIssued(req: Request, res: Response,): Promise<any> {
     console.log('markAsIssued',req.body)
     try {
-      let invoiceId = req.body.id,tokenSet;
+      let invoiceId = req.body.id,tokenSet,invoice;
       const bexioClient = await edit();
 
       const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
@@ -1845,8 +1845,8 @@ export class DebtorsService {
 
         console.log(getInvoiceIdRslt);
         try {
-        tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
-          
+         tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
+         invoice = getInvoiceIdRslt[0]['rk_invoice'];
         } catch (error) {
           commonErrors['errorTitle'] = 'markAsIssues_token_issue';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
@@ -1862,7 +1862,7 @@ export class DebtorsService {
         return new Promise(async(resolve, reject) => {
           var options = {
             'method': 'POST',
-            'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/mark_as_sent`,
+            'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
             'headers': {
               'Accept': 'application/json',
               'Authorization': 'Bearer '+tokenSet.access_token
