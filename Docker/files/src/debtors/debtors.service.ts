@@ -1828,6 +1828,91 @@ export class DebtorsService {
         });
     }
   }
+  async markAsIssued(req: Request, res: Response,): Promise<any> {
+    console.log('markAsIssued',req.body)
+    try {
+      let invoiceId = req.body.id,tokenSet,invoice;
+      const bexioClient = await edit();
+
+      const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+        Prisma.sql`
+        SELECT * FROM documents_invoice_send ds 
+        INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+        WHERE ds.cid = ${invoiceId}::bigint
+        `
+        );
+        console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
+
+        console.log(getInvoiceIdRslt);
+        try {
+         tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
+         invoice = getInvoiceIdRslt[0]['rk_invoice'];
+        } catch (error) {
+          commonErrors['errorTitle'] = 'markAsIssues_token_issue';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
+          warningMessage(commonErrors,error);
+
+          return res.status(500).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false
+          }); 
+        }
+        
+        return new Promise(async(resolve, reject) => {
+          var options = {
+            'method': 'POST',
+            'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer '+tokenSet.access_token
+            }
+          };
+          request(options, function (error, response) {
+            if (error) {  
+              commonErrors['errorTitle'] = 'markAsIssues';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
+              warningMessage(commonErrors,error);
+              return res.status(500).json({
+                status_code: 500,
+                message: 'something_went_wrong',
+                status: false
+              });
+            }
+            // res.send(response.body)
+            //console.log(response.body);
+            if(response.statusCode==200)
+            {
+              return res.status(200).json({
+                status_code: 200,
+                status: true
+              });
+            }
+            else
+            {
+              commonErrors['errorTitle'] = 'markAsIssues';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
+              warningMessage(commonErrors,error);
+              return res.status(500).json({
+                status_code: 500,
+                message: 'something_went_wrong',
+                status: false
+              });
+            }
+          });
+        });
+    } catch (error) {
+      console.log('error',error);
+      commonErrors['errorTitle'] = 'markAsIssues';
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+req.body.id;;
+      warningMessage(commonErrors,error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false
+      });
+    }
+  }
   
 }
 const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{

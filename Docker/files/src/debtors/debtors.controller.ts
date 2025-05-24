@@ -61,5 +61,9 @@ export class DebtorsController {
   async changeInvoiceSendStatus(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.changeInvoiceSendStatus(req,res);
   }
-  
+  @Post('markAsIssued')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async markAsIssued(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.markAsIssued(req,res);
+  }
 }
