@@ -474,7 +474,7 @@ export class DebtorsService {
                 resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
                 resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
                 resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS || '')[invoiceList[qryInvoice]['status'] || ''];
-                resData[invoice]['timestamp'] = invoiceList[qryInvoice]['timestamp'];
+                resData[invoice]['timestamp'] = invoiceList[qryInvoice]['time_stamp'];
                 resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
                 resData[invoice]['response'] = invoiceList[qryInvoice]['response'];
                 resData[invoice]['invoice_type'] = invoiceList[qryInvoice]['invoice_type']; // Add invoice_type
@@ -1841,66 +1841,83 @@ export class DebtorsService {
         WHERE ds.cid = ${invoiceId}::bigint
         `
         );
+        if(getInvoiceIdRslt.length != 0){
+
         console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
 
         console.log(getInvoiceIdRslt);
-        try {
-         tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
-         invoice = getInvoiceIdRslt[0]['rk_invoice'];
-        } catch (error) {
-          commonErrors['errorTitle'] = 'markAsIssues_token_issue';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
-          warningMessage(commonErrors,error);
+          try {
+          tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
+          invoice = getInvoiceIdRslt[0]['rk_invoice'];
+          } catch (error) {
+            commonErrors['errorTitle'] = 'markAsIssues_token_issue';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
+            warningMessage(commonErrors,error);
 
+            return res.status(500).json({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+              error:'token_issue'
+            }); 
+          }
+          
+          return new Promise(async(resolve, reject) => {
+            var options = {
+              'method': 'POST',
+              'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
+              'headers': {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer '+tokenSet.access_token
+              }
+            };
+            request(options, function (error, response) {
+              if (error) {  
+                commonErrors['errorTitle'] = 'markAsIssues';
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
+                warningMessage(commonErrors,error);
+                return res.status(500).json({
+                  status_code: 500,
+                  message: 'something_went_wrong',
+                  status: false,
+                  error:error.toString()
+                });
+              }
+              // res.send(response.body)
+              //console.log(response.body);
+              if(response.statusCode==200)
+              {
+                return res.status(200).json({
+                  status_code: 200,
+                  status: true
+                });
+              }
+              else
+              {
+                commonErrors['errorTitle'] = 'markAsIssues';
+                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'server error'+'-bexio param,'+invoiceId;;
+                warningMessage(commonErrors,error);
+                return res.status(500).json({
+                  status_code: 500,
+                  message: 'something_went_wrong',
+                  status: false,
+                  error:'server error'
+                });
+              }
+            });
+          });
+        }else{
+          let error = 'id missing'
+          commonErrors['errorTitle'] = 'markAsIssues';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'-bexio param,'+req.body.id;;
+          warningMessage(commonErrors,error);
           return res.status(500).json({
             status_code: 500,
             message: 'something_went_wrong',
-            status: false
-          }); 
-        }
-        
-        return new Promise(async(resolve, reject) => {
-          var options = {
-            'method': 'POST',
-            'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
-            'headers': {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer '+tokenSet.access_token
-            }
-          };
-          request(options, function (error, response) {
-            if (error) {  
-              commonErrors['errorTitle'] = 'markAsIssues';
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
-              warningMessage(commonErrors,error);
-              return res.status(500).json({
-                status_code: 500,
-                message: 'something_went_wrong',
-                status: false
-              });
-            }
-            // res.send(response.body)
-            //console.log(response.body);
-            if(response.statusCode==200)
-            {
-              return res.status(200).json({
-                status_code: 200,
-                status: true
-              });
-            }
-            else
-            {
-              commonErrors['errorTitle'] = 'markAsIssues';
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
-              warningMessage(commonErrors,error);
-              return res.status(500).json({
-                status_code: 500,
-                message: 'something_went_wrong',
-                status: false
-              });
-            }
+            status: false,
+            error:error
           });
-        });
+        }  
     } catch (error) {
       console.log('error',error);
       commonErrors['errorTitle'] = 'markAsIssues';
@@ -1909,7 +1926,9 @@ export class DebtorsService {
       return res.status(500).json({
         status_code: 500,
         message: 'something_went_wrong',
-        status: false
+        status: false,
+        error:error.toString()
+
       });
     }
   }
