@@ -44,7 +44,7 @@ export class CreditorsController {
   @All('getG2b/*')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
   async passTog2bGet(@Req() req: Request, @Res() res: Response,@Param('path') path: string,@Param('id') id: string): Promise<any> {
-    let pathValue = (path.length > 1 ? path[0]+'/'+path[1] : path[0]);
+    let pathValue = Array.isArray(path) ? (path.length > 1 ? path.join('/') : path[0]) : path;
     console.log("path",path);
     console.log("id",id);
     console.log("pathValue",pathValue);
