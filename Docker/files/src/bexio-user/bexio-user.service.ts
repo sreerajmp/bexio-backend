@@ -90,7 +90,7 @@ export class BexioUserService {
       ) {
         console.log('unauthorized tempJson', tempJson);
         
-        return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
+        return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized?error=address_not_found`);
       }
       //console.log('test',tempJson);
       const requiredCompanyFields = ['name', 'address', 'city', 'postcode', 'country_id'];
