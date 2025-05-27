@@ -93,12 +93,7 @@ export class DebtorsService {
           companyregistered: true
         }
       });
-
-    
-      
-      // const ediInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EDI');
-      const ebillInvoices = invoiceList.filter(invoice => invoice.invoice_type === 'EBILL');
-      // if (ediInvoices.length > 0) {
+   
         const getNetcomId = await connectBexio.$queryRaw<any>(
           Prisma.sql`
                     SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
@@ -112,7 +107,8 @@ export class DebtorsService {
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
         );
-        console.log('getInviteCompanyId',getInviteCompanyId,getNetcomId[0].netcomid);
+        console.log('getInviteCompanyId',getInviteCompanyId,);
+        console.log('getInviteCompanyId',getNetcomId);
 
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
@@ -138,28 +134,7 @@ export class DebtorsService {
         }
         const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
         resultArray = getConnectionBcResult[0]?.array_agg;
-        console.log('resultArray',resultArray);
-        
-      // }
-      // if (ebillInvoices.length > 0) {
-        // const getContactBcQryReslt = await connectBexio.$queryRaw<any>(
-        //   Prisma.sql`
-        //           SELECT array_agg(rk_contact) 
-        //           FROM contact_bc c 
-        //           INNER JOIN companyregistered cr 
-        //           ON cr.cid = c.fk_companyregistered
-        //           WHERE c.type = 'EBILL' 
-        //           AND cr.netcomid = ${netcomId}
-        //         `
-        // );
-        // console.log('getContactBcQryReslt', getContactBcQryReslt);
-        
-        // contactArray = getContactBcQryReslt[0]?.array_agg || [];
-        // if (req.body.contactId && req.body.contactId !== '') {
-        //   contactArray = [];
-        //   contactArray = [req.body.contactId];
-        // }
-      // }
+     
 
       let options;
       let searchJson: any[] = [];

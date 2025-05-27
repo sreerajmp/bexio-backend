@@ -342,7 +342,8 @@ console.log('sdasssssssssssssssssssssssssssssssssssssssss');
                 AND active = true
               `;
                 if(txeCountResult.length>0){
-                    result[0]["txe_count"] = txeCountResult[0].total ? txeCountResult[0].total : 0;
+                    console.log("txeCountResult:",txeCountResult);
+                    result[0]["txe_count"] = Number(txeCountResult[0].txe_count )?? 0;
                 }
             }    
            
