@@ -20,6 +20,7 @@ import { resolve } from 'path';
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
+import { File as MulterFile } from 'multer';
 @Injectable()
 export class ConfigurationService {
 
@@ -645,11 +646,12 @@ export class ConfigurationService {
       let encrToken 
       try {
        const pool = await connectMssql;
-       console.log('pool',pool);
       //   const ioDb = await connectPostgres;
       //   //console.log.log('req.body.encrToken',req.body.encrToken);
         encrToken = encryptionControl.decrypt(req.body.encrToken);
     console.log('encrToken',encrToken);
+
+    console.log("Biller fetch");
 
         if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
@@ -666,7 +668,7 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-console.log('getUserPermissionsResult',getUserPermissionsResult);
+      console.log('getUserPermissionsResult',getUserPermissionsResult);
 
           if(getUserPermissionsResult.length == 0){
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
@@ -770,6 +772,7 @@ console.log('****************************');
 
       }
       catch (error) {
+        console.log("Error:: ",error)
         let responseValue = JSON.stringify(encrToken)
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -1985,11 +1988,6 @@ console.log('getPartyAccountId', getPartyAccountId);
   
       }
 
-
-
-
-
-     
     }
     catch (error) {
    
@@ -2163,6 +2161,181 @@ console.log('getPartyAccountId', getPartyAccountId);
     
    
   }
+
+  // API to update assets
+  async updateAsset(req: Request,res: Response): Promise<any> {
+    let accessToken
+    let encrToken:any = null;
+    try {
+      encrToken = req.body;
+      const resetToken = crypto.randomBytes(15).toString('hex');
+      const billerId = encrToken.billerId;
+      const assetId = encrToken.assetId;
+      const filedata = req['files'][0];
+      console.log("filedata :: ",filedata)
+      const options = {
+        method: 'PUT',
+        url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}/assets/${assetId}`,
+        headers: {
+          'authorization': `Bearer ${accessToken}`,
+          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'X-Correlation-Id': resetToken,
+        },
+        body: filedata['buffer'],
+        key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
+      };
+
+      if (path.extname(filedata.originalname) === ".jpeg") {
+        options.headers['Content-Type'] = 'image/jpeg'
+      }
+      if (path.extname(filedata.originalname) === ".png") {
+        options.headers['Content-Type'] = "image/png"
+      }
+      if (path.extname(filedata.originalname) === ".gif") {
+        options.headers['Content-Type'] = "image/gif"
+      }
+      if (path.extname(filedata.originalname) === ".pdf") {
+        options.headers['Content-Type'] = "application/pdf"
+      }
+      await request(options, async function (error, response) {
+        if (error) {
+          console.log(error);
+          let responseValue = JSON.stringify(encrToken)
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param six,' + responseValue;
+          warningMessage(commonErrors, error);
+          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+        else{
+          if(response.statusCode == '204'){
+            return res.status(status_code.OK).json({
+              status_code: 200,
+              message: 'updated_asset_successfully',
+              status: true,
+            });
+          }
+          if(response.statusCode == '500'){
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              status_code: 500,
+              data:response,
+              message: "something_went_wrong",
+              status: true,
+            });
+          }
+          else{
+            let errorResponse = JSON.parse(response.body)
+            var returnData = errorResponse.type.replace('/problems/','');
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              status_code: 500,
+              message: returnData.toLowerCase(),
+              status: true,
+            });
+          }
+        }
+      });
+    } catch (error) {
+      let responseValue = JSON.stringify(encrToken)
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+  }
+
+  
+
+  async getAssests(req: Request,res: Response): Promise<any> {
+    console.log("getAssests")
+    try {
+      const resetToken = crypto.randomBytes(15).toString('hex');
+      const billerId = req.body.billerId;
+      const assetId = req.body.assetId;
+      const tempImageFile = 'assets/'
+
+      let apiResponse
+      const options = {
+        method: 'GET',
+        url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}/assets/${assetId}`,
+        headers: {
+          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'X-Correlation-Id': resetToken,
+        },
+        key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE)
+      };
+      console.log("options :: ",options);
+      await request(options, async function (error, response) {
+        if (error) {
+          let responseValue = JSON.stringify(billerId);
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param six,' + responseValue;
+          warningMessage(commonErrors, error);
+          console.log(error);
+          return res.status(500).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+        else {
+          apiResponse = response;
+          console.log("apiResponse :: ",apiResponse.statusCode)
+          if (apiResponse.statusCode === 200) {
+            var base64
+            setTimeout(() => {
+              base64 = fs.readFileSync(`${tempImageFile}${assetId}.jpeg`, "base64");
+              let data = "data:" + 'image/jpeg' + ";base64," + base64;
+              return res.status(status_code.OK).json({
+                data: data,
+                status_code: 200,
+                message: 'fetch_asset_image',
+                status: true,
+              });
+            }, config.SET_TIME_OUT)
+            setTimeout(() => {
+              fs.unlink(`${tempImageFile}${assetId}.jpeg`, function (err) {
+                if (err) {
+                  console.log('File not found');
+                } else {
+                  console.log('File Delete Successfuly');
+                }
+              });
+            }, config.SET_TIME_OUT)
+          }
+          else {
+            setTimeout(() => {
+              fs.unlink(`${tempImageFile}${assetId}.jpeg`, function (err) {
+                if (err) {
+                  console.log('File not found');
+                } else {
+                  console.log('File Delete Successfuly');
+                }
+              });
+            }, config.SET_TIME_OUT)
+            return res.status(status_code.OK).json({
+              data: '',
+              status_code: 200,
+              message: 'asset_not_found',
+              status: true,
+            });
+          }
+        }
+      }).pipe(fs.createWriteStream(`${tempImageFile}${assetId}.jpeg`))
+    } catch (error) {
+      
+    }
+  }
+
+
 }
 const getBcDetails = async (bc_id, netcomId) => {
   try {
