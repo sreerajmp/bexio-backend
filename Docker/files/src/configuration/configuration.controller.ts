@@ -1,7 +1,8 @@
-import { Controller,Post,Body ,UseInterceptors,Get,Req,Res, Param, Query } from '@nestjs/common';
+import { Controller,Post,Body ,UseInterceptors,Get,Req,Res, Param, Query, UploadedFile } from '@nestjs/common';
 import { ConfigurationService } from './configuration.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { File as MulterFile } from 'multer';
 @Controller('configuration')
 export class ConfigurationController {
   constructor(private readonly configurationService: ConfigurationService) {
@@ -138,6 +139,20 @@ export class ConfigurationController {
   @UseInterceptors(AnyFilesInterceptor())
   async getContacts(@Req() req: Request, @Res() res: Response): Promise<any>{
     return this.configurationService.getContacts(req,res);
+  }
+
+  @Post('getAssests')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getAssests(@Req() req: Request, @Res() res: Response) {
+    // Pass file and other params to service
+    return this.configurationService.getAssests(req, res);
+  }
+
+  @Post('updateAsset')
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateAsset(@Req() req: Request, @Res() res: Response) {
+    // Pass file and other params to service
+    return this.configurationService.updateAsset(req, res);
   }
 
   
