@@ -1227,6 +1227,8 @@ let transporter;
                         </tr>`
         }
         const date = new Date();
+        date.setDate(date.getDate() - 1); // Subtract 1 day to get yesterday
+        
         const germanDate = date.toLocaleDateString('de-DE');
       
         console.log(germanDate)
