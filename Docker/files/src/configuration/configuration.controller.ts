@@ -141,11 +141,11 @@ export class ConfigurationController {
     return this.configurationService.getContacts(req,res);
   }
 
-  @Post('getAssests')
+  @Post('getAssets')
   @UseInterceptors(AnyFilesInterceptor())
-  async getAssests(@Req() req: Request, @Res() res: Response) {
+  async getAssets(@Req() req: Request, @Res() res: Response) {
     // Pass file and other params to service
-    return this.configurationService.getAssests(req, res);
+    return this.configurationService.getAssets(req, res);
   }
 
   @Post('updateAsset')
