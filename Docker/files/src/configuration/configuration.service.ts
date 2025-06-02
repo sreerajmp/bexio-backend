@@ -2251,7 +2251,6 @@ console.log('getPartyAccountId', getPartyAccountId);
     }
   }
 
-  
 
   async getAssests(req: Request,res: Response): Promise<any> {
     console.log("getAssests")
@@ -2260,6 +2259,12 @@ console.log('getPartyAccountId', getPartyAccountId);
       const billerId = req.body.billerId;
       const assetId = req.body.assetId;
       const tempImageFile = 'assets/'
+
+      // Ensure the assets directory exists and is writable
+      const fsPath = require('path');
+      if (!fs.existsSync(tempImageFile)) {
+        fs.mkdirSync(tempImageFile, { recursive: true });
+      }
 
       let apiResponse
       const options = {
@@ -2331,11 +2336,15 @@ console.log('getPartyAccountId', getPartyAccountId);
         }
       }).pipe(fs.createWriteStream(`${tempImageFile}${assetId}.jpeg`))
     } catch (error) {
-      
+      // Handle error
+      console.log(error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
     }
   }
-
-
 }
 const getBcDetails = async (bc_id, netcomId) => {
   try {
