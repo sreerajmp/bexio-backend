@@ -1230,6 +1230,11 @@ let transporter;
         date.setDate(date.getDate() - 1); // Subtract 1 day to get yesterday
         
         const germanDate = date.toLocaleDateString('de-DE');
+
+        // const today = new Date();
+        // today.setDate(today.getDate()); // Subtract 1 day to get yesterday
+        
+        // const germanDateToday = today.toLocaleDateString('de-DE');
       
         console.log(germanDate)
         let subject = `Übersicht der versendeten Rechnungen – ${invoicedCompanyName} - ${germanDate}`
