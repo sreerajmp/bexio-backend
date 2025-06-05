@@ -63,6 +63,7 @@ export async function bootstrap() {
     origin: [
       config.BEXIO_APP_URL,
       /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
+      'https:local-bexio.io-market.net:3000',
       config.BILLING_URL
     ],
     credentials: true, // Allow cookies
