@@ -2139,27 +2139,37 @@ console.log('getPartyAccountId', getPartyAccountId);
       let accessToken = cookie.access_Token;
 
       let data = [];
-      let totalCount:any = await getAllcontacts(accessToken, 0, 2000,data);
+      let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
 
-      console.log("totalCount",totalCount.length);
+      console.log("totalCount", totalCount);
       let result = totalCount.map((contact) => ({
         id: contact.id,
-        name: (contact.name_1 ? contact.name_1 : '') +' '+(contact.name_2 ? contact.name_2 : '')
+        name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
       }))
       return res.status(200).send({
         status: 200,
         data: result,
       });
-   
+
     } catch (error) {
-      return res.status(500).send({
-        status_code: 500,
-        message: '',
-        status: false,
-      })
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
+      else {
+        return res.status(500).send({
+          status_code: 500,
+          message: '',
+          status: false,
+        })
+      }
+
     }
-    
-   
+
+
   }
 
   // API to update assets
@@ -3071,7 +3081,7 @@ const bexioUpdateBiller = async (req, billerId) => {
   }
 })
 }
-const getAllcontacts = async (token, offset, limit?,data?) => {
+const getAllcontacts = async (token, offset, limit?, data?) => {
   return new Promise(async (resolve, reject) => {
 
     var options = {
@@ -3092,36 +3102,24 @@ const getAllcontacts = async (token, offset, limit?,data?) => {
       if (response.statusCode === 200) {
         const currentData = JSON.parse(response.body);
         data = [...data, ...currentData];
-
         if (currentData.length === limit) {
           // More data likely exists, fetch next page
           const nextData = await getAllcontacts(token, offset + limit, limit, data);
           return resolve(nextData);
-        } else {
-          // No more data to fetch
+        }
+        else {
           return resolve(data);
         }
+      }
+
+      if (response.statusCode === 401) {
+        console.log("Unauthorized access, please check your token.");
+
+        return reject(new Error('Unauthorized'));
       } else {
         return resolve(false);
       }
-      // if (response.statusCode == 200) {
-      //   console.log("JSON.parse(response.body).length",JSON.parse(response.body).length);
-      //   if (JSON.parse(response.body).length == limit) {
-      //     console.log("44444444444egth");
 
-      //     let temp:any = await contactAllCounts(token, offset + 20, 20,JSON.parse(response.body));
-      //     console.log("temp.legth",temp.legth);
-      //     resolve(temp);
-      //   } else {
-      //       console.log("data.legth",data.legth);
-            
-      //      [...data,...JSON.parse(response.body)]
-      //     resolve(data)
-      //     return
-      //   }
-      // }
-      // else
-      //   resolve(false)
     });
   });
 }
