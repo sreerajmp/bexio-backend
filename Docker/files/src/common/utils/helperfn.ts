@@ -5087,3 +5087,39 @@ export function isArticleMatch(item: any, article: any): boolean {
       Number(item.discount_in_percent) == Number(article.discount_in_percent))
   
 }
+//status change to draft to pending
+export const markAsPending = async (access_token, id) => {
+  console.log('markAsPending');
+  
+  return new Promise((resolve, reject) => {
+    var options = {
+      method: 'POST',
+      url: `https://api.bexio.com/2.0/kb_invoice/${id}/issue`,
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer ' + access_token
+      }
+    };
+
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'markAsPending';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
+        warningMessage(commonErrors, error);
+        return resolve(false);
+      }
+
+      if (response.statusCode === 200) {
+        try {
+          const resBody = JSON.parse(response.body);
+          return resolve(resBody); 
+        } catch (parseError) {
+          console.error('Failed to parse response:', response.body);
+          return resolve(false);
+        }
+      } else {
+        return resolve(false);
+      }
+    });
+  });
+};
