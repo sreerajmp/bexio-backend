@@ -2139,27 +2139,37 @@ console.log('getPartyAccountId', getPartyAccountId);
       let accessToken = cookie.access_Token;
 
       let data = [];
-      let totalCount:any = await getAllcontacts(accessToken, 0, 2000,data);
+      let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
 
-      console.log("totalCount",totalCount.length);
+      console.log("totalCount", totalCount);
       let result = totalCount.map((contact) => ({
         id: contact.id,
-        name: (contact.name_1 ? contact.name_1 : '') +' '+(contact.name_2 ? contact.name_2 : '')
+        name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
       }))
       return res.status(200).send({
         status: 200,
         data: result,
       });
-   
+
     } catch (error) {
-      return res.status(500).send({
-        status_code: 500,
-        message: '',
-        status: false,
-      })
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
+      else {
+        return res.status(500).send({
+          status_code: 500,
+          message: '',
+          status: false,
+        })
+      }
+
     }
-    
-   
+
+
   }
 
   // API to update assets
@@ -2250,88 +2260,76 @@ console.log('getPartyAccountId', getPartyAccountId);
       });
     }
   }
-
-  
-
-  async getAssests(req: Request,res: Response): Promise<any> {
-    console.log("getAssests")
+   async getAssets(req: Request, res: Response): Promise<any> {
     try {
       const resetToken = crypto.randomBytes(15).toString('hex');
       const billerId = req.body.billerId;
       const assetId = req.body.assetId;
-      const tempImageFile = 'assets/'
 
-      let apiResponse
       const options = {
         method: 'GET',
-        url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}/assets/${assetId}`,
+        url: `${config.SIX_API_CERTIFICATE_BASE}billers/${billerId}/assets/${assetId}`,
         headers: {
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE)
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE),
       };
-      console.log("options :: ",options);
-      await request(options, async function (error, response) {
-        if (error) {
-          let responseValue = JSON.stringify(billerId);
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param six,' + responseValue;
-          warningMessage(commonErrors, error);
-          console.log(error);
-          return res.status(500).json({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
+
+      const chunks: Buffer[] = [];
+
+      const reqStream = request(options);
+
+      reqStream.on('response', (response) => {
+        if (response.statusCode !== 200) {
+          return res.status(200).json({
+            data: '',
+            status_code: 200,
+            message: 'asset_not_found',
+            status: true,
           });
         }
-        else {
-          apiResponse = response;
-          console.log("apiResponse :: ",apiResponse.statusCode)
-          if (apiResponse.statusCode === 200) {
-            var base64
-            setTimeout(() => {
-              base64 = fs.readFileSync(`${tempImageFile}${assetId}.jpeg`, "base64");
-              let data = "data:" + 'image/jpeg' + ";base64," + base64;
-              return res.status(status_code.OK).json({
-                data: data,
-                status_code: 200,
-                message: 'fetch_asset_image',
-                status: true,
-              });
-            }, config.SET_TIME_OUT)
-            setTimeout(() => {
-              fs.unlink(`${tempImageFile}${assetId}.jpeg`, function (err) {
-                if (err) {
-                  console.log('File not found');
-                } else {
-                  console.log('File Delete Successfuly');
-                }
-              });
-            }, config.SET_TIME_OUT)
-          }
-          else {
-            setTimeout(() => {
-              fs.unlink(`${tempImageFile}${assetId}.jpeg`, function (err) {
-                if (err) {
-                  console.log('File not found');
-                } else {
-                  console.log('File Delete Successfuly');
-                }
-              });
-            }, config.SET_TIME_OUT)
-            return res.status(status_code.OK).json({
-              data: '',
-              status_code: 200,
-              message: 'asset_not_found',
-              status: true,
-            });
-          }
-        }
-      }).pipe(fs.createWriteStream(`${tempImageFile}${assetId}.jpeg`))
+
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+
+        response.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          const base64 = buffer.toString('base64');
+          const dataUrl = `data:${contentType};base64,${base64}`;
+
+          return res.status(200).json({
+            data: dataUrl,
+            status_code: 200,
+            message: 'fetch_asset_image',
+            status: true,
+          });
+        });
+      });
+
+      reqStream.on('error', (error) => {
+        const responseValue = JSON.stringify({ billerId, assetId });
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param six, ${responseValue}`;
+        warningMessage(commonErrors, error);
+
+        return res.status(500).json({
+          status_code: 500,
+          message: 'something_went_wrong',
+          status: false,
+        });
+      });
+
     } catch (error) {
-      
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
     }
   }
 
@@ -3083,7 +3081,7 @@ const bexioUpdateBiller = async (req, billerId) => {
   }
 })
 }
-const getAllcontacts = async (token, offset, limit?,data?) => {
+const getAllcontacts = async (token, offset, limit?, data?) => {
   return new Promise(async (resolve, reject) => {
 
     var options = {
@@ -3104,36 +3102,24 @@ const getAllcontacts = async (token, offset, limit?,data?) => {
       if (response.statusCode === 200) {
         const currentData = JSON.parse(response.body);
         data = [...data, ...currentData];
-
         if (currentData.length === limit) {
           // More data likely exists, fetch next page
           const nextData = await getAllcontacts(token, offset + limit, limit, data);
           return resolve(nextData);
-        } else {
-          // No more data to fetch
+        }
+        else {
           return resolve(data);
         }
+      }
+
+      if (response.statusCode === 401) {
+        console.log("Unauthorized access, please check your token.");
+
+        return reject(new Error('Unauthorized'));
       } else {
         return resolve(false);
       }
-      // if (response.statusCode == 200) {
-      //   console.log("JSON.parse(response.body).length",JSON.parse(response.body).length);
-      //   if (JSON.parse(response.body).length == limit) {
-      //     console.log("44444444444egth");
 
-      //     let temp:any = await contactAllCounts(token, offset + 20, 20,JSON.parse(response.body));
-      //     console.log("temp.legth",temp.legth);
-      //     resolve(temp);
-      //   } else {
-      //       console.log("data.legth",data.legth);
-            
-      //      [...data,...JSON.parse(response.body)]
-      //     resolve(data)
-      //     return
-      //   }
-      // }
-      // else
-      //   resolve(false)
     });
   });
 }

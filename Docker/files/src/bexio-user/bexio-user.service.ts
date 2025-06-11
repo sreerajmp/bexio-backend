@@ -2492,7 +2492,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
    
     
     await getUserPermissions(String(userDetails[0].partyId),userDetails[0].accountId);
-    res.send({
+    res.status(200).send({
       status_code: 200,
       message: '',
       status: true,
@@ -2504,7 +2504,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
     // warningMessage(commonErrors,error);
     //console.log(error);
-    res.send({
+    res.status(500).send({
       status_code: 500,
       message: JSON.stringify(error),
       status: false,
