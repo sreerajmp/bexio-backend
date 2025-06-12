@@ -68,7 +68,8 @@ export class DashboardService {
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'invoicesend',
-          title:''
+          title:'',
+          channel:item.invoice_type
         })),
         ...invoiceReceive.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -80,7 +81,8 @@ export class DashboardService {
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
           process:'invoicereceive',
-           title:item.title
+           title:item.title,
+           channel:'EDI'
         })),
         ...deliveryNotesSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -92,7 +94,8 @@ export class DashboardService {
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'deliverynotessend',
-           title:''
+           title:'',
+           channel:item.deliverynotes_type
         })),
         ...orderSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -104,7 +107,8 @@ export class DashboardService {
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'ordersend',
-           title:''
+           title:'',
+           channel:item.order_type
 
         })),
         ...orderReceive.map((item) => ({
@@ -117,7 +121,8 @@ export class DashboardService {
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
           process:'orderreceive',
-           title:item.title
+           title:item.title,
+           channel:'EDI'
         })),
       ];
   
