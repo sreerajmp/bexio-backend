@@ -155,5 +155,10 @@ export class ConfigurationController {
     return this.configurationService.updateAsset(req, res);
   }
 
+  @Post('createBusinessConnection')
+  @UseInterceptors(AnyFilesInterceptor())
+  async createBusinessConnection(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.configurationService.createBusinessConnection(req,res);
+  }
   
 }
