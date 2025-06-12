@@ -22,7 +22,7 @@ const { Worker } = require('worker_threads');
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -148,11 +148,12 @@ export class DebtorsService {
           if (data['invoiceStatus'] == 'Yes') {
             console.log("invoiceStatus s", data['invoiceStatus']);
             
-            searchJson.push({
-              "field": "contact_id",
-              "value": resultArray == null ? "" : resultArray,
-              "criteria": "in"
-            },
+            searchJson.push(
+            //   {
+            //   "field": "contact_id",
+            //   "value": resultArray == null ? "" : resultArray,
+            //   "criteria": "in"
+            // },
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
@@ -162,11 +163,12 @@ export class DebtorsService {
           if (data['invoiceStatus'] == 'No') {
             console.log("invoiceStatus no", data['invoiceStatus']);
     
-            searchJson.push({
-              "field": "contact_id",
-              "value": resultArray == null ? "" : resultArray,
-              "criteria": "in"
-            },
+            searchJson.push(
+            //   {
+            //   "field": "contact_id",
+            //   "value": resultArray == null ? "" : resultArray,
+            //   "criteria": "in"
+            // },
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
@@ -351,6 +353,9 @@ export class DebtorsService {
             }
 
         resData = JSON.parse(response.body);
+
+        console.log('resData',resData);
+        
       } else {
           let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
           let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
@@ -553,7 +558,7 @@ export class DebtorsService {
           }), {
           EX: 24 * 60 * 60 * 2
           });
-        
+
         return res.send({
             status: 200,
             data: resultData,
@@ -1846,7 +1851,7 @@ export class DebtorsService {
                 'Authorization': 'Bearer '+tokenSet.access_token
               }
             };
-            request(options, function (error, response) {
+            request(options, async function (error, response) {
               if (error) {  
                 commonErrors['errorTitle'] = 'markAsIssues';
                 commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
@@ -1862,6 +1867,7 @@ export class DebtorsService {
               //console.log(response.body);
               if(response.statusCode==200)
               {
+                await markAsPending(tokenSet.access_token,invoice)
                 return res.status(200).json({
                   status_code: 200,
                   status: true
