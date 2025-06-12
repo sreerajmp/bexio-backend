@@ -4147,7 +4147,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-                       WHERE c.rk_party = ${partyId} AND ds.status = 2`
+                       WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
         );
         // Serialize BigInt values to strings
         return result.map(row => ({

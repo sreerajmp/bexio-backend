@@ -148,11 +148,12 @@ export class DebtorsService {
           if (data['invoiceStatus'] == 'Yes') {
             console.log("invoiceStatus s", data['invoiceStatus']);
             
-            searchJson.push({
-              "field": "contact_id",
-              "value": resultArray == null ? "" : resultArray,
-              "criteria": "in"
-            },
+            searchJson.push(
+            //   {
+            //   "field": "contact_id",
+            //   "value": resultArray == null ? "" : resultArray,
+            //   "criteria": "in"
+            // },
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
@@ -162,11 +163,12 @@ export class DebtorsService {
           if (data['invoiceStatus'] == 'No') {
             console.log("invoiceStatus no", data['invoiceStatus']);
     
-            searchJson.push({
-              "field": "contact_id",
-              "value": resultArray == null ? "" : resultArray,
-              "criteria": "in"
-            },
+            searchJson.push(
+            //   {
+            //   "field": "contact_id",
+            //   "value": resultArray == null ? "" : resultArray,
+            //   "criteria": "in"
+            // },
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
@@ -351,6 +353,9 @@ export class DebtorsService {
             }
 
         resData = JSON.parse(response.body);
+
+        console.log('resData',resData);
+        
       } else {
           let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
           let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
