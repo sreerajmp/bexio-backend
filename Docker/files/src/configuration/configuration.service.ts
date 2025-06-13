@@ -1384,7 +1384,7 @@ console.log('req.body',req.body);
     try {
       let access_token = cookie.access_Token;
      
-      let data = req.body.name;
+      let data = req.body.name.trim();
       console.log('access_tokenaccess_token',access_token);
       console.log('data',data);
       

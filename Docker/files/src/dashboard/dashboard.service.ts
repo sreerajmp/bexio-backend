@@ -63,12 +63,13 @@ export class DashboardService {
           rk_invoice: String(item.rk_invoice),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: item.invoice_number,
+          documentnumber: String(item.rk_invoice),
           type: 'invoice',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'invoicesend',
-          title:''
+          title:'',
+          channel:item.invoice_type
         })),
         ...invoiceReceive.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
@@ -80,31 +81,34 @@ export class DashboardService {
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
           process:'invoicereceive',
-           title:item.title
+           title:item.title,
+           channel:'EDI'
         })),
         ...deliveryNotesSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
           rk_invoice: String(item.rk_deliverynotes),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: item.deliverynotes_number,
+          documentnumber: String(item.rk_deliverynotes),
           type: 'deliverynotes',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'deliverynotessend',
-           title:''
+           title:'',
+           channel:item.deliverynotes_type
         })),
         ...orderSend.map((item) => ({
           fk_companyregistered: item.fk_companyregistered,
           rk_invoice: String(item.rk_order),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: item.order_number,
+          documentnumber: String(item.rk_order),
           type: 'order',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
           process:'ordersend',
-           title:''
+           title:'',
+           channel:item.order_type
 
         })),
         ...orderReceive.map((item) => ({
@@ -112,12 +116,13 @@ export class DashboardService {
           rk_invoice: item.rk_order,
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: item.document_number,
+          documentnumber: item.rk_order,
           type: 'order',
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
           process:'orderreceive',
-           title:item.title
+           title:item.title,
+           channel:'EDI'
         })),
       ];
   
