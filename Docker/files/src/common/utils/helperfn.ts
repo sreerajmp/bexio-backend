@@ -5103,7 +5103,8 @@ export function isArticleMatch(item: any, article: any): boolean {
 //status change to draft to pending
 export const markAsPending = async (access_token, id) => {
   console.log('markAsPending');
-  
+  console.log('id',id);
+  let invoiceId = Number(id)
   return new Promise((resolve, reject) => {
     var options = {
       method: 'POST',
@@ -5115,22 +5116,32 @@ export const markAsPending = async (access_token, id) => {
     };
 
     request(options, function (error, response) {
+      console.log('************************');
+      
       if (error) {
         commonErrors['errorTitle'] = 'markAsPending';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
         warningMessage(commonErrors, error);
         return resolve(false);
       }
-
+  console.log('response',response);
       if (response.statusCode === 200) {
         try {
+        
+          
           const resBody = JSON.parse(response.body);
           return resolve(resBody); 
         } catch (parseError) {
           console.error('Failed to parse response:', response.body);
           return resolve(false);
         }
-      } else {
+      } 
+      else if(response.statusCode === 400)
+      {
+        console.log('error:you can not issue an invoice with a total which is less or equal to 0')
+        return resolve(false);
+      }
+        else {
         return resolve(false);
       }
     });
