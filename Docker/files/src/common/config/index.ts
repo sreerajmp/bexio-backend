@@ -230,6 +230,15 @@ export default {
 	  OCTOPUS_URL:  process.env.OCTOPUS_URL,
 	  BEXIO_INTERNAL_URL:"http://bexio-interface-backend.gate2b.svc.cluster.local/",
 	  BILLING_URL: process.env.BILLING_URL || 'https://billing.io-market.net/',
-	  MAIL_INTERNAL_DOMAIN: process.env.MAIL_INTERNAL_DOMAIN || 'io-market.net'
+	  MAIL_INTERNAL_DOMAIN: process.env.MAIL_INTERNAL_DOMAIN || 'io-market.net',
+
+	  SALESFORCE_BASE_URL: process.env.SALESFORCE_BASE_URL,
+	  SALESFORCE_USERNAME: process.env.SALESFORCE_USERNAME,
+	  SALESFORCE_PASSWORD: process.env.SALESFORCE_PASSWORD,
+	  SALESFORCE_CLIENT_ID: process.env.SALESFORCE_CLIENT_ID,
+	  SALESFORCE_CLIENT_SECRET: process.env.SALESFORCE_CLIENT_SECRET,
 	  
+	  DYNAMODB_CLIENT_ID: process.env.DYNAMODB_CLIENT_ID,
+	  DYNAMODB_SECRET_KEY: process.env.DYNAMODB_SECRET_KEY,
+	  DYNAMODB_REGION: process.env.DYNAMODB_REGION,
 };
