@@ -8,6 +8,7 @@ import { DebtorsModule } from './debtors/debtors.module';
 import { CreditorsModule } from './creditors/creditors.module';
 import { ConfigurationModule } from './configuration/configuration.module';
 import {DashboardModule} from './dashboard/dashboard.module'
+import { ContactImportModule } from './contact-import/contact-import.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -16,7 +17,8 @@ import {DashboardModule} from './dashboard/dashboard.module'
     DebtorsModule,
     CreditorsModule,
     ConfigurationModule,
-    DashboardModule
+    DashboardModule,
+    ContactImportModule
   ],
   controllers: [AppController],
   providers: [AppService],

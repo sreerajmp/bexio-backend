@@ -13,7 +13,7 @@ const crypto = require("crypto");
 import redisClient from '../utils/redisDB';
 import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
-
+const { fetchContacts } = require('../../contact-import/salesforce/salesforce.service');
 export const getContactById = async (accessToken,contact_idList) => {
 
   return new Promise(async(resolve, reject) => {
@@ -4141,14 +4141,27 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     return Buffer.from(xml).toString('base64');
   }
 
-  export const getSendInvoiceList = async (partyId: number): Promise<any[]> => {
+  export const getSendInvoiceList = async (partyId: number,status:string): Promise<any[]> => {
     try {
-        const result = await connectBexio.$queryRaw<any[]>(
+      let result
+      if(status=='Yes'){
+        result = await connectBexio.$queryRaw<any[]>(
             Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
         );
+        }
+        else if(status=='No'){
+      console.log('status',status);
+      
+        result = await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+                       FROM documents_invoice_send ds
+                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                       WHERE c.rk_party = ${partyId} AND ds.status = 0`
+        );
+        }
         // Serialize BigInt values to strings
         return result.map(row => ({
             ...row,
@@ -5090,7 +5103,8 @@ export function isArticleMatch(item: any, article: any): boolean {
 //status change to draft to pending
 export const markAsPending = async (access_token, id) => {
   console.log('markAsPending');
-  
+  console.log('id',id);
+  let invoiceId = Number(id)
   return new Promise((resolve, reject) => {
     var options = {
       method: 'POST',
@@ -5102,24 +5116,61 @@ export const markAsPending = async (access_token, id) => {
     };
 
     request(options, function (error, response) {
+      console.log('************************');
+      
       if (error) {
         commonErrors['errorTitle'] = 'markAsPending';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
         warningMessage(commonErrors, error);
         return resolve(false);
       }
-
+  console.log('response',response);
       if (response.statusCode === 200) {
         try {
+        
+          
           const resBody = JSON.parse(response.body);
           return resolve(resBody); 
         } catch (parseError) {
           console.error('Failed to parse response:', response.body);
           return resolve(false);
         }
-      } else {
+      } 
+      else if(response.statusCode === 400)
+      {
+        console.log('error:you can not issue an invoice with a total which is less or equal to 0')
+        return resolve(false);
+      }
+        else {
         return resolve(false);
       }
     });
   });
 };
+
+// Dummy Bexio push function
+export async function pushContactToBexio(contact) {
+  // Simulate Bexio push
+  console.log(`Pushing contact to Bexio: ${JSON.stringify(contact)}`);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return { success: true };
+}
+
+export async function processNextPendingJob(dynamoDBService,companyName) {
+  // Get the first pending job
+  const job = await dynamoDBService.getFirstPendingJob();
+  if (!job) {
+    parentPort.postMessage({ status: 'no_pending' });
+    return;
+  }
+
+  // Mark as in_progress
+  await dynamoDBService.updateJobStatus(job.jobId, 'in_progress');
+  // Fetch contacts (simulate)
+const contacts = await fetchContacts(companyName);
+  for (const contact of contacts) {
+    await pushContactToBexio(contact); // Dummy push
+  }
+  await dynamoDBService.updateJobStatus(job.jobId, 'done');
+  parentPort.postMessage({ status: 'done', jobId: job.jobId });
+}
