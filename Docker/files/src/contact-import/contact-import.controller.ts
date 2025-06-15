@@ -1,8 +1,9 @@
 // Handles HTTP endpoints for importing contacts from Salesforce and pushing to Bexio
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseInterceptors } from '@nestjs/common';
 import { ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ContactImportService } from './contact-import.service';
 import { ImportContactDto } from './dto/import-contact.dto';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Contact Import')
 @Controller('contact-import')
@@ -10,6 +11,7 @@ export class ContactImportController {
   constructor(private readonly contactImportService: ContactImportService) {}
 
   @Post('import')
+  @UseInterceptors(AnyFilesInterceptor())
   @ApiBody({
     schema: {
       type: 'object',
@@ -21,7 +23,18 @@ export class ContactImportController {
     },
     description: 'Trigger contact import for a company. Accepts form-data.',
   })
-  async importContacts(@Body() dto: ImportContactDto) {
+  async importContacts(@Body() body: any) {
+    // Accept form-data: NestJS parses form fields into body as strings
+    // Defensive: handle missing fields (empty string or undefined)
+    const netcomid = body?.netcomid?.toString().trim();
+    const companyName = body?.companyName?.toString().trim();
+    if (!netcomid || !companyName) {
+      return { message: 'netcomid and companyName are required in the request body', status: 400 };
+    }
+    const dto: ImportContactDto = {
+      netcomid,
+      companyName,
+    };
     return this.contactImportService.importContacts(dto);
   }
 

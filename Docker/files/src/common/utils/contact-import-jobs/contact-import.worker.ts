@@ -5,12 +5,12 @@ const { DynamoDBService } = require('../../../contact-import/dynamodb/dynamodb.s
 
 
 
-parentPort.on('message', async ({ netcomid,companyName }) => {
+parentPort.on('message', async ({ netcomid }) => {
   const dynamoDBService = new DynamoDBService();
   while (true) {
     const job = await dynamoDBService.getFirstPendingJobForNetcomid(netcomid);
     if (!job) break;
-    await processNextPendingJob(dynamoDBService,companyName);
+    await processNextPendingJob(job);
   }
   parentPort.postMessage({ status: 'all_done', netcomid });
 });
