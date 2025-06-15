@@ -22,6 +22,21 @@ export class DynamoDBService {
     return result.Item;
   }
 
+  async getJobDataByNetcomid(netcomid: string): Promise<any> {
+    // DynamoDB only allows efficient sorting on the sort key of the index.
+    // If 'requestedAt' is the sort key of 'netcomid-status-index', you can query with ScanIndexForward: false.
+    const params = {
+      TableName: TABLE_NAME,
+      IndexName: 'netcomid-status-index',
+      KeyConditionExpression: '#netcomid = :netcomid',
+      ExpressionAttributeNames: { '#netcomid': 'netcomid' },
+      ExpressionAttributeValues: { ':netcomid': netcomid },
+      ScanIndexForward: false, // Descending order on the sort key
+      Limit: 1, // Only get the latest
+    };
+    const result = await dynamoDb.query(params).promise();
+    return result.Items && result.Items.length > 0 ? result.Items[0] : null;
+  }
   async markJobComplete(cid: string): Promise<void> {
     await this.updateJobStatus(cid, 'done');
   }
@@ -50,30 +65,34 @@ export class DynamoDBService {
     return item;
   }
 
-  async getFirstPendingJob(): Promise<any> {
-    const params = {
-      TableName: TABLE_NAME,
-      IndexName: 'status-index', // You need a GSI on status
-      KeyConditionExpression: '#status = :pending',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':pending': 'pending' },
-      Limit: 1,
-    };
-    const result = await dynamoDb.query(params).promise();
-    return result.Items && result.Items.length > 0 ? result.Items[0] : null;
-  }
+
 
   async getFirstPendingJobForNetcomid(netcomid: string): Promise<any> {
-    const params = {
+    // DynamoDB does not allow FilterExpression on primary key attributes in a GSI query.
+    // Instead, query for 'pending' first, then 'in_progress' if not found.
+    const pendingParams = {
       TableName: TABLE_NAME,
-      IndexName: 'netcomid-status-index', // You need a GSI on netcomid+status
+      IndexName: 'netcomid-status-index',
       KeyConditionExpression: '#netcomid = :netcomid and #status = :pending',
       ExpressionAttributeNames: { '#netcomid': 'netcomid', '#status': 'status' },
       ExpressionAttributeValues: { ':netcomid': netcomid, ':pending': 'pending' },
       Limit: 1,
     };
-    const result = await dynamoDb.query(params).promise();
-    return result.Items && result.Items.length > 0 ? result.Items[0] : null;
+    const pendingResult = await dynamoDb.query(pendingParams).promise();
+    if (pendingResult.Items && pendingResult.Items.length > 0) {
+      return pendingResult.Items[0];
+    }
+    // If no pending job, check for in_progress
+    const inProgressParams = {
+      TableName: TABLE_NAME,
+      IndexName: 'netcomid-status-index',
+      KeyConditionExpression: '#netcomid = :netcomid and #status = :in_progress',
+      ExpressionAttributeNames: { '#netcomid': 'netcomid', '#status': 'status' },
+      ExpressionAttributeValues: { ':netcomid': netcomid, ':in_progress': 'in_progress' },
+      Limit: 1,
+    };
+    const inProgressResult = await dynamoDb.query(inProgressParams).promise();
+    return inProgressResult.Items && inProgressResult.Items.length > 0 ? inProgressResult.Items[0] : null;
   }
 
   async updateJobStatus(cid: string, status: string): Promise<void> {
