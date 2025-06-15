@@ -7,6 +7,8 @@ import config from '../../common/config';
 @Injectable()
 export class SalesforceService {
   async fetchContacts(dto: ImportContactDto): Promise<any[]> {
+    console.log(`Fetching contacts for company: ${dto.companyName} with netcomid: ${dto.netcomid}`);
+    
     // 1. Get Salesforce access token using env/config values
     const tokenOptions = {
       method: 'POST',
@@ -22,6 +24,9 @@ export class SalesforceService {
     const accessToken: string = await new Promise((resolve, reject) => {
       request(tokenOptions, (error, response, body) => {
         if (error) return reject(error);
+        console.log(`Salesforce token response: ${body}`);
+        console.log(`Salesforce token response status: ${response.statusCode}`);
+        
         const data = JSON.parse(body);
         if (data.access_token) return resolve(data.access_token);
         reject(data);
@@ -40,6 +45,16 @@ export class SalesforceService {
     };
     return await new Promise((resolve, reject) => {
       request(contactOptions, (error, response, body) => {
+        if (response && response.statusCode !== 200) {
+          console.error(`Salesforce query failed: ${body}`);
+          return reject(new Error(`Salesforce query failed with status ${response.statusCode}`));
+        }
+        // console.log(`Salesforce query response: ${body}`);
+        console.log(`Salesforce query response status: ${response.statusCode}`);
+        // console.log(`Salesforce query response: ${JSON.stringify(response.body )}`);
+        
+        
+        
         if (error) return reject(error);
         const data = JSON.parse(body);
         resolve(data.records || []);
