@@ -141,7 +141,7 @@ export class DebtorsService {
       let getSendInvoiceListResult;
 
       if (data['invoiceStatus']) {
-        getSendInvoiceListResult = await getSendInvoiceList(Number(partyId));
+        getSendInvoiceListResult = await getSendInvoiceList(Number(partyId),data['invoiceStatus']);
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
         
         if(getSendInvoiceListResult.length > 0) {
@@ -172,7 +172,7 @@ export class DebtorsService {
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
-              "criteria": "not_in"
+              "criteria": "in"
             });
           }
         }

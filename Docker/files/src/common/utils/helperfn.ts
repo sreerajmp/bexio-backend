@@ -4,7 +4,7 @@ import config from '../config/index';
 const path = require('path')
 import { connectNewGate2b, connectBexio,connectLibrary } from '../../db/prisma-clients';
 import { Prisma } from '@prisma/client';
-
+import { edit } from './bexioClient';
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
@@ -13,7 +13,10 @@ const crypto = require("crypto");
 import redisClient from '../utils/redisDB';
 import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
-
+// const { fetchContacts } = require('../../contact-import/salesforce/salesforce.service');
+// const { updateJobStatus } = require('../../contact-import/dynamodb/dynamodb.service');
+const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
+const { SalesforceService } = require('../../contact-import/salesforce/salesforce.service');
 export const getContactById = async (accessToken,contact_idList) => {
 
   return new Promise(async(resolve, reject) => {
@@ -4141,14 +4144,27 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     return Buffer.from(xml).toString('base64');
   }
 
-  export const getSendInvoiceList = async (partyId: number): Promise<any[]> => {
+  export const getSendInvoiceList = async (partyId: number,status:string): Promise<any[]> => {
     try {
-        const result = await connectBexio.$queryRaw<any[]>(
+      let result
+      if(status=='Yes'){
+        result = await connectBexio.$queryRaw<any[]>(
             Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
         );
+        }
+        else if(status=='No'){
+      console.log('status',status);
+      
+        result = await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+                       FROM documents_invoice_send ds
+                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                       WHERE c.rk_party = ${partyId} AND ds.status = 0`
+        );
+        }
         // Serialize BigInt values to strings
         return result.map(row => ({
             ...row,
@@ -5090,7 +5106,8 @@ export function isArticleMatch(item: any, article: any): boolean {
 //status change to draft to pending
 export const markAsPending = async (access_token, id) => {
   console.log('markAsPending');
-  
+  console.log('id',id);
+  let invoiceId = Number(id)
   return new Promise((resolve, reject) => {
     var options = {
       method: 'POST',
@@ -5102,24 +5119,233 @@ export const markAsPending = async (access_token, id) => {
     };
 
     request(options, function (error, response) {
+      console.log('************************');
+      
       if (error) {
         commonErrors['errorTitle'] = 'markAsPending';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
         warningMessage(commonErrors, error);
         return resolve(false);
       }
-
+  console.log('response',response);
       if (response.statusCode === 200) {
         try {
+        
+          
           const resBody = JSON.parse(response.body);
           return resolve(resBody); 
         } catch (parseError) {
           console.error('Failed to parse response:', response.body);
           return resolve(false);
         }
-      } else {
+      } 
+      else if(response.statusCode === 400)
+      {
+        console.log('error:you can not issue an invoice with a total which is less or equal to 0')
+        return resolve(false);
+      }
+        else {
         return resolve(false);
       }
     });
   });
 };
+
+// Dummy Bexio push function
+export async function pushContactToBexio(
+  netcomid: string,
+  contacts: Array<{
+    Name: string;
+    Iso_Email__c?: string;
+    BillingAddress?: { street?: string; postalCode?: string; city?: string };
+    [key: string]: any;
+  }>
+): Promise<any[]> {
+  // 1. Fetch refresh_token from companyregistered table using netcomid
+  console.log('pushContactToBexio called with netcomid:', netcomid);
+  console.log('contacts:', contacts);
+
+  const company = await connectBexio.companyregistered.findFirst({
+    where: { netcomid },
+    select: { refresh_token: true }
+  });
+
+  if (!company || !company.refresh_token) {
+    console.error(`No refresh_token found for netcomid: ${netcomid}`);
+    return [{ success: false, error: 'No refresh_token found' }];
+  }
+
+  // 2. Exchange refresh_token for access_token (Bexio OAuth2) using bexioClient
+  const bexioClient = await edit();
+  let tokenSet
+  try {
+    tokenSet = await bexioClient.refresh(company.refresh_token || '');
+  } catch (err) {
+    console.error('Failed to get Bexio access token:', err);
+    return [{ success: false, error: 'Failed to get access token' }];
+  }
+  const accessToken = tokenSet.access_token;
+
+  // 3. Only push contact if search result for that name does not exist
+  if (contacts && Array.isArray(contacts)) {
+    const results: any[] = [];
+    for (const contact of contacts) {
+      const nameToCheck: string = contact.Name;
+      const searchOptions = {
+        method: 'POST',
+        url: `https://api.bexio.com/2.0/contact/search`,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify([
+          {
+            "field": "name_1",
+            "value": nameToCheck,
+            "criteria": "="
+          }
+        ])
+      };
+
+      let existingContacts: any[] = [];
+      let retryCount = 0;
+      const maxRetries = 3;
+      try {
+        while (retryCount < maxRetries) {
+          try {
+            existingContacts = await new Promise<any[]>((resolve, reject) => {
+              request(
+                searchOptions,
+                (err: any, resp: any, body: any) => {
+                  console.log('searchOptions', searchOptions);
+                  console.log('search response', resp && resp.statusCode, body);
+
+                  if (err) return reject(err);
+                  if (resp.statusCode === 200) {
+                    resolve(JSON.parse(body));
+                  } else if (resp.statusCode === 429) {
+                    return reject({ retry: true });
+                  } else {
+                    reject(body);
+                  }
+                }
+              );
+            });
+            break;
+          } catch (err: any) {
+            if (err && err.retry) {
+              retryCount++;
+              await new Promise(res => setTimeout(res, 60000));
+            } else {
+              throw err;
+            }
+          }
+        }
+        if (!existingContacts || existingContacts.length === 0) {
+          console.log(`No existing contacts found for name: ${nameToCheck}. Proceeding to push contact.`);
+
+          // Prepare Bexio contact payload from Salesforce record
+          const bexioContact = {
+            name_1: contact.Name,
+            mail: contact.Iso_Email__c || null,
+            street_name: contact.BillingAddress?.street,
+            postcode: contact.BillingAddress?.postalCode,
+            city: contact.BillingAddress?.city || null,
+            contact_type_id: 1,
+            user_id: 1,
+            owner_id: 1,
+          };
+
+          const pushOptions = {
+            method: 'POST',
+            url: `https://api.bexio.com/2.0/contact`,
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(bexioContact)
+          };
+
+          try {
+            let result: any;
+            let retryCount = 0;
+            while (retryCount < maxRetries) {
+              try {
+                result = await new Promise<any>((resolve, reject) => {
+                  request(
+                    pushOptions,
+                    (err: any, resp: any, body: any) => {
+                      console.log('pushOptions', pushOptions);
+                      console.log('push response', resp && resp.statusCode, body);
+
+                      if (err) return reject(err);
+                      if (resp.statusCode === 201 || resp.statusCode === 200) {
+                        resolve(JSON.parse(body));
+                      } else if (resp.statusCode === 429) {
+                        return reject({ retry: true });
+                      } else {
+                        reject(body);
+                      }
+                    }
+                  );
+                });
+                break;
+              } catch (err: any) {
+                if (err && err.retry) {
+                  retryCount++;
+                  await new Promise(res => setTimeout(res, 60000));
+                } else {
+                  throw err;
+                }
+              }
+            }
+            results.push({ success: true, data: result, record: contact });
+          } catch (err) {
+            results.push({ success: false, error: err, record: contact });
+          }
+        } else {
+          console.log(`Contact with name ${nameToCheck} already exists in Bexio. Skipping push.`);
+          console.log('Existing contacts:', existingContacts);
+
+          results.push({ success: false, error: 'Contact with same name already exists', data: existingContacts, record: contact });
+        }
+      } catch (err) {
+        results.push({ success: false, error: err, record: contact });
+        continue;
+      }
+    }
+    return results;
+  }
+  return [];
+}
+
+
+export async function processNextPendingJob(job: any) {
+  console.log(`Processing job: ${JSON.stringify(job)}`);
+
+  const dynamoDBService = new DynamoDBService();
+  const salesforceService = new SalesforceService();
+
+  // Mark as in_progress
+  await dynamoDBService.updateJobStatus(job.cid, 'in_progress');
+  const contacts = await salesforceService.fetchContacts({ companyName: job.companyName, netcomid: job.netcomid });
+  console.log(`Processing contact: ${JSON.stringify(contacts)}`);
+// const path = require('path');
+// const dummyContactPath = path.join(__dirname, '../../../accounts-200.json');
+// let dummyconatct = fs.readFileSync(dummyContactPath, 'utf-8');
+// dummyconatct = JSON.parse(dummyconatct);
+//   console.log(`Processing contact: ${JSON.stringify(dummyconatct)}`);
+
+//   const pushResult = await pushContactToBexio(job.netcomid,  dummyconatct);
+  const pushResult = await pushContactToBexio(job.netcomid, contacts);
+
+  if (pushResult) {
+    console.log(`Job ${job.cid} completed successfully with result: ${JSON.stringify(pushResult)}`);
+    
+    await dynamoDBService.updateJobStatus(job.cid, 'done');
+  }
+
+  return pushResult;
+}
