@@ -982,6 +982,7 @@ export class DebtorsService {
     let combinedResponse :any = {};
     combinedResponse.otherInvoiceResults = []
 
+
     data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
     try {
         if( data.printInvoices ){
@@ -1009,7 +1010,7 @@ export class DebtorsService {
                 console.log("Processing invoice:", obj);
 
                 // Update the invoice's send status (likely for logging or tracking purposes)
-                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'print');
+                const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', 'print',obj.contactId);
                 console.log("result:::", result);
 
                 // Push the result into results array
@@ -1064,7 +1065,7 @@ export class DebtorsService {
                             },
                         });
 
-                        let invoiceCidSucess = await setEbillInvoiceSendStatus(getRecipientToken[0]?.rk_party, selectedEbillItem[0].doc_id, '', selectedEbillItem, '1');
+                        let invoiceCidSucess = await setEbillInvoiceSendStatus(getRecipientToken[0]?.rk_party, selectedEbillItem[0].doc_id,selectedEbillItem[0].documentNumber, selectedEbillItem, '1',selectedEbillItem[0].contactId);
                         console.log('invoiceCidSucess', invoiceCidSucess);
                         
                         let tokenSet = await bexioClient.refresh(getRecipientToken[0]?.refresh_token || '');
@@ -1127,7 +1128,7 @@ export class DebtorsService {
                       const results:any = [];
                         console.log("Processing invoice:", obj);
                         
-                          const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, '', '1', '', item.tag);
+                          const result = await setInvoiceSendStatus(bodyData.partyId, obj.doc_id, obj.documentNumber, '1', '', item.tag,obj.contactId);
                           console.log("result:::", result);
                           
                           results.push(result);
@@ -1154,8 +1155,7 @@ export class DebtorsService {
         }
 
         if (data.invoices.length) {
-            console.log("Processing invoices:", data.invoices);
-
+           
             try {
                 let bodyParams = {
                     partyId: data.partyId,
@@ -1167,7 +1167,8 @@ export class DebtorsService {
                     console.log("Processing invoice:", obj[index]);
                     
                       const element = obj[index];
-                      const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId, '', '1', '','EDI');
+                     console.log("element:",element);
+                      const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId,element.documentNumber, '1', '','EDI',element.contactId);
                       results.push(result);
                   }
                   return results;
@@ -1821,6 +1822,7 @@ export class DebtorsService {
         WHERE ds.cid = ${invoiceId}::bigint
         `
         );
+         console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
         if(getInvoiceIdRslt.length != 0){
 
         console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
@@ -1829,7 +1831,11 @@ export class DebtorsService {
           try {
           tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
           invoice = getInvoiceIdRslt[0]['rk_invoice'];
+          console.log('invoice',invoice);
+          
           } catch (error) {
+            console.log('error',error);
+            
             commonErrors['errorTitle'] = 'markAsIssues_token_issue';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
             warningMessage(commonErrors,error);
