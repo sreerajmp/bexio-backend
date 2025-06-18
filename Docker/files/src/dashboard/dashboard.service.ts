@@ -63,7 +63,7 @@ export class DashboardService {
           rk_invoice: String(item.rk_invoice),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: String(item.rk_invoice),
+          documentnumber: item.invoice_number,
           type: 'invoice',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
@@ -89,7 +89,7 @@ export class DashboardService {
           rk_invoice: String(item.rk_deliverynotes),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: String(item.rk_deliverynotes),
+          documentnumber: item.deliverynotes_number,
           type: 'deliverynotes',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
@@ -102,7 +102,7 @@ export class DashboardService {
           rk_invoice: String(item.rk_order),
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: String(item.rk_order),
+          documentnumber: item.order_number,
           type: 'order',
           timestamp: item.time_stamp,
           companyregistered: item.companyregistered,
@@ -116,7 +116,7 @@ export class DashboardService {
           rk_invoice: item.rk_order,
           rk_globaltransaction: item.rk_globaltransaction,
           status: item.status,
-          documentnumber: item.rk_order,
+          documentnumber: item.document_number,
           type: 'order',
           timestamp: item.created_date,
           companyregistered: item.companyregistered,
@@ -135,20 +135,31 @@ let baseFilteredData = mergedData.filter((item) => {
 
 // STEP 2: Filter further with title, doc number, and invoice no — for `filteredCount` and paginated data
 let finalFilteredData:any = baseFilteredData.filter((item) => {
-  const matchesDocNumber = filterDocNumber ? (item.documentnumber || '').toLowerCase().includes(filterDocNumber) : true;
-  const matchesInvoiceNo = filterInvoiceNo ? (item.rk_invoice || '').toLowerCase().includes(filterInvoiceNo) : true;
-  const matchesTitle = filterTitle ? (item.title || '').toLowerCase().includes(filterTitle) : true;
-  return matchesDocNumber && matchesInvoiceNo && matchesTitle;
+  const searchValue = (filterTitle || '').toString().toLowerCase().trim();
+
+  const docNo = (item.documentnumber || '').toString().toLowerCase().trim();
+  // const invoiceNo = (item.rk_invoice || '').toString().toLowerCase().trim();
+  // const title = (item.title || '').toString().toLowerCase().trim();
+
+  const matches =
+    docNo.includes(searchValue) 
+    
+    // ||invoiceNo.includes(searchValue) ||
+    // title.includes(searchValue);
+
+
+  return matches; 
 });
-      
 finalFilteredData = finalFilteredData.map((item) => {
   if (item.companyregistered && item.companyregistered.refresh_token) {
+   
     const { refresh_token, ...rest } = item.companyregistered;
     return {
       ...item,
       companyregistered: rest,
     };
   }
+
   return item;
 });
 
@@ -158,6 +169,7 @@ finalFilteredData.sort((a, b) => {
   const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
   return dateB - dateA;
 });
+console.log('finalFilteredData',finalFilteredData);
 
 // Paginate
 const paginatedData = finalFilteredData.slice(showFrom, showTo);
