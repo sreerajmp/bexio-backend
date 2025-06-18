@@ -316,7 +316,7 @@ var options = {
   }
 
 }
-export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
+export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?) => {
   console.log('channel::::::::::::',channel);
   
   let sendInvoiceId;
@@ -341,7 +341,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       if (selectQryResult.length == 0) {
-        //console.log('createany');
+        console.log('createany');
 
         const companyregisteredSelectQryResult = await connectBexio.companyregistered.findMany({
           where: {
@@ -355,6 +355,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
             invoice_type: channel,
             status: Number(status),
+            receiver_contactid:receiverId,
             response:errorBody
           },
           select: {
@@ -364,7 +365,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         sendInvoiceId = result.cid;
       }
       else {
-        //console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
+       console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
         
         sendInvoiceId = selectQryResult[0]?.cid;
        await connectBexio.documents_invoice_send.updateMany({
@@ -1824,7 +1825,7 @@ export const pushInvoiceTest1 = async (req, res) => {
     }
   });
 }
-export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?) => {
+export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
     let responseBody = error;
@@ -1868,6 +1869,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 invoice_params: formData,
                 response: responseBody,
                 status: Number(status),
+                receiver_contactid:receiverId,
                 is_notifyed: false,
               },
               select: {
