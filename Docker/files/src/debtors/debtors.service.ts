@@ -565,6 +565,15 @@ export class DebtorsService {
             totalCount: totalCount,
             configStatus:configData,
         });
+      }else if(resultData.length === 0){
+        
+        return res.status(200).json({
+            status: true,
+            data: [],
+            totalCount: totalCount
+        });
+      }else{
+        throw new Error("resultData undefined")
       } 
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
