@@ -4149,7 +4149,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
   export const getSendInvoiceList = async (partyId: number,status:string): Promise<any[]> => {
     try {
       let result
-      if(status=='Yes'){
+      if(status=='sent'){
         result = await connectBexio.$queryRaw<any[]>(
             Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
@@ -4157,7 +4157,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
                        WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
         );
         }
-        else if(status=='No'){
+        else if(status=='failed'){
      
       
         result = await connectBexio.$queryRaw<any[]>(
@@ -4167,14 +4167,14 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
                        WHERE c.rk_party = ${partyId} AND ds.status = 0`
         )
         }
-        else if(status=='Draft'){
-      console.log('Draft',status);
+        else if(status=='draft'){
+      console.log('draft',status);
       
         result = await connectBexio.$queryRaw<any[]>(
             Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-                       WHERE c.rk_party = ${partyId} AND ds.status IS NULL OR ds.status IN (1,2,0)`
+                       WHERE c.rk_party = ${partyId}`
         );}
         // Serialize BigInt values to strings
         return result;
