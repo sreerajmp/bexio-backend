@@ -316,7 +316,7 @@ var options = {
   }
 
 }
-export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?) => {
+export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?) => {
   console.log('channel::::::::::::',channel);
   
   let sendInvoiceId;
@@ -341,7 +341,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       if (selectQryResult.length == 0) {
-        //console.log('createany');
+        console.log('createany');
 
         const companyregisteredSelectQryResult = await connectBexio.companyregistered.findMany({
           where: {
@@ -355,6 +355,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
             invoice_type: channel,
             status: Number(status),
+            receiver_contactid:receiverId,
             response:errorBody
           },
           select: {
@@ -364,7 +365,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         sendInvoiceId = result.cid;
       }
       else {
-        //console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
+       console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
         
         sendInvoiceId = selectQryResult[0]?.cid;
        await connectBexio.documents_invoice_send.updateMany({
@@ -1824,7 +1825,7 @@ export const pushInvoiceTest1 = async (req, res) => {
     }
   });
 }
-export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?) => {
+export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
     let responseBody = error;
@@ -1868,6 +1869,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 invoice_params: formData,
                 response: responseBody,
                 status: Number(status),
+                receiver_contactid:receiverId,
                 is_notifyed: false,
               },
               select: {
@@ -4149,27 +4151,37 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
       let result
       if(status=='Yes'){
         result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
         );
         }
         else if(status=='No'){
-      console.log('status',status);
+     
       
         result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status = 0`
-        );
+        )
         }
+        else if(status=='Draft'){
+      console.log('Draft',status);
+      
+        result = await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+                       FROM documents_invoice_send ds
+                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                       WHERE c.rk_party = ${partyId} AND ds.status IS NULL OR ds.status IN (1,2,0)`
+        );}
         // Serialize BigInt values to strings
-        return result.map(row => ({
-            ...row,
-            invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
-        }));
+        return result;
+        // return result.map(row => ({
+        //     ...row,
+        //     invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
+        // }));
     } catch (error) {
         console.error('Error fetching send invoice list:', error);
         throw new Error('Failed to fetch send invoice list');
