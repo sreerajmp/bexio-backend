@@ -145,7 +145,7 @@ export class DebtorsService {
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
         
         if(getSendInvoiceListResult.length > 0) {
-          if (data['invoiceStatus'] == 'Yes' || data['invoiceStatus'] == 'No') {
+          if (data['invoiceStatus'] == 'sent' || data['invoiceStatus'] == 'failed') {
            // console.log("invoiceStatus s", data['invoiceStatus']);
             
             searchJson.push(
@@ -160,7 +160,7 @@ export class DebtorsService {
               "criteria": "in"
             });
           }
-          if (data['invoiceStatus'] == 'Draft') {
+          if (data['invoiceStatus'] == 'draft') {
             console.log("invoiceStatus no", data['invoiceStatus']);
     
             searchJson.push(
@@ -173,7 +173,13 @@ export class DebtorsService {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
               "criteria": "not_in"
-            });
+            },
+            {
+              "field": "kb_item_status_id",
+              "value": 7,
+              "criteria": "equal"
+            },
+          );
           }
         }
         
