@@ -33,8 +33,9 @@ export class SalesforceService {
       });
     });
 
+
     // 2. Query contacts by company name (Parent.Name)
-    const query = `SELECT name,Iso_Email__c,BillingAddress,Iso_SAP_Partner_Type__c,Iso_SAP_Partner_ID__c FROM Account WHERE Parent.Name='${dto.companyName}'`;
+    const query = `SELECT name,Iso_Email__c,BillingAddress,Iso_SAP_Partner_Type__c,Iso_SAP_Partner_ID__c,Iso_Account_1st_First_Name__c,Iso_Account_1st_Last_Name__c,Iso_Account_2nd_FName__c,Iso_Account_2nd_LName__c FROM Account WHERE Parent.Name='${dto.companyName}'`;
     const url = `${config.SALESFORCE_BASE_URL}/services/data/v59.0/query/?q=${encodeURIComponent(query)}`;
     const contactOptions = {
       method: 'GET',
