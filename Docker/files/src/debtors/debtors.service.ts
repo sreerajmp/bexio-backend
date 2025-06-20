@@ -145,15 +145,41 @@ export class DebtorsService {
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
         
         if(getSendInvoiceListResult.length > 0) {
-          if (data['invoiceStatus'] == 'sent' || data['invoiceStatus'] == 'failed') {
-           // console.log("invoiceStatus s", data['invoiceStatus']);
-            
+          if (data['invoiceStatus'] == 'sent') {
+           // console.log("invoiceStatus", data['invoiceStatus']);
+            const sentJson = [
+              {
+                field: 'kb_item_status_id',
+                value: [8, 9],
+                criteria: 'in',
+              },
+            ];
+
+            const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
+            const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
+            console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
+
+            getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
+           
             searchJson.push(
-            //   {
-            //   "field": "contact_id",
-            //   "value": resultArray == null ? "" : resultArray,
-            //   "criteria": "in"
-            // },
+              {
+                field: 'id',
+                value: getSendInvoiceListResult[0].successOrPending[0].invoiceId
+                  ? getSendInvoiceListResult[0].successOrPending[0].invoiceId
+                  : '',
+                criteria: 'in',
+              },
+              {
+                field: 'id',
+                value: getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
+                  ? getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
+                  : '',
+                criteria: 'not_in',
+              },
+            );
+          }
+          if (data['invoiceStatus'] == 'failed') {
+            searchJson.push(
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
