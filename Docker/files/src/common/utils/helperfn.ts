@@ -4150,12 +4150,22 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
     try {
       let result
       if(status=='sent'){
-        result = await connectBexio.$queryRaw<any[]>(
+        
+        const [successOrPending, failedGate2b] = await Promise.all([
+          connectBexio.$queryRaw<any[]>(
             Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
-                       FROM documents_invoice_send ds
-                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-                       WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
-        );
+               FROM documents_invoice_send ds
+               INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+               WHERE c.rk_party = ${partyId} AND ds.status IN (1, 2)`,
+          ),
+          connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+               FROM documents_invoice_send ds
+               INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+               WHERE c.rk_party = ${partyId} AND ds.status = 0`,
+          ),
+        ]);
+          result = [{successOrPending: successOrPending},{failedGate2b:failedGate2b}]
         }
         else if(status=='failed'){
      
@@ -5261,10 +5271,11 @@ export async function pushContactToBexio(
           const bexioContact = {
             name_1: contact.Name,
             mail: contact.Iso_Email__c || null,
+            nr: contact.Iso_SAP_Partner_ID__c || null,
             street_name: contact.BillingAddress?.street,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
-            contact_type_id: 1,
+            contact_type_id: 2,
             user_id: 1,
             owner_id: 1,
           };
