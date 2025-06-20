@@ -5271,10 +5271,11 @@ export async function pushContactToBexio(
           const bexioContact = {
             name_1: contact.Name,
             mail: contact.Iso_Email__c || null,
+            nr: contact.Iso_SAP_Partner_ID__c || null,
             street_name: contact.BillingAddress?.street,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
-            contact_type_id: 1,
+            contact_type_id: 2,
             user_id: 1,
             owner_id: 1,
           };
