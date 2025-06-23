@@ -5212,7 +5212,7 @@ export async function pushContactToBexio(
   if (contacts && Array.isArray(contacts)) {
     const results: any[] = [];
     for (const contact of contacts) {
-      const nameToCheck: string = contact.Name;
+      const nameToCheck: string = contact.Iso_SAP_Partner_ID__c;
       const searchOptions = {
         method: 'POST',
         url: `https://api.bexio.com/2.0/contact/search`,
@@ -5223,7 +5223,7 @@ export async function pushContactToBexio(
         },
         body: JSON.stringify([
           {
-            "field": "name_1",
+            "field": "nr",
             "value": nameToCheck,
             "criteria": "="
           }
@@ -5267,9 +5267,32 @@ export async function pushContactToBexio(
         if (!existingContacts || existingContacts.length === 0) {
           console.log(`No existing contacts found for name: ${nameToCheck}. Proceeding to push contact.`);
 
-          // Prepare Bexio contact payload from Salesforce record
-          const bexioContact = {
-            name_1: contact.Name,
+            // Prepare Bexio contact payload from Salesforce record
+            // In Bexio: name_1 = last name, name_2 = first name
+            // If two users: user1 (first/last) and user2 (first/last)
+            // Place user2's name in name_1 (last name), user1's name in name_2 (first name, with '&')
+            const firstName1 = contact.Iso_Account_1st_First_Name__c || '';
+            const lastName1 = contact.Iso_Account_1st_Last_Name__c || '';
+            const firstName2 = contact.Iso_Account_2nd_FName__c || '';
+            const lastName2 = contact.Iso_Account_2nd_LName__c || '';
+
+            let name_1 = '';
+            let name_2 = '';
+
+            if (firstName2 || lastName2) {
+            // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
+            name_1 = `${lastName2} ${firstName2}`.trim();
+            name_2 = `${firstName1} ${lastName1}`.trim();
+            if (name_2) name_2 = `& ${name_2}`;
+            } else {
+            // Only user1: last name to name_1, first name to name_2
+            name_1 = lastName1;
+            name_2 = firstName1;
+            }
+
+            const bexioContact = {
+            name_1: name_1 || null,
+            name_2: name_2 || null,
             mail: contact.Iso_Email__c || null,
             nr: contact.Iso_SAP_Partner_ID__c || null,
             street_name: contact.BillingAddress?.street,
@@ -5278,7 +5301,7 @@ export async function pushContactToBexio(
             contact_type_id: 2,
             user_id: 1,
             owner_id: 1,
-          };
+            };
 
           const pushOptions = {
             method: 'POST',
