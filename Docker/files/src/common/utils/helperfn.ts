@@ -5225,7 +5225,7 @@ export async function pushContactToBexio(
             // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
             name_1 = `${lastName2} ${firstName2}`.trim();
             name_2 = `${firstName1} ${lastName1}`.trim();
-            if (name_2) name_2 = `${name_2}&`;
+            if (name_2) name_2 = `${name_2} &`;
             } else {
             // Only user1: last name to name_1, first name to name_2
             name_1 = lastName1;
