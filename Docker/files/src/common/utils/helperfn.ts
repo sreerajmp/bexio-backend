@@ -4149,29 +4149,49 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
   export const getSendInvoiceList = async (partyId: number,status:string): Promise<any[]> => {
     try {
       let result
-      if(status=='Yes'){
-        result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
-                       FROM documents_invoice_send ds
-                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
-                       WHERE c.rk_party = ${partyId} AND ds.status IN (1,2)`
-        );
+      if(status=='sent'){
+        
+        const [successOrPending, failedGate2b] = await Promise.all([
+          connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+               FROM documents_invoice_send ds
+               INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+               WHERE c.rk_party = ${partyId} AND ds.status IN (1, 2)`,
+          ),
+          connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+               FROM documents_invoice_send ds
+               INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+               WHERE c.rk_party = ${partyId} AND ds.status = 0`,
+          ),
+        ]);
+          result = [{successOrPending: successOrPending},{failedGate2b:failedGate2b}]
         }
-        else if(status=='No'){
-      console.log('status',status);
+        else if(status=='failed'){
+     
       
         result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice) AS "invoiceId" 
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status = 0`
-        );
+        )
         }
+        else if(status=='draft'){
+      console.log('draft',status);
+      
+        result = await connectBexio.$queryRaw<any[]>(
+            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+                       FROM documents_invoice_send ds
+                       INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+                       WHERE c.rk_party = ${partyId}`
+        );}
         // Serialize BigInt values to strings
-        return result.map(row => ({
-            ...row,
-            invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
-        }));
+        return result;
+        // return result.map(row => ({
+        //     ...row,
+        //     invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
+        // }));
     } catch (error) {
         console.error('Error fetching send invoice list:', error);
         throw new Error('Failed to fetch send invoice list');
@@ -5192,7 +5212,7 @@ export async function pushContactToBexio(
   if (contacts && Array.isArray(contacts)) {
     const results: any[] = [];
     for (const contact of contacts) {
-      const nameToCheck: string = contact.Name;
+      const nameToCheck: string = contact.Iso_SAP_Partner_ID__c;
       const searchOptions = {
         method: 'POST',
         url: `https://api.bexio.com/2.0/contact/search`,
@@ -5203,7 +5223,7 @@ export async function pushContactToBexio(
         },
         body: JSON.stringify([
           {
-            "field": "name_1",
+            "field": "nr",
             "value": nameToCheck,
             "criteria": "="
           }
@@ -5247,17 +5267,41 @@ export async function pushContactToBexio(
         if (!existingContacts || existingContacts.length === 0) {
           console.log(`No existing contacts found for name: ${nameToCheck}. Proceeding to push contact.`);
 
-          // Prepare Bexio contact payload from Salesforce record
-          const bexioContact = {
-            name_1: contact.Name,
+            // Prepare Bexio contact payload from Salesforce record
+            // In Bexio: name_1 = last name, name_2 = first name
+            // If two users: user1 (first/last) and user2 (first/last)
+            // Place user2's name in name_1 (last name), user1's name in name_2 (first name, with '&')
+            const firstName1 = contact.Iso_Account_1st_First_Name__c || '';
+            const lastName1 = contact.Iso_Account_1st_Last_Name__c || '';
+            const firstName2 = contact.Iso_Account_2nd_FName__c || '';
+            const lastName2 = contact.Iso_Account_2nd_LName__c || '';
+
+            let name_1 = '';
+            let name_2 = '';
+
+            if (firstName2 || lastName2) {
+            // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
+            name_1 = `${lastName2} ${firstName2}`.trim();
+            name_2 = `${firstName1} ${lastName1}`.trim();
+            if (name_2) name_2 = `& ${name_2}`;
+            } else {
+            // Only user1: last name to name_1, first name to name_2
+            name_1 = lastName1;
+            name_2 = firstName1;
+            }
+
+            const bexioContact = {
+            name_1: name_1 || null,
+            name_2: name_2 || null,
             mail: contact.Iso_Email__c || null,
+            nr: contact.Iso_SAP_Partner_ID__c || null,
             street_name: contact.BillingAddress?.street,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
-            contact_type_id: 1,
+            contact_type_id: 2,
             user_id: 1,
             owner_id: 1,
-          };
+            };
 
           const pushOptions = {
             method: 'POST',

@@ -145,22 +145,48 @@ export class DebtorsService {
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
         
         if(getSendInvoiceListResult.length > 0) {
-          if (data['invoiceStatus'] == 'Yes') {
-            console.log("invoiceStatus s", data['invoiceStatus']);
-            
+          if (data['invoiceStatus'] == 'sent') {
+           // console.log("invoiceStatus", data['invoiceStatus']);
+            const sentJson = [
+              {
+                field: 'kb_item_status_id',
+                value: [8, 9],
+                criteria: 'in',
+              },
+            ];
+
+            const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
+            const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
+            console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
+
+            getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
+           
             searchJson.push(
-            //   {
-            //   "field": "contact_id",
-            //   "value": resultArray == null ? "" : resultArray,
-            //   "criteria": "in"
-            // },
+              {
+                field: 'id',
+                value: getSendInvoiceListResult[0].successOrPending[0].invoiceId
+                  ? getSendInvoiceListResult[0].successOrPending[0].invoiceId
+                  : '',
+                criteria: 'in',
+              },
+              {
+                field: 'id',
+                value: getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
+                  ? getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
+                  : '',
+                criteria: 'not_in',
+              },
+            );
+          }
+          if (data['invoiceStatus'] == 'failed') {
+            searchJson.push(
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
               "criteria": "in"
             });
           }
-          if (data['invoiceStatus'] == 'No') {
+          if (data['invoiceStatus'] == 'draft') {
             console.log("invoiceStatus no", data['invoiceStatus']);
     
             searchJson.push(
@@ -172,8 +198,14 @@ export class DebtorsService {
             {
               "field": "id",
               "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
-              "criteria": "in"
-            });
+              "criteria": "not_in"
+            },
+            {
+              "field": "kb_item_status_id",
+              "value": 7,
+              "criteria": "equal"
+            },
+          );
           }
         }
         
@@ -217,14 +249,6 @@ export class DebtorsService {
     
       if("channel" in data){
   
-        const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
-          `
-          );
-          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
         const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
           SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
@@ -294,6 +318,15 @@ export class DebtorsService {
       if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
         let tempArray = [...arrayContactIds,...invoiceContactListIds]
         if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'){
+           const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+          Prisma.sql`
+          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
+          `
+          );
+          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
+
           tempArray = [...tempArray,...tempContact]
         searchJson.push({
           "field": "contact_id",
