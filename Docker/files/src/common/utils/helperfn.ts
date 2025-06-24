@@ -5213,27 +5213,47 @@ export async function pushContactToBexio(
     const results: any[] = [];
     for (const contact of contacts) {
 
-      const firstName1 = contact.Iso_Account_1st_First_Name__c || '';
-            const lastName1 = contact.Iso_Account_1st_Last_Name__c || '';
-            const firstName2 = contact.Iso_Account_2nd_FName__c || '';
-            const lastName2 = contact.Iso_Account_2nd_LName__c || '';
+      const fullName = contact.Name?.trim() || '';
 
-            let name_1 = '';
-            let name_2 = '';
+        let firstName1 = '';
+        let lastName1 = '';
 
-            if (firstName2 || lastName2) {
-            // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
-            name_1 = `${lastName2} ${firstName2}`.trim();
-            name_2 = `${firstName1} ${lastName1}`.trim();
-            if (name_2) name_2 = `${name_2} &`;
-            } else {
-            // Only user1: last name to name_1, first name to name_2
-            name_1 = lastName1;
-            name_2 = firstName1;
-            }
-      // const nameToCheck: string = contact.Iso_SAP_Partner_ID__c;
-      const nameToCheck2: string = name_2;
-      const nameToCheck1: string = name_1;
+
+  const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+
+  if (separatorMatch) {
+    // Treat as couple
+    const separator = separatorMatch[0];
+    const parts = fullName.split(separator);
+    if (parts.length === 2) {
+      firstName1 = parts[0].trim() + ' &';
+      lastName1 = parts[1].trim();
+    } else {
+      firstName1 = fullName;
+    }
+  } else {
+    // Normal single person name logic
+    const parts = fullName.split(/\s+/);
+    if (parts.length === 1) {
+      firstName1 = parts[0];
+    } else if (/^\d/.test(parts[0])) {
+      lastName1 = parts[0];
+      firstName1 = parts.slice(1).join(' ');
+    } else if (/^\d/.test(parts[parts.length - 1])) {
+      lastName1 = parts[parts.length - 1];
+      firstName1 = parts.slice(0, -1).join(' ');
+    } else if (parts.length >= 3) {
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
+    } else {
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
+    }
+  }
+  console.log('lastName1',lastName1);
+   console.log('firstName1',firstName1);
+      const nameToCheck2: string = lastName1;
+      const nameToCheck1: string = firstName1;
       const searchOptions = {
         method: 'POST',
         url: `https://api.bexio.com/2.0/contact/search`,
@@ -5244,12 +5264,12 @@ export async function pushContactToBexio(
         },
         body: JSON.stringify([
           {
-            "field": "name_2",
+            "field": "name_1",
             "value": nameToCheck2,
             "criteria": "="
           },
           {
-            "field": "name_1",
+            "field": "name_2",
             "value": nameToCheck1,
             "criteria": "="
           }
@@ -5317,8 +5337,8 @@ export async function pushContactToBexio(
             // }
 
             const bexioContact = {
-            name_1: name_1 || null,
-            name_2: name_2 || null,
+            name_1: lastName1 || null,
+            name_2: firstName1 || null,
             mail: contact.Iso_Email__c || null,
             nr: contact.Iso_SAP_Partner_ID__c || null,
             street_name: contact.BillingAddress?.street,
