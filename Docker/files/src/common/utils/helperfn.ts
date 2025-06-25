@@ -377,8 +377,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           data: {
             time_stamp: new Date(),
             status: Number(status),
-            response:errorBody
-
+            response:errorBody,
+            invoice_type: channel
           }
         });
         //console.log('updateRes',updateRes);
