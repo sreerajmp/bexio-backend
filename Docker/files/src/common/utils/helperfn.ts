@@ -4857,6 +4857,7 @@ export const getOctConfig = async (netComId) => {
   }
 export const updateInvoicePosition = async (invoiceId,article,access_token) => {
   console.log('invoiceId', invoiceId);
+  
   return new Promise(async(resolve, reject) => {
         var options = {
           'method': 'POST',
@@ -4867,7 +4868,10 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
           },
           body: JSON.stringify(article)
         };
+        console.log('options',options);
+        
         request(options, function (error, response) {
+          
           if (error) {  
             console.log('error', error);
             // commonErrors['errorTitle'] = 'kb_position_article';
@@ -4984,6 +4988,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             "discount_in_percent",
             "article_id"
             ];
+            article= Object.fromEntries(
+              requiredFields.map(key => [key, article[key]])
+            );
             const isArticleValid = article && requiredFields.every(
             key => article[key] !== undefined && article[key] !== null && article[key] !== ""
             );
@@ -5014,6 +5021,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             }
             if(! isArticleFound){
                 console.log('No matching position found for item:');
+                console.log('article',article);
+                
                 const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
 
             }
