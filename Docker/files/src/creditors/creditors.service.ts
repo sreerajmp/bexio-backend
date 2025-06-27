@@ -299,7 +299,7 @@ export class CreditorsService {
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
                   let bcDetails;
                   bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
-                 // console.log('bcDetails',bcDetails);
+                  console.log('bcDetails',bcDetails);
                   let tempBc = [0];
       if(bcDetails){
         for (let index = 0; index < bcDetails['data'].length; index++) {
@@ -413,9 +413,11 @@ export class CreditorsService {
           let order:any;
 
           
-          // console.log('resData',resData);
+           console.log('resultArray',resultArray);
           for (let invoice in resData) {
             tempStatus = false;
+             
+            console.log('resData1',resData[invoice].contact_id);
             resData[invoice]['allowSend'] = resultArray ? ( resultArray.includes((resData[invoice].contact_id)) ? true : false ) : false;
             contact_idList.push((resData[invoice].contact_id));
             
@@ -1812,7 +1814,7 @@ const setBillId = async (id,billId) =>{
 
     const getcustomerIdResult = await connectBexio.documents_invoice_receive.updateMany({
       where: {
-        cid: id,
+        cid: Number(id),
       },
       data: {
         rk_invoice: billId,
