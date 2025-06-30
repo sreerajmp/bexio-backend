@@ -241,4 +241,6 @@ export default {
 	  DYNAMODB_CLIENT_ID: process.env.DYNAMODB_CLIENT_ID,
 	  DYNAMODB_SECRET_KEY: process.env.DYNAMODB_SECRET_KEY,
 	  DYNAMODB_REGION: process.env.DYNAMODB_REGION,
+	  GATE2BURL_PYTHON_URL: process.env.GATE2BURL_PYTHON_URL || 'http://ebill-report.py-apps.svc.cluster.local',
+	 EBILL_REPORT_CONFIG:process.env.EBILL_REPORT_CONFIG || '[{"update_type":"bc","channel":"api","application":"bex"}]',
 };
