@@ -3639,7 +3639,8 @@ export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerPara
 
     //console.log("start processing delivery notes");
     const result = await pushDeliveryNotesBulk(tempParam, "");
-    //console.log("result:", result);
+    console.log("result:", result);
+    
     //console.log("end processing delivery notes");
   }
 };
@@ -4069,7 +4070,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
           }]
         }],
         "bmecat:SUPPLIER_IDREF":contactDetails.sendercustomerid,
-        "bmecat:BUYER_IDREF": contactDetails.receivercustomerid,
+        "bmecat:BUYER_IDREF": contactDetails.receiver_customerid,
         "SHIPMENT_PARTIES_REFERENCE":[{
           "DELIVERY_IDREF": contactDetails.rk_netcomidsender
         }],
@@ -4080,7 +4081,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
           }],
           "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
-          "RECEIVER_CUSTOM_ID_1": contactDetails.receivercustomerid,
+          "RECEIVER_CUSTOM_ID_1": contactDetails.receiver_customerid,
         }]
       })
     ));
