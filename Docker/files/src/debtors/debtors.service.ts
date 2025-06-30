@@ -159,8 +159,15 @@ export class DebtorsService {
             const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
             console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
 
-            getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
+            // getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
            
+              if (!getSendInvoiceListResult[0].successOrPending[0].invoiceId) {
+                getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
+              }
+
+              getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
+
+
             searchJson.push(
               {
                 field: 'id',
@@ -710,7 +717,7 @@ export class DebtorsService {
               take: Number(showTo) - Number(showFrom) + 1,
             });
             
-            // //console.log("orderList:", orderList);
+           console.log("orderList:", orderList);
             const orderListCount = await connectBexio.documents_order_receive.count({
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
@@ -946,7 +953,8 @@ export class DebtorsService {
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
             tempStatus = false;
-            resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
+            resData[deliveryNotes]['allowSend'] =  true;
+            // resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];
@@ -1694,7 +1702,12 @@ export class DebtorsService {
         status: false,
       });
     }
-    res.send({});
+   return res.send({
+              status_code: 200,
+              message: 'common_sucess',
+              status: true,
+            });
+
   }
   async viewInvoicePdf(req: Request, res: Response,): Promise<any> {
     try {

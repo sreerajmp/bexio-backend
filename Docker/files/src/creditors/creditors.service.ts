@@ -571,7 +571,12 @@ export class CreditorsService {
         status: false,
       });
     }
-    res.send({});
+     return res.send({
+              status_code: 200,
+              message: 'common_sucess',
+              status: true,
+            });
+
   }
   async xmlToJson(req: Request, res: Response,): Promise<any> {
  
