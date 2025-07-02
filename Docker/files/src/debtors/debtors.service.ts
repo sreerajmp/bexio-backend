@@ -253,6 +253,7 @@ export class DebtorsService {
           "criteria": "="
         });
       }
+    console.log('channel',data);
     
       if("channel" in data){
   
@@ -732,7 +733,7 @@ export class DebtorsService {
                 ...(data.orderStatus === "No" ? { rk_order: null } : {}),
               },
             });
-            
+            console.log("Total Orders:", orderListCount);
             const totalOrders = Number(orderListCount); // Convert BigInt to Number
             
             //console.log("Total Orders:", totalOrders);
@@ -810,13 +811,13 @@ export class DebtorsService {
   }
   async getDeliveryNotesList(req: Request, res: Response,): Promise<any> {
 
-    //console.log("getDeliveryNotesList");  
+    console.log("getDeliveryNotesList");  
     let cookie = null;
     let data = req.body;
     let partyId = req.body.partyId;
     
     let netcomId;
-    //console.log("req.body ",req.body);  
+    console.log("req.body ",req.body);  
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
@@ -923,8 +924,26 @@ export class DebtorsService {
     //console.log('resultArray',resultArray);
 
       if(isBexioUser){
+         var options
         totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
-        var options = {
+        if(data.documentNo){
+            let docNumber = data.documentNo;
+          if (docNumber.includes('-')) {
+            docNumber = docNumber.split('-')[1]; // take part after '-'
+          }
+          options = {
+                    'method': 'GET',
+                    // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
+                    'url': `${config.BEXIO_API}2.0/kb_delivery/${docNumber}`,
+                    'headers': {
+                      'Accept': 'application/json',
+                      'Authorization': 'Bearer '+accessToken
+                    }
+            
+                  }; 
+        }
+        else{
+         options = {
           'method': 'GET',
           // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
           'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
@@ -933,7 +952,8 @@ export class DebtorsService {
             'Authorization': 'Bearer '+accessToken
           }
   
-        };    
+        };   
+        } 
         request(options, async function (error, response) {
           if (error) {
             commonErrors['errorTitle'] = req.originalUrl;
@@ -944,14 +964,22 @@ export class DebtorsService {
               message: 'something_went_wrong',
           });
           }
-          let resData = JSON.parse(response.body);       
+        let resData = Array.isArray(JSON.parse(response.body))?JSON.parse(response.body):[JSON.parse(response.body)];    
+console.log('resData', resData);
+
+console.log('resData', resData);
           if(response.statusCode != 200)
-            return res.status(401).json({
+            return res.status(response.statusCode).json({
             status: false,
             message: 'unauthorized',
             });
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
+            console.log('**********************',typeof resData[deliveryNotes])
+            console.log('**********************', resData[deliveryNotes])
+             if (typeof resData[deliveryNotes] !== 'object' ) {
+    continue;
+  }
             tempStatus = false;
             resData[deliveryNotes]['allowSend'] =  true;
             // resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
