@@ -4,7 +4,7 @@ dotenv.config();
 
 
 // Set the NODE_ENV to 'development' by default
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Set DATABASE_URL dynamically before running Prisma
 const envFound = dotenv.config();
@@ -53,7 +53,6 @@ export default {
 	},
 	
 	
-	NODE_ENV:process.env.NODE_ENV || 'develop',
     WHITELIST: process.env.WHITELIST,
     CORS_OPTIONS: {
         origin: process.env.WHITELIST || ["https://gate2b.io-procurement.com/", /\.io-procurement\.com$/],
