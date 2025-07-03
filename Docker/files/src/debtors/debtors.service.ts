@@ -657,7 +657,7 @@ export class DebtorsService {
       if(isBexioUser)
       {
        
-        var options = {
+           var options = {
           'method': 'GET',
           'url': `${config.BEXIO_API}2.0/contact`,
           'headers': {
@@ -705,8 +705,8 @@ export class DebtorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.dateFrom),
-                  lte: validDate(data.dateTo),
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }

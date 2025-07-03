@@ -47,8 +47,8 @@ export class CreditorsService {
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
       showTo = showFrom + parseInt(data.records_per_page) - 1;
   
-      console.log('showFrom',showFrom);
-      console.log('showTo',showTo);
+      console.log('showFrom',data.startDate);
+      console.log('showTo',data.endDate);
   
       
   
@@ -91,7 +91,7 @@ export class CreditorsService {
                 cid: true, 
               },
             });
-            console.log('getRegisteredId',getRegisteredId);
+          //  console.log('getRegisteredId',getRegisteredId);
             
             const validDate = (date) => {
               const parsedDate = new Date(date);
@@ -102,8 +102,8 @@ export class CreditorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0].cid, // Ensure correct ID
                 created_date: {
-                  gte: data.dateFrom ? new Date(data.dateFrom) : undefined,
-                  lte: data.dateTo ? new Date(data.dateTo) : undefined,
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -118,7 +118,7 @@ export class CreditorsService {
               take: Number(showTo) - Number(showFrom) + 1,
             });
             
-            console.log("billsList", billsList);
+          //  console.log("billsList", billsList);
             
 
 
@@ -126,8 +126,8 @@ export class CreditorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.dateFrom),
-                  lte: validDate(data.dateTo),
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -140,7 +140,7 @@ export class CreditorsService {
 
             const totalOrders = Number(billsListCount); // Convert BigInt to Number
             
-            console.log("Total Orders:", totalOrders);
+           // console.log("Total Orders:", totalOrders);
             
            
   
@@ -202,7 +202,7 @@ export class CreditorsService {
      
     } catch (error) {
    
-      console.log(error);
+     // console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
