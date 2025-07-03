@@ -581,6 +581,7 @@ export class DebtorsService {
                 
                 // Assign preferred group to invoice_type
                 second.invoice_type = preferredGroup;
+                second.auto_tag = true;
               }
             }
           });
