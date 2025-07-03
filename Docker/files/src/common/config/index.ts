@@ -4,7 +4,7 @@ dotenv.config();
 
 
 // Set the NODE_ENV to 'development' by default
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // Set DATABASE_URL dynamically before running Prisma
 const envFound = dotenv.config();
@@ -53,7 +53,6 @@ export default {
 	},
 	
 	
-	NODE_ENV:process.env.NODE_ENV || 'develop',
     WHITELIST: process.env.WHITELIST,
     CORS_OPTIONS: {
         origin: process.env.WHITELIST || ["https://gate2b.io-procurement.com/", /\.io-procurement\.com$/],
@@ -241,6 +240,7 @@ export default {
 	  DYNAMODB_CLIENT_ID: process.env.DYNAMODB_CLIENT_ID,
 	  DYNAMODB_SECRET_KEY: process.env.DYNAMODB_SECRET_KEY,
 	  DYNAMODB_REGION: process.env.DYNAMODB_REGION,
+	  DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || 'contact_import_manager',
 	  GATE2BURL_PYTHON_URL: process.env.GATE2BURL_PYTHON_URL || 'http://ebill-report.py-apps.svc.cluster.local',
 	 EBILL_REPORT_CONFIG:process.env.EBILL_REPORT_CONFIG || '[{"update_type":"bc","channel":"api","application":"bex"}]',
 };
