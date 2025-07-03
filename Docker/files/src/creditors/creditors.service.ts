@@ -212,6 +212,7 @@ export class CreditorsService {
     }
   }
   async getOrderList(req: Request, res: Response,): Promise<any> {
+  console.log("getOrderList:");
   
     let cookie = null
     let data = req.body
@@ -324,6 +325,16 @@ export class CreditorsService {
       if(isBexioUser)
       {
       
+      let getSendInvoiceList = await connectBexio.$queryRaw<{ invoiceid: number[] }[]>(
+            Prisma.sql`
+              SELECT array_agg(rk_order) AS invoiceid
+              FROM documents_order_send ds
+              INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+              WHERE c.rk_party = ${Number(partyId)}
+              AND ds.status IN(2,1)
+            `
+          );
+
         let options;
    
           let searchJson: any[] = [];
@@ -337,22 +348,60 @@ export class CreditorsService {
             });
           }
       
-          if (data.dateFrom) {
+          if (data.startDate) {
             searchJson.push({
               "field": "is_valid_from",
-              "value": new Date(data.dateFrom),
+              "value": new Date(data.startDate),
               "criteria": ">="
             });
           }
       
-          if (data.dateTo) {
+          if (data.endDate) {
             searchJson.push({
               "field": "is_valid_from",
-              "value": new Date(data.dateTo),
+              "value": new Date(data.endDate),
               "criteria": "<="
             });
           }
-        //  console.log('searchJsonsearchJson',searchJson.length);
+          if(data.customerId){
+          searchJson.push({
+                      "field": "contact_id",
+                      "value":Number(data.customerId),
+                      "criteria": "="
+                    });
+          }
+           if(data['orderStatus'] == 'Yes'){
+
+          console.log('typeof',resultArray==null);
+          
+          searchJson.push(
+            {
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value": getSendInvoiceList[0]?.invoiceid?.map(id => Number(id)) ?? [],
+            "criteria":"in"
+          })
+        }
+        if(data['orderStatus'] == 'No'){
+          
+          searchJson.push({
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value":getSendInvoiceList[0]?.invoiceid?.map(id => Number(id)) ?? [],
+            "criteria":"not_in"
+          })
+        }
+          
+       console.log('searchJsonsearchJson',searchJson.length);
+       console.log('searchJsonsearchJson',searchJson);
           if(searchJson.length != 0)
           {
             totalCount = await orderCountSearch(accessToken,searchJson,0,2000)
@@ -366,6 +415,8 @@ export class CreditorsService {
               },
               body: JSON.stringify(searchJson)
             };
+            console.log('options',options);
+            
           }else{
             totalCount = await orderListCountSearch(accessToken,0,2000);
             options = {
