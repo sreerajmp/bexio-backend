@@ -56,7 +56,6 @@ export async function bootstrap() {
     app.enableCors({
       origin: [
         'http://localhost:3000',
-        'http://localhost:3001',
         /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
         'https://local-bexio.io-market.net:3000',
         config.BEXIO_APP_URL,
