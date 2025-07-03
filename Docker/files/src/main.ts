@@ -40,35 +40,41 @@ export async function bootstrap() {
     })
   );
 
-  // Swagger Configuration --------------------------------
+  if (process.env.NODE_ENV === 'development') {
+    // Swagger Configuration --------------------------------
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle(swaggerTitle)
+      .setDescription(swaggerDescription)
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api', app, document, swaggerOptions);
+    // End Swagger Configurations --------------------------------
 
+    // Enable CORS for localhost and dev URLs
+    app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
+        'https://local-bexio.io-market.net:3000',
+        config.BEXIO_APP_URL,
+        config.BILLING_URL
+      ],
+      credentials: true,
+    });
+  } else {
+    // Production: restrict CORS as needed (example: only allow main app URL)
+    app.enableCors({
+      origin: [config.BEXIO_APP_URL, config.BILLING_URL],
+      credentials: true,
+    });
+  }
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(swaggerTitle)
-    .setDescription(swaggerDescription)
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  
-  SwaggerModule.setup('api', app, document, swaggerOptions);
-
-  // End Swagger Configurations --------------------------------
   app.use(express.json()); // Enables JSON parsing
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser(config.SESSION_SECRET));
   console.log('config.BEXIO_APP_URL', config.BEXIO_APP_URL);
-  //Enable CORS
-  app.enableCors({
-    origin: [
-      config.BEXIO_APP_URL,
-      /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
-      'https:local-bexio.io-market.net:3000',
-      config.BILLING_URL
-    ],
-    credentials: true, // Allow cookies
-  });
-
 
   await app.listen(3000);
   Logger.log(`App running on Port 3000`);

@@ -1847,7 +1847,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                 INSERT INTO "ebillWallet" 
                   (fk_party, "lastEntered", "billerId") 
                 VALUES (
-                  ${Number(companyId)}, date_trunc('month', now()::timestamp) + interval '6 hour',${data.id}}
+                  ${Number(companyId)}, date_trunc('month', now()::timestamp) + interval '6 hour',${data.id}
                 )
               `
             );
