@@ -1,0 +1,18 @@
+{
+
+    "realated":{
+        "inviteCompany":"bexioApi,getContactList",
+        "createBusinessConnection":"bexioApi,getContactList",
+        "deleteBc":"bexioApi,getInvoice,getContactList",
+        "getInvoiceForOpenTrans":"getInvoice",
+        "mergeAccept":"getContactList",
+        "disconnectRecipient":"getContactList",
+        "getOrderForOpenTrans": "getOrder",
+        "getDeliveryNotesForOT":"getDeliveryNotesList",
+        "sendBulkInvoices":"sendBulkInvoices",
+        "sendBulkDeliveryNotes":"sendBulkDeliveryNotes",
+        "sendBulkPurchaseOrder":"sendBulkPurchaseOrder",
+        "sendInvoice":"sendInvoice",
+        "sendOrder":"sendOrder"
+    }
+} 

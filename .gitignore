@@ -1,0 +1,7 @@
+dev/
+*.env
+.venv
+/Docker/files/public/files/9de7613611f6faa7baa3badf14dd610e
+/Docker/files/public/files/294eabf76122edd7ca39e83c67d30652
+/Docker/files/public/files/0fa2acec81e5d6495680bb5b58b41020
+/Docker/files/public/files/2b25babc64bcef9595bb7efa2b9e8aae

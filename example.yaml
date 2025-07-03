@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+  labels:
+    example: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      example: server
+  template:
+    metadata:
+      labels:
+        example: server
+    spec:
+      containers:
+      - env:
+        - name: EXAMPLE_VAR
+          value: example_value
+        name: example
+        image: ghcr.io/io-market-ag/example:test
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      imagePullSecrets:
+      - name: ghcrgithub
+      volumes:
+      - name: data
+        hostPath:
+          path: <PATH_ON_HOST>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-entrypoint
+spec:
+  type: NodePort
+  selector:
+    example: server
+  ports:
+  - port: 80 # Port in docker
+    targetPort: 80 # Port in kubernetes network
+    nodePort: 30080 # External port
