@@ -1833,7 +1833,8 @@ console.log('resData', resData);
           });          
           
         if(refDataQueryResult.length>0){
-          const updateQueryResult = await connectBexio.documents_invoice_send.updateMany({
+          // Update status and fetch updated invoice(s) to get rk_invoice
+          await connectBexio.documents_invoice_send.updateMany({
             where: {
               reference_id: referenceId,
             },
@@ -1842,9 +1843,16 @@ console.log('resData', resData);
               is_notifyed: true,
             },
           });
-          
 
-
+          // Fetch the updated record(s) to get rk_invoice
+          const updatedInvoices = await connectBexio.documents_invoice_send.findMany({
+            where: {
+              reference_id: referenceId,
+            },
+            select: {
+              rk_invoice: true,
+            },
+          });
 
           const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
 
@@ -1856,15 +1864,15 @@ console.log('resData', resData);
             INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
             WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
           `;
-          
           const partyApplicationId = resultGetPartyApplication[0].objectid;
           console.log('12333');
-          
           let invoiceCid:any;
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
-         
-          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token,updateQueryResult[0].rk_invoice,formData.status.trim(),formData.message,refDataQueryResult[0].companyregistered?.netcomid,formData.amount,bankId);
-          
+
+          // Use the first updated invoice's rk_invoice if available
+          const rkInvoice = updatedInvoices.length > 0 ? updatedInvoices[0].rk_invoice : undefined;
+          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
+
           return res.status(200).json({
             status_code: 200,
             message: 'success',
