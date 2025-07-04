@@ -1421,15 +1421,14 @@ console.log('pushInvoiceTestProcess',invoices);
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id;
-      tempParam['body']['contact_email'] = element?.bill_recipient_email??'';
+      tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['token'] = tempIds.accessToken;
-     ////console.log('start');
       let v = await pushInvoiceTest1(tempParam,'')
-     ////console.log('vvv',v);
     }
 }
 export const pushInvoiceTest1 = async (req, res) => {
+console.log('pushInvoiceTest1',req.body);
 
   return new Promise(async (resolve, reject) => {
 
@@ -1442,11 +1441,7 @@ export const pushInvoiceTest1 = async (req, res) => {
       let invoice, paymentType
       const ebillPool = await connectMssql;
       const decryptData = req.body;
-      const invoice_id = decryptData.invoice_id;
-      const biller_pid = decryptData.biller_pid;
-      const contact_pid = decryptData.contact_pid;
-      const invoice_uuid = decryptData?.invoice_uuid;
-     ////console.log('decryptData', decryptData);
+     console.log('decryptData', decryptData);
 
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
@@ -1486,16 +1481,16 @@ export const pushInvoiceTest1 = async (req, res) => {
       }
 
 
-      const companyDetailsResult = await connectLibrary.$queryRaw<any>(
-        Prisma.sql`
-        SELECT pa.cid,lp.companyname,a.code AS app,av.version AS appversion
-        FROM partyapplication pa 
-        INNER JOIN application_version av ON av.cid = pa.fk_application_version  
-        INNER JOIN application a ON a.cid = av.fk_application
-        INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
-        WHERE pa.fk_party = ${Number(partyId)} AND a.code = 'EBILL'
-         `
-      );
+      // const companyDetailsResult = await connectLibrary.$queryRaw<any>(
+      //   Prisma.sql`
+      //   SELECT pa.cid,lp.companyname,a.code AS app,av.version AS appversion
+      //   FROM partyapplication pa 
+      //   INNER JOIN application_version av ON av.cid = pa.fk_application_version  
+      //   INNER JOIN application a ON a.cid = av.fk_application
+      //   INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
+      //   WHERE pa.fk_party = ${Number(partyId)} AND a.code = 'EBILL'
+      //    `
+      // );
       let companyJson = JSON.parse(getBillerResult.recordset[0].companyJSON);
 
 
@@ -1798,6 +1793,8 @@ export const pushInvoiceTest1 = async (req, res) => {
 
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
       let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1');
+      console.log('billerDetails', billerDetails);
+      
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
 
 
@@ -2325,7 +2322,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
   }
 }
 export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
- ////console.log('EBILLLL');
+ console.log('EBILLLL',billerDetails);
   
 
   let emptyValue = 'NA'
@@ -2419,7 +2416,7 @@ taxIsAdded = invoice.taxs.length;
 
           }, {
               "bmecat:PARTY_ID": [{
-                  "_": billerDetails['recipientid']??"0000000000000000",
+                  "_": billerDetails['recipientid'] ?? "0000000000000000",
                   "$": {
                       "type": "party_specific"
                   }
@@ -2443,7 +2440,7 @@ taxIsAdded = invoice.taxs.length;
         }
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": billerDetails['recipientid']??"0000000000000000",
+          "_": billerDetails['recipientid'] ?? "0000000000000000",
           "$": {
               "type": "party_specific"
           }
@@ -2461,13 +2458,14 @@ taxIsAdded = invoice.taxs.length;
       }],
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX":  JSON.parse(JSON.stringify([{
-        "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'],
-        "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'],
+        ...(billerDetails['recipientid']
+          ? { "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'] }
+          : { "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'] }),
         "EBILL.QR_IBAN": billDetails['iban'],
         "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref'],
         "EBILL.QR_TYPE": billDetails['type'],
-        "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
-        "HEADER_UDX_OPT":[{
+        "EBILL.DUE_DATE": invoice?.is_valid_to ? invoice.is_valid_to : '',
+        "HEADER_UDX_OPT": [{
           "BEX_VERSION": "VER1",
           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
         }]
