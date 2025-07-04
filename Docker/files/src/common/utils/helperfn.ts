@@ -1450,6 +1450,7 @@ export const pushInvoiceTest1 = async (req, res) => {
 
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
+        'contact_email':decryptData.contact_email,
         'billerid': decryptData.biller_pid
       }
 
@@ -2418,7 +2419,7 @@ taxIsAdded = invoice.taxs.length;
 
           }, {
               "bmecat:PARTY_ID": [{
-                  "_": billerDetails['recipientid'],
+                  "_": billerDetails['recipientid']??"0000000000000000",
                   "$": {
                       "type": "party_specific"
                   }
@@ -2442,7 +2443,7 @@ taxIsAdded = invoice.taxs.length;
         }
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": billerDetails['recipientid'],
+          "_": billerDetails['recipientid']??"0000000000000000",
           "$": {
               "type": "party_specific"
           }
@@ -2461,6 +2462,7 @@ taxIsAdded = invoice.taxs.length;
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX":  JSON.parse(JSON.stringify([{
         "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'],
+        "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'],
         "EBILL.QR_IBAN": billDetails['iban'],
         "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref'],
         "EBILL.QR_TYPE": billDetails['type'],
