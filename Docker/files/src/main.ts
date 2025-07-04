@@ -12,6 +12,9 @@ import { RedisStore } from 'connect-redis';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Set 'trust proxy' on the underlying Express instance
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(cookieParser(config.SESSION_SECRET));
   app.use(
     session({
@@ -23,7 +26,7 @@ export async function bootstrap() {
       saveUninitialized: false,
       name: config.SESSION_COOKIE_NAME || 'nestjs.session', 
       cookie: {
-        secure: process.env.NODE_ENV === 'production', // true in production
+        secure: true, // true in production
         httpOnly: true,
         maxAge: config.SESSION_EXPIRY || 86400000, // Default: 1 day
         domain: config.SESSION_DOMAIN || undefined,
