@@ -2151,7 +2151,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           if (error) {  
             console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,' + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
             warningMessage(commonErrors,error);
             resolve(false)
           }
@@ -2180,7 +2182,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           else{
           // resolve(false)
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
             warningMessage(commonErrors,error);
             resolve(false);
           }
@@ -2195,7 +2199,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
     } catch (error) {
       
       commonErrors['errorTitle'] = 'notifiBexio';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
       warningMessage(commonErrors,error);
       resolve(false)
 
