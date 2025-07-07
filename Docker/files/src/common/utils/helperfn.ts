@@ -1315,15 +1315,16 @@ export const deleteRedis = async (api, key) => {
 
 export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
-    try {
-      console.log('invoices::::', invoices,channel);
-
-      const decryptData = invoices;
+    const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
       const bill_recipient_email = invoices?.bill_recipient_email ?? '';
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
       let pdf, fileName, pdfContent;
+    try {
+      console.log('invoices::::', invoices,channel);
+
+      
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
 
@@ -1399,6 +1400,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
     } catch (error) {
+       await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
     }
@@ -1814,7 +1816,6 @@ console.log('pushInvoiceTest1',req.body);
 
 
     } catch (error) {
-
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
       warningMessage(commonErrors, error);
@@ -4904,14 +4905,15 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
 }
 export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
-    try {
-      console.log('pushPrintInvoice',bodyValues);
-      // return resolve('success');
-       const decryptData = invoices;
+    const decryptData = invoices;
       const invoice_id = invoices?.doc_id;
       const bill_recipient_email = invoices?.bill_recipient_email ?? '';
       const invoice_uuid = invoices?.invoice_uuid;
       const partyId = bodyValues?.partyId;
+    try {
+      console.log('pushPrintInvoice',bodyValues);
+      // return resolve('success');
+       
       let article:any = null;
       let pdf, fileName, pdfContent;
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
@@ -4966,6 +4968,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         try {
           if(error) {
             console.log('error article', error);
+             await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
             commonErrors['errorTitle'] = 'getArticle';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
             warningMessage(commonErrors,error);
@@ -5098,6 +5101,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
         } catch (err) {
+           await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
           console.error('Failed to parse response or extract Article:', err);
         }
 
@@ -5110,6 +5114,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 
      
     } catch (error) {
+       await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
     }
