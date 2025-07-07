@@ -4985,6 +4985,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       
           if (article) {
              // Validate that article has all required fields and none are empty/undefined/null
+          console.log('article herererere', article );
+
             const requiredFields = [
             "amount",
             "unit_id",
@@ -5011,9 +5013,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               warningMessage(commonErrors, 'invalid_article');
               resolve('something_went_wrong' + invoiceCid);
               return;
-            }}
-
-             const invPosUpdate:any = null
+            }
+          
+            const invPosUpdate:any = null
              console.log("article::::",article);
             let isArticleFound = false;
             for (const item of invoice.positions) {
@@ -5036,6 +5038,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           } else {
             console.log('Article not found in config, skipping update.');
           }
+          }
+
+           
       const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
       console.log('invoice::::2', invoice2);      
 
