@@ -4981,7 +4981,10 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           console.log('Extracted article:', article);
           console.log('resp', resp);
             article = resp?.data?.client_json?.Article;
-            // Validate that article has all required fields and none are empty/undefined/null
+           
+      
+          if (article) {
+             // Validate that article has all required fields and none are empty/undefined/null
             const requiredFields = [
             "amount",
             "unit_id",
@@ -5012,8 +5015,6 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 
              const invPosUpdate:any = null
              console.log("article::::",article);
-      
-          if (article) {
             let isArticleFound = false;
             for (const item of invoice.positions) {
               if (isArticleMatch(item, article)) {
@@ -5028,13 +5029,13 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 console.log('article',article);
                 
                 const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
+                console.log('invPosUpdate::::', invPosUpdate);
 
             }
 
           } else {
             console.log('Article not found in config, skipping update.');
           }
-      console.log('invPosUpdate::::', invPosUpdate);
       const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
       console.log('invoice::::2', invoice2);      
 
