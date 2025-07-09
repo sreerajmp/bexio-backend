@@ -4,7 +4,7 @@ import config from '../config/index';
 const path = require('path')
 import { connectNewGate2b, connectBexio,connectLibrary } from '../../db/prisma-clients';
 import { Prisma } from '@prisma/client';
-import { edit } from './bexioClient';
+import { bexioInterfaceClient } from './bexioClient';
 const fs = require('fs')
 import { resolve } from 'path';
 var xml2js = require('xml2js');
@@ -5219,7 +5219,7 @@ export async function pushContactToBexio(
   }
 
   // 2. Exchange refresh_token for access_token (Bexio OAuth2) using bexioClient
-  const bexioClient = await edit();
+  const bexioClient = await bexioInterfaceClient();
   let tokenSet
   try {
     tokenSet = await bexioClient.refresh(company.refresh_token || '');
