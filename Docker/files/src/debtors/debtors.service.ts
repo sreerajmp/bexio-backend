@@ -4,7 +4,7 @@ import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
 import config from '../common/config/index';
-import { edit } from '../common/utils/bexioClient';
+import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import * as request from 'request';
 import { Request, Response } from 'express';
 const encryptionControl = require("../common/utils/jwt-decode");
@@ -1057,7 +1057,7 @@ console.log('resData', resData);
   }
   async sendInvoice(req: Request, res: Response): Promise<any> {
     let data = req.body;
-    const bexioClient = await edit();
+    const bexioClient = await bexioInterfaceClient();
     let combinedResponse :any = {};
     combinedResponse.otherInvoiceResults = []
 
@@ -1905,7 +1905,7 @@ console.log('resData', resData);
     console.log('markAsIssued',req.body)
     try {
       let invoiceId = req.body.id,tokenSet,invoice;
-      const bexioClient = await edit();
+      const bexioClient = await bexioInterfaceClient();
 
       const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
         Prisma.sql`
@@ -2014,7 +2014,7 @@ console.log('resData', resData);
   
 }
 const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{
-  const bexioClient = await edit();
+  const bexioClient = await bexioInterfaceClient();
   let options;
   console.log('refreshToken',refreshToken);
   let params = {
