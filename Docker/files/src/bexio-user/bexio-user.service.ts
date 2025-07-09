@@ -952,7 +952,8 @@ export class BexioUserService {
 
         //console.log('parms', parms.slice(1, -1));
         console.log('parms', parmsSend);
-        await setBusinessConnector(parmsSend);
+        
+        await setBusinessConnector(JSON.stringify(parmsSend));
         // let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
         //   .replace('$netcom_id$', netcomIdG2b)
         //   .replace("$name$", companyNameGate2b)
@@ -987,7 +988,7 @@ let parms = {
 
 
         console.log('parms', parms);
-        await setBusinessConnector(parms);
+        await setBusinessConnector(JSON.stringify(parms));
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
         console.log("contactUpdatecontactUpdate");
@@ -1167,7 +1168,7 @@ let parms = {
 
     async function setBusinessConnector(params) {
       try {
-
+      console.log('stringfuu1', params);
         let fomdata = {
           data: params
         }
