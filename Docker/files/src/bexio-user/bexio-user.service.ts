@@ -946,7 +946,8 @@ export class BexioUserService {
     "create-pdf": "0",
     "create-signed-doc": "0",
     "export-doc-ref": "0",
-    "validate-sign": "0"
+    "validate-sign": "0",
+    "provider":{"provider":"BEX"}
   }
 };
 
@@ -982,7 +983,8 @@ let parms = {
     "create-pdf": "0",
     "create-signed-doc": "0",
     "export-doc-ref": "0",
-    "validate-sign": "0"
+    "validate-sign": "0",
+    "provider":{"provider":"BEX"}
   }
 };
 
