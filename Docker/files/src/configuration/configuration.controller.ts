@@ -161,4 +161,9 @@ export class ConfigurationController {
   return this.configurationService.createBusinessConnection(req,res);
   }
   
+  @Post('getConnectionList')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getConnectionList(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.configurationService.getConnectionList(req,res);
+  }
 }
