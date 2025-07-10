@@ -4,7 +4,7 @@ import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
 import config from '../common/config/index';
-import { edit } from '../common/utils/bexioClient';
+import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import * as request from 'request';
 import { Request, Response } from 'express';
 const encryptionControl = require("../common/utils/jwt-decode");
@@ -253,6 +253,7 @@ export class DebtorsService {
           "criteria": "="
         });
       }
+    console.log('channel',data);
     
       if("channel" in data){
   
@@ -580,6 +581,7 @@ export class DebtorsService {
                 
                 // Assign preferred group to invoice_type
                 second.invoice_type = preferredGroup;
+                second.auto_tag = true;
               }
             }
           });
@@ -655,7 +657,7 @@ export class DebtorsService {
       if(isBexioUser)
       {
        
-        var options = {
+           var options = {
           'method': 'GET',
           'url': `${config.BEXIO_API}2.0/contact`,
           'headers': {
@@ -703,8 +705,8 @@ export class DebtorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.dateFrom),
-                  lte: validDate(data.dateTo),
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -722,8 +724,8 @@ export class DebtorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.dateFrom),
-                  lte: validDate(data.dateTo),
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -732,7 +734,7 @@ export class DebtorsService {
                 ...(data.orderStatus === "No" ? { rk_order: null } : {}),
               },
             });
-            
+            console.log("Total Orders:", orderListCount);
             const totalOrders = Number(orderListCount); // Convert BigInt to Number
             
             //console.log("Total Orders:", totalOrders);
@@ -810,13 +812,13 @@ export class DebtorsService {
   }
   async getDeliveryNotesList(req: Request, res: Response,): Promise<any> {
 
-    //console.log("getDeliveryNotesList");  
+    console.log("getDeliveryNotesList");  
     let cookie = null;
     let data = req.body;
     let partyId = req.body.partyId;
     
     let netcomId;
-    //console.log("req.body ",req.body);  
+    console.log("req.body ",req.body);  
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
@@ -923,8 +925,26 @@ export class DebtorsService {
     //console.log('resultArray',resultArray);
 
       if(isBexioUser){
+         var options
         totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
-        var options = {
+        if(data.documentNo){
+            let docNumber = data.documentNo;
+          if (docNumber.includes('-')) {
+            docNumber = docNumber.split('-')[1]; // take part after '-'
+          }
+          options = {
+                    'method': 'GET',
+                    // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
+                    'url': `${config.BEXIO_API}2.0/kb_delivery/${docNumber}`,
+                    'headers': {
+                      'Accept': 'application/json',
+                      'Authorization': 'Bearer '+accessToken
+                    }
+            
+                  }; 
+        }
+        else{
+         options = {
           'method': 'GET',
           // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
           'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
@@ -933,7 +953,8 @@ export class DebtorsService {
             'Authorization': 'Bearer '+accessToken
           }
   
-        };    
+        };   
+        } 
         request(options, async function (error, response) {
           if (error) {
             commonErrors['errorTitle'] = req.originalUrl;
@@ -944,14 +965,22 @@ export class DebtorsService {
               message: 'something_went_wrong',
           });
           }
-          let resData = JSON.parse(response.body);       
+        let resData = Array.isArray(JSON.parse(response.body))?JSON.parse(response.body):[JSON.parse(response.body)];    
+console.log('resData', resData);
+
+console.log('resData', resData);
           if(response.statusCode != 200)
-            return res.status(401).json({
+            return res.status(response.statusCode).json({
             status: false,
             message: 'unauthorized',
             });
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
+            console.log('**********************',typeof resData[deliveryNotes])
+            console.log('**********************', resData[deliveryNotes])
+             if (typeof resData[deliveryNotes] !== 'object' ) {
+    continue;
+  }
             tempStatus = false;
             resData[deliveryNotes]['allowSend'] =  true;
             // resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
@@ -1028,7 +1057,7 @@ export class DebtorsService {
   }
   async sendInvoice(req: Request, res: Response): Promise<any> {
     let data = req.body;
-    const bexioClient = await edit();
+    const bexioClient = await bexioInterfaceClient();
     let combinedResponse :any = {};
     combinedResponse.otherInvoiceResults = []
 
@@ -1804,7 +1833,8 @@ export class DebtorsService {
           });          
           
         if(refDataQueryResult.length>0){
-          const updateQueryResult = await connectBexio.documents_invoice_send.updateMany({
+          // Update status and fetch updated invoice(s) to get rk_invoice
+          await connectBexio.documents_invoice_send.updateMany({
             where: {
               reference_id: referenceId,
             },
@@ -1813,9 +1843,16 @@ export class DebtorsService {
               is_notifyed: true,
             },
           });
-          
 
-
+          // Fetch the updated record(s) to get rk_invoice
+          const updatedInvoices = await connectBexio.documents_invoice_send.findMany({
+            where: {
+              reference_id: referenceId,
+            },
+            select: {
+              rk_invoice: true,
+            },
+          });
 
           const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
 
@@ -1827,15 +1864,15 @@ export class DebtorsService {
             INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
             WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
           `;
-          
           const partyApplicationId = resultGetPartyApplication[0].objectid;
           console.log('12333');
-          
           let invoiceCid:any;
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
-         
-          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token,updateQueryResult[0].rk_invoice,formData.status.trim(),formData.message,refDataQueryResult[0].companyregistered?.netcomid,formData.amount,bankId);
-          
+
+          // Use the first updated invoice's rk_invoice if available
+          const rkInvoice = updatedInvoices.length > 0 ? updatedInvoices[0].rk_invoice : undefined;
+          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
+
           return res.status(200).json({
             status_code: 200,
             message: 'success',
@@ -1868,7 +1905,7 @@ export class DebtorsService {
     console.log('markAsIssued',req.body)
     try {
       let invoiceId = req.body.id,tokenSet,invoice;
-      const bexioClient = await edit();
+      const bexioClient = await bexioInterfaceClient();
 
       const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
         Prisma.sql`
@@ -1977,7 +2014,7 @@ export class DebtorsService {
   
 }
 const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{
-  const bexioClient = await edit();
+  const bexioClient = await bexioInterfaceClient();
   let options;
   console.log('refreshToken',refreshToken);
   let params = {
@@ -2091,7 +2128,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
               else{
               // resolve(false)
                 commonErrors['errorTitle'] = 'notifiBexio';
-                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
                 warningMessage(commonErrors,error);
                 resolve(false)
               }
@@ -2112,7 +2151,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           if (error) {  
             console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,' + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
             warningMessage(commonErrors,error);
             resolve(false)
           }
@@ -2141,7 +2182,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           else{
           // resolve(false)
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
             warningMessage(commonErrors,error);
             resolve(false);
           }
@@ -2156,7 +2199,9 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
     } catch (error) {
       
       commonErrors['errorTitle'] = 'notifiBexio';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
+      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
       warningMessage(commonErrors,error);
       resolve(false)
 

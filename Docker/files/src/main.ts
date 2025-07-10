@@ -12,6 +12,9 @@ import { RedisStore } from 'connect-redis';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Set 'trust proxy' on the underlying Express instance
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(cookieParser(config.SESSION_SECRET));
   app.use(
     session({
@@ -23,7 +26,7 @@ export async function bootstrap() {
       saveUninitialized: false,
       name: config.SESSION_COOKIE_NAME || 'nestjs.session', 
       cookie: {
-        secure: process.env.NODE_ENV === 'production', // true in production
+        secure: true, // true in production
         httpOnly: true,
         maxAge: config.SESSION_EXPIRY || 86400000, // Default: 1 day
         domain: config.SESSION_DOMAIN || undefined,
@@ -40,35 +43,41 @@ export async function bootstrap() {
     })
   );
 
-  // Swagger Configuration --------------------------------
+  if (process.env.NODE_ENV === 'development') {
+    // Swagger Configuration --------------------------------
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle(swaggerTitle)
+      .setDescription(swaggerDescription)
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api', app, document, swaggerOptions);
+    // End Swagger Configurations --------------------------------
 
+    // Enable CORS for localhost and dev URLs
+    app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
+        'https://local-bexio.io-market.net:3000',
+        config.BEXIO_APP_URL,
+        config.BILLING_URL
+      ],
+      credentials: true,
+    });
+  } else {
+    // Production: restrict CORS as needed (example: only allow main app URL)
+    app.enableCors({
+      origin: [config.BEXIO_APP_URL, config.BILLING_URL],
+      credentials: true,
+    });
+  }
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(swaggerTitle)
-    .setDescription(swaggerDescription)
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  
-  SwaggerModule.setup('api', app, document, swaggerOptions);
-
-  // End Swagger Configurations --------------------------------
   app.use(express.json()); // Enables JSON parsing
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser(config.SESSION_SECRET));
   console.log('config.BEXIO_APP_URL', config.BEXIO_APP_URL);
-  //Enable CORS
-  app.enableCors({
-    origin: [
-      config.BEXIO_APP_URL,
-      /^http:\/\/local-bexio\.io-market\.net(:[0-9]+)?$/,
-      'https:local-bexio.io-market.net:3000',
-      config.BILLING_URL
-    ],
-    credentials: true, // Allow cookies
-  });
-
 
   await app.listen(3000);
   Logger.log(`App running on Port 3000`);

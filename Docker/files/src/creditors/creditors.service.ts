@@ -17,7 +17,7 @@ import { resolve } from 'path';
 var xml2js = require('xml2js');
 import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
-import { edit } from '../common/utils/bexioClient';
+import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from "../common/utils/fetchEmailData";
 
 @Injectable()
@@ -47,8 +47,8 @@ export class CreditorsService {
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
       showTo = showFrom + parseInt(data.records_per_page) - 1;
   
-      console.log('showFrom',showFrom);
-      console.log('showTo',showTo);
+      console.log('showFrom',data.startDate);
+      console.log('showTo',data.endDate);
   
       
   
@@ -91,7 +91,7 @@ export class CreditorsService {
                 cid: true, 
               },
             });
-            console.log('getRegisteredId',getRegisteredId);
+          //  console.log('getRegisteredId',getRegisteredId);
             
             const validDate = (date) => {
               const parsedDate = new Date(date);
@@ -102,8 +102,8 @@ export class CreditorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0].cid, // Ensure correct ID
                 created_date: {
-                  gte: data.dateFrom ? new Date(data.dateFrom) : undefined,
-                  lte: data.dateTo ? new Date(data.dateTo) : undefined,
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -118,7 +118,7 @@ export class CreditorsService {
               take: Number(showTo) - Number(showFrom) + 1,
             });
             
-            console.log("billsList", billsList);
+          //  console.log("billsList", billsList);
             
 
 
@@ -126,8 +126,8 @@ export class CreditorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.dateFrom),
-                  lte: validDate(data.dateTo),
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -140,7 +140,7 @@ export class CreditorsService {
 
             const totalOrders = Number(billsListCount); // Convert BigInt to Number
             
-            console.log("Total Orders:", totalOrders);
+           // console.log("Total Orders:", totalOrders);
             
            
   
@@ -202,7 +202,7 @@ export class CreditorsService {
      
     } catch (error) {
    
-      console.log(error);
+     // console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
@@ -212,6 +212,7 @@ export class CreditorsService {
     }
   }
   async getOrderList(req: Request, res: Response,): Promise<any> {
+  console.log("getOrderList:");
   
     let cookie = null
     let data = req.body
@@ -324,6 +325,16 @@ export class CreditorsService {
       if(isBexioUser)
       {
       
+      let getSendInvoiceList = await connectBexio.$queryRaw<{ invoiceid: number[] }[]>(
+            Prisma.sql`
+              SELECT array_agg(rk_order) AS invoiceid
+              FROM documents_order_send ds
+              INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
+              WHERE c.rk_party = ${Number(partyId)}
+              AND ds.status IN(2,1)
+            `
+          );
+
         let options;
    
           let searchJson: any[] = [];
@@ -337,22 +348,60 @@ export class CreditorsService {
             });
           }
       
-          if (data.dateFrom) {
+          if (data.startDate) {
             searchJson.push({
               "field": "is_valid_from",
-              "value": new Date(data.dateFrom),
+              "value": new Date(data.startDate),
               "criteria": ">="
             });
           }
       
-          if (data.dateTo) {
+          if (data.endDate) {
             searchJson.push({
               "field": "is_valid_from",
-              "value": new Date(data.dateTo),
+              "value": new Date(data.endDate),
               "criteria": "<="
             });
           }
-        //  console.log('searchJsonsearchJson',searchJson.length);
+          if(data.customerId){
+          searchJson.push({
+                      "field": "contact_id",
+                      "value":Number(data.customerId),
+                      "criteria": "="
+                    });
+          }
+           if(data['orderStatus'] == 'Yes'){
+
+          console.log('typeof',resultArray==null);
+          
+          searchJson.push(
+            {
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value": getSendInvoiceList[0]?.invoiceid?.map(id => Number(id)) ?? [],
+            "criteria":"in"
+          })
+        }
+        if(data['orderStatus'] == 'No'){
+          
+          searchJson.push({
+            "field":"contact_id",
+            "value":resultArray==null ? "" : resultArray,
+            "criteria":"in"
+          },
+          {
+            "field":"id",
+            "value":getSendInvoiceList[0]?.invoiceid?.map(id => Number(id)) ?? [],
+            "criteria":"not_in"
+          })
+        }
+          
+       console.log('searchJsonsearchJson',searchJson.length);
+       console.log('searchJsonsearchJson',searchJson);
           if(searchJson.length != 0)
           {
             totalCount = await orderCountSearch(accessToken,searchJson,0,2000)
@@ -366,6 +415,8 @@ export class CreditorsService {
               },
               body: JSON.stringify(searchJson)
             };
+            console.log('options',options);
+            
           }else{
             totalCount = await orderListCountSearch(accessToken,0,2000);
             options = {
@@ -1094,13 +1145,8 @@ let transporter;
 
                               console.log("getDistinctCompany",getDistinctCompany);
                               
-    // const getDistinctCompany = await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
-    // c.rk_party AS partyid
-    // FROM documents_invoice_send dis
-    // INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered`;
-    // console.log("getDistinctCompany :: ",getDistinctCompany);
-    // accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJkVTNTYXFLOHF1c25rakl4WEFsbE1EZk0zakRLYkJneDd3dlVVMHBsaUhFIn0.eyJleHAiOjE3NjI1Nzc1MzYsImlhdCI6MTc0Njc2NjMzOSwianRpIjoiZDhhODU2MDMtZmVkMS00MGMwLThiM2YtNWYzMWMyMmI5MDQ2IiwiaXNzIjoiaHR0cHM6Ly9hdXRoLmJleGlvLmNvbS9yZWFsbXMvYmV4aW8iLCJzdWIiOiJlYjE5MDBlMS03YzM3LTRhMzYtYjg5NS03NTViZWE3ZTcyYmEiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJiZXhpb19wYXRfcHJvdmlkZXIiLCJzaWQiOiI3ZTk3Y2RjYi1hNzUwLTQ3NWEtOTM1MS01Y2Y0NjkyNTViMWMiLCJzY29wZSI6Im9wZW5pZCBhY2NvdW50aW5nIGtiX2RlbGl2ZXJ5X3Nob3cgYmFua19wYXltZW50X3Nob3cgcHJvamVjdF9lZGl0IGtiX2NyZWRpdF92b3VjaGVyX3Nob3cga2Jfb2ZmZXJfZWRpdCBmaWxlIHByb2plY3Rfc2hvdyBjb21wYW55X3Byb2ZpbGUga2JfYmlsbF9zaG93IGNvbnRhY3RfZWRpdCBub3RlX3Nob3cga2JfZGVsaXZlcnlfZWRpdCBrYl9leHBlbnNlX3Nob3cgcGF5cm9sbF9wYXlzdHViX3Nob3cgcGF5cm9sbF9lbXBsb3llZV9zaG93IGtiX2FydGljbGVfb3JkZXJfZWRpdCBhcnRpY2xlX2VkaXQga2JfaW52b2ljZV9lZGl0IG9mZmxpbmVfYWNjZXNzIGtiX29yZGVyX3Nob3cga2JfYXJ0aWNsZV9vcmRlcl9zaG93IHBheXJvbGxfdGltZV9hY2NvdW50X2VkaXQgcGF5cm9sbF90aW1lX2FjY291bnRfc2hvdyBzdG9ja19lZGl0IHBheXJvbGxfYWJzZW5jZV9zaG93IGVtYWlsIGtiX29yZGVyX2VkaXQgcGF5cm9sbF9lbXBsb3llZV9lZGl0IHJldm9jYWJsZSBrYl9jcmVkaXRfdm91Y2hlcl9lZGl0IGJhbmtfcGF5bWVudF9lZGl0IG1vbml0b3JpbmdfZWRpdCB0YXNrX2VkaXQgbGVhZF9lZGl0IGtiX2JpbGxfZWRpdCBtb25pdG9yaW5nX3Nob3cgdGVjaG5pY2FsIGxlYWRfc2hvdyB0YXNrX3Nob3cgYXJ0aWNsZV9zaG93IGZpbmFuY2VfcmVwb3J0cyBrYl9pbnZvaWNlX3Nob3cgc3Vic2NyaXB0aW9uX2FuZF9wZXJtaXNzaW9ucyBrYl9vZmZlcl9zaG93IHBheXJvbGxfYWJzZW5jZV9lZGl0IGJhbmtfYWNjb3VudF9zaG93IG5vdGVfZWRpdCBrYl9leHBlbnNlX2VkaXQgcHJvZmlsZSBjb250YWN0X3Nob3ciLCJsb2dpbl9pZCI6ImViMTkwMGUxLTdjMzctNGEzNi1iODk1LTc1NWJlYTdlNzJiYSIsImNvbXBhbnlfaWQiOiJjM2p6ang3bHpxNDYiLCJ1c2VyX2lkIjozMTU3MTEsImNvbXBhbnlfdXNlcl9pZCI6Nn0.EsTZn7msqofItd_kh8UijEYjsK5SA-wLv2kdkMVQdmCE3Ypn9iZ7rJSh2iCp5Yhtxa-Z1kGT267j-Wsn8LwKxEvT8h8c9iBUXbETRl0lxfJAArepFsjUCjr_mtyorlw38xA13EEVy8SiLy6jOWUfUu3GcZAMaB2BhbUa0ch8gPQrTaoEvUonqWO9p4yFmiLJhXp4CtWn9Mi0VtBxF59TZn3mEmmvzuCpHFFjtj3jZM9NXfz_pWmV1lIa6Xjp2q_pv9w7fSyFIWkzKLSKyiMMOnY1kKJoyzWFLwz_7Uih24UKb-tsYEFmkmSLU-V_1xLIz_0qqzhoqR6gWTFqjzR_OA'
-    const bexioClient = await edit();
+   
+    const bexioClient = await bexioInterfaceClient();
    
     if( getDistinctCompany.length){
       for( let j= 0; j< getDistinctCompany.length; j++){

@@ -1847,7 +1847,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                 INSERT INTO "ebillWallet" 
                   (fk_party, "lastEntered", "billerId") 
                 VALUES (
-                  ${Number(companyId)}, date_trunc('month', now()::timestamp) + interval '6 hour',${data.id}}
+                  ${Number(companyId)}, date_trunc('month', now()::timestamp) + interval '6 hour',${data.id}
                 )
               `
             );
@@ -2350,7 +2350,106 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       });
     }
   }
+ async getConnectionList(req: Request, res: Response): Promise<any> {
+  const encrToken = req.body;
 
+  try {
+    const cookie = JSON.parse(encryptionControl.decryptCookie(
+      JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
+    ));
+    const accessToken = cookie.access_Token;
+      const page = parseInt(encrToken.page_number  || '1');
+      const limit = parseInt(encrToken.records_per_page  || '5');
+      const offset = (page - 1) * limit;
+    const formData = {
+      network: encrToken.network,
+      company_doc_type: encrToken.docType,
+      company_direction_key: encrToken.direction,
+      netcom_id: encrToken.netcomId,
+    };
+
+    const options = {
+      method: 'POST',
+      url: config.PYTHON_API + 'company-g2b-connections',
+      formData,
+    };
+
+    const connectData = await new Promise<any>((resolve, reject) => {
+      request(options, (error, response, body) => {
+        if (error) {
+          commonErrors['errorTitle'] = 'getBcDetails';
+          warningMessage(commonErrors, error);
+          return reject(error);
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (parseError) {
+          reject(parseError);
+        }
+      });
+    });
+
+    let contacts;
+    if (encrToken.customerId) {
+      const searchData = await getContactDetails(accessToken, encrToken.customerId);
+      contacts = Array.isArray(searchData) ? searchData : [searchData];
+
+      // Filter and enrich connectData
+      const contactIds = new Set(contacts.map(c => c.id));
+      const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+      const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
+
+      const updatedConnectData = connectData.data
+        .filter(item => contactIds.has(Number(item.partner_company_details.customer_id)))
+        .map(item => {
+          const id = Number(item.partner_company_details.customer_id);
+          return {
+            ...item,
+            customer_name: resultCustomer.get(id) || '',
+            customer_mail: resultMail.get(id) || '',
+          };
+        });
+     const paginatedData = updatedConnectData.slice(offset, offset + limit);
+      return res.status(200).json({
+        data: paginatedData,
+         totalCount: updatedConnectData.length,
+        status_code: 200,
+        message: 'getConnectionList',
+        status: true,
+      });
+
+    } else {
+      contacts = await getAllcontacts(accessToken, 0, 2000, '');
+      const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+      const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
+
+      const updatedConnectData = connectData.data.map(item => {
+        const id = Number(item.partner_company_details.customer_id);
+        return {
+          ...item,
+          customer_name: resultCustomer.get(id) || '',
+          customer_mail: resultMail.get(id) || '',
+        };
+      });
+
+     const paginatedData = updatedConnectData.slice(offset, offset + limit);
+      return res.status(200).json({
+        data: paginatedData,
+         totalCount: updatedConnectData.length,
+        status_code: 200,
+        message: 'getConnectionList',
+        status: true,
+      });
+    }
+
+  } catch (error) {
+    commonErrors['errorTitle'] = 'getBcDetails';
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param, access_token`;
+    warningMessage(commonErrors, error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), () => {});
+    return res.status(500).json({ status: false, message: 'Internal server error' });
+  }
+}
 
 }
 const getBcDetails = async (bc_id, netcomId) => {

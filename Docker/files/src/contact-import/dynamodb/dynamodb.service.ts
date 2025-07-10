@@ -9,7 +9,7 @@ accessKeyId: config.DYNAMODB_CLIENT_ID,
   region: "eu-central-2",
 });
 
-const TABLE_NAME = 'contact_import_manager';
+const TABLE_NAME = config.DYNAMODB_TABLE_NAME;
 
 @Injectable()
 export class DynamoDBService {

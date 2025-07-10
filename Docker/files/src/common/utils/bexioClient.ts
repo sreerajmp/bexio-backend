@@ -2,8 +2,8 @@ import { Issuer, generators } from 'openid-client';
 import { connectLibrary } from '../../db/prisma-clients';
 import config from '../config';
 
-export const edit = async () => {
-  const code = 'BEXIO_INTERFACE';
+export const bexioInterfaceClient = async () => {
+  const code ='BEXIO_INTERFACE';
 
   // Use Prisma ORM (raw query)
   const getBexioKeys = await connectLibrary.$queryRaw<any[]>`

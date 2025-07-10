@@ -4,7 +4,7 @@ import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
 import config from '../common/config/index';
-import { edit } from '../common/utils/bexioClient';
+import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import * as request from 'request';
 import { Request, Response } from 'express';
 const encryptionControl = require("../common/utils/jwt-decode");
@@ -24,7 +24,7 @@ import warningMessage from '../common/utils/warningMessage'
 export class BexioUserService {
   async authorization(data: any): Promise<any> {
 
-    const bexioClient = await edit();
+    const bexioClient = await bexioInterfaceClient();
 
     let url = bexioClient.authorizationUrl({
       scope: config.BEXIO_SCOPE,
@@ -45,7 +45,7 @@ export class BexioUserService {
       //console.log('data::', req.body);
       //console.log('API_URL', config.API_URL);
       // make sure this is inside an async function
-      const bexioClient = await edit();
+      const bexioClient = await bexioInterfaceClient();
       //console.log('bexioClient', bexioClient);
 
       params = bexioClient.callbackParams(req);
@@ -235,7 +235,7 @@ export class BexioUserService {
     let data = req.body;
     let refresh_token = null
     let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
-    const bexioClient = await edit();
+    const bexioClient = await bexioInterfaceClient();
 
     try {
       refresh_token = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME]))).refresh_Token;
@@ -250,8 +250,7 @@ export class BexioUserService {
         isBexioUser: true
 
       }
-      const updateRefreshToken = `UPDATE companyregistered SET refreshtoken = $1
-        WHERE rk_csn = $2`
+     
       let rk_csn = jwt.decode(tokenSet.access_token)['company_id']
 
       //  await bexioPool.query(updateRefreshToken, [tokenSet.refresh_token,rk_csn]);
@@ -920,18 +919,78 @@ export class BexioUserService {
             `);
 
 
-        let parmsSend = config.BEXIO_CONNECTION_CONFIG_SEND || ''
-          .replace('$netcom_id$', netcomIdG2b)
-          .replace("$name$", companyNameGate2b)
+        // let parmsSend = config.BEXIO_CONNECTION_CONFIG_SEND || ''
+        //   .replace('$netcom_id$', netcomIdG2b)
+        //   .replace("$name$", companyNameGate2b)
+
+   const parmsSend = {
+        config: {
+    platform: {
+      module: "EDI",
+      config: {
+        type: "network",
+        code: "BEX",
+        direction: "IN"
+      }
+    },
+    include_pdf: "0",
+    netcom_id: netcomIdG2b,
+    name: companyNameGate2b,
+    direction: "IN",
+    fk_doc_type: "Invoice",
+    fk_doc_format: "OpenTrans2.1",
+    fk_netcomid_doc_interface: "WS",
+    status: "1",
+    fk_encoding_details: "utf-8",
+    fk_culture: "en-us",
+    "create-pdf": "0",
+    "create-signed-doc": "0",
+    "export-doc-ref": "0",
+    "validate-sign": "0",
+    "provider":{"provider":"BEX"}
+  }
+};
+
         //console.log('parms', parms.slice(1, -1));
-        //console.log('parms', parms);
-        await setBusinessConnector(parmsSend);
-        let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
-          .replace('$netcom_id$', netcomIdG2b)
-          .replace("$name$", companyNameGate2b)
+        console.log('parms', parmsSend);
+        
+        await setBusinessConnector(JSON.stringify(parmsSend));
+        // let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
+        //   .replace('$netcom_id$', netcomIdG2b)
+        //   .replace("$name$", companyNameGate2b)
         //console.log('parms', parms.slice(1, -1));
+let parms = {
+  config: {
+    platform: {
+      module: "EDI",
+      config: {
+        type: "network",
+        code: "BEX",
+        direction: "OUT"
+      }
+    },
+    netcom_id: netcomIdG2b,
+    name: companyNameGate2b,
+    direction: "OUT",
+    fk_doc_type: "Invoice",
+    fk_doc_format: "OpenTrans2.1",
+    fk_netcomid_doc_interface: "WS",
+    status: "1",
+    fk_encoding_details: "utf-8",
+    fk_culture: "en-us",
+    allow_duplicate: "0",
+    file_export_filename: "%DNO%_%TST:yyyyMMddHHmmss%.xml",
+    "create-pdf": "0",
+    "create-signed-doc": "0",
+    "export-doc-ref": "0",
+    "validate-sign": "0",
+    "provider":{"provider":"BEX"}
+  }
+};
+
+
         console.log('parms', parms);
-        await setBusinessConnector(parms);
+        await setBusinessConnector(JSON.stringify(parms));
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
         console.log("contactUpdatecontactUpdate");
@@ -1111,7 +1170,7 @@ export class BexioUserService {
 
     async function setBusinessConnector(params) {
       try {
-
+      console.log('stringfuu1', params);
         let fomdata = {
           data: params
         }
@@ -2290,7 +2349,7 @@ VALUES (
         let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(token));
         //console.log('Decoded Token:', decodedToken);
         
-        const bexioClient = await edit();
+        const bexioClient = await bexioInterfaceClient();
         const tokenSet = await bexioClient.refresh(decodedToken);
         
         let bexioTokenCookie = { 
@@ -2576,7 +2635,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
         decryptData = encryptionControl.decrypt(req.body.encrToken);
         if('subScriptionType' in decryptData && 'planId' in decryptData)
         {
-          const bexioClient = await edit();
+          const bexioClient = await bexioInterfaceClient();
           let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
           let refreshToken = cookie.refresh_Token;
           const tokenSet = await bexioClient.refresh(refreshToken);
