@@ -1872,7 +1872,9 @@ console.log('resData', resData);
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
 
           // Use the first updated invoice's rk_invoice if available
-          const rkInvoice = updatedInvoices.length > 0 ? updatedInvoices[0].rk_invoice : undefined;
+            const rkInvoice = updatedInvoices.length > 0 && updatedInvoices[0].rk_invoice !== undefined
+            ? Number(updatedInvoices[0].rk_invoice)
+            : undefined;
           await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
 
           return res.status(200).json({
