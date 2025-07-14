@@ -1070,6 +1070,8 @@ console.log('resData', resData);
           for (const item of JSON.parse(data.printInvoices)|| []) {
 
             let selectedItem = item;
+              combinedResponse.otherInvoiceResults.push(selectedItem);
+
             console.log("selectedItem :: ",selectedItem);
             try {
 
@@ -1107,8 +1109,8 @@ console.log('resData', resData);
               selectedItem['tag'] = 'print';
 
               // Initialize or reset the emailInvoice array in the combined response
-              combinedResponse.otherInvoiceResults.push(selectedItem);
-              console.log("processInvoices:::", selectedItem);
+              await combinedResponse.otherInvoiceResults.push(selectedItem);
+              console.log("processInvoicesXXX:::", selectedItem);
               // Use the PushWorkerHost to run the worker task
 
               // Trigger a background worker task to handle invoice processing (e.g., print job)
@@ -2018,10 +2020,10 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
   let options;
   console.log('refreshToken',refreshToken);
   let params = {
-    refreshToken:refreshToken,
-    id:id,
-    status:status,
-    amount:amount,
+    refreshToken: refreshToken,
+    id: typeof id === 'bigint' ? Number(id) : id,
+    status: status,
+    amount: amount,
   }
   let tempMsg,erroMsg = '';
   console.log('typeof(message)',typeof(message));
