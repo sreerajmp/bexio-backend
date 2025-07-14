@@ -41,7 +41,7 @@ export class BexioUserService {
     try {
       // Use prisma to access your DB, example:
       let params
-      //console.log('data::', req);
+      console.log('bexioRedirect::', req);
       //console.log('data::', req.body);
       //console.log('API_URL', config.API_URL);
       // make sure this is inside an async function
@@ -194,24 +194,15 @@ export class BexioUserService {
             res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
             res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
             
-            // Log response headers
-            //console.log('10. Response Headers:', res.getHeaders());
-            
             let bexioURL = config.BILLING_APP;
-            //console.log('11. Redirecting to:', bexioURL);
-            //console.log('=== End Cookie Debug Logs ===');
-            
             return res.redirect(`${bexioURL}`);
           }
           else {
             let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
             console.log('responseResult', responseResult);
             if(responseResult.status) {
-              //console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-              //console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
               return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
             } else {
-              //console.log('111');
               return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
             }
           }
