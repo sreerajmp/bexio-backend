@@ -1827,7 +1827,7 @@ console.log('resData', resData);
 
           const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
             where: {
-              reference_id: referenceId,  // use colon, not equal sign
+              reference_id: referenceId, 
             },
             include: {
               companyregistered: true,
@@ -1846,35 +1846,30 @@ console.log('resData', resData);
             },
           });
 
-          // Fetch the updated record(s) to get rk_invoice
-          const updatedInvoices = await connectBexio.documents_invoice_send.findMany({
-            where: {
-              reference_id: referenceId,
-            },
-            select: {
-              rk_invoice: true,
-            },
-          });
+            // Fetch the updated record to get rk_invoice as a number
+            const updatedInvoice = await connectBexio.documents_invoice_send.findFirst({
+              where: { reference_id: referenceId },
+              select: { rk_invoice: true },
+            });
+            const rkInvoice = updatedInvoice?.rk_invoice ? Number(updatedInvoice.rk_invoice) : undefined;
 
-          const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
+          // const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
 
-          const resultGetPartyApplication = await connectLibrary.$queryRaw<any>`
-            SELECT pa.cid, lp.companyname, a.code AS app, av.version AS appversion
-            FROM partyapplication pa
-            INNER JOIN application_version av ON av.cid = pa.fk_application_version
-            INNER JOIN application a ON a.cid = av.fk_application
-            INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
-            WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
-          `;
-          const partyApplicationId = resultGetPartyApplication[0].objectid;
-          console.log('12333');
-          let invoiceCid:any;
+          // const resultGetPartyApplication = await connectLibrary.$queryRaw<any>`
+          //   SELECT pa.cid, lp.companyname, a.code AS app, av.version AS appversion
+          //   FROM partyapplication pa
+          //   INNER JOIN application_version av ON av.cid = pa.fk_application_version
+          //   INNER JOIN application a ON a.cid = av.fk_application
+          //   INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
+          //   WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
+          // `;
+          // const partyApplicationId = resultGetPartyApplication[0].objectid;
+          // console.log('12333');
+          // let invoiceCid:any;
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
 
-          // Use the first updated invoice's rk_invoice if available
-            const rkInvoice = updatedInvoices.length > 0 && updatedInvoices[0].rk_invoice !== undefined
-            ? Number(updatedInvoices[0].rk_invoice)
-            : undefined;
+            console.log('rkInvoice',rkInvoice);
+            
           await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
 
           return res.status(200).json({
@@ -2018,12 +2013,14 @@ console.log('resData', resData);
   
 }
 const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,bankId?)=>{
+  console.log('notifiBexio:::',id,status,message,netcomId,amount,bankId);
+  
   const bexioClient = await bexioInterfaceClient();
   let options;
   console.log('refreshToken',refreshToken);
   let params = {
     refreshToken: refreshToken,
-    id: typeof id === 'bigint' ? Number(id) : id,
+    id: id,
     status: status,
     amount: amount,
   }
@@ -2133,7 +2130,7 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
               // resolve(false)
                 commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ? value.toString() : value
+  typeof value === 'bigint' ? Number(value) : value
 );
                 warningMessage(commonErrors,error);
                 resolve(false)
@@ -2156,7 +2153,7 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
             console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,' + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ? value.toString() : value
+  typeof value === 'bigint' ? Number(value) : value
 );
             warningMessage(commonErrors,error);
             resolve(false)
@@ -2187,7 +2184,7 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           // resolve(false)
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ? value.toString() : value
+  typeof value === 'bigint' ?  Number(value) : value
 );
             warningMessage(commonErrors,error);
             resolve(false);
@@ -2204,7 +2201,7 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
       
       commonErrors['errorTitle'] = 'notifiBexio';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ? value.toString() : value
+  typeof value === 'bigint' ?  Number(value) : value
 );
       warningMessage(commonErrors,error);
       resolve(false)
@@ -2325,7 +2322,6 @@ const addBexioComment = async (token,id,status,message?,netcomId?) => {
               resolve(false)
               return;
             }
-            resolve(false)
           })
         }else{
           resolve(false)
