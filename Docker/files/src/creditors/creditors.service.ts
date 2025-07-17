@@ -909,16 +909,28 @@ export class CreditorsService {
            status: false,
          })
        }
-       if(response.statusCode==201)
+       if(response.statusCode==201){
          await setBillId(id,JSON.parse(response.body)['document_no'])
          if('customer-output' in JSON.parse(file_path)){
            await moveFile(netcomId,JSON.parse(file_path)["customer-output"]);
          }
     
          console.log(response.body);
-         
-         res.send(response.body);
-
+          res.send({
+           status_code: 201,
+           message: 'common_sucess',
+           data:response.body,
+           status: true,
+         })
+        // res.send(response.body);
+         }
+         else{
+        res.send({
+           status_code: 500,
+           message: 'something_went_wrong',
+           status: false,
+         })
+         }
      });
      });
          });
