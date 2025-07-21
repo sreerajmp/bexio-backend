@@ -3243,9 +3243,11 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
         
           return resolve('bexio_item_error');
         }
-        await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,purchaseOrder['document_nr'],'EDI');
+        const sendOrderRes = await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,purchaseOrder['document_nr'],'EDI');
         let redisKey = req.body.partyId+"_/";
         await deleteRedis('sendOrder',redisKey);
+        console.log("sendOrderRes",sendOrderRes);
+        
         return resolve(true);
     }
     else{
@@ -3495,7 +3497,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       }],
       "ORDER_PARTIES_REFERENCE":[{
         "bmecat:BUYER_IDREF": contactDetails.sendercustomerid,
-        "bmecat:SUPPLIER_IDREF":contactDetails.receivercustomerid
+        "bmecat:SUPPLIER_IDREF":contactDetails.receiver_customerid
       }],
       "bmecat:CURRENCY":order.currency['name'],
       "REMARKS": order.title ? order.title : undefined,
