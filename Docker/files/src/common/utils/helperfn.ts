@@ -4598,12 +4598,12 @@ export const getContactGroupList = async(accessToken) => {
 
 // Function to fetch units from the bexio
 
-export const getUnitList = async (access_token) => {
+export const getUnitList = async (access_token,unitId) => {
 
   return new Promise(async(resolve, reject) => {
         var options = {
           'method': 'GET',
-          'url': `https://api.bexio.com/2.0/unit`,
+          'url': `${config.BEXIO_API}2.0/unit/${unitId}`,
           'headers': {
             'Accept': 'application/json',
             'Authorization': 'Bearer '+access_token
@@ -4706,12 +4706,12 @@ export const getActiveArticle = async (access_token) => {
       });
 }
 
-export const getActiveSalesTaxBexio = async (access_token) => {
+export const getActiveSalesTaxBexio = async (access_token,tax_id) => {
 
   return new Promise(async(resolve, reject) => {
         var options = {
           'method': 'GET',
-          'url': `https://api.bexio.com/3.0/taxes?types=sales_tax&scope=active`,
+          'url': `${config.BEXIO_API}3.0/taxes/${tax_id}`,
           'headers': {
             'Accept': 'application/json',
             'Authorization': 'Bearer '+access_token
