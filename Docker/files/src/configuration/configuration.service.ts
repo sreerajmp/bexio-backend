@@ -304,7 +304,7 @@ export class ConfigurationService {
       resultBc.forEach(async element => {
         beStruct[element.bc_id] = element;
       });
-
+       
       let totalCount;
       if (isBexioUser) {
 
@@ -2021,105 +2021,190 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   }
 }
 
-  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const taxList: any = await getActiveSalesTaxBexio(accessToken);
-      //console.log("taxList :: ",taxList);
-      if( taxList?.status === false ){
-        return res.status(taxList.statuscode).send({
-          status_code: taxList.statuscode,
-          message: taxList.message,
-          status: false,
-        })
-      }
-      //console.log("taxList ",taxList);
-      return res.status(200).send({
-        status: 200,
-        data: taxList,
-      });
-    } catch (error) {
-      //console.log("Error getActiveSalesTaxList :: ",error);
-    }
-  }
+  //     let accessToken = cookie.access_Token;
+  //     const taxList: any = await getActiveSalesTaxBexio(accessToken);
+  //     //console.log("taxList :: ",taxList);
+  //     if( taxList?.status === false ){
+  //       return res.status(taxList.statuscode).send({
+  //         status_code: taxList.statuscode,
+  //         message: taxList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("taxList ",taxList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: taxList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getActiveSalesTaxList :: ",error);
+  //   }
+  // }
 
-  async getUnitList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getUnitList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const unitList: any = await getUnitList(accessToken);
-      if( unitList?.status == false ){
-        return res.status(unitList.statuscode).send({
-          status_code: unitList.statuscode,
-          message: unitList.message,
-          status: false,
-        })
-      }
-      //console.log("unitList ",unitList);
-      return res.status(200).send({
-        status: 200,
-        data: unitList,
+  //     let accessToken = cookie.access_Token;
+  //     const unitList: any = await getUnitList(accessToken);
+  //     if( unitList?.status == false ){
+  //       return res.status(unitList.statuscode).send({
+  //         status_code: unitList.statuscode,
+  //         message: unitList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("unitList ",unitList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: unitList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getUnitList :: ",error);
+  //   }
+  // }
+  // async getActiveAccounts(req: Request, res: Response): Promise<any> {
+  //   //console.log("getActiveAccounts")
+  //   try {
+  //     let reqTaxId = req.body.tax_id;
+  //     //console.log(reqTaxId)
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
+      
+  //     let accessToken = cookie.access_Token;
+  //     let isBexioUser = cookie.isBexioUser;
+  //     const activeAccounts: any = await getActiveAccounts(accessToken);
+  //     if( activeAccounts?.status == false ){
+  //       return res.status(activeAccounts.statuscode).send({
+  //         status_code: activeAccounts.statuscode,
+  //         message: activeAccounts.message,
+  //         status: false,
+  //       })
+  //     }
+  //     let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
+  //     //console.log("newAccountList :: ",newAccountList.length);
+  //     //console.log("activeAccounts ",activeAccounts.length);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: newAccountList,
+  //     });
+  //   } catch (error) {
+
+  //     //console.log("Error getActiveAccounts :: ",error);
+  //   }
+  // }
+
+ async getArticleDetails(req: Request, res: Response): Promise<any> {
+  try {
+    const { taxId, unitId, accountId } = req.body;
+
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+    if (!cookieData) {
+      return res.status(500).send({
+        status_code: 500,
+        message: 'Missing_cookie',
+        status: false,
       });
-    } catch (error) {
-      //console.log("Error getUnitList :: ",error);
     }
-  }
-  async getActiveAccounts(req: Request, res: Response): Promise<any> {
-    //console.log("getActiveAccounts")
-    try {
-      let reqTaxId = req.body.tax_id;
-      //console.log(reqTaxId)
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
-      
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
+
+    const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+    const accessToken = cookie.access_Token;
+
+    let accountList: any[] = [];
+    let unit: any ;
+    let tax: any ;
+
+    // Fetch account
+    if (accountId) {
       const activeAccounts: any = await getActiveAccounts(accessToken);
-      if( activeAccounts?.status == false ){
+      if (activeAccounts?.status === false) {
         return res.status(activeAccounts.statuscode).send({
           status_code: activeAccounts.statuscode,
           message: activeAccounts.message,
           status: false,
-        })
+        });
       }
-      let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
-      //console.log("newAccountList :: ",newAccountList.length);
-      //console.log("activeAccounts ",activeAccounts.length);
-      return res.status(200).send({
-        status: 200,
-        data: newAccountList,
-      });
-    } catch (error) {
-
-      //console.log("Error getActiveAccounts :: ",error);
+      accountList = activeAccounts.filter(item => item.id == accountId);
+      console.log('Filtered Account:', accountList);
     }
+
+    // Fetch unit
+    if (unitId) {
+      unit = await getUnitList(accessToken, unitId);
+      if (unit?.status === false) {
+        return res.status(unit.statuscode).send({
+          status_code: unit.statuscode,
+          message: unit.message,
+          status: false,
+        });
+      }
+      console.log('Unit:', unit);
+    }
+
+    // Fetch tax
+    if (taxId) {
+      tax = await getActiveSalesTaxBexio(accessToken, taxId);
+      if (tax?.status === false) {
+        return res.status(tax.statuscode).send({
+          status_code: tax.statuscode,
+          message: tax.message,
+          status: false,
+        });
+      }
+      console.log('Tax:', tax);
+    }
+
+    const result = {
+      account: accountList.length > 0 ? accountList[0] : {},
+      unit: unit || {},
+      tax: tax || {},
+    };
+
+    return res.status(200).send({
+      status: 200,
+      data: result,
+    });
+  } catch (error) {
+    const responseValue = JSON.stringify(req.body);
+    commonErrors['errorTitle'] = req.originalUrl;
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param: ${responseValue}`;
+    warningMessage(commonErrors, error);
+
+    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+      status_code: 500,
+      message: 'something_went_wrong',
+      status: false,
+    });
   }
+}
+
   async getActiveArticle(req: Request, res: Response): Promise<any> {
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
