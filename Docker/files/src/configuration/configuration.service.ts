@@ -2135,6 +2135,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
     const accessToken = cookie.access_Token;
+   
     let accountList: any[] = [];
     let unit: any ;
     let tax: any ;
@@ -2142,6 +2143,8 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     // Fetch account
     if (accountId && accountId!='null') {
       activeAccounts = await getActiveAccounts(accessToken);
+      console.log('activeAccounts',activeAccounts);
+      if(activeAccounts?.status === true)
       accountList = activeAccounts.filter(item => item.id == accountId);
     
     }
@@ -2159,9 +2162,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       console.log('Tax:', tax);
     }
     const result = {
-      account:activeAccounts?.status === false?{}: accountList.length > 0 ? accountList[0] : {},
-      unit: unit?.status === false?{}: unit|| {},
-      tax: tax?.status === false?{}:tax || {},
+      account:activeAccounts?.status === false?null: accountList.length > 0 ? accountList[0] : null,
+      unit: unit?.status === false?null: unit|| null,
+      tax: tax?.status === false?null:tax || null,
     };
 
     return res.status(200).send({
