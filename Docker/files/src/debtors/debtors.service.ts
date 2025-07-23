@@ -922,7 +922,7 @@ export class DebtorsService {
     // //console.log('getConnectionBc',getConnectionBc);
     // let resultArray = getConnectionBc[0]?.array_agg;
     let resultArray=await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
-    //console.log('resultArray',resultArray);
+  console.log('resultArray',resultArray);
 
       if(isBexioUser){
          var options
@@ -966,9 +966,9 @@ export class DebtorsService {
           });
           }
         let resData = Array.isArray(JSON.parse(response.body))?JSON.parse(response.body):[JSON.parse(response.body)];    
-console.log('resData', resData);
+// console.log('resData', resData);
 
-console.log('resData', resData);
+// console.log('resData', resData);
           if(response.statusCode != 200)
             return res.status(response.statusCode).json({
             status: false,
@@ -976,14 +976,16 @@ console.log('resData', resData);
             });
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
-            console.log('**********************',typeof resData[deliveryNotes])
-            console.log('**********************', resData[deliveryNotes])
+            // console.log('**********************',typeof resData[deliveryNotes])
+            // console.log('**********************', resData[deliveryNotes].contact_id)
              if (typeof resData[deliveryNotes] !== 'object' ) {
     continue;
   }
             tempStatus = false;
-            resData[deliveryNotes]['allowSend'] =  true;
-            // resultArray?resData[deliveryNotes]['allowSend'] = resultArray.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
+            // resData[deliveryNotes]['allowSend'] =  true;
+            console.log('test',resultArray.includes((resData[deliveryNotes].contact_id)));
+              console.log('**********************', resData[deliveryNotes].contact_id)
+            resultArray?resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];
