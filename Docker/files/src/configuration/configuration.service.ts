@@ -2124,7 +2124,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
  async getArticleDetails(req: Request, res: Response): Promise<any> {
   try {
     const { taxId, unitId, accountId } = req.body;
-
     const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
     if (!cookieData) {
       return res.status(500).send({
@@ -2136,55 +2135,33 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
     const accessToken = cookie.access_Token;
-
     let accountList: any[] = [];
     let unit: any ;
     let tax: any ;
-
+    let activeAccounts: any
     // Fetch account
-    if (accountId) {
-      const activeAccounts: any = await getActiveAccounts(accessToken);
-      if (activeAccounts?.status === false) {
-        return res.status(activeAccounts.statuscode).send({
-          status_code: activeAccounts.statuscode,
-          message: activeAccounts.message,
-          status: false,
-        });
-      }
+    if (accountId && accountId!='null') {
+      activeAccounts = await getActiveAccounts(accessToken);
       accountList = activeAccounts.filter(item => item.id == accountId);
-      console.log('Filtered Account:', accountList);
+    
     }
 
     // Fetch unit
-    if (unitId) {
+    if (unitId && unitId!='null') {
+        console.log('Filtered Account:', unitId);
       unit = await getUnitList(accessToken, unitId);
-      if (unit?.status === false) {
-        return res.status(unit.statuscode).send({
-          status_code: unit.statuscode,
-          message: unit.message,
-          status: false,
-        });
-      }
       console.log('Unit:', unit);
     }
 
     // Fetch tax
-    if (taxId) {
+    if (taxId && taxId!='null') {
       tax = await getActiveSalesTaxBexio(accessToken, taxId);
-      if (tax?.status === false) {
-        return res.status(tax.statuscode).send({
-          status_code: tax.statuscode,
-          message: tax.message,
-          status: false,
-        });
-      }
       console.log('Tax:', tax);
     }
-
     const result = {
-      account: accountList.length > 0 ? accountList[0] : {},
-      unit: unit || {},
-      tax: tax || {},
+      account:activeAccounts?.status === false?{}: accountList.length > 0 ? accountList[0] : {},
+      unit: unit?.status === false?{}: unit|| {},
+      tax: tax?.status === false?{}:tax || {},
     };
 
     return res.status(200).send({
