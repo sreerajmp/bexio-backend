@@ -2143,10 +2143,10 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     // Fetch account
     if (accountId && accountId!='null') {
       activeAccounts = await getActiveAccounts(accessToken);
-      console.log('activeAccounts',activeAccounts);
+      console.log('activeAccounts',activeAccounts.status );
       if(activeAccounts?.status === true)
-      accountList = activeAccounts.filter(item => item.id == accountId);
-    
+      accountList = activeAccounts.data.filter(item => item.id == accountId);
+    console.log('activeAccounts',activeAccounts.data.filter(item => item.id == accountId));
     }
 
     // Fetch unit
@@ -2161,12 +2161,14 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       tax = await getActiveSalesTaxBexio(accessToken, taxId);
       console.log('Tax:', tax);
     }
+
       if (articleId && articleId!='null') {
       article = await getActiveItem(accessToken,articleId);
       console.log('article',article);
   
     
     }
+    
     const result = {
       account:activeAccounts?.status === false?null: accountList.length > 0 ? accountList[0] : null,
       unit: unit?.status === false?null: unit|| null,

@@ -4676,10 +4676,18 @@ export const getActiveAccounts = async (access_token) => {
             resolve(false)
           }
           // res.send(response.body)
-         console.log("response.statusCode :: ",response.statusCode);
+        // console.log("response.statusCode :: ",response.statusCode);
          
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+          {
+              let returnData = {
+              statuscode: response.statusCode,
+              data:JSON.parse(response.body),
+              message: response.statusMessage,
+              status: true
+            }
+            resolve(returnData)
+          }
           else{
             let returnObject = {
               statuscode: response.statusCode,
