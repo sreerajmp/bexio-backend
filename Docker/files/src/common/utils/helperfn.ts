@@ -4240,8 +4240,7 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
 
 }
 export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  console.log('EMAIL:::',typeof(invoice.companyProfile));
-  console.log('EMAIL:::',invoice.companyProfile[0]);
+  console.log('EMAIL:::',invoice?.companyProfile);
    
  
    let emptyValue = 'NA'
@@ -4963,22 +4962,20 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
 export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
     const decryptData = invoices;
-      const invoice_id = invoices?.doc_id;
-      const bill_recipient_email = invoices?.bill_recipient_email ?? '';
-      const invoice_uuid = invoices?.invoice_uuid;
-      const partyId = bodyValues?.partyId;
+    const invoice_id = invoices?.doc_id;
+    const bill_recipient_email = invoices?.bill_recipient_email ?? '';
+    const invoice_uuid = invoices?.invoice_uuid;
+    const partyId = bodyValues?.partyId;
     try {
-      console.log('pushPrintInvoice',bodyValues);
-      // return resolve('success');
-       
-      let article:any = null;
+      console.log('pushPrintInvoice', bodyValues);
+      let article: any = null;
       let pdf, fileName, pdfContent;
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
-      console.log('invoice::::', typeof(invoice.positions ));
+      console.log('invoice::::', typeof (invoice.positions));
       console.log('invoice::::', invoice.positions);
-       let contact :any = await getContact(accessToken, invoice.contact_id);
+      let contact: any = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
@@ -5014,175 +5011,178 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       };
       let options = {
         method: 'POST',
-        url: config.PYTHON_API+'get-print-settings',
+        url: config.PYTHON_API + 'get-print-settings',
         form: { form: JSON.stringify(formData) }
       };
       request(options, async function (error, response) {
         console.log('error', error);
-            console.log('response.getArticle', response.statusCode);
+        console.log('response.getArticle', response.statusCode);
 
         // Parse response.body and extract "Article" from client_json
         try {
-          if(error) {
+          if (error) {
             console.log('error article', error);
-             await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
+            await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
             commonErrors['errorTitle'] = 'getArticle';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
-            warningMessage(commonErrors,error);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken;
+            warningMessage(commonErrors, error);
             return resolve(error);
           }
 
-          if(response.statusCode == 200) {
-          const resp = JSON.parse(response.body);
-          
-          console.log('Extracted article:', article);
-          console.log('resp', resp);
+          if (response.statusCode == 200) {
+
+            const resp = JSON.parse(response.body);
+            console.log('Extracted article:', article);
+            console.log('resp', resp);
             article = resp?.data?.client_json?.Article;
-           
-      
-          if (article) {
-             // Validate that article has all required fields and none are empty/undefined/null
-          console.log('article herererere', article );
 
-            const requiredFields = [
-            "amount",
-            "unit_id",
-            "account_id",
-            "tax_id",
-            "text",
-            "unit_price",
-            "discount_in_percent",
-            "article_id"
-            ];
-            article= Object.fromEntries(
-              requiredFields.map(key => [key, article[key]])
-            );
-            const isArticleValid = article && requiredFields.every(
-            key => article[key] !== undefined && article[key] !== null && article[key] !== ""
-            );
-            if (!isArticleValid) {
-              console.error('Article is missing required fields or has empty values:', article);
-              
-              // Stop the process if article is invalid or null
-              let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
-              warningMessage(commonErrors, 'invalid_article');
-              resolve('something_went_wrong' + invoiceCid);
-              return;
-            }
-          
-            const invPosUpdate:any = null
-             console.log("article::::",article);
-            let isArticleFound = false;
-            for (const item of invoice.positions) {
-              if(item.article_id == article.article_id){
-              console.log('Matching position found for item:', item);
-              isArticleFound = true;
-              break;
+            if (article) {
+              // Validate that article has all required fields and none are empty/undefined/null
+              console.log('article herererere', article);
+              const invPosUpdate: any = null
+              let isArticleFound = false;
+              for (const item of invoice.positions) {
+                if (item.article_id == article.article_id) {
+                  console.log('Matching position found for item:', item);
+                  isArticleFound = true;
+                  break;
+                }
               }
-              // if (isArticleMatch(item, article)) {
-              //   console.log('Matching position found:', item);
-              //   isArticleFound = true;
-              //   break;
-              // }
-              
-            }
-            if(! isArticleFound){
+              if (!isArticleFound) {
                 console.log('No matching position found for item:');
-                console.log('article',article);
-                
-                const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
-                console.log('invPosUpdate::::', invPosUpdate);
+                console.log('article', article);
+                let articleDetail: any = await getActiveItem(accessToken, article.article_id);
 
+                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
+                  console.log('articleDetail::::', articleDetail);
+
+                  let printArticle = {
+                    "amount": '1.000000',
+                    "unit_id": articleDetail.unit_id,
+                    "account_id": articleDetail.account_id,
+                    "tax_id": articleDetail.tax_id,
+                    "text": articleDetail.name,
+                    "unit_price": articleDetail.sale_price,
+                    "discount_in_percent": '0.000000',
+                    "article_id": articleDetail.id
+                  }
+                  const invPosUpdate = await updateInvoicePosition(invoice_id, printArticle, accessToken);
+                  console.log('invPosUpdate::::', invPosUpdate);
+                }
+                else {
+                  console.error('Article is missing required fields or has empty values:', articleDetail);
+
+                  // Stop the process if articleDetail is invalid or null
+                  let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
+                  commonErrors['errorTitle'] = invoices.originalUrl;
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
+                  warningMessage(commonErrors, 'invalid_article');
+                  resolve('something_went_wrong' + invoiceCid);
+                  return;
+                }
+
+              }
+            } else {
+              console.log('Article not found in config, skipping update.');
             }
-
-          } else {
-            console.log('Article not found in config, skipping update.');
           }
+          const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
+          console.log('invoice::::2', invoice2);
+
+          pdf = await getInvoicePdf(accessToken, invoice_id);
+          // console.log('pdf::::', pdf, invoice_id);
+          if (pdf?.response == 401) {
+            console.log('unauthorized');
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'unauthorized');
+            resolve('unauthorized' + invoiceCid);
+            return;
+          }
+          if (!pdf) {
+            console.log('pdf not found');
+
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'email_pdf_not_found');
+            resolve('something_went_wrong' + invoiceCid);
+            return;
           }
 
-           
-      const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
-      console.log('invoice::::2', invoice2);      
+          pdfContent = JSON.parse(pdf).content;
+          fileName = JSON.parse(pdf).name;
 
-      pdf = await getInvoicePdf(accessToken, invoice_id);
-      // console.log('pdf::::', pdf, invoice_id);
-      if (pdf?.response == 401) {
-        console.log('unauthorized');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'unauthorized');
-        resolve('unauthorized' + invoiceCid);
-        return;
-      }
-      if (!pdf) {
-        console.log('pdf not found');
+          let coutryList;
+          coutryList = await getCountryLists(accessToken);
+          if (!coutryList) {
+            resolve('coutryList not found');
+            return;
+          }
+          coutryList = JSON.parse(coutryList);
 
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_pdf_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+          invoice.contact = contact;
+          let temp = await getloginUserCompanyDetails(accessToken);
+            console.log("getloginUserCompanyDetails:",typeof(temp));  
+            console.log("getloginUserCompanyDetails:",temp);  
+            if(!temp){
+             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
+              return resolve('getloginUserCompanyDetails_not_found');
+            }
+            invoice['companyProfile'] = temp;
+            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+        let currency = await getCurrency(accessToken,invoice.currency_id);
+            if(!currency){
+              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'currency_not_found');
+              return resolve('currency_not_found');
+            }
+            invoice['currency'] = currency;
+          let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
-      pdfContent = JSON.parse(pdf).content;
-      fileName = JSON.parse(pdf).name;
+          if (xml == false) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'email_xml_not_found');
+            resolve('something_went_wrong' + invoiceCid);
+            return;
+          }
 
-      let coutryList;
-      coutryList = await getCountryLists(accessToken);
-      if (!coutryList) {
-        resolve('coutryList not found');
-        return;
-      }
-      coutryList = JSON.parse(coutryList);
-     
-      invoice.contact = contact;
-      let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
+          let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+          console.log('filePush::::', filePush, channel);
 
-      if (xml == false) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_xml_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+          if (filePush) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+            console.log('invoiceCid::::', invoiceCid);
 
-      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-      console.log('filePush::::', filePush,channel);
-      
-      if (filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
-        console.log('invoiceCid::::', invoiceCid);
+            resolve(invoiceCid);
+            return;
+          }
 
-        resolve(invoiceCid);
-        return;
-      }
-
-      if (!filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        resolve(invoiceCid);
-        return;
-      }
+          if (!filePush) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            resolve(invoiceCid);
+            return;
+          }
 
         } catch (err) {
-           await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+          await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
           console.error('Failed to parse response or extract Article:', err);
         }
 
       });
-      // return
-      console.log("options",options);
-      console.log('invoices::::', invoices,channel);
+      console.log("options", options);
+      console.log('invoices::::', invoices, channel);
 
-     
-
-     
     } catch (error) {
-       await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
     }
