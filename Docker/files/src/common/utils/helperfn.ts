@@ -4762,6 +4762,39 @@ export const getActiveSalesTaxBexio = async (access_token,tax_id) => {
         });
       });
 }
+export const getActiveItem = async (access_token,article_id) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `${config.BEXIO_API}2.0/article/${article_id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+        
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject)
+          }
+
+        });
+      });
+}
 export const getContactSearch = async (accessToken,searchJson) => {
 
   return new Promise(async(resolve, reject) => {
