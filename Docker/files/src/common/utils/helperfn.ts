@@ -1372,6 +1372,27 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
       invoice.contact = contact;
+       let temp = await getloginUserCompanyDetails(accessToken);
+            console.log("getloginUserCompanyDetails:",typeof(temp));  
+            console.log("getloginUserCompanyDetails:",temp);  
+            if(!temp){
+             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
+              return resolve('getloginUserCompanyDetails_not_found');
+            }
+            invoice['companyProfile'] = temp;
+            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+        let currency = await getCurrency(accessToken,invoice.currency_id);
+            if(!currency){
+              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'currency_not_found');
+              return resolve('currency_not_found');
+            }
+            invoice['currency'] = currency;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
@@ -4219,7 +4240,8 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
 
 }
 export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  // console.log('EMAIL:::',invoice,bill_recipient_email);
+  console.log('EMAIL:::',typeof(invoice.companyProfile));
+  console.log('EMAIL:::',invoice.companyProfile[0]);
    
  
    let emptyValue = 'NA'
@@ -4293,7 +4315,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
        "PARTIES": [{
            "PARTY": [{
                "bmecat:PARTY_ID": [{
-                   "_": billerDetails['billerid']??undefined,
+                   "_": billerDetails['billerid']??'00000000',
                    "$": {
                        "type": "party_specific"
                    }
@@ -4301,16 +4323,16 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                }],
                "PARTY_ROLE": "invoice_issuer",
                "ADDRESS": [{
-                    "bmecat:NAME": invoice?.companyProfile?.companyProfile[0].name || undefined,
-                    "bmecat:STREET": invoice?.companyProfile?.companyProfile[0].address || undefined,
-                    "bmecat:ZIP": invoice?.companyProfile?.companyProfile[0].postcode || undefined,
-                    "bmecat:CITY": invoice?.companyProfile?.companyProfile[0].city || undefined,
-                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
+                    "bmecat:NAME": invoice?.companyProfile[0].name || undefined,
+                    "bmecat:STREET": invoice?.companyProfile[0].address || undefined,
+                    "bmecat:ZIP": invoice?.companyProfile[0].postcode || undefined,
+                    "bmecat:CITY": invoice?.companyProfile[0].city || undefined,
+                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
                 }]
  
            }, {
                "bmecat:PARTY_ID": [{
-                   "_": billerDetails['recipientid']||undefined,
+                   "_": billerDetails['recipientid']||'00000000',
                    "$": {
                        "type": "party_specific"
                    }
@@ -4339,7 +4361,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                "type": "party_specific"
            }
        }],
-       "bmecat:CURRENCY": invoice?.currency?.currency['name']|| undefined,
+       "bmecat:CURRENCY": invoice?.currency['name']|| undefined,
        "MIME_INFO":[{
          "MIME":[{
            "MIME_EMBEDDED":{
@@ -4878,9 +4900,9 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
           
           if (error) {  
             console.log('error', error);
-            // commonErrors['errorTitle'] = 'kb_position_article';
-            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            // warningMessage(commonErrors,error);
+            commonErrors['errorTitle'] = 'kb_position_article';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
             resolve(false)
           }
           console.log("response.statusCode :: ",response.statusCode);
@@ -4893,14 +4915,6 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
          console.log("kb_position_article :: ",response.body);
           }      
         
-          // else{
-          //   let returnObject = {
-          //     statuscode: response.statusCode,
-          //     message: response.statusMessage,
-          //     status: false
-          //   }
-          //   resolve(returnObject)
-          // }
 
         });
       });
@@ -5021,11 +5035,16 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
              console.log("article::::",article);
             let isArticleFound = false;
             for (const item of invoice.positions) {
-              if (isArticleMatch(item, article)) {
-                console.log('Matching position found:', item);
-                isArticleFound = true;
-                break;
+              if(item.article_id == article.article_id){
+              console.log('Matching position found for item:', item);
+              isArticleFound = true;
+              break;
               }
+              // if (isArticleMatch(item, article)) {
+              //   console.log('Matching position found:', item);
+              //   isArticleFound = true;
+              //   break;
+              // }
               
             }
             if(! isArticleFound){
