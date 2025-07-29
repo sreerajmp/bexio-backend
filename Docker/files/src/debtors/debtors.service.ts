@@ -1068,13 +1068,14 @@ export class DebtorsService {
     try {
         if( data.printInvoices ){
        
-          console.log("data.printInvoices", data.printInvoices);
+         console.log("data.printInvoices", data.printInvoices);
           for (const item of JSON.parse(data.printInvoices)|| []) {
 
             let selectedItem = item;
-              combinedResponse.otherInvoiceResults.push(selectedItem);
-
+            // combinedResponse.otherInvoiceResults.push(selectedItem);
+  
             console.log("selectedItem :: ",selectedItem);
+            console.log("combinedResponse :: ",combinedResponse);
             try {
 
               // Construct request body parameters
@@ -1104,15 +1105,19 @@ export class DebtorsService {
 
               // Process the selected invoice and get a unique invoice UUID
               let invoice_uuid = await processInvoices(selectedItem, bodyParams)
-              console.log("invoice_uuid:::", invoice_uuid);
+            console.log("invoice_uuid:::", invoice_uuid);
 
-              // Attach the UUID to the invoice object
-              selectedItem['invoice_uuid'] = invoice_uuid[0];
-              selectedItem['tag'] = 'print';
+            // Attach the UUID to the invoice object
+            selectedItem['invoice_uuid'] = invoice_uuid[0];
+            selectedItem['tag'] = 'print';
 
-              // Initialize or reset the emailInvoice array in the combined response
-              await combinedResponse.otherInvoiceResults.push(selectedItem);
-              console.log("processInvoicesXXX:::", selectedItem);
+            // Push the selectedItem into the otherInvoiceResults array
+            if (!Array.isArray(combinedResponse.otherInvoiceResults)) {
+              combinedResponse.otherInvoiceResults = [];
+            }
+            combinedResponse.otherInvoiceResults.push(selectedItem);
+
+            console.log("processInvoicesXXX:::", combinedResponse);
               // Use the PushWorkerHost to run the worker task
 
               // Trigger a background worker task to handle invoice processing (e.g., print job)
@@ -1128,10 +1133,13 @@ export class DebtorsService {
         }
         if (data.otherInvoice) {
             let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
-            console.log('getTag', getTag);
-            combinedResponse.otherInvoiceResults = getTag?.data || [];
-
-            for (const item of getTag?.data || []) {
+       //     console.log('getTag', getTag);
+          combinedResponse.otherInvoiceResults = [
+            ...(combinedResponse.otherInvoiceResults || []),
+            ...(getTag?.data || [])
+          ];
+          console.log("processInvoicesXXX1", combinedResponse);
+          for (const item of getTag?.data || []) {
                 if (item.tag === "ebill") {
                  let selectedEbillItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
                   console.log("selectedEbillItem", selectedEbillItem);
@@ -1248,9 +1256,8 @@ export class DebtorsService {
                   const results:any = [];
                   for (let index = 0; index < obj.length; index++) {
                     console.log("Processing invoice:", obj[index]);
-                    
-                      const element = obj[index];
-                     console.log("element:",element);
+                    const element = obj[index];
+                    console.log("element:",element);
                       const result = await setInvoiceSendStatus(bodyData.partyId, element.invoiceId,element.documentNumber, '1', '','EDI',element.contactId);
                       results.push(result);
                   }
