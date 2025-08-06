@@ -1427,8 +1427,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushInvoiceTestProcess = async (invoices,billerId)=>{
-console.log('pushInvoiceTestProcess',invoices);
+export const pushEbillInvoiceProcess = async (invoices,billerId)=>{
+console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
     body:{
@@ -1447,11 +1447,11 @@ console.log('pushInvoiceTestProcess',invoices);
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['token'] = tempIds.accessToken;
-      let v = await pushInvoiceTest1(tempParam,'')
+      let v = await pushEbillInvoice(tempParam,'')
     }
 }
-export const pushInvoiceTest1 = async (req, res) => {
-console.log('pushInvoiceTest1',req.body);
+export const pushEbillInvoice = async (req, res) => {
+console.log('pushEbillInvoice',req.body);
 
   return new Promise(async (resolve, reject) => {
 
@@ -2072,7 +2072,8 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
           }
          ////console.log('notifiBexionotifiBexio',options);
     
-         ////console.log('notifiBexionotifiBexio',response.body);
+         console.log('notifiBexionotifiBexio statusCode',response.statusCode);
+         console.log('notifiBexionotifiBexio',response.body);
          ////console.log('typeoftypeof',typeof(response.body));
           let resStatus;
           if(typeof(response.body) == 'object'){
