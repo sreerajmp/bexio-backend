@@ -2072,7 +2072,8 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
           }
          ////console.log('notifiBexionotifiBexio',options);
     
-         ////console.log('notifiBexionotifiBexio',response.body);
+         console.log('notifiBexionotifiBexio statusCode',response.statusCode);
+         console.log('notifiBexionotifiBexio',response.body);
          ////console.log('typeoftypeof',typeof(response.body));
           let resStatus;
           if(typeof(response.body) == 'object'){
