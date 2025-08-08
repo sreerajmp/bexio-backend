@@ -230,18 +230,12 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   return new Promise(async(resolve, reject) => {
     var options = {
       'method': 'GET',
-      // 'url': 'https://api.bexio.com/2.0/contact/search',
       'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
       'headers': {
         'Accept': 'application/json',
         'Authorization': 'Bearer ' + token
       }
-    };
-    ////console.log({
-    //   offset: offset,
-    //   limit: limit
-    // });
-    
+    };    
       request(options, function (error, response) {
         if (error) {  
           commonErrors['errorTitle'] = 'deliveryNotesList';
@@ -264,55 +258,53 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-export const getTagName = async(netcom_id,details)=>{
-    
-  try { 
-  
+export const getTagName = async (netcom_id, details) => {
+
+  try {
+
     const data = {
       netcom_id: netcom_id,
       module: 'BEX',
-      file_list:JSON.parse(details)
+      file_list: JSON.parse(details)
     };
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
     };
-var options = {
-  'method': 'POST',
-  'url': `${config.OCTOPUS_URL}/bexio_file_check`,
-  formData: formData
+    var options = {
+      'method': 'POST',
+      'url': `${config.OCTOPUS_URL}/bexio_file_check`,
+      formData: formData
 
-};
-   ////console.log('options',options);
-    
+    };
+
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
-      
-        if(error){
+
+        if (error) {
           commonErrors['errorTitle'] = 'getPythonData';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
           warningMessage(commonErrors, error);
           return resolve(error)
         }
-        else{
-          try{
-            ////console.log('response.bodyresponse.body',response.body);
-            resolve(JSON.parse(response.body));   
-         
+        else {
+          try {
+            resolve(JSON.parse(response.body));
+
           }
-          catch{
+          catch {
             return resolve(error)
           }
         }
       })
-      
-      });
-     
+
+    });
+
   }
-   catch (error) {
+  catch (error) {
     commonErrors['errorTitle'] = 'getPythonData';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
     warningMessage(commonErrors, error);
-    
+
   }
 
 }
@@ -2130,39 +2122,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
       cid: true,
     },
   });
-  const updateBexioConatct = async (bexioCustomerId, receiptId) => {
-    return new Promise(async (resolve, reject) => {
-      let data = {
-        ebill_pid: receiptId
-      }
-      const options = {
-        method: 'PATCH',
-        url: `https://api.bexio.com/3.0/contact/${bexioCustomerId}`,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(data)
-      };
-      await request(options, async function (error, response) {
-        if (error) {
-         ////console.log(error);
-          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioConatct'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'billerId--' + billerId + '--receiptId--' + receiptId + '--contactId--' + contactId + '--accessToken--' + accessToken;
-          warningMessage(commonErrors, error);
-          resolve(false);
-        }
-        if (response.statusCode == 200) {
-          let responseData = JSON.parse(response.body)
-          resolve(responseData);
-        }
-        else {
-          resolve(false);
-        }
-      })
-    })
-  }
+  
   if (getrecipientId.recordset.length) {
     if (getrecipientId.recordset[0].islinked) {
       await transaction.commit();
@@ -2200,7 +2160,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
       WHERE recipientid ='${receiptId}'
        AND fk_biller = '${getrecipientId.recordset[0].fk_biller}'`;
       await new sql.Request(transaction).query(updateRecipientQuery)
-      let bexioUpdate = await updateBexioConatct(contactId, receiptId)
+      let bexioUpdate = await updateBexioContact(accessToken,contactId, receiptId)
      ////console.log("bexioUpdate from if-----", bexioUpdate);
       if (bexioUpdate) {
         await transaction.commit();
@@ -2250,7 +2210,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
             },
           });
     }
-    let bexioUpdate:any = await updateBexioConatct(contactId, receiptId)
+    let bexioUpdate:any = await updateBexioContact(accessToken,contactId, receiptId)
    ////console.log("bexioUpdate from else-----",bexioUpdate);
 
     const getCountry = async (countryId) => { 
@@ -2344,6 +2304,39 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
     return bexioUpdate;
   }
 }
+export const updateBexioContact = async (accessToken,bexioCustomerId, receiptId) => {
+    return new Promise(async (resolve, reject) => {
+      let data = {
+        ebill_pid: receiptId
+      }
+      const options = {
+        method: 'PATCH',
+        url: `https://api.bexio.com/3.0/contact/${bexioCustomerId}`,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(data)
+      };
+      await request(options, async function (error, response) {
+        if (error) {
+         ////console.log(error);
+          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioContact'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + '--receiptId--' + receiptId + '--contactId--' + bexioCustomerId + '--accessToken--' + accessToken;
+          warningMessage(commonErrors, error);
+          resolve(false);
+        }
+        if (response.statusCode == 200) {
+          let responseData = JSON.parse(response.body)
+          resolve(responseData);
+        }
+        else {
+          resolve(false);
+        }
+      })
+    })
+  }
 export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
  console.log('EBILLLL',billerDetails);
   
