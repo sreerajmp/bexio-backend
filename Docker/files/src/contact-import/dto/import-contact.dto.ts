@@ -12,3 +12,11 @@ export class ImportContactDto {
   netcomid: string;
   // Add any filters or options needed for import
 }
+export class SyncEbillConactDto {
+  @ApiProperty()
+
+  @ApiProperty()
+  @IsString()
+  billerId: string;
+  // Add any filters or options needed for import
+}

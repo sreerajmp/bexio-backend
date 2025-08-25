@@ -1,14 +1,15 @@
 // Handles HTTP endpoints for importing contacts from Salesforce and pushing to Bexio
-import { Controller, Post, Body, Get, Query, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseInterceptors, Req, Res } from '@nestjs/common';
 import { ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ContactImportService } from './contact-import.service';
-import { ImportContactDto } from './dto/import-contact.dto';
+import { ImportContactDto, SyncEbillConactDto } from './dto/import-contact.dto';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { Request, Response } from 'express';
 
 @ApiTags('Contact Import')
 @Controller('contact-import')
 export class ContactImportController {
-  constructor(private readonly contactImportService: ContactImportService) {}
+  constructor(private readonly contactImportService: ContactImportService) { }
 
   @Post('import')
   @UseInterceptors(AnyFilesInterceptor())
@@ -49,5 +50,13 @@ export class ContactImportController {
       return { message: 'No job found for this netcomid', status: 404 };
     }
     return { status: 200, job };
+  }
+
+  @Post('ebill-sync')
+  @UseInterceptors(AnyFilesInterceptor())
+
+  async ebillSync(@Req() req: Request, @Res() res: Response): Promise<any> {
+
+    return this.contactImportService.ebillSyncBexioContact(req, res);
   }
 }
