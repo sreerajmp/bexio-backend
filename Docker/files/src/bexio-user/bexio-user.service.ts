@@ -423,8 +423,8 @@ export class BexioUserService {
 
   private async bexioUserCreate(userDetails, companyDetails, accessToken, isAdmin, coutryCode, res, req): Promise<any> {
     //console.log('bexioUserCreate::',req);
- 
- 
+
+
     let legalname, streetno, phoneNumber;
     let isNewCompany = false, paymentData, orderId;
     //console.log('1');
@@ -455,8 +455,8 @@ export class BexioUserService {
       const isCompanyAlreadyExists = await connectBexio.companyregistered.findMany({
         where: { rk_csn: rk_csn },
       });
-      console.log("isCompanyAlreadyExists",isCompanyAlreadyExists);
-      
+      console.log("isCompanyAlreadyExists", isCompanyAlreadyExists);
+
       if (isCompanyAlreadyExists.length === 0) {
 
         const companyDeatails = companyDetails[0];
@@ -479,20 +479,15 @@ export class BexioUserService {
         streetno = companyDeatails.address.split(' ').length > 1 ? companyDeatails.address.split(' ').pop() : '';
         phoneNumber = companyDeatails.phone_fixed;
 
-        //console.log(companyDeatails.address.split(' ').length);
-        //console.log(streetno);
-
         if (companyDeatails.address.split(' ').length > 1) {
-          //console.log('streetno');
 
           let tempStreet = companyDeatails.address.split(' ');
           tempStreet.pop();
           companyDeatails.address = tempStreet.join(" ")
 
         }
-        //console.log('companyDeatails', companyDeatails);
-        console.log("isPartyExists",isPartyExists);
-        
+        console.log("isPartyExists", isPartyExists);
+
         if (isPartyExists.length == 0) {
           newCompany = true;
           isNewCompany = true;
@@ -512,13 +507,10 @@ export class BexioUserService {
                   `
           );
 
-          //console.log('getCurrencyCode', getCurrencyCode);
-
-
           party = await partyCreate(companyDeatails, coutryCode, email, getCurrencyCode[0].cid);
           partyId = party.companyCreated;
-          console.log("partyId1234",Number(partyId));
-          
+          console.log("partyId1234", Number(partyId));
+
           await partyServiceUpdate(partyId, 'EDI', 'EDI');
           await addReferenceDetails(partyId)
           async function addReferenceDetails(companyId) {
@@ -539,34 +531,25 @@ export class BexioUserService {
             }
           }
 
-          //console.log('5555555555555555555555555555555555555');
 
           const ediPartyId = await netcomeCreate(party.partyResponse, getCurrencyCode[0].cid);
-          //console.log('ediPartyIdediPartyId', ediPartyId);
-
-
 
           const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
                 SELECT p.objectid FROM party p WHERE p.cid = ${partyId}
-              `);
-
-          //console.log('objectIdobjectIdobjectId', objectId);
-
-          //console.log('partyIdpartyId', partyId);
+              `);         
 
 
           const networkIdG2b = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
                 SELECT cid FROM network  WHERE name = ${'Bexio'}
                 `);
-          console.log("objectId[0]?.objectidobjectId[0]?.objectid",objectId[0]?.objectid);
-          
+          console.log("objectId[0]?.objectidobjectId[0]?.objectid", objectId[0]?.objectid);
+
           const newGate2bId = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
                 INSERT INTO ediparty (fk_network,rk_party,netcomid,fk_currency)
                 VALUES (${networkIdG2b[0]?.cid}, ${objectId[0]?.objectid}::uuid, ${ediPartyId.netcomid}, ${getCurrencyCode[0].cid})
                 RETURNING *
               `);
 
-          //console.log('4444444444444444444444444444444');
 
           netcomeAddress = await netcomGate2b(companyDeatails, party.partyResponse, ediPartyId, coutryCode, newGate2bId[0]?.cid, email);
           console.log('ediPartyId', ediPartyId);
@@ -581,21 +564,21 @@ export class BexioUserService {
           partyUser = false;
         } else {
 
-          console.log("objectId11111111111",isPartyExists[0]?.objectid);
+          console.log("objectId11111111111", isPartyExists[0]?.objectid);
 
 
           const objectId = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
                 SELECT netcomid  FROM ediparty  WHERE  rk_party = ${isPartyExists[0]?.objectid}::uuid
               `);
-          console.log("objectId",objectId);
-          
+          console.log("objectId", objectId);
+
           netcomIdG2b = objectId[0]?.netcomid;
           //console.log(netcomIdG2b);
 
           newCompany = false;
           partyId = isPartyExists[0]?.fk_party;
           console.log();
-          
+
           party = {
             addressMain: '',
             partyResponse: partyId,
@@ -624,8 +607,6 @@ export class BexioUserService {
           contactEmail: '',
           errorFile: ''
         }
-
-        //console.log("data :: ", data);
 
         companyConfirmation(companyDeatails.name, companyDeatails.postcode, companyDeatails.city, companyDeatails.city, coutryCode)
 
@@ -667,17 +648,11 @@ export class BexioUserService {
         ]
         let netComId = isCompanyAlreadyExists[0]?.netcomid;
         // start update edi db change
-
-
         const ediPartyId = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
             SELECT cid  FROM ediparty e WHERE e.netcomid = ${netComId}
           `);
 
-          netcomIdG2b = netComId;
-
-        //console.log('55');
-        //console.log('netComId', netComId);
-
+        netcomIdG2b = netComId;
 
         async function updateAddress(data: any[], type: string) {
           await connectLibrary.$executeRaw(
@@ -699,8 +674,6 @@ export class BexioUserService {
         await updateAddress(addressUpdate, 'main');
         await updateAddress(addressUpdate, 'technical');
 
-
-        //console.log('companyDeatails.legal_form', companyDeatails.legal_form);
         const legalPartyData = [
           companyDeatails.name || '',
           companyDeatails.tax_number || '',
@@ -861,21 +834,17 @@ export class BexioUserService {
         netcomeAddress = await getPartyId(partyId);
       }
       console.log('6666666666666666666666666666666');
-      
+
       let userId = await userCheck(userDetails);
       if (!userId) {
         userId = await saveUser(userDetails);
       }
       let userAccountStatus = await checkUserAccount(userId)
-      // partyId = partyId ;
-      //console.log('partyId2', partyId);
-      //console.log('userAccountStatus', userAccountStatus);
 
 
       let accountId;
 
       if (!userAccountStatus) {
-        //console.log('paraccountaccountaccountaccountaccountaccountaccountaccountty', party);
         console.log("accountaccountaccountaccountaccountaccount");
 
         const accountIdResult = await account(userId, party, userDetails, netcomeAddress, jwt.decode(accessToken)['user_id']);
@@ -887,18 +856,9 @@ export class BexioUserService {
         accountId = userAccountStatus;
 
       }
-      accountIdFinal = await savePartyAcc(partyId, accountId, isAdmin, partyUser);
-
-
-      // let checkInvitationStatus  = await checkInvitation(JSON.parse(companyDetails)[0].name,partyId);
-      //console.log(newCompany);
-      //console.log(netcomIdG2b);
-      //console.log(companyNameGate2b);
+      accountIdFinal = await savePartyAcc(partyId, accountId, isAdmin, partyUser);      
 
       if (newCompany && accountIdFinal != 0) {
-        //console.log('inside');
-
-
 
         const userLanguage = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
               SELECT 
@@ -908,76 +868,65 @@ export class BexioUserService {
               FROM "user" u 
               WHERE u.email = ${email}
             `);
-
-
-        // let parmsSend = config.BEXIO_CONNECTION_CONFIG_SEND || ''
-        //   .replace('$netcom_id$', netcomIdG2b)
-        //   .replace("$name$", companyNameGate2b)
-
-   const parmsSend = {
-        config: {
-    platform: {
-      module: "EDI",
-      config: {
-        type: "network",
-        code: "BEX",
-        direction: "IN"
-      }
-    },
-    include_pdf: "0",
-    netcom_id: netcomIdG2b,
-    name: companyNameGate2b,
-    direction: "IN",
-    fk_doc_type: "Invoice",
-    fk_doc_format: "OpenTrans2.1",
-    fk_netcomid_doc_interface: "WS",
-    status: "1",
-    fk_encoding_details: "utf-8",
-    fk_culture: "en-us",
-    "create-pdf": "0",
-    "create-signed-doc": "0",
-    "export-doc-ref": "0",
-    "validate-sign": "0",
-    "provider":{"provider":"BEX"}
-  }
-};
-
-        //console.log('parms', parms.slice(1, -1));
+        const parmsSend = {
+          config: {
+            platform: {
+              module: "EDI",
+              config: {
+                type: "network",
+                code: "BEX",
+                direction: "IN"
+              }
+            },
+            include_pdf: "0",
+            netcom_id: netcomIdG2b,
+            name: companyNameGate2b,
+            direction: "IN",
+            fk_doc_type: "Invoice",
+            fk_doc_format: "OpenTrans2.1",
+            fk_netcomid_doc_interface: "WS",
+            status: "1",
+            fk_encoding_details: "utf-8",
+            fk_culture: "en-us",
+            "create-pdf": "0",
+            "create-signed-doc": "0",
+            "export-doc-ref": "0",
+            "validate-sign": "0",
+            "provider": { "provider": "BEX" }
+          }
+        };
         console.log('parms', parmsSend);
-        
+
         await setBusinessConnector(JSON.stringify(parmsSend));
-        // let parms = config.BEXIO_CONNECTION_CONFIG_RECEIVE || ''
-        //   .replace('$netcom_id$', netcomIdG2b)
-        //   .replace("$name$", companyNameGate2b)
-        //console.log('parms', parms.slice(1, -1));
-let parms = {
-  config: {
-    platform: {
-      module: "EDI",
-      config: {
-        type: "network",
-        code: "BEX",
-        direction: "OUT"
-      }
-    },
-    netcom_id: netcomIdG2b,
-    name: companyNameGate2b,
-    direction: "OUT",
-    fk_doc_type: "Invoice",
-    fk_doc_format: "OpenTrans2.1",
-    fk_netcomid_doc_interface: "WS",
-    status: "1",
-    fk_encoding_details: "utf-8",
-    fk_culture: "en-us",
-    allow_duplicate: "0",
-    file_export_filename: "%DNO%_%TST:yyyyMMddHHmmss%.xml",
-    "create-pdf": "0",
-    "create-signed-doc": "0",
-    "export-doc-ref": "0",
-    "validate-sign": "0",
-    "provider":{"provider":"BEX"}
-  }
-};
+        
+        let parms = {
+          config: {
+            platform: {
+              module: "EDI",
+              config: {
+                type: "network",
+                code: "BEX",
+                direction: "OUT"
+              }
+            },
+            netcom_id: netcomIdG2b,
+            name: companyNameGate2b,
+            direction: "OUT",
+            fk_doc_type: "Invoice",
+            fk_doc_format: "OpenTrans2.1",
+            fk_netcomid_doc_interface: "WS",
+            status: "1",
+            fk_encoding_details: "utf-8",
+            fk_culture: "en-us",
+            allow_duplicate: "0",
+            file_export_filename: "%DNO%_%TST:yyyyMMddHHmmss%.xml",
+            "create-pdf": "0",
+            "create-signed-doc": "0",
+            "export-doc-ref": "0",
+            "validate-sign": "0",
+            "provider": { "provider": "BEX" }
+          }
+        };
 
 
         console.log('parms', parms);
@@ -985,25 +934,23 @@ let parms = {
 
         await contactUpdate(accountId, partyId, userDetails.email, phoneNumber);
         console.log("contactUpdatecontactUpdate");
-        
+
         await contactUpdateUser(userLanguage[0].cid, partyId)
         console.log("contactUpdateUsercontactUpdateUser");
 
         createOctConfig(netcomIdG2b)
-      } else {
-
-      }
-
-
-
+      } 
       if (isCompanyAlreadyExists.length == 0) {
         let decryptData = encryptionControl.decrypt(req.body.encrToken);
-        //console.log('decryptData', decryptData);
 
         if (decryptData?.planId && decryptData?.subScriptionType) {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
+        }
       }
+      if (isCompanyAlreadyExists.length > 0 && isCompanyAlreadyExists[0]?.netcomid) {
+        createOctConfig(isCompanyAlreadyExists[0]?.netcomid)
       }
+
       if (accountIdFinal != 0) {
 
         // Check whether the company already has a biller role (EBILL_ADMIN or EBILL_USER)
@@ -1017,9 +964,9 @@ let parms = {
         WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`;
 
         // Execute the role check query using parameterized inputs to prevent SQL injection
-        console.log("accountIdFinal",checkRoleQry);
+        console.log("accountIdFinal", checkRoleQry);
 
-        
+
         const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
         SELECT * 
         FROM 
@@ -1031,41 +978,26 @@ let parms = {
         WHERE pa.fk_account=${accountId} AND pa.fk_party =${partyId}  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
         );
 
-        console.log("checkRoleDatacheckRoleDatacheckRoleData",checkRoleData);
-
-      //   const userLanguage = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-      //   SELECT 
-      //     u.language, 
-      //     u.email, 
-      //     u.cid 
-      //   FROM "user" u 
-      //   WHERE u.email = ${email}
-      // `);
+        console.log("checkRoleDatacheckRoleDatacheckRoleData", checkRoleData);
 
 
         // If no EBILL role is found for this account and party
-        if(checkRoleData.length === 0){
-          console.log("netcomIdG2b",netcomIdG2b);
-          
+        if (checkRoleData.length === 0) {
+          console.log("netcomIdG2b", netcomIdG2b);
+
           // Fetch the billerId from Gate2B database using netcomId
           let getBiller = `SELECT id, billerId
           FROM biller
           WHERE netcomid = '${netcomIdG2b}'`
-          // const fetchBillerId = await connectGate2b.$queryRaw<{ id: any; billerId: any }[]>(
-          //   Prisma.sql`
-          //     SELECT id, billerId
-          //     FROM biller
-          //     WHERE netcomid = ${netcomIdG2b}
-          //   `
-          // );
+          
           // connectMssql
           const fetchBillerId = await pool.query(getBiller);
           // Proceed only if a biller record is not found
           console.log(fetchBillerId);
-          console.log("fetchBillerId.recordset",fetchBillerId.recordset);
+          console.log("fetchBillerId.recordset", fetchBillerId.recordset);
 
-          
-          if( fetchBillerId.recordset.length != 0 ){
+
+          if (fetchBillerId.recordset.length != 0) {
 
             // Fetch user and account details from the current (Library) DB
             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -1085,13 +1017,13 @@ let parms = {
                 AND pa.fk_account = ${accountId}
                 AND s."statusLabel" = 'active'`
             );
-            console.log("accountIdFinal",accountId);
-            console.log("parseInt(partyId)",parseInt(partyId));
-            
+            console.log("accountIdFinal", accountId);
+            console.log("parseInt(partyId)", parseInt(partyId));
+
 
             console.log(userDetails);
-            console.log("userDetails[0].partyAccountId",userDetails[0].partyAccountId);
-            
+            console.log("userDetails[0].partyAccountId", userDetails[0].partyAccountId);
+
             // Assign the EBILL role to the party-account-user
             await setEbillRole(
               partyId,
@@ -1100,7 +1032,7 @@ let parms = {
               !isAdmin,     // Flag indicating whether this is an admin or regular user
               'EBILL'       // Role name
             );
-            
+
             // Update the party's service subscription to include EBILL with EDI integration
             await partyServiceUpdate(
               userDetails[0].partyid,
@@ -1141,16 +1073,8 @@ let parms = {
 
 
     } catch (error) {
+      console.log("error", error);
 
-
-      //console.log('error', error);
-
-
-      // commonErrors['errorTitle'] = bexioUserCreate.name;
-      // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
-      // warningMessage(commonErrors,error);
-      console.log("error",error);
-       
       return ({
         status_code: 500,
         message: 'something_went_wrong',
@@ -1161,7 +1085,7 @@ let parms = {
 
     async function setBusinessConnector(params) {
       try {
-      console.log('stringfuu1', params);
+        console.log('stringfuu1', params);
         let fomdata = {
           data: params
         }
@@ -1190,10 +1114,8 @@ let parms = {
 
 
       } catch (error) {
-        //   commonErrors['errorTitle'] = setBusinessConnector.name;
-        //   commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;
-        //   warningMessage(commonErrors,error);
-        // //console.log(error);
+        
+        console.log(error);
 
       }
     }
@@ -1222,8 +1144,8 @@ let parms = {
 
 
     async function setBexioCompany(partyId, rk_csn, netcomIdG2b) {
-      console.log("partyId",partyId);
-      
+      console.log("partyId", partyId);
+
       await connectBexio.companyregistered.create({
         data: {
           rk_party: partyId,
@@ -1440,18 +1362,18 @@ let parms = {
         WHERE fk_party = ${companyID} AND _type = 'company_contact'
 `);
 
-            const getResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      const getResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
           SELECT objectid FROM party p WHERE p.cid = ${companyID}
         `);
 
-        console.log('555555555555555555555555555555555555555555555');
-        
-            const getEdiPartyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
+      console.log('555555555555555555555555555555555555555555555');
+
+      const getEdiPartyResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
           SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
         `);
-        console.log('getEdiResultgetEdiResultgetEdiResultgetEdiResultgetEdiResult');
+      console.log('getEdiResultgetEdiResultgetEdiResultgetEdiResultgetEdiResult');
 
-            const getEdiResult = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
+      const getEdiResult = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
           SELECT cid FROM ediparty e WHERE rk_party = ${getResult[0].objectid}::uuid
         `);
 
@@ -1555,8 +1477,6 @@ let parms = {
         );
 
       } else {
-        //console.log('resultMain.rows else`');
-        //console.log('mobileNumber', mobileNumber);
         await connectLibrary.$executeRaw(
           Prisma.sql`
             INSERT INTO phone (fk_party, "_type", phone, fk_user)
@@ -1574,16 +1494,7 @@ let parms = {
     WHERE fk_party = ${companyID} AND "_type" = 'billing'
   `);
 
-
-      //console.log(chekUserIsEmptyBillingResult[0].fk_user);
-      //console.log(chekUserIsEmptyBillingResult[0]);
-
-      //console.log('666666666666666');
-
       if (!chekUserIsEmptyBillingResult[0].fk_user) {
-        // update address userid
-        //console.log('55555555555555555555555555');
-        //console.log(userId);
 
         await connectLibrary.$queryRaw<any[]>(Prisma.sql`
   UPDATE address
@@ -1601,9 +1512,6 @@ let parms = {
   `);
 
       if (!chekUserIsEmptyTechnicalResult[0].fk_user) {
-        // update address userid
-        //console.log('666666666666666666');
-        //console.log(userId);
 
         await connectLibrary.$queryRaw<any[]>(Prisma.sql`
   UPDATE address 
@@ -1646,7 +1554,7 @@ let parms = {
       const currentDate = new Date();
       //   const pool = await connectPostgres;
       let sex = decryptData.gender.slice(0, 3);
-      
+
       const values = [
         decryptData.given_name || '',
         decryptData.family_name || '',
@@ -1654,7 +1562,7 @@ let parms = {
         sex,
         currentDate
       ];
-      console.log("values",values);
+      console.log("values", values);
 
       const result = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       INSERT INTO "user" 
@@ -1669,7 +1577,7 @@ let parms = {
       RETURNING cid
     `);
 
-    console.log("resultresultresult",result[0]?.cid);
+      console.log("resultresultresult", result[0]?.cid);
 
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
@@ -1681,9 +1589,7 @@ let parms = {
     }
 
 
-    async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {
-      //console.log('account');
-      //console.log(resultdata);
+    async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
 
       const valuesaccount = [
         resultdata || '',
@@ -1692,7 +1598,6 @@ let parms = {
         decryptData.email || ''
 
       ];
-      //console.log('1');
 
       if (partyData.addressCid) {
         await connectLibrary.$executeRaw(
@@ -1704,7 +1609,6 @@ let parms = {
 
 
       }
-      //console.log('2');
 
       if (partyData.billingCid) {
         await connectLibrary.$executeRaw(
@@ -1716,7 +1620,6 @@ let parms = {
         );
 
       }
-      //console.log('3');
 
       if (partyData.technicalCid) {
         await connectLibrary.$executeRaw(
@@ -1726,11 +1629,9 @@ let parms = {
             WHERE cid = ${partyData.technicalCid}
           `
         );
-      }
-      //console.log('4');
+      }     
 
-      //console.log(valuesaccount);
-      console.log("valuesaccountvaluesaccount",valuesaccount);
+      console.log("valuesaccountvaluesaccount", valuesaccount);
 
       const accountSave = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
         INSERT INTO account 
@@ -1743,7 +1644,6 @@ let parms = {
         )
         RETURNING cid
       `);
-      //console.log('5');
 
       if (partyData.addressMain) {
         await connectLibrary.$executeRaw(
@@ -1755,8 +1655,6 @@ let parms = {
         );
 
       }
-
-      //console.log('6');
 
       const personalAddress = [
         null,
@@ -1796,9 +1694,7 @@ let parms = {
       `);
 
 
-      const personalAddressdata = personalAddressResult[0]?.cid;
-
-      //console.log('9');
+      const personalAddressdata = personalAddressResult[0]?.cid;      
 
       await connectGate2b.$executeRaw(
         Prisma.sql`
@@ -1865,8 +1761,8 @@ let parms = {
     FROM network 
     WHERE name = ${'Bexio'}
   `);
-      console.log("objectId",objectId[0]?.objectid);
-      
+      console.log("objectId", objectId[0]?.objectid);
+
       const checkTokenData1 = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
   INSERT INTO ediparty (fk_network, rk_party, fk_currency, netcomid)
   VALUES (${networkId[0]?.cid}, ${objectId[0]?.objectid}::uuid, ${currency}, ${''})
@@ -1893,10 +1789,6 @@ let parms = {
       (fk_ediparty,fk_network)
       VALUES (${checkTokenData1[0]?.cid}, ${networkId[0]?.cid})
     `);
-
-      // interconectId = interconectId.rows.length == 0 ?  '' :interconectId.rows[0].cid;
-      //console.log('netComNumber', netComNumber);
-      //console.log('finalOutfinalOut', finalOut);
       checkTokenData1[0]['netcomid'] = finalOut;
 
 
@@ -1910,10 +1802,6 @@ let parms = {
 
     // save netcome address with company
     async function netcomGate2b(decryptData, companyId, ediPartyId, coutryCode, newGate2Id, email) {
-
-
-
-
 
       const addressResult = await connectGate2b.$queryRaw<any[]>(Prisma.sql`
       INSERT INTO address 
@@ -1935,7 +1823,7 @@ let parms = {
         )
       RETURNING cid
     `);
-    
+
 
 
 
@@ -1963,8 +1851,8 @@ let parms = {
         'main'
       )
     `);
-        
-            await connectLibrary.$queryRaw<any>(Prisma.sql`
+
+      await connectLibrary.$queryRaw<any>(Prisma.sql`
         INSERT INTO "_party_gate2b" (fk_party, rk_uid)
         VALUES (${companyId}, ${ediPartyId.objectid}::uuid)
         RETURNING cid
@@ -1972,8 +1860,8 @@ let parms = {
 
       //console.log('newg2b');
 
-      
-   
+
+
 
       await connectNewGate2b.$queryRaw<any>(Prisma.sql`
       INSERT INTO legalparty 
@@ -1989,7 +1877,7 @@ let parms = {
     `);
 
 
-    await connectNewGate2b.$queryRaw<any>(Prisma.sql`
+      await connectNewGate2b.$queryRaw<any>(Prisma.sql`
     INSERT INTO email (fk_ediparty, email, email_verified, _type)
     VALUES (
       ${newGate2Id},
@@ -1998,9 +1886,9 @@ let parms = {
       'main'
     )
   `);
-     
+
       //console.log('newg2b');
- await connectGate2b.$queryRaw<any>(Prisma.sql`
+      await connectGate2b.$queryRaw<any>(Prisma.sql`
   INSERT INTO phone 
     (fk_ediparty, _type, country_code, phone)
   VALUES 
@@ -2008,21 +1896,21 @@ let parms = {
   RETURNING cid
 `);
 
-await connectGate2b.$queryRaw<any>(Prisma.sql`
+      await connectGate2b.$queryRaw<any>(Prisma.sql`
 INSERT INTO email (fk_ediparty,_type,email)
 VALUES (
   ${ediPartyId.cid},
   'company_contact',
   ${email}
 )`);
-await connectNewGate2b.$queryRaw<any>(Prisma.sql`
+      await connectNewGate2b.$queryRaw<any>(Prisma.sql`
 INSERT INTO email (fk_ediparty,_type,email)
 VALUES (
   ${newGate2Id},
   'company_contact',
   ${email}
 )`);
-      
+
       return netcomSavedId;
 
     };
@@ -2091,10 +1979,10 @@ VALUES (
         }
         // WHERE name IN (${config.SUPERADMIN})`;
 
-        console.log("userRolesuserRoles",userRoles);
+        console.log("userRolesuserRoles", userRoles);
         const userRolesArray = userRoles
-        .split(',')
-        .map(role => role.trim().replace(/^'+|'+$/g, ''));
+          .split(',')
+          .map(role => role.trim().replace(/^'+|'+$/g, ''));
         userRoles = config.BEXIO_USER_ROLE;
 
         const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -2110,7 +1998,7 @@ VALUES (
             AND r.fk_party IS NULL
         `);
         console.log('333333333333');
-        
+
         if (!Array.isArray(roleData)) {
           console.error('Expected roleData to be an array, but got:', roleData);
           return reject(new Error('Invalid role data format'));
@@ -2174,25 +2062,25 @@ VALUES (
             user_email: email,
             language: 'DE'
           };
-        console.log('********************planPurchasefomdata',formData);
+          console.log('********************planPurchasefomdata', formData);
 
           let planResponse = await planPurchase(formData);
         }
         else {
           let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
-          let objectid =  billingCookie.objectid
+          let objectid = billingCookie.objectid
           const activationResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
           SELECT paymentData, detail 
           FROM activation 
           WHERE objectid = ${objectid}::uuid
         `);
-        
+
 
           //console.log("Object ID:", billingCookie.objectid);
           let paymentDetails = activationResult[0]?.paymentdata;
 
           if (paymentDetails) {
-         
+
 
             const updateResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
             UPDATE activation 
@@ -2211,7 +2099,7 @@ VALUES (
             WHERE objectid = ${objectid}::uuid
             RETURNING paymentdata
           `);
-          
+
 
 
             paymentDetails = updateResult[0]?.paymentdata;
@@ -2388,9 +2276,6 @@ VALUES (
             secure: false,    // Changed to true to work with sameSite: 'none'
         };
 
-        //console.log('Setting cookie with options:', cookieOptions);
-        //console.log('Cookie name:', config.TOKEN_COOKIE_BEXIO_NAME);
-        //console.log('Cookie value:', encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)));
 
         // Set the cookie
         res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), cookieOptions);
@@ -2482,11 +2367,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       signed: true,
       secure: false
     });
-    //console.log('userDetails',userDetails);
     let email = userDetails[0].email;
-    //console.log('email',email);
-    //console.log('req.sessionID',req.sessionID);
-    //console.log(req.sessionID);
 
     let userLanguage = userDetails[0].userlanguage ? userDetails[0].userlanguage : 'de';    
   
