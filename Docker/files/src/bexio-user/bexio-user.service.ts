@@ -2341,7 +2341,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     //console.log('userDetails',userDetails);
     const data = {
       email: userDetails[0].email,
-      userId: userDetails[0].userid,
+      userId: userDetails[0].userId,
     };
     const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
     const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
@@ -2415,8 +2415,8 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`${checkRoleQry}`, [userDetails[0].accountid, userDetails[0].partyid]);
     //console.log('checkRoleData', checkRoleData);
     if(checkRoleData.length === 0){
-      await setEbillRole(userDetails[0].partyid, userDetails[0].accountid, userDetails[0].partyaccountid, userDetails[0].isuser, formData.module);
-      await partyServiceUpdate(userDetails[0].partyid, 'EBILL', 'EDI');
+      await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, formData.module);
+      await partyServiceUpdate(userDetails[0].partyId, 'EBILL', 'EDI');
 
     }
     }
