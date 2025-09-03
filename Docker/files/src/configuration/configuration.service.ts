@@ -20,7 +20,6 @@ import { resolve } from 'path';
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem } from 'src/common/utils/helperfn';
-import { File as MulterFile } from 'multer';
 @Injectable()
 export class ConfigurationService {
 
@@ -646,12 +645,7 @@ export class ConfigurationService {
       let encrToken 
       try {
        const pool = await connectMssql;
-      //   const ioDb = await connectPostgres;
-      //   ////console.log.log('req.body.encrToken',req.body.encrToken);
         encrToken = encryptionControl.decrypt(req.body.encrToken);
-    //console.log('encrToken',encrToken);
-
-    //console.log("Biller fetch");
 
         if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
@@ -668,12 +662,12 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-      //console.log('getUserPermissionsResult',getUserPermissionsResult);
+      console.log('getUserPermissionsResult',getUserPermissionsResult);
 
           if(getUserPermissionsResult.length == 0){
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 200,
-              message: 'no_data_found',
+              message: 'no_data_found_getUserPermissionsResult',
               status: false,
             });
           }
@@ -701,10 +695,10 @@ export class ConfigurationService {
       WHERE
         netcomid = '${netcomId}'`;
 
-       // //console.log('getBasicDetails',getBasicDetails);
+       console.log('getBasicDetails',getBasicDetails);
         
         const getData = await pool.query(getBasicDetails);
-       //console.log('getData',getData.recordset.length);
+       console.log('getData',getData.recordset.length);
 
         if (getData.recordset.length) {
           if (getData.recordset[0].companyJSON) {
@@ -712,7 +706,7 @@ export class ConfigurationService {
             getData.recordset[0]['enterpriseIdentificationNumber'] = jsonExtract.enterpriseIdentificationNumber
           }
          let pythonData = await getPythonData(netcomId);
-         //console.log('pythonData',pythonData);
+         console.log('pythonData',pythonData);
          
          let connectionData:any = null   
          if(pythonData != null && pythonData["count"] != 0){
@@ -752,7 +746,7 @@ export class ConfigurationService {
           getData.recordset["fk_netcomid_doc_interface"] = ''
           getData.recordset["include_pdf"] = '' 
          }   
-         //console.log('getdata',getData);
+         console.log('getdata',getData);
            
          return res.status(status_code.OK).json({
             data: getData.recordset,
@@ -765,14 +759,14 @@ export class ConfigurationService {
         else {
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 200,
-            message: 'no_data_found',
+            message: 'no_data_found_getBasicDetails',
             status: false,
           });
         }
 
       }
       catch (error) {
-        //console.log("Error:: ",error)
+        console.log("Error:: ",error)
         let responseValue = JSON.stringify(encrToken)
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
