@@ -1840,6 +1840,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           //     false,     // Flag indicating whether this is an admin or regular user
           //     'EBILL'       // Role name
           //   );
+          console.log('getPartyEbillResult.rows',getPartyEbillResult);
+          console.log("req.body.partyIdLog:",req.body.partyIdLog);
+          
           await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
            console.log('getPartyEbillResult.rows',getPartyEbillResult);
           if (getPartyEbillResult.length <= 0) {
