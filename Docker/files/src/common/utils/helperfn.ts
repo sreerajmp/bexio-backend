@@ -13,6 +13,7 @@ const crypto = require("crypto");
 import redisClient from '../utils/redisDB';
 import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
+import { log } from 'util';
 // const { fetchContacts } = require('../../contact-import/salesforce/salesforce.service');
 // const { updateJobStatus } = require('../../contact-import/dynamodb/dynamodb.service');
 const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
@@ -4523,9 +4524,12 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     return false
   }
 };
-export const partyServiceUpdate = async (partyResponse, service, app) => {
+export const partyServiceUpdate = async (
+  partyResponse: number,
+  service: string,
+  app: string
+): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
-   
     try {
       console.log("partyServiceUpdate");
 
@@ -4533,46 +4537,48 @@ export const partyServiceUpdate = async (partyResponse, service, app) => {
       const partyId = partyResponse;
       const appName = app;
       const getExisted = await connectLibrary.$queryRaw<any>(Prisma.sql`
-      SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
-      FROM party_applicationversion_appservice paa
-      INNER JOIN applicationversion_appservice aa ON aa.cid = paa.fk_applicationversion_appservice
-      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
-      INNER JOIN application_version av ON av.cid = aa.fk_application_version
-      INNER JOIN application a ON a.cid = av.fk_application
-      WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
-    `);
+        SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
+        FROM party_applicationversion_appservice paa
+        INNER JOIN applicationversion_appservice aa ON aa.cid = paa.fk_applicationversion_appservice
+        INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+        INNER JOIN application_version av ON av.cid = aa.fk_application_version
+        INNER JOIN application a ON a.cid = av.fk_application
+        WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
+      `);
+      console.log("getExisted",getExisted);
+      
       if (getExisted.length) {
-        return reject(false)
+      console.log("Service already exists for this party.",getExisted);
+      return
       }
-      ////console.log('service', service);
-      ////console.log('app', app);
 
       const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
-      SELECT aa.cid
-      FROM applicationversion_appservice aa
-      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
-      INNER JOIN application_version av ON av.cid = aa.fk_application_version
-      INNER JOIN application a ON a.cid = av.fk_application
-      WHERE aps.code = ${serviceName} AND a.code = ${appName}
-    `);
-      await connectLibrary.$executeRaw(
+        SELECT aa.cid
+        FROM applicationversion_appservice aa
+        INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+        INNER JOIN application_version av ON av.cid = aa.fk_application_version
+        INNER JOIN application a ON a.cid = av.fk_application
+        WHERE aps.code = ${serviceName} AND a.code = ${appName}
+      `);
+      console.log("getAppServiceId",getAppServiceId);
+      
+      const updateData = await connectLibrary.$executeRaw(
         Prisma.sql`
           INSERT INTO party_applicationversion_appservice (fk_party, fk_applicationversion_appservice)
           VALUES (${partyId}, ${getAppServiceId[0].cid})
         `
       );
-      return resolve(true)
+      console.log("updateData",updateData);
+      
+      return resolve(true);
+    } catch (error) {
+      commonErrors['errorTitle'] = 'partyServiceUpdate';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyResponse;
+      warningMessage(commonErrors, error);
+     return  resolve(error);
     }
-    catch (error) {
-    
-      let responseValue = JSON.stringify(partyResponse)
-      // commonErrors['errorTitle'] = 'partyServiceUpdate';
-      // commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-      // warningMessage(commonErrors, error);
-      return reject(false)
-    }
-  })
-}
+  });
+};
 
 // Function to fetch contact groups from bexio
 
