@@ -4534,7 +4534,7 @@ export const partyServiceUpdate = async (
       console.log("partyServiceUpdate");
 
       const serviceName = service;
-      const partyId = BigInt(partyResponse);
+      const partyId = Number(partyResponse);
       const appName = app;
       const getExisted = await connectLibrary.$queryRaw<any>(Prisma.sql`
         SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
