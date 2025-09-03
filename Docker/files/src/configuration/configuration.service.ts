@@ -646,6 +646,7 @@ export class ConfigurationService {
       try {
        const pool = await connectMssql;
         encrToken = encryptionControl.decrypt(req.body.encrToken);
+        console.log('encrToken',encrToken);
 
         if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
@@ -662,7 +663,7 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-      console.log('getUserPermissionsResult',getUserPermissionsResult);
+      console.log('getUserPermissionsResult',getUserPermissionsResult,encrToken.roleAccId,encrToken.rolePartyId);
 
           if(getUserPermissionsResult.length == 0){
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
@@ -675,10 +676,6 @@ export class ConfigurationService {
 
         const netcomId = encrToken?.netcomId;
 
-//console.log('****************************');
-
-
-        
         const getBasicDetails = `SELECT
         eb.legalname,
         eb.legalname as legalName,
@@ -1802,7 +1799,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         console.log('data',data);
         
         if (data.id) {
-          let netcomId = encrToken.netcomId;
+          let netcomId = encrToken.netcomId;       
           let companyName = encrToken.companyName;
           let companyId = encrToken.companyId;
           let bexioCompanyName = null;
@@ -1825,7 +1822,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
              console.log('bexioCompanyName',bexioCompanyName);
           }
            console.log('checkBexioCompanyResult.rows',checkBexioCompanyResult);
-          let jsonReq = JSON.stringify(data);
+     let jsonReq = JSON.stringify(data);
           const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
                   Prisma.sql`
                   SELECT cid
@@ -1833,17 +1830,31 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                   WHERE fk_party =  ${Number(companyId)}
                   `
                 );
-          //  await setEbillRole(
-          //     req.body.partyIdLog,
-          //     req.body.accId,
-          //     userDetails[0].partyAccountId,
-          //     false,     // Flag indicating whether this is an admin or regular user
-          //     'EBILL'       // Role name
-          //   );
           console.log('getPartyEbillResult.rows',getPartyEbillResult);
           console.log("req.body.partyIdLog:",req.body.partyIdLog);
-          
-          await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
+             const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+                SELECT 
+                  pa.isuser,
+                  pa.cid AS "partyAccountId",
+                  u.email,
+                  u.cid AS "userId",
+                  pa.fk_party AS "partyId",
+                  a.cid AS "accountId",
+                  u.language AS "userlanguage"
+                FROM party_account pa
+                INNER JOIN account a ON a.cid = pa.fk_account
+                INNER JOIN public.user u ON u.cid = a.fk_user
+                INNER JOIN status s ON s.cid = pa.fk_status
+                WHERE pa.fk_party = ${parseInt(req.body.partyIdLog)}
+                  AND pa.fk_account = ${parseInt(req.body.accId)}
+                  AND s."statusLabel" = 'active'`);
+                  
+              console.log('userDetails',userDetails);
+              
+          const setebill =  await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, 'EBILL');
+          const setPartyService = await partyServiceUpdate(userDetails[0].partyId, 'EBILL', 'EDI');
+          console.log('setPartyService',setPartyService);
+          console.log('setebill',setebill);
            console.log('getPartyEbillResult.rows',getPartyEbillResult);
           if (getPartyEbillResult.length <= 0) {
             const partyEbill = await connectLibrary.$queryRaw<any>(
