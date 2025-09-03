@@ -4545,6 +4545,8 @@ export const partyServiceUpdate = async (
         INNER JOIN application a ON a.cid = av.fk_application
         WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
       `);
+      console.log("getExisted",getExisted);
+      
       if (getExisted.length) {
       console.log("Service already exists for this party.",getExisted);
       return
@@ -4558,12 +4560,16 @@ export const partyServiceUpdate = async (
         INNER JOIN application a ON a.cid = av.fk_application
         WHERE aps.code = ${serviceName} AND a.code = ${appName}
       `);
-      await connectLibrary.$executeRaw(
+      console.log("getAppServiceId",getAppServiceId);
+      
+      const updateData = await connectLibrary.$executeRaw(
         Prisma.sql`
           INSERT INTO party_applicationversion_appservice (fk_party, fk_applicationversion_appservice)
           VALUES (${partyId}, ${getAppServiceId[0].cid})
         `
       );
+      console.log("updateData",updateData);
+      
       return resolve(true);
     } catch (error) {
       commonErrors['errorTitle'] = 'partyServiceUpdate';
