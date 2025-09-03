@@ -4525,7 +4525,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
   }
 };
 export const partyServiceUpdate = async (
-  partyResponse: number,
+  partyResponse: any,
   service: string,
   app: string
 ): Promise<boolean> => {
@@ -4534,7 +4534,7 @@ export const partyServiceUpdate = async (
       console.log("partyServiceUpdate");
 
       const serviceName = service;
-      const partyId = partyResponse;
+      const partyId = BigInt(partyResponse);
       const appName = app;
       const getExisted = await connectLibrary.$queryRaw<any>(Prisma.sql`
         SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
