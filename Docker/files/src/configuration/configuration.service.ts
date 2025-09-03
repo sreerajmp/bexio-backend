@@ -1833,7 +1833,14 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                   WHERE fk_party =  ${Number(companyId)}
                   `
                 );
-          
+          //  await setEbillRole(
+          //     req.body.partyIdLog,
+          //     req.body.accId,
+          //     userDetails[0].partyAccountId,
+          //     false,     // Flag indicating whether this is an admin or regular user
+          //     'EBILL'       // Role name
+          //   );
+          await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
            console.log('getPartyEbillResult.rows',getPartyEbillResult);
           if (getPartyEbillResult.length <= 0) {
             const partyEbill = await connectLibrary.$queryRaw<any>(
@@ -1920,13 +1927,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           let language = getCompanyDetails[0]?.language || 'de';
           let ComapnyEmail = getCompanyDetails[0]?.email;
           let companyname = getCompanyDetails[0]?.companyname;
-          //let message, subject,defaultConfig,domainName;
-         
-          // let commissionagentData = await getConfigData(companyId);
-          // if( commissionagentData ){
-          //     defaultConfig = commissionagentData;
-          // }
-         // domainName = defaultConfig['domain'];
           let keyDatas = {
             id: data.id,
             companyName: companyname
@@ -1963,8 +1963,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           const checkDataExistRow = await pool.query(checkDataExist);
 
           let newJSON = JSON.parse(encrToken.data);
-          var errorType = data.type.replace('/problems/','');
-          // data.technicalReason = data.technicalReason.replace(/'/g," ");
           newJSON.error = response.body.replace(/'/g," ");
           newJSON = decodeURIComponent(JSON.stringify(newJSON));
           if( checkDataExistRow.recordset.length > 0){
