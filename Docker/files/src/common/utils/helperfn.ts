@@ -4453,9 +4453,9 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
   
  }
 export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
-  ////console.log('partyId', partyId);
-  ////console.log('accountId', accountId);
-  ////console.log('partyAccount', partyAccount);
+ console.log('partyId', partyId);
+ console.log('accountId', accountId);
+ console.log('partyAccount', partyAccount);
 
   try {
     let userRoles;
@@ -4464,7 +4464,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     } else {
       userRoles = "'EBILL_USER'";
     }
-    ////console.log('userRoles', userRoles);
+   console.log('userRoles', userRoles);
 
     // Get role data
     const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4532,8 +4532,8 @@ export const partyServiceUpdate = async (
   return new Promise(async (resolve, reject) => {
     try {
       console.log("partyServiceUpdate",partyResponse);
-      console.log("partyServiceUpdate",BigInt(partyResponse));
-      console.log("partyServiceUpdate",Number(partyResponse));
+      console.log("partyServiceUpdate",BigInt(partyResponse??0));
+      console.log("partyServiceUpdate",Number(partyResponse??0));
 
       const serviceName = service;
       const partyId = Number(partyResponse);
