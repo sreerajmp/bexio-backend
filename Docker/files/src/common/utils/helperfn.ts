@@ -4531,7 +4531,9 @@ export const partyServiceUpdate = async (
 ): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("partyServiceUpdate");
+      console.log("partyServiceUpdate",partyResponse);
+      console.log("partyServiceUpdate",BigInt(partyResponse));
+      console.log("partyServiceUpdate",Number(partyResponse));
 
       const serviceName = service;
       const partyId = Number(partyResponse);
