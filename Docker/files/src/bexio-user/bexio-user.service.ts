@@ -2241,26 +2241,6 @@ VALUES (
         await connectBexio.$queryRaw<any[]>(
             Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
         );
-
-        const data = {
-            email: userDetails[0].email,
-            userId: userDetails[0].userId,
-        };
-        
-        const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
-        const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, { expiresIn: config.JWTRefreshExpiration });
-        
-        let tokenCookie = { 
-            accessToken,
-            refreshToken,
-            userMail: userDetails[0].email,
-            partyID: String(userDetails[0].partyId),  // Convert to string
-            userID: String(userDetails[0].userId),    // Convert to string
-            accId: String(userDetails[0].accountId),  // Convert to string
-            isBexioCompany: true
-        };
-
-
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
