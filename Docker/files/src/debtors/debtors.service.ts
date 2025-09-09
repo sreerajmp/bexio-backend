@@ -2126,13 +2126,13 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
                 resolve(JSON.parse(response.body));
                 console.log('JSON.parse(response.body)',JSON.parse(response.body));
               }
-              else{
-              // resolve(false)
+              else {
+                // resolve(false)
                 commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ? Number(value) : value
-);
-                warningMessage(commonErrors,error);
+                commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + response.body.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
+                  typeof value === 'bigint' ? Number(value) : value
+                );
+                warningMessage(commonErrors, error);
                 resolve(false)
               }
           });
@@ -2180,15 +2180,15 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
             resolve(JSON.parse(response.body));
             console.log('JSON.parse(response.body)',JSON.parse(response.body));
           }
-          else{
-          // resolve(false)
-            commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
-  typeof value === 'bigint' ?  Number(value) : value
-);
-            warningMessage(commonErrors,error);
-            resolve(false);
-          }
+           else {
+             // resolve(false)
+             commonErrors['errorTitle'] = 'notifiBexio';
+             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + response.body.toString() + '-bexio param,' + + JSON.stringify(params, (key, value) =>
+               typeof value === 'bigint' ? Number(value) : value
+             );
+             warningMessage(commonErrors, error);
+             resolve(false);
+           }
   
         });
       }else{
@@ -2316,7 +2316,8 @@ const addBexioComment = async (token,id,status,message?,netcomId?) => {
             else{
               console.log('errorr',error);
               commonErrors['errorTitle'] = 'addBexioComment';
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.toString():'')+'-bexio param,'+JSON.stringify(parms);
+              // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?response.body.toString():''+'-bexio param,'+JSON.stringify(parms);
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
               warningMessage(commonErrors,error);
               resolve(false)
               return;
