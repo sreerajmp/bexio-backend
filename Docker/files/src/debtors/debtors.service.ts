@@ -2183,7 +2183,7 @@ const notifiBexio = async (refreshToken,id,status,message?,netcomId?,amount?,ban
           else{
           // resolve(false)
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,'+ + JSON.stringify(params, (key, value) =>
   typeof value === 'bigint' ?  Number(value) : value
 );
             warningMessage(commonErrors,error);
@@ -2316,8 +2316,7 @@ const addBexioComment = async (token,id,status,message?,netcomId?) => {
             else{
               console.log('errorr',error);
               commonErrors['errorTitle'] = 'addBexioComment';
-              // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?response.body.toString():''+'-bexio param,'+JSON.stringify(parms);
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.toString():'')+'-bexio param,'+JSON.stringify(parms);
               warningMessage(commonErrors,error);
               resolve(false)
               return;
