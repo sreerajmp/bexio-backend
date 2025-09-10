@@ -4,7 +4,8 @@ import { ImportContactDto } from '../dto/import-contact.dto';
 import * as request from 'request';
 import config from '../../common/config';
 import path from 'path';
-import { warningMessage, commonErrors } from '../../common/utils/helperfn'; // Adjust path if needed
+import commonErrors from '../../common/utils/commonError'
+import warningMessage from '../../common/utils/warningMessage'
 
 @Injectable()
 export class SalesforceService {
