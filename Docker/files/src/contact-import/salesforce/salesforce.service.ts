@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ImportContactDto } from '../dto/import-contact.dto';
 import * as request from 'request';
 import config from '../../common/config';
-import path from 'path';
+const path = require('path')
 import commonErrors from '../../common/utils/commonError'
 import warningMessage from '../../common/utils/warningMessage'
 @Injectable()
