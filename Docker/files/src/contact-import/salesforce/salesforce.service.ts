@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ImportContactDto } from '../dto/import-contact.dto';
 import * as request from 'request';
 import config from '../../common/config';
-import path from 'path';
+const path = require('path')
 import commonErrors from '../../common/utils/commonError'
 import warningMessage from '../../common/utils/warningMessage'
 @Injectable()
@@ -48,7 +48,15 @@ export class SalesforceService {
       commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - dto: ${JSON.stringify(dto)}`;
       warningMessage(commonErrors, error);
       console.error('Failed to fetch Salesforce access token:', error);
-      throw new Error('Failed to fetch Salesforce access token');
+      return [];
+    }
+
+    if (!accessToken) {
+      // Optionally log a warning here
+      commonErrors['errorTitle'] = 'Salesforce Token Missing';
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} No access token available for contact query - dto: ${JSON.stringify(dto)}`;
+      warningMessage(commonErrors, 'No access token');
+      return [];
     }
 
 
@@ -97,7 +105,7 @@ export class SalesforceService {
       commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - dto: ${JSON.stringify(dto)}`;
       warningMessage(commonErrors, error);
       console.error('Failed to fetch contacts from Salesforce:', error);
-      throw new Error('Failed to fetch contacts from Salesforce');
+      return [];
     }
   }
 }

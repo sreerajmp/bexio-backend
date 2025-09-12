@@ -13,9 +13,6 @@ const crypto = require("crypto");
 import redisClient from '../utils/redisDB';
 import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
-import { log } from 'util';
-// const { fetchContacts } = require('../../contact-import/salesforce/salesforce.service');
-// const { updateJobStatus } = require('../../contact-import/dynamodb/dynamodb.service');
 const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
 const { SalesforceService } = require('../../contact-import/salesforce/salesforce.service');
 export const getContactById = async (accessToken,contact_idList) => {
@@ -5438,18 +5435,17 @@ export async function processNextPendingJob(job: any) {
   await dynamoDBService.updateJobStatus(job.cid, 'in_progress');
   const contacts = await salesforceService.fetchContacts({ companyName: job.companyName, netcomid: job.netcomid });
   console.log(`Processing contact: ${JSON.stringify(contacts)}`);
-// const path = require('path');
-// const dummyContactPath = path.join(__dirname, '../../../accounts-200.json');
-// let dummyconatct = fs.readFileSync(dummyContactPath, 'utf-8');
-// dummyconatct = JSON.parse(dummyconatct);
-//   console.log(`Processing contact: ${JSON.stringify(dummyconatct)}`);
 
-//   const pushResult = await pushContactToBexio(job.netcomid,  dummyconatct);
+  if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
+    console.log(`No contacts found for job ${job.cid}. Marking as done.`);
+    await dynamoDBService.updateJobStatus(job.cid, 'done');
+    return { success: false, message: 'No contacts found' };
+  }
+
   const pushResult = await pushContactToBexio(job.netcomid, contacts);
 
   if (pushResult) {
     console.log(`Job ${job.cid} completed successfully with result: ${JSON.stringify(pushResult)}`);
-    
     await dynamoDBService.updateJobStatus(job.cid, 'done');
   }
 
