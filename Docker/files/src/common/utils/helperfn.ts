@@ -13,6 +13,7 @@ const crypto = require("crypto");
 import redisClient from '../utils/redisDB';
 import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
+import { log } from 'util';
 // const { fetchContacts } = require('../../contact-import/salesforce/salesforce.service');
 // const { updateJobStatus } = require('../../contact-import/dynamodb/dynamodb.service');
 const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
@@ -230,18 +231,12 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   return new Promise(async(resolve, reject) => {
     var options = {
       'method': 'GET',
-      // 'url': 'https://api.bexio.com/2.0/contact/search',
       'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
       'headers': {
         'Accept': 'application/json',
         'Authorization': 'Bearer ' + token
       }
-    };
-    ////console.log({
-    //   offset: offset,
-    //   limit: limit
-    // });
-    
+    };    
       request(options, function (error, response) {
         if (error) {  
           commonErrors['errorTitle'] = 'deliveryNotesList';
@@ -264,55 +259,53 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-export const getTagName = async(netcom_id,details)=>{
-    
-  try { 
-  
+export const getTagName = async (netcom_id, details) => {
+
+  try {
+
     const data = {
       netcom_id: netcom_id,
       module: 'BEX',
-      file_list:JSON.parse(details)
+      file_list: JSON.parse(details)
     };
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
     };
-var options = {
-  'method': 'POST',
-  'url': `${config.OCTOPUS_URL}/bexio_file_check`,
-  formData: formData
+    var options = {
+      'method': 'POST',
+      'url': `${config.OCTOPUS_URL}/bexio_file_check`,
+      formData: formData
 
-};
-   ////console.log('options',options);
-    
+    };
+
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
-      
-        if(error){
+
+        if (error) {
           commonErrors['errorTitle'] = 'getPythonData';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
           warningMessage(commonErrors, error);
           return resolve(error)
         }
-        else{
-          try{
-            ////console.log('response.bodyresponse.body',response.body);
-            resolve(JSON.parse(response.body));   
-         
+        else {
+          try {
+            resolve(JSON.parse(response.body));
+
           }
-          catch{
+          catch {
             return resolve(error)
           }
         }
       })
-      
-      });
-     
+
+    });
+
   }
-   catch (error) {
+  catch (error) {
     commonErrors['errorTitle'] = 'getPythonData';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
     warningMessage(commonErrors, error);
-    
+
   }
 
 }
@@ -1372,6 +1365,27 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
       invoice.contact = contact;
+       let temp = await getloginUserCompanyDetails(accessToken);
+            console.log("getloginUserCompanyDetails:",typeof(temp));  
+            console.log("getloginUserCompanyDetails:",temp);  
+            if(!temp){
+             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
+              return resolve('getloginUserCompanyDetails_not_found');
+            }
+            invoice['companyProfile'] = temp;
+            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+        let currency = await getCurrency(accessToken,invoice.currency_id);
+            if(!currency){
+              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'currency_not_found');
+              return resolve('currency_not_found');
+            }
+            invoice['currency'] = currency;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
@@ -1406,8 +1420,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushInvoiceTestProcess = async (invoices,billerId)=>{
-console.log('pushInvoiceTestProcess',invoices);
+export const pushEbillInvoiceProcess = async (invoices,billerId)=>{
+console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
     body:{
@@ -1426,11 +1440,11 @@ console.log('pushInvoiceTestProcess',invoices);
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['token'] = tempIds.accessToken;
-      let v = await pushInvoiceTest1(tempParam,'')
+      let v = await pushEbillInvoice(tempParam,'')
     }
 }
-export const pushInvoiceTest1 = async (req, res) => {
-console.log('pushInvoiceTest1',req.body);
+export const pushEbillInvoice = async (req, res) => {
+console.log('pushEbillInvoice',req.body);
 
   return new Promise(async (resolve, reject) => {
 
@@ -1811,7 +1825,7 @@ console.log('pushInvoiceTest1',req.body);
       }
       await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
       await issueEbillInvoice(accessToken, decryptData.invoice_id);
-      await markAsIssues(accessToken, decryptData.invoice_id);
+      await markAsSent(accessToken, decryptData.invoice_id);
       resolve(true)
 
 
@@ -2008,18 +2022,11 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         ////console.log('notifiBexionotifiBexio',options);
-    
-         ////console.log('notifiBexionotifiBexio',response.body);
-         ////console.log('typeoftypeof',typeof(response.body));
-  
           let resStatus = 'success' in JSON.parse(response.body) ? true : false;
-         ////console.log('statusstatus',resStatus);
            if(response.statusCode == 201 || resStatus)
           {
           
             resolve(JSON.parse(response.body));
-           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
@@ -2043,31 +2050,26 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
         };
         request(options, async function (error, response) {
           if (error) {  
-           ////console.log('errorr',error);
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         ////console.log('notifiBexionotifiBexio',options);
     
-         ////console.log('notifiBexionotifiBexio',response.body);
-         ////console.log('typeoftypeof',typeof(response.body));
+         console.log('notifiBexionotifiBexio statusCode',response.statusCode);
+         console.log('notifiBexionotifiBexio',response.body);
           let resStatus;
           if(typeof(response.body) == 'object'){
             resStatus = 'success' in JSON.parse(response.body) ? true : false;
 
           }else{
             resStatus = false;
-          }
-         ////console.log('statusstatus',resStatus);
-          
+          }          
   
            if(response.statusCode == 201 || resStatus)
           {
           
             resolve(JSON.parse(response.body));
-           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
@@ -2099,7 +2101,6 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
   INNER JOIN biller b ON b.id = r.fk_biller 
   WHERE b.billerId = '${billerId}' AND r.recipientId = '${receiptId}'`;
   const getrecipientId = await pool.query(getrecipient);
- ////console.log("getrecipientId---",getrecipientId);
   let getCompanydata = await connectBexio.companyregistered.findMany({
     where: {
       netcomid: getrecipientId.recordset[0].netcomid, // Replace with your actual variable
@@ -2108,39 +2109,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
       cid: true,
     },
   });
-  const updateBexioConatct = async (bexioCustomerId, receiptId) => {
-    return new Promise(async (resolve, reject) => {
-      let data = {
-        ebill_pid: receiptId
-      }
-      const options = {
-        method: 'PATCH',
-        url: `https://api.bexio.com/3.0/contact/${bexioCustomerId}`,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(data)
-      };
-      await request(options, async function (error, response) {
-        if (error) {
-         ////console.log(error);
-          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioConatct'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'billerId--' + billerId + '--receiptId--' + receiptId + '--contactId--' + contactId + '--accessToken--' + accessToken;
-          warningMessage(commonErrors, error);
-          resolve(false);
-        }
-        if (response.statusCode == 200) {
-          let responseData = JSON.parse(response.body)
-          resolve(responseData);
-        }
-        else {
-          resolve(false);
-        }
-      })
-    })
-  }
+  
   if (getrecipientId.recordset.length) {
     if (getrecipientId.recordset[0].islinked) {
       await transaction.commit();
@@ -2178,7 +2147,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
       WHERE recipientid ='${receiptId}'
        AND fk_biller = '${getrecipientId.recordset[0].fk_biller}'`;
       await new sql.Request(transaction).query(updateRecipientQuery)
-      let bexioUpdate = await updateBexioConatct(contactId, receiptId)
+      let bexioUpdate = await updateBexioContact(accessToken,contactId, receiptId)
      ////console.log("bexioUpdate from if-----", bexioUpdate);
       if (bexioUpdate) {
         await transaction.commit();
@@ -2228,7 +2197,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
             },
           });
     }
-    let bexioUpdate:any = await updateBexioConatct(contactId, receiptId)
+    let bexioUpdate:any = await updateBexioContact(accessToken,contactId, receiptId)
    ////console.log("bexioUpdate from else-----",bexioUpdate);
 
     const getCountry = async (countryId) => { 
@@ -2322,6 +2291,39 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
     return bexioUpdate;
   }
 }
+export const updateBexioContact = async (accessToken,bexioCustomerId, receiptId) => {
+    return new Promise(async (resolve, reject) => {
+      let data = {
+        ebill_pid: receiptId
+      }
+      const options = {
+        method: 'PATCH',
+        url: `https://api.bexio.com/3.0/contact/${bexioCustomerId}`,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(data)
+      };
+      await request(options, async function (error, response) {
+        if (error) {
+         ////console.log(error);
+          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioContact'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + '--receiptId--' + receiptId + '--contactId--' + bexioCustomerId + '--accessToken--' + accessToken;
+          warningMessage(commonErrors, error);
+          resolve(false);
+        }
+        if (response.statusCode == 200) {
+          let responseData = JSON.parse(response.body)
+          resolve(responseData);
+        }
+        else {
+          resolve(false);
+        }
+      })
+    })
+  }
 export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
  console.log('EBILLLL',billerDetails);
   
@@ -2557,19 +2559,26 @@ export const issueEbillInvoice = async (access_token,id)=>{
         };
         request(options, function (error, response) {
           if (error) {  
-            commonErrors['errorTitle'] = 'getDefaultUser';
+            commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
             resolve(false)
           }
           if(response.statusCode==200)
           resolve(JSON.parse(response.body)[0]);
-          else
-          resolve(false)
+          else{           
+            console.log();
+              
+            commonErrors['errorTitle'] = 'issueEbillInvoice';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
+            warningMessage(commonErrors,error);
+            resolve(false)
+          
+          }
         });
       });
 }
-export const markAsIssues = async (access_token,id)=>{
+export const markAsSent = async (access_token,id)=>{
 
   return new Promise(async(resolve, reject) => {
         var options = {
@@ -2582,7 +2591,7 @@ export const markAsIssues = async (access_token,id)=>{
         };
         request(options, function (error, response) {
           if (error) {  
-            commonErrors['errorTitle'] = 'markAsIssues';
+            commonErrors['errorTitle'] = 'markAsSent';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
             resolve(false)
@@ -2595,7 +2604,6 @@ export const markAsIssues = async (access_token,id)=>{
       });
 }
 export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) => {
- ////console.log('addBexioComment');
   let parms = {
     token:token,
     id:id,
@@ -2603,16 +2611,12 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
     message:message,
     netcomId:netcomId
   }
- ////console.log('parms',parms);
   
   return new Promise(async(resolve, reject) => {
     try {
-     ////console.log('config.BEXIO_COMMENTS',config.BEXIO_COMMENTS);
       let commentsData = JSON.parse(config.BEXIO_COMMENTS);
-     ////console.log(commentsData[status].replace('[message]','{ '+message+' }'))
       let comments = commentsData[status].replace('[message]','{ '+message+' }')
       let invoiceData = await getInvoiceOT(token,id);
-     ////console.log('addBexioComment');
       
       if(!invoiceData)
       {
@@ -2623,12 +2627,10 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
         return
       }
       let userData = await getUser(token,invoiceData['user_id']);
-     ////console.log('userData',userData);
       
       if(!userData){
         userData = await getDefaultUser(token);
       }
-     ////console.log('userData',userData);
 
       if(!userData)
       {
@@ -2652,26 +2654,18 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
       };
              request(options, function (error, response) {
           if (error) {  
-           ////console.log('errorr',error);
-         
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
             warningMessage(commonErrors,error);
             resolve(false)
           }
-         
-         ////console.log('options',options);
-    
-         ////console.log('response',response.body);
     
           if(response.statusCode == 201)
           {
             resolve(JSON.parse(response.body));
-           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
             return;
           }
           else{
-           ////console.log('errorr',error);
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
             warningMessage(commonErrors,error);
@@ -2682,7 +2676,6 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
         })
       } catch (error) {
        
-       ////console.log('errorrrrrrr',error);
         commonErrors['errorTitle'] = 'addBexioComment';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
         warningMessage(commonErrors,error);
@@ -2763,7 +2756,6 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
         request(options, function (error, response) {
           
 
-         ////console.log("456",response.body.length);
           if(response.body.length < 3)
           {
          
@@ -2784,19 +2776,14 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
           }
          
             let paymentDetails = response.body.split("\\n");
-           ////console.log("paymentDetails.indexOf('SCOR')",paymentDetails.indexOf('SCOR'));
             
             let typeIndex = paymentDetails.indexOf('QRR') != -1 ?  paymentDetails.indexOf('QRR') : paymentDetails.indexOf('SCOR');
-           ////console.log('typeIndex',typeIndex);
             if(typeIndex == -1){
               typeIndex = paymentDetails.indexOf('NON') != -1 ?  paymentDetails.indexOf('NON') : -1;
             }
             var s = new Date(new Date()); 
-           ////console.log(s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds())
             let v = s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds();
-           ////console.log('adasdsad',v);
-           ////console.log('adasdsad',v);
-           ////console.log('typeIndex',typeIndex);
+           
             
             let res = {
               iban:paymentDetails[3],
@@ -2805,7 +2792,6 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
               referenceEbil:invoiceNumber+'_'+v
 
             }
-           ////console.log('sdfsdfsdf');
             
             if(typeIndex == -1){
 
@@ -2821,7 +2807,6 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
               }
               resolve(res);
             }
-           ////console.log('res',res);
             
             resolve(res);
           
@@ -2830,7 +2815,6 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
       });
       
     } catch (error) {
-     ////console.log('errorerror',error);
       commonErrors['errorTitle'] = 'getRefrenceNumber';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'ebill_xml_not_found '+'-req param,'+invoiceNumber;
       warningMessage(commonErrors,'ebill_xml_not_found');
@@ -2858,8 +2842,6 @@ export const getTaxListActive = async (access_token) => {
             warningMessage(commonErrors,error);
             resolve(false)
           }
-          // res.send(response.body)
-         ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
           else
@@ -2869,7 +2851,6 @@ export const getTaxListActive = async (access_token) => {
       });
 }
 export const getContactDetails = async (access_token,id) => {    
- ////console.log(id);
   
   try {
     return new Promise(async(resolve, reject) => {
@@ -2888,8 +2869,7 @@ export const getContactDetails = async (access_token,id) => {
           warningMessage(commonErrors,error);
           resolve(false)
         }
-        // res.send(response.body)
-        ////console.log(response.body);
+        
         if(response.statusCode==200)
           resolve(JSON.parse(response.body));
         else
@@ -2909,7 +2889,6 @@ export const getContactDetails = async (access_token,id) => {
   }
 }
 export const setOrderId = async (id,billId) =>{
- ////console.log('error');
 
   try {
     const getcustomerIdResult = await connectBexio.documents_order_receive.updateMany({
@@ -2923,7 +2902,6 @@ export const setOrderId = async (id,billId) =>{
     });
     return getcustomerIdResult
   } catch (error) {
-   ////console.log(error);
       commonErrors['errorTitle'] = 'setOrderId';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+billId;
       warningMessage(commonErrors,error);
@@ -2950,9 +2928,7 @@ export const moveFile = async (netcomId,fileName)=>{
       netcom_id:netcomId,
       filename:fileName
     }
-   ////console.log(formData);
     
-
     return new Promise(async(resolve, reject) => {
       var options = {
         'method': 'POST',
@@ -2969,10 +2945,6 @@ export const moveFile = async (netcomId,fileName)=>{
           resolve(false)
         }
       
-        // res.send(response.body)
-        ////console.log(response.body);
-   ////console.log("move",response.body);
-        
         resolve(response.body);
 
       });
@@ -2991,9 +2963,7 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
   let sendDeliveryNotesId;
   return new Promise( async function (resolve, reject) {
     try {
-     ////console.log('partyIdpartyIdpartyId',partyId);
-     ////console.log('delivery_iddelivery_id',delivery_id);
-      const selectQryResult = await connectBexio.documents_dispatchnotification_send.findMany({
+     const selectQryResult = await connectBexio.documents_dispatchnotification_send.findMany({
         where: {
           rk_deliverynotes: delivery_id,
           deliverynotes_type: 'EDI',
@@ -3011,14 +2981,12 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
         },
       });
 
-     ////console.log('selectQryResult',selectQryResult);
       if(selectQryResult.length == 0){
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
             rk_party:Number(partyId),
           },
         });
-       //console.log('selectQryResultParty',selectQryResultParty);
         
         const result = await connectBexio.documents_dispatchnotification_send.create({
           data: {
@@ -3032,8 +3000,6 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
             cid: true,
           },
         });
-       //console.log(result);
-
         sendDeliveryNotesId = result[0].cid;
       }
       else{
@@ -3052,7 +3018,6 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
       }
       resolve(sendDeliveryNotesId);
     } catch (error) {
-     ////console.log(error);
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+delivery_id+'-deliveryId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
@@ -3063,7 +3028,6 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
 }
 
 export const setPurchaseOrderBulk = async (purchaseOrder, bodyValues, headerParams) => {
- ////console.log("worker processing invoices...");
 
   // bodyValues = JSON.parse(bodyValues);
   let tempIds = JSON.parse(purchaseOrder);
@@ -3082,10 +3046,7 @@ export const setPurchaseOrderBulk = async (purchaseOrder, bodyValues, headerPara
       },
     };
 
-   ////console.log("start processing Purchase Order");
     const result = await pushPurchaseOrderBulk(tempParam, "");
-   ////console.log("result:", result);
-   ////console.log("end processing Purchase Order");
   }
   
 };
@@ -3099,14 +3060,11 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
     try {
       let purchaseOrder,paymentType;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
-     ////console.log("decryptData :: ",decryptData);
       let accessToken = cookie.access_Token;
       const partyId = decryptData.partyId;
       const accountId = decryptData.accountId;
-      // const orderData = decryptData.order_id;
       const purchaseOrderId = decryptData.order_id || 1;
       purchaseOrder = await getOrderOT(accessToken,purchaseOrderId); // Get order from bexio using orderId
-     ////console.log("purchaseOrder :: ",purchaseOrder);
       if( !purchaseOrder){ // If there is no purchaseOrder with this orderId, return with error
         purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,'','0','order_not_found');
         commonErrors['errorTitle'] = req.originalUrl;
@@ -3137,7 +3095,6 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
 
       
 
-       ////console.log("purchaseOrder.currency_id :: ",purchaseOrder.currency_id);
         /* Fetch currency from bexio using id. */
         let currency = await getCurrency(accessToken,purchaseOrder.currency_id);
         if( !currency ){
@@ -3243,9 +3200,11 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
         
           return resolve('bexio_item_error');
         }
-        await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,purchaseOrder['document_nr'],'EDI');
+        const sendOrderRes = await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,purchaseOrder['document_nr'],'EDI');
         let redisKey = req.body.partyId+"_/";
         await deleteRedis('sendOrder',redisKey);
+        console.log("sendOrderRes",sendOrderRes);
+        
         return resolve(true);
     }
     else{
@@ -3286,8 +3245,6 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
       });
       
       if(selectQryResult.length == 0){
-       ////console.log('ifffffffffffff');
-       
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
             rk_party:Number(partyId),
@@ -3310,8 +3267,6 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
         sendOrderId = result[0].cid;
       }
       else{
-       //console.log('elseeeeeeeeeee');
-       //console.log('status',status);
         sendOrderId = selectQryResult[0]?.cid;
 
 
@@ -3331,8 +3286,6 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
     
       resolve(sendOrderId);
     } catch (error) {
-     
-     ////console.log(error);
       commonErrors['errorTitle'] =' setInvoiceSendStatus';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+orderId+'-orderId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
@@ -3346,8 +3299,6 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
  
   let tempString = JSON.stringify(order.delivery_address_manual)
   let tempArray ;
- ////console.log("tempString",tempString);
-
   
   if(tempString.indexOf("\\r\\n") != -1)
   {
@@ -3365,27 +3316,17 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
     tempArray = tempString;
   }
 
- ////console.log('tempArray',tempArray);
   let deliveryAddress2 = tempArray.split("___________");
- ////console.log("deliveryAddress2",deliveryAddress2);
   
   let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
- ////console.log('tempAdress',tempAdress);
   if(tempAdress.length == 4){
     tempAdress.splice(1,0," ")
   }
 
- ////console.log('tempAdresstempAdress',tempAdress);
   let countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.name ==  tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : ''
 
-  // return
-  
-
-
   coutryList = JSON.parse(coutryList);
- ////console.log("gghghgh");
   let emptyValue = 'NA'
-  // let taxIsAdded;
   let priceQuantity = '1'
 
 
@@ -3495,7 +3436,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       }],
       "ORDER_PARTIES_REFERENCE":[{
         "bmecat:BUYER_IDREF": contactDetails.sendercustomerid,
-        "bmecat:SUPPLIER_IDREF":contactDetails.receivercustomerid
+        "bmecat:SUPPLIER_IDREF":contactDetails.receiver_customerid
       }],
       "bmecat:CURRENCY":order.currency['name'],
       "REMARKS": order.title ? order.title : undefined,
@@ -4217,7 +4158,7 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
 
 }
 export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  // console.log('EMAIL:::',invoice,bill_recipient_email);
+  console.log('EMAIL:::',invoice?.companyProfile);
    
  
    let emptyValue = 'NA'
@@ -4291,7 +4232,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
        "PARTIES": [{
            "PARTY": [{
                "bmecat:PARTY_ID": [{
-                   "_": billerDetails['billerid']??undefined,
+                   "_": billerDetails['billerid']??'00000000',
                    "$": {
                        "type": "party_specific"
                    }
@@ -4299,16 +4240,16 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                }],
                "PARTY_ROLE": "invoice_issuer",
                "ADDRESS": [{
-                    "bmecat:NAME": invoice?.companyProfile?.companyProfile[0].name || undefined,
-                    "bmecat:STREET": invoice?.companyProfile?.companyProfile[0].address || undefined,
-                    "bmecat:ZIP": invoice?.companyProfile?.companyProfile[0].postcode || undefined,
-                    "bmecat:CITY": invoice?.companyProfile?.companyProfile[0].city || undefined,
-                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
+                    "bmecat:NAME": invoice?.companyProfile[0].name || undefined,
+                    "bmecat:STREET": invoice?.companyProfile[0].address || undefined,
+                    "bmecat:ZIP": invoice?.companyProfile[0].postcode || undefined,
+                    "bmecat:CITY": invoice?.companyProfile[0].city || undefined,
+                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
                 }]
  
            }, {
                "bmecat:PARTY_ID": [{
-                   "_": billerDetails['recipientid']||undefined,
+                   "_": billerDetails['recipientid']||'00000000',
                    "$": {
                        "type": "party_specific"
                    }
@@ -4337,7 +4278,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                "type": "party_specific"
            }
        }],
-       "bmecat:CURRENCY": invoice?.currency?.currency['name']|| undefined,
+       "bmecat:CURRENCY": invoice?.currency['name']|| undefined,
        "MIME_INFO":[{
          "MIME":[{
            "MIME_EMBEDDED":{
@@ -4435,9 +4376,9 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
   
  }
 export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
-  ////console.log('partyId', partyId);
-  ////console.log('accountId', accountId);
-  ////console.log('partyAccount', partyAccount);
+ console.log('partyId', partyId);
+ console.log('accountId', accountId);
+ console.log('partyAccount', partyAccount);
 
   try {
     let userRoles;
@@ -4446,7 +4387,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     } else {
       userRoles = "'EBILL_USER'";
     }
-    ////console.log('userRoles', userRoles);
+   console.log('userRoles', userRoles);
 
     // Get role data
     const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4506,56 +4447,63 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     return false
   }
 };
-export const partyServiceUpdate = async (partyResponse, service, app) => {
+export const partyServiceUpdate = async (
+  partyResponse: any,
+  service: string,
+  app: string
+): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
-   
     try {
-      console.log("partyServiceUpdate");
+      console.log("partyServiceUpdate",partyResponse);
+      console.log("partyServiceUpdate",BigInt(partyResponse??0));
+      console.log("partyServiceUpdate",Number(partyResponse??0));
 
       const serviceName = service;
-      const partyId = partyResponse;
+      const partyId = Number(partyResponse);
       const appName = app;
       const getExisted = await connectLibrary.$queryRaw<any>(Prisma.sql`
-      SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
-      FROM party_applicationversion_appservice paa
-      INNER JOIN applicationversion_appservice aa ON aa.cid = paa.fk_applicationversion_appservice
-      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
-      INNER JOIN application_version av ON av.cid = aa.fk_application_version
-      INNER JOIN application a ON a.cid = av.fk_application
-      WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
-    `);
+        SELECT paa.cid, aps.cid as appserviceid, a.cid as appid
+        FROM party_applicationversion_appservice paa
+        INNER JOIN applicationversion_appservice aa ON aa.cid = paa.fk_applicationversion_appservice
+        INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+        INNER JOIN application_version av ON av.cid = aa.fk_application_version
+        INNER JOIN application a ON a.cid = av.fk_application
+        WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
+      `);
+      console.log("getExisted",getExisted);
+      
       if (getExisted.length) {
-        return reject(false)
+      console.log("Service already exists for this party.",getExisted);
+      return
       }
-      ////console.log('service', service);
-      ////console.log('app', app);
 
       const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
-      SELECT aa.cid
-      FROM applicationversion_appservice aa
-      INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
-      INNER JOIN application_version av ON av.cid = aa.fk_application_version
-      INNER JOIN application a ON a.cid = av.fk_application
-      WHERE aps.code = ${serviceName} AND a.code = ${appName}
-    `);
-      await connectLibrary.$executeRaw(
+        SELECT aa.cid
+        FROM applicationversion_appservice aa
+        INNER JOIN appservice aps ON aps.cid = aa.fk_appservice
+        INNER JOIN application_version av ON av.cid = aa.fk_application_version
+        INNER JOIN application a ON a.cid = av.fk_application
+        WHERE aps.code = ${serviceName} AND a.code = ${appName}
+      `);
+      console.log("getAppServiceId",getAppServiceId);
+      
+      const updateData = await connectLibrary.$executeRaw(
         Prisma.sql`
           INSERT INTO party_applicationversion_appservice (fk_party, fk_applicationversion_appservice)
           VALUES (${partyId}, ${getAppServiceId[0].cid})
         `
       );
-      return resolve(true)
+      console.log("updateData",updateData);
+      
+      return resolve(true);
+    } catch (error) {
+      commonErrors['errorTitle'] = 'partyServiceUpdate';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyResponse;
+      warningMessage(commonErrors, error);
+     return  resolve(error);
     }
-    catch (error) {
-    
-      let responseValue = JSON.stringify(partyResponse)
-      // commonErrors['errorTitle'] = 'partyServiceUpdate';
-      // commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-      // warningMessage(commonErrors, error);
-      return reject(false)
-    }
-  })
-}
+  });
+};
 
 // Function to fetch contact groups from bexio
 
@@ -4596,12 +4544,12 @@ export const getContactGroupList = async(accessToken) => {
 
 // Function to fetch units from the bexio
 
-export const getUnitList = async (access_token) => {
+export const getUnitList = async (access_token,unitId) => {
 
   return new Promise(async(resolve, reject) => {
         var options = {
           'method': 'GET',
-          'url': `https://api.bexio.com/2.0/unit`,
+          'url': `${config.BEXIO_API}2.0/unit/${unitId}`,
           'headers': {
             'Accept': 'application/json',
             'Authorization': 'Bearer '+access_token
@@ -4652,10 +4600,18 @@ export const getActiveAccounts = async (access_token) => {
             resolve(false)
           }
           // res.send(response.body)
-         console.log("response.statusCode :: ",response.statusCode);
+        // console.log("response.statusCode :: ",response.statusCode);
          
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+          {
+              let returnData = {
+              statuscode: response.statusCode,
+              data:JSON.parse(response.body),
+              message: response.statusMessage,
+              status: true
+            }
+            resolve(returnData)
+          }
           else{
             let returnObject = {
               statuscode: response.statusCode,
@@ -4704,12 +4660,12 @@ export const getActiveArticle = async (access_token) => {
       });
 }
 
-export const getActiveSalesTaxBexio = async (access_token) => {
+export const getActiveSalesTaxBexio = async (access_token,tax_id) => {
 
   return new Promise(async(resolve, reject) => {
         var options = {
           'method': 'GET',
-          'url': `https://api.bexio.com/3.0/taxes?types=sales_tax&scope=active`,
+          'url': `${config.BEXIO_API}3.0/taxes/${tax_id}`,
           'headers': {
             'Accept': 'application/json',
             'Authorization': 'Bearer '+access_token
@@ -4724,6 +4680,39 @@ export const getActiveSalesTaxBexio = async (access_token) => {
           }
           // res.send(response.body)
          ////console.log("getTaxListA :: ",response.body);
+          if(response.statusCode==200)
+           resolve(JSON.parse(response.body));
+          else{
+            let returnObject = {
+              statuscode: response.statusCode,
+              message: response.statusMessage,
+              status: false
+            }
+            resolve(returnObject)
+          }
+
+        });
+      });
+}
+export const getActiveItem = async (access_token,article_id) => {
+
+  return new Promise(async(resolve, reject) => {
+        var options = {
+          'method': 'GET',
+          'url': `${config.BEXIO_API}2.0/article/${article_id}`,
+          'headers': {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer '+access_token
+          }
+        };
+        request(options, function (error, response) {
+          if (error) {  
+            commonErrors['errorTitle'] = 'taxes';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
+            resolve(false)
+          }
+        
           if(response.statusCode==200)
            resolve(JSON.parse(response.body));
           else{
@@ -4876,9 +4865,9 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
           
           if (error) {  
             console.log('error', error);
-            // commonErrors['errorTitle'] = 'kb_position_article';
-            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            // warningMessage(commonErrors,error);
+            commonErrors['errorTitle'] = 'kb_position_article';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            warningMessage(commonErrors,error);
             resolve(false)
           }
           console.log("response.statusCode :: ",response.statusCode);
@@ -4891,14 +4880,6 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
          console.log("kb_position_article :: ",response.body);
           }      
         
-          // else{
-          //   let returnObject = {
-          //     statuscode: response.statusCode,
-          //     message: response.statusMessage,
-          //     status: false
-          //   }
-          //   resolve(returnObject)
-          // }
 
         });
       });
@@ -4906,22 +4887,20 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
 export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
     const decryptData = invoices;
-      const invoice_id = invoices?.doc_id;
-      const bill_recipient_email = invoices?.bill_recipient_email ?? '';
-      const invoice_uuid = invoices?.invoice_uuid;
-      const partyId = bodyValues?.partyId;
+    const invoice_id = invoices?.doc_id;
+    const bill_recipient_email = invoices?.bill_recipient_email ?? '';
+    const invoice_uuid = invoices?.invoice_uuid;
+    const partyId = bodyValues?.partyId;
     try {
-      console.log('pushPrintInvoice',bodyValues);
-      // return resolve('success');
-       
-      let article:any = null;
+      console.log('pushPrintInvoice', bodyValues);
+      let article: any = null;
       let pdf, fileName, pdfContent;
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
-      console.log('invoice::::', typeof(invoice.positions ));
+      console.log('invoice::::', typeof (invoice.positions));
       console.log('invoice::::', invoice.positions);
-       let contact :any = await getContact(accessToken, invoice.contact_id);
+      let contact: any = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
@@ -4957,170 +4936,178 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       };
       let options = {
         method: 'POST',
-        url: config.PYTHON_API+'get-print-settings',
+        url: config.PYTHON_API + 'get-print-settings',
         form: { form: JSON.stringify(formData) }
       };
       request(options, async function (error, response) {
         console.log('error', error);
-            console.log('response.getArticle', response.statusCode);
+        console.log('response.getArticle', response.statusCode);
 
         // Parse response.body and extract "Article" from client_json
         try {
-          if(error) {
+          if (error) {
             console.log('error article', error);
-             await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
+            await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
             commonErrors['errorTitle'] = 'getArticle';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
-            warningMessage(commonErrors,error);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken;
+            warningMessage(commonErrors, error);
             return resolve(error);
           }
 
-          if(response.statusCode == 200) {
-          const resp = JSON.parse(response.body);
-          
-          console.log('Extracted article:', article);
-          console.log('resp', resp);
+          if (response.statusCode == 200) {
+
+            const resp = JSON.parse(response.body);
+            console.log('Extracted article:', article);
+            console.log('resp', resp);
             article = resp?.data?.client_json?.Article;
-           
-      
-          if (article) {
-             // Validate that article has all required fields and none are empty/undefined/null
-          console.log('article herererere', article );
 
-            const requiredFields = [
-            "amount",
-            "unit_id",
-            "account_id",
-            "tax_id",
-            "text",
-            "unit_price",
-            "discount_in_percent",
-            "article_id"
-            ];
-            article= Object.fromEntries(
-              requiredFields.map(key => [key, article[key]])
-            );
-            const isArticleValid = article && requiredFields.every(
-            key => article[key] !== undefined && article[key] !== null && article[key] !== ""
-            );
-            if (!isArticleValid) {
-              console.error('Article is missing required fields or has empty values:', article);
-              
-              // Stop the process if article is invalid or null
-              let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
-              warningMessage(commonErrors, 'invalid_article');
-              resolve('something_went_wrong' + invoiceCid);
-              return;
-            }
-          
-            const invPosUpdate:any = null
-             console.log("article::::",article);
-            let isArticleFound = false;
-            for (const item of invoice.positions) {
-              if (isArticleMatch(item, article)) {
-                console.log('Matching position found:', item);
-                isArticleFound = true;
-                break;
+            if (article) {
+              // Validate that article has all required fields and none are empty/undefined/null
+              console.log('article herererere', article);
+              const invPosUpdate: any = null
+              let isArticleFound = false;
+              for (const item of invoice.positions) {
+                if (item.article_id == article.article_id) {
+                  console.log('Matching position found for item:', item);
+                  isArticleFound = true;
+                  break;
+                }
               }
-              
-            }
-            if(! isArticleFound){
+              if (!isArticleFound) {
                 console.log('No matching position found for item:');
-                console.log('article',article);
-                
-                const invPosUpdate = await updateInvoicePosition(invoice_id, article, accessToken);
-                console.log('invPosUpdate::::', invPosUpdate);
+                console.log('article', article);
+                let articleDetail: any = await getActiveItem(accessToken, article.article_id);
 
+                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
+                  console.log('articleDetail::::', articleDetail);
+
+                  let printArticle = {
+                    "amount": '1.000000',
+                    "unit_id": articleDetail.unit_id,
+                    "account_id": articleDetail.account_id,
+                    "tax_id": articleDetail.tax_id,
+                    "text": articleDetail.name,
+                    "unit_price": articleDetail.sale_price,
+                    "discount_in_percent": '0.000000',
+                    "article_id": articleDetail.id
+                  }
+                  const invPosUpdate = await updateInvoicePosition(invoice_id, printArticle, accessToken);
+                  console.log('invPosUpdate::::', invPosUpdate);
+                }
+                else {
+                  console.error('Article is missing required fields or has empty values:', articleDetail);
+
+                  // Stop the process if articleDetail is invalid or null
+                  let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
+                  commonErrors['errorTitle'] = invoices.originalUrl;
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
+                  warningMessage(commonErrors, 'invalid_article');
+                  resolve('something_went_wrong' + invoiceCid);
+                  return;
+                }
+
+              }
+            } else {
+              console.log('Article not found in config, skipping update.');
             }
-
-          } else {
-            console.log('Article not found in config, skipping update.');
           }
+          const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
+          console.log('invoice::::2', invoice2);
+
+          pdf = await getInvoicePdf(accessToken, invoice_id);
+          // console.log('pdf::::', pdf, invoice_id);
+          if (pdf?.response == 401) {
+            console.log('unauthorized');
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'unauthorized');
+            resolve('unauthorized' + invoiceCid);
+            return;
+          }
+          if (!pdf) {
+            console.log('pdf not found');
+
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'email_pdf_not_found');
+            resolve('something_went_wrong' + invoiceCid);
+            return;
           }
 
-           
-      const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
-      console.log('invoice::::2', invoice2);      
+          pdfContent = JSON.parse(pdf).content;
+          fileName = JSON.parse(pdf).name;
 
-      pdf = await getInvoicePdf(accessToken, invoice_id);
-      // console.log('pdf::::', pdf, invoice_id);
-      if (pdf?.response == 401) {
-        console.log('unauthorized');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'unauthorized');
-        resolve('unauthorized' + invoiceCid);
-        return;
-      }
-      if (!pdf) {
-        console.log('pdf not found');
+          let coutryList;
+          coutryList = await getCountryLists(accessToken);
+          if (!coutryList) {
+            resolve('coutryList not found');
+            return;
+          }
+          coutryList = JSON.parse(coutryList);
 
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_pdf_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+          invoice.contact = contact;
+          let temp = await getloginUserCompanyDetails(accessToken);
+            console.log("getloginUserCompanyDetails:",typeof(temp));  
+            console.log("getloginUserCompanyDetails:",temp);  
+            if(!temp){
+             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
+              return resolve('getloginUserCompanyDetails_not_found');
+            }
+            invoice['companyProfile'] = temp;
+            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+        let currency = await getCurrency(accessToken,invoice.currency_id);
+            if(!currency){
+              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
+              commonErrors['errorTitle'] = invoices.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
+              warningMessage(commonErrors,'currency_not_found');
+              return resolve('currency_not_found');
+            }
+            invoice['currency'] = currency;
+          let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
-      pdfContent = JSON.parse(pdf).content;
-      fileName = JSON.parse(pdf).name;
+          if (xml == false) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'email_xml_not_found');
+            resolve('something_went_wrong' + invoiceCid);
+            return;
+          }
 
-      let coutryList;
-      coutryList = await getCountryLists(accessToken);
-      if (!coutryList) {
-        resolve('coutryList not found');
-        return;
-      }
-      coutryList = JSON.parse(coutryList);
-     
-      invoice.contact = contact;
-      let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
+          let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+          console.log('filePush::::', filePush, channel);
 
-      if (xml == false) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_xml_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+          if (filePush) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+            console.log('invoiceCid::::', invoiceCid);
 
-      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-      console.log('filePush::::', filePush,channel);
-      
-      if (filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
-        console.log('invoiceCid::::', invoiceCid);
+            resolve(invoiceCid);
+            return;
+          }
 
-        resolve(invoiceCid);
-        return;
-      }
-
-      if (!filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
-        resolve(invoiceCid);
-        return;
-      }
+          if (!filePush) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            resolve(invoiceCid);
+            return;
+          }
 
         } catch (err) {
-           await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+          await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
           console.error('Failed to parse response or extract Article:', err);
         }
 
       });
-      // return
-      console.log("options",options);
-      console.log('invoices::::', invoices,channel);
+      console.log("options", options);
+      console.log('invoices::::', invoices, channel);
 
-     
-
-     
     } catch (error) {
-       await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
     }
@@ -5149,8 +5136,8 @@ export function isArticleMatch(item: any, article: any): boolean {
 //status change to draft to pending
 export const markAsPending = async (access_token, id) => {
   console.log('markAsPending');
-  console.log('id',id);
-  let invoiceId = Number(id)
+  console.log('id', id);
+  let invoiceId = Number(id);
   return new Promise((resolve, reject) => {
     var options = {
       method: 'POST',
@@ -5163,31 +5150,36 @@ export const markAsPending = async (access_token, id) => {
 
     request(options, function (error, response) {
       console.log('************************');
-      
+
       if (error) {
         commonErrors['errorTitle'] = 'markAsPending';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
         warningMessage(commonErrors, error);
         return resolve(false);
       }
-  console.log('response',response);
+      console.log('response', response);
       if (response.statusCode === 200) {
         try {
-        
-          
           const resBody = JSON.parse(response.body);
-          return resolve(resBody); 
+          return resolve(resBody);
         } catch (parseError) {
           console.error('Failed to parse response:', response.body);
+          commonErrors['errorTitle'] = 'markAsPending';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Failed to parse response: ' + response.body;
+          warningMessage(commonErrors, parseError);
           return resolve(false);
         }
-      } 
-      else if(response.statusCode === 400)
-      {
-        console.log('error:you can not issue an invoice with a total which is less or equal to 0')
+      } else if (response.statusCode === 400) {
+        const msg = 'error: you can not issue an invoice with a total which is less or equal to 0';
+        console.log(msg);
+        commonErrors['errorTitle'] = 'markAsPending';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + msg + ' -bexio param,';
+        warningMessage(commonErrors, msg);
         return resolve(false);
-      }
-        else {
+      } else {
+        commonErrors['errorTitle'] = 'markAsPending';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Unexpected status: ' + response.statusCode + ' -bexio param,';
+        warningMessage(commonErrors, response.body);
         return resolve(false);
       }
     });

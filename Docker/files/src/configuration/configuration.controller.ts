@@ -111,23 +111,23 @@ export class ConfigurationController {
   }
 
 
-  @Post('getActiveSalesTaxList')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getActiveSalesTaxList(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.configurationService.getActiveSalesTaxList(req,res);
-  }
+  // @Post('getActiveSalesTaxList')
+  // @UseInterceptors(AnyFilesInterceptor())
+  // async getActiveSalesTaxList(@Req() req: Request, @Res() res: Response): Promise<any>{
+  //   return this.configurationService.getActiveSalesTaxList(req,res);
+  // }
 
-  @Post('getUnitList')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getUnitList(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.configurationService.getUnitList(req,res);
-  }
+  // @Post('getUnitList')
+  // @UseInterceptors(AnyFilesInterceptor())
+  // async getUnitList(@Req() req: Request, @Res() res: Response): Promise<any>{
+  //   return this.configurationService.getUnitList(req,res);
+  // }
 
-  @Post('getActiveAccounts')
-  @UseInterceptors(AnyFilesInterceptor())
-  async getActiveAccounts(@Req() req: Request, @Res() res: Response): Promise<any>{
-    return this.configurationService.getActiveAccounts(req,res);
-  }
+  // @Post('getActiveAccounts')
+  // @UseInterceptors(AnyFilesInterceptor())
+  // async getActiveAccounts(@Req() req: Request, @Res() res: Response): Promise<any>{
+  //   return this.configurationService.getActiveAccounts(req,res);
+  // }
 
   @Post('getActiveArticle')
   @UseInterceptors(AnyFilesInterceptor())
@@ -165,5 +165,10 @@ export class ConfigurationController {
   @UseInterceptors(AnyFilesInterceptor())
   async getConnectionList(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.configurationService.getConnectionList(req,res);
+  }
+   @Post('getArticleDetails')
+  @UseInterceptors(AnyFilesInterceptor())
+  async getArticleDetails (@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.configurationService.getArticleDetails(req,res);
   }
 }

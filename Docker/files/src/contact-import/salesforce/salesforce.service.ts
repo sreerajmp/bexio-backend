@@ -6,7 +6,6 @@ import config from '../../common/config';
 import path from 'path';
 import commonErrors from '../../common/utils/commonError'
 import warningMessage from '../../common/utils/warningMessage'
-
 @Injectable()
 export class SalesforceService {
   async fetchContacts(dto: ImportContactDto): Promise<any[]> {

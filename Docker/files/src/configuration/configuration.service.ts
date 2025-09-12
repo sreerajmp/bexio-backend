@@ -19,8 +19,7 @@ import { resolve } from 'path';
 // const fetchEmailContent = require('../common/utils/fetchEmailData');
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
-import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
-import { File as MulterFile } from 'multer';
+import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem } from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -304,7 +303,7 @@ export class ConfigurationService {
       resultBc.forEach(async element => {
         beStruct[element.bc_id] = element;
       });
-
+       
       let totalCount;
       if (isBexioUser) {
 
@@ -646,12 +645,8 @@ export class ConfigurationService {
       let encrToken 
       try {
        const pool = await connectMssql;
-      //   const ioDb = await connectPostgres;
-      //   ////console.log.log('req.body.encrToken',req.body.encrToken);
         encrToken = encryptionControl.decrypt(req.body.encrToken);
-    //console.log('encrToken',encrToken);
-
-    //console.log("Biller fetch");
+        console.log('encrToken',encrToken);
 
         if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
@@ -668,12 +663,12 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-      //console.log('getUserPermissionsResult',getUserPermissionsResult);
+      console.log('getUserPermissionsResult',getUserPermissionsResult,encrToken.roleAccId,encrToken.rolePartyId);
 
           if(getUserPermissionsResult.length == 0){
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 200,
-              message: 'no_data_found',
+              message: 'no_data_found_getUserPermissionsResult',
               status: false,
             });
           }
@@ -681,10 +676,6 @@ export class ConfigurationService {
 
         const netcomId = encrToken?.netcomId;
 
-//console.log('****************************');
-
-
-        
         const getBasicDetails = `SELECT
         eb.legalname,
         eb.legalname as legalName,
@@ -701,10 +692,10 @@ export class ConfigurationService {
       WHERE
         netcomid = '${netcomId}'`;
 
-       // //console.log('getBasicDetails',getBasicDetails);
+       console.log('getBasicDetails',getBasicDetails);
         
         const getData = await pool.query(getBasicDetails);
-       //console.log('getData',getData.recordset.length);
+       console.log('getData',getData.recordset.length);
 
         if (getData.recordset.length) {
           if (getData.recordset[0].companyJSON) {
@@ -712,7 +703,7 @@ export class ConfigurationService {
             getData.recordset[0]['enterpriseIdentificationNumber'] = jsonExtract.enterpriseIdentificationNumber
           }
          let pythonData = await getPythonData(netcomId);
-         //console.log('pythonData',pythonData);
+         console.log('pythonData',pythonData);
          
          let connectionData:any = null   
          if(pythonData != null && pythonData["count"] != 0){
@@ -752,7 +743,7 @@ export class ConfigurationService {
           getData.recordset["fk_netcomid_doc_interface"] = ''
           getData.recordset["include_pdf"] = '' 
          }   
-         //console.log('getdata',getData);
+         console.log('getdata',getData);
            
          return res.status(status_code.OK).json({
             data: getData.recordset,
@@ -765,14 +756,14 @@ export class ConfigurationService {
         else {
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 200,
-            message: 'no_data_found',
+            message: 'no_data_found_getBasicDetails',
             status: false,
           });
         }
 
       }
       catch (error) {
-        //console.log("Error:: ",error)
+        console.log("Error:: ",error)
         let responseValue = JSON.stringify(encrToken)
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -1808,7 +1799,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         console.log('data',data);
         
         if (data.id) {
-          let netcomId = encrToken.netcomId;
+          let netcomId = encrToken.netcomId;       
           let companyName = encrToken.companyName;
           let companyId = encrToken.companyId;
           let bexioCompanyName = null;
@@ -1831,7 +1822,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
              console.log('bexioCompanyName',bexioCompanyName);
           }
            console.log('checkBexioCompanyResult.rows',checkBexioCompanyResult);
-          let jsonReq = JSON.stringify(data);
+     let jsonReq = JSON.stringify(data);
           const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
                   Prisma.sql`
                   SELECT cid
@@ -1839,7 +1830,31 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                   WHERE fk_party =  ${Number(companyId)}
                   `
                 );
-          
+          console.log('getPartyEbillResult.rows',getPartyEbillResult);
+          console.log("req.body.partyIdLog:",req.body.partyIdLog);
+          //    const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+          //       SELECT 
+          //         pa.isuser,
+          //         pa.cid AS "partyAccountId",
+          //         u.email,
+          //         u.cid AS "userId",
+          //         pa.fk_party AS "partyId",
+          //         a.cid AS "accountId",
+          //         u.language AS "userlanguage"
+          //       FROM party_account pa
+          //       INNER JOIN account a ON a.cid = pa.fk_account
+          //       INNER JOIN public.user u ON u.cid = a.fk_user
+          //       INNER JOIN status s ON s.cid = pa.fk_status
+          //       WHERE pa.fk_party = ${parseInt(req.body.partyIdLog)}
+          //         AND pa.fk_account = ${parseInt(req.body.accId)}
+          //         AND s."statusLabel" = 'active'`);
+                  
+          //     console.log('userDetails',userDetails);
+              
+          // const setebill =  await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, 'EBILL');
+          const setPartyService = await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
+          console.log('setPartyService',setPartyService);
+          // console.log('setebill',setebill);
            console.log('getPartyEbillResult.rows',getPartyEbillResult);
           if (getPartyEbillResult.length <= 0) {
             const partyEbill = await connectLibrary.$queryRaw<any>(
@@ -1926,13 +1941,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           let language = getCompanyDetails[0]?.language || 'de';
           let ComapnyEmail = getCompanyDetails[0]?.email;
           let companyname = getCompanyDetails[0]?.companyname;
-          //let message, subject,defaultConfig,domainName;
-         
-          // let commissionagentData = await getConfigData(companyId);
-          // if( commissionagentData ){
-          //     defaultConfig = commissionagentData;
-          // }
-         // domainName = defaultConfig['domain'];
           let keyDatas = {
             id: data.id,
             companyName: companyname
@@ -1969,8 +1977,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           const checkDataExistRow = await pool.query(checkDataExist);
 
           let newJSON = JSON.parse(encrToken.data);
-          var errorType = data.type.replace('/problems/','');
-          // data.technicalReason = data.technicalReason.replace(/'/g," ");
           newJSON.error = response.body.replace(/'/g," ");
           newJSON = decodeURIComponent(JSON.stringify(newJSON));
           if( checkDataExistRow.recordset.length > 0){
@@ -2021,105 +2027,179 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   }
 }
 
-  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const taxList: any = await getActiveSalesTaxBexio(accessToken);
-      //console.log("taxList :: ",taxList);
-      if( taxList?.status === false ){
-        return res.status(taxList.statuscode).send({
-          status_code: taxList.statuscode,
-          message: taxList.message,
-          status: false,
-        })
-      }
-      //console.log("taxList ",taxList);
-      return res.status(200).send({
-        status: 200,
-        data: taxList,
-      });
-    } catch (error) {
-      //console.log("Error getActiveSalesTaxList :: ",error);
-    }
-  }
+  //     let accessToken = cookie.access_Token;
+  //     const taxList: any = await getActiveSalesTaxBexio(accessToken);
+  //     //console.log("taxList :: ",taxList);
+  //     if( taxList?.status === false ){
+  //       return res.status(taxList.statuscode).send({
+  //         status_code: taxList.statuscode,
+  //         message: taxList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("taxList ",taxList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: taxList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getActiveSalesTaxList :: ",error);
+  //   }
+  // }
 
-  async getUnitList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getUnitList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const unitList: any = await getUnitList(accessToken);
-      if( unitList?.status == false ){
-        return res.status(unitList.statuscode).send({
-          status_code: unitList.statuscode,
-          message: unitList.message,
-          status: false,
-        })
-      }
-      //console.log("unitList ",unitList);
-      return res.status(200).send({
-        status: 200,
-        data: unitList,
-      });
-    } catch (error) {
-      //console.log("Error getUnitList :: ",error);
-    }
-  }
-  async getActiveAccounts(req: Request, res: Response): Promise<any> {
-    //console.log("getActiveAccounts")
-    try {
-      let reqTaxId = req.body.tax_id;
-      //console.log(reqTaxId)
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  //     let accessToken = cookie.access_Token;
+  //     const unitList: any = await getUnitList(accessToken);
+  //     if( unitList?.status == false ){
+  //       return res.status(unitList.statuscode).send({
+  //         status_code: unitList.statuscode,
+  //         message: unitList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("unitList ",unitList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: unitList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getUnitList :: ",error);
+  //   }
+  // }
+  // async getActiveAccounts(req: Request, res: Response): Promise<any> {
+  //   //console.log("getActiveAccounts")
+  //   try {
+  //     let reqTaxId = req.body.tax_id;
+  //     //console.log(reqTaxId)
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-      const activeAccounts: any = await getActiveAccounts(accessToken);
-      if( activeAccounts?.status == false ){
-        return res.status(activeAccounts.statuscode).send({
-          status_code: activeAccounts.statuscode,
-          message: activeAccounts.message,
-          status: false,
-        })
-      }
-      let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
-      //console.log("newAccountList :: ",newAccountList.length);
-      //console.log("activeAccounts ",activeAccounts.length);
-      return res.status(200).send({
-        status: 200,
-        data: newAccountList,
-      });
-    } catch (error) {
+  //     let accessToken = cookie.access_Token;
+  //     let isBexioUser = cookie.isBexioUser;
+  //     const activeAccounts: any = await getActiveAccounts(accessToken);
+  //     if( activeAccounts?.status == false ){
+  //       return res.status(activeAccounts.statuscode).send({
+  //         status_code: activeAccounts.statuscode,
+  //         message: activeAccounts.message,
+  //         status: false,
+  //       })
+  //     }
+  //     let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
+  //     //console.log("newAccountList :: ",newAccountList.length);
+  //     //console.log("activeAccounts ",activeAccounts.length);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: newAccountList,
+  //     });
+  //   } catch (error) {
 
-      //console.log("Error getActiveAccounts :: ",error);
+  //     //console.log("Error getActiveAccounts :: ",error);
+  //   }
+  // }
+
+ async getArticleDetails(req: Request, res: Response): Promise<any> {
+  try {
+    const { taxId, unitId, accountId,articleId } = req.body;
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+    if (!cookieData) {
+      return res.status(500).send({
+        status_code: 500,
+        message: 'Missing_cookie',
+        status: false,
+      });
     }
+
+    const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+    const accessToken = cookie.access_Token;
+    let accountList: any[] = [];
+    let unit: any ;
+    let tax: any ;
+     let article: any ;
+    let activeAccounts: any
+    // Fetch account
+    if (accountId && accountId!='null') {
+      activeAccounts = await getActiveAccounts(accessToken);
+      console.log('activeAccounts',activeAccounts.status );
+      if(activeAccounts?.status === true)
+      accountList = activeAccounts.data.filter(item => item.id == accountId);
+    console.log('activeAccounts',activeAccounts.data.filter(item => item.id == accountId));
+    }
+
+    // Fetch unit
+    if (unitId && unitId!='null') {
+        console.log('Filtered Account:', unitId);
+      unit = await getUnitList(accessToken, unitId);
+      console.log('Unit:', unit);
+    }
+
+    // Fetch tax
+    if (taxId && taxId!='null') {
+      tax = await getActiveSalesTaxBexio(accessToken, taxId);
+      console.log('Tax:', tax);
+    }
+
+      if (articleId && articleId!='null') {
+      article = await getActiveItem(accessToken,articleId);
+      console.log('article',article);
+  
+    
+    }
+    
+    const result = {
+      account:activeAccounts?.status === false?null: accountList.length > 0 ? accountList[0] : null,
+      unit: unit?.status === false?null: unit|| null,
+      tax: tax?.status === false?null:tax || null,
+      article:article?.status === false?null:article || null
+    };
+
+    return res.status(200).send({
+      status: 200,
+      data: result,
+    });
+  } catch (error) {
+    const responseValue = JSON.stringify(req.body);
+    commonErrors['errorTitle'] = req.originalUrl;
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param: ${responseValue}`;
+    warningMessage(commonErrors, error);
+
+    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+      status_code: 500,
+      message: 'something_went_wrong',
+      status: false,
+    });
   }
+}
+
   async getActiveArticle(req: Request, res: Response): Promise<any> {
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
