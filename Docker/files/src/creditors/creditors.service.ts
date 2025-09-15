@@ -1031,10 +1031,9 @@ async byPassApi(req: Request, res: Response,method:any,path:any,): Promise<any> 
     });
 }
 }
-async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
+async passTog2b(req: Request, res: Response,method:any,paths:any): Promise<any> {
 
-  // const sendToPythonAPI = (api,reqBody,method,path) => {
-  console.log('5555555555555');
+  console.log('passTog2b');
     let keys,body;
     let formData,options;
     if(method != 'GET'){
@@ -1061,48 +1060,58 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
       }
        options = {
         'method': method,
-        'url': config.GATE2BURL + path,
+        'url': config.GATE2BURL + paths,
         // 'headers': headers,
         form:dummy
       };
     }else{
       options = {
         'method': method,
-        'url': config.GATE2BURL + path
+        'url': config.GATE2BURL + paths
       };
     }
     try 
     {
-      console.log('optionsoptionsoptions',options);
+      console.log('optionsoptionsoptions', options);
       return new Promise(function (resolve, reject) {
         request(options, async function (error, response, body) {
-          // console.log(response);
-          
-          if (!error && response.statusCode == 200) {
-            // console.log('body',http://192.168.55.248:5005/api/document-type);
-            res.send(body)
-          } else {
-              return res.status(500).json({
+          console.log("passg2b:", response);
 
-                status_code: 500,
-                message: 'something_went_wrong',
-                status: false,
-                body:response.body
-              });
-            // reject(error);
+          if (!error && response.statusCode == 200) {
+        res.send(body)
+          } else {
+        // Log error details for else case
+        commonErrors['errorTitle'] = 'passTog2b';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' +
+          (error ? error.toString() : 'Unknown error') +
+          '-g2b param, options: ' + JSON.stringify(options) +
+          ', response: ' + (response ? response.statusCode : 'no response');
+        warningMessage(commonErrors, error || response);
+
+        return res.status(500).json({
+          status_code: 500,
+          message: 'something_went_wrong',
+          status: false,
+          body: response ? response.toString() : 'No response'
+        });
           }
         });
       });
-    } catch (error) {
-      console.log("error",error);
+        } catch (error) {
+      // Log error details for catch case
+      commonErrors['errorTitle'] = 'passTog2b';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' +
+        error.toString() + '-g2b param, options: ' + JSON.stringify(options || {});
+      warningMessage(commonErrors, error);
+
+      console.log("error", error);
       return res.status(500).json({
         status_code: 500,
         message: 'something_went_wrong',
         status: false,
       });
-      // Logger.errorAndMail(error);
   }
-// }
+
     
 }
 
