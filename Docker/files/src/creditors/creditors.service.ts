@@ -1031,7 +1031,7 @@ async byPassApi(req: Request, res: Response,method:any,path:any,): Promise<any> 
     });
 }
 }
-async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
+async passTog2b(req: Request, res: Response,method:any,paths:any): Promise<any> {
 
   console.log('passTog2b');
     let keys,body;
@@ -1060,14 +1060,14 @@ async passTog2b(req: Request, res: Response,method:any,path:any): Promise<any> {
       }
        options = {
         'method': method,
-        'url': config.GATE2BURL + path,
+        'url': config.GATE2BURL + paths,
         // 'headers': headers,
         form:dummy
       };
     }else{
       options = {
         'method': method,
-        'url': config.GATE2BURL + path
+        'url': config.GATE2BURL + paths
       };
     }
     try 
