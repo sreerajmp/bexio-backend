@@ -2238,7 +2238,14 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
       let data = [];
       let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
-
+      if (totalCount === "Unauthorized") {
+        return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
+      else{
       ////console.log("totalCount", totalCount);
       let result = totalCount.map((contact) => ({
         id: contact.id,
@@ -2248,7 +2255,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         status: 200,
         data: result,
       });
-
+      }
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return res.status(401).send({
@@ -2457,7 +2464,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     const connectData = await new Promise<any>((resolve, reject) => {
       request(options, (error, response, body) => {
         if (error) {
-          commonErrors['errorTitle'] = 'getBcDetails';
+          commonErrors['errorTitle'] = 'getConnectionList';
           warningMessage(commonErrors, error);
           return reject(error);
         }
@@ -2523,10 +2530,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     }
 
   } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param, access_token`;
+    commonErrors['errorTitle'] = 'getConnectionList';
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param`;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), () => {});
     return res.status(500).json({ status: false, message: 'Internal server error' });
   }
 }
@@ -2564,7 +2570,7 @@ const getBcDetails = async (bc_id, netcomId) => {
     });
   } catch (error) {
     commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'access_token';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
     warningMessage(commonErrors, error);
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
       resolve('')
@@ -3313,8 +3319,9 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
 
       if (response.statusCode === 401) {
         console.log("Unauthorized access, please check your token.");
-
-        return reject(new Error('Unauthorized'));
+        return resolve("Unauthorized");
+        // return reject(new Error('Unauthorized'));
+        
       } else {
         return resolve(false);
       }
