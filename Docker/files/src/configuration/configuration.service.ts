@@ -2238,7 +2238,14 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
       let data = [];
       let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
-
+      if (totalCount === "Unauthorized") {
+        return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
+      else{
       ////console.log("totalCount", totalCount);
       let result = totalCount.map((contact) => ({
         id: contact.id,
@@ -2248,7 +2255,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         status: 200,
         data: result,
       });
-
+      }
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return res.status(401).send({
@@ -3312,8 +3319,9 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
 
       if (response.statusCode === 401) {
         console.log("Unauthorized access, please check your token.");
-
-        return reject(new Error('Unauthorized'));
+        return resolve("Unauthorized");
+        // return reject(new Error('Unauthorized'));
+        
       } else {
         return resolve(false);
       }
