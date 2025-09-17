@@ -2457,7 +2457,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     const connectData = await new Promise<any>((resolve, reject) => {
       request(options, (error, response, body) => {
         if (error) {
-          commonErrors['errorTitle'] = 'getBcDetails';
+          commonErrors['errorTitle'] = 'getConnectionList';
           warningMessage(commonErrors, error);
           return reject(error);
         }
@@ -2523,10 +2523,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     }
 
   } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param, access_token`;
+    commonErrors['errorTitle'] = 'getConnectionList';
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param`;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), () => {});
     return res.status(500).json({ status: false, message: 'Internal server error' });
   }
 }
@@ -2564,7 +2563,7 @@ const getBcDetails = async (bc_id, netcomId) => {
     });
   } catch (error) {
     commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'access_token';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
     warningMessage(commonErrors, error);
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
       resolve('')
