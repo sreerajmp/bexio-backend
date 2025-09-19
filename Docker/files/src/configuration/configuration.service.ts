@@ -1293,29 +1293,21 @@ console.log('req.body',req.body);
           console.log("response.body:::::::",companyId);
           
           if (data.id) {
-            let jsonReq = JSON.stringify(data);
-
-                const updateBillerData = `
-                  UPDATE biller
-                  SET lastupdate = getdate(),
-                      status=?,
-                      legalname=?,
-                      uid=?,
-                      subscriptionstatus=?,
-                      defaultlanguage=?,
-                      companyJSON=?
-                  WHERE billerid=?
-                `;
-
-                const responseData = [
-                  data.status,
-                  data.legalName,
-                  data.accounts[0]['iid'],
-                  data.billRecipientSubscriptionStatus,
-                  data.localizedData['defaultLanguage'],
-                  jsonReq,   
-                  data.id
-                ];
+           const responseData = [
+              data.status,
+              data.legalName,
+              data.accounts[0]['iid'],
+              data.billRecipientSubscriptionStatus,
+              data.localizedData['defaultLanguage'],
+              data,
+              data.id
+            ]
+            let jsonReq = JSON.stringify(data)
+            const updateBillerData = `UPDATE biller
+                                    SET lastupdate = getdate(),status='${data.status}',legalname='${data.legalName}',
+                                    uid ='${data.accounts[0]['iid']}',subscriptionstatus='${data.billRecipientSubscriptionStatus}',defaultlanguage='${data.localizedData.defaultLanguage}'
+                                    ,companyJSON = '${jsonReq}'
+                                    WHERE billerid='${data.id}'`
 
                 await pool.query(updateBillerData, responseData);
               const companyIdNumber = Number(companyId);            
