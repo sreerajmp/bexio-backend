@@ -5167,7 +5167,7 @@ export const markAsPending = async (access_token, id) => {
           return resolve(false);
         }
       } else if (response.statusCode === 400) {
-        const msg = 'error: you can not issue an invoice with a total which is less or equal to 0';
+        const msg = response.body ? JSON.stringify(response.body) : '';
         console.log(msg);
         commonErrors['errorTitle'] = 'markAsPending';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + msg + ' -bexio param,';
