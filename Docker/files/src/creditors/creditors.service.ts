@@ -1077,8 +1077,8 @@ async passTog2b(req: Request, res: Response,method:any,paths:any): Promise<any> 
         request(options, async function (error, response, body) {
           console.log("passg2b:", response);
 
-          if (!error && response.statusCode == 200) {
-        res.send(body)
+          if ((!error && response.statusCode == 200) || (!error && response.statusCode == 204)) {
+            res.send(body)
           } else {
         // Log error details for else case
         commonErrors['errorTitle'] = 'passTog2b';
