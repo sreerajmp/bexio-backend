@@ -1077,23 +1077,27 @@ async passTog2b(req: Request, res: Response,method:any,paths:any): Promise<any> 
         request(options, async function (error, response, body) {
           console.log("passg2b:", response);
 
-          if ((!error && response.statusCode == 200) || (!error && response.statusCode == 204)) {
+          if ((!error && response.statusCode == 200)) {
             res.send(body)
-          } else {
-        // Log error details for else case
-        commonErrors['errorTitle'] = 'passTog2b';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' +
-          (error ? error.toString() : 'Unknown error') +
-          '-g2b param, options: ' + JSON.stringify(options) +
-          ', response: ' + (response ? response.statusCode : 'no response');
-        warningMessage(commonErrors, error || response);
+          }
+          else if (!error && response.statusCode == 204) {
+            res.send(response)
+          }
+          else {
+            // Log error details for else case
+            commonErrors['errorTitle'] = 'passTog2b';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' +
+              (error ? error.toString() : 'Unknown error') +
+              '-g2b param, options: ' + JSON.stringify(options) +
+              ', response: ' + (response ? response.statusCode : 'no response');
+            warningMessage(commonErrors, error || response);
 
-        return res.status(500).json({
-          status_code: 500,
-          message: 'something_went_wrong',
-          status: false,
-          body: response ? response.toString() : 'No response'
-        });
+            return res.status(500).json({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+              body: response ? response.toString() : 'No response'
+            });
           }
         });
       });
