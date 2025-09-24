@@ -1293,7 +1293,7 @@ console.log('req.body',req.body);
           console.log("response.body:::::::",companyId);
           
           if (data.id) {
-            const responseData = [
+           const responseData = [
               data.status,
               data.legalName,
               data.accounts[0]['iid'],
@@ -1308,8 +1308,8 @@ console.log('req.body',req.body);
                                     uid ='${data.accounts[0]['iid']}',subscriptionstatus='${data.billRecipientSubscriptionStatus}',defaultlanguage='${data.localizedData.defaultLanguage}'
                                     ,companyJSON = '${jsonReq}'
                                     WHERE billerid='${data.id}'`
-  
-            await pool.query(updateBillerData, responseData)
+
+                await pool.query(updateBillerData, responseData);
               const companyIdNumber = Number(companyId);            
                 const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
