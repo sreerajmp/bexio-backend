@@ -5272,17 +5272,24 @@ export async function pushContactToBexio(
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify([
+        // body: JSON.stringify([
+        //   {
+        //     "field": "name_1",
+        //     "value": nameToCheck2,
+        //     "criteria": "="
+        //   },
+        //   {
+        //     "field": "name_2",
+        //     "value": nameToCheck1,
+        //     "criteria": "="
+        //   },
+        // ])
+          body: JSON.stringify([
           {
-            "field": "name_1",
-            "value": nameToCheck2,
+            "field": "nr",
+            "value": contact.Iso_SAP_Partner_ID__c,
             "criteria": "="
           },
-          {
-            "field": "name_2",
-            "value": nameToCheck1,
-            "criteria": "="
-          }
         ])
       };
 
@@ -5322,7 +5329,7 @@ export async function pushContactToBexio(
         }
         if (!existingContacts || existingContacts.length === 0) {
           console.log(`No existing contacts found for name: ${nameToCheck1}. Proceeding to push contact.`);
-
+          console.log(`No existing contacts found for name: ${contact.Iso_SAP_Partner_ID__c}. Proceeding to push contact.`);
             // Prepare Bexio contact payload from Salesforce record
             // In Bexio: name_1 = last name, name_2 = first name
             // If two users: user1 (first/last) and user2 (first/last)
