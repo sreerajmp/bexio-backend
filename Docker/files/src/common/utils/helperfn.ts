@@ -163,7 +163,7 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
     //   limit: limit
     // });
     
-      request(options, function (error, response) {
+      request(options, async (error, response)=> {
         if (error) {  
           commonErrors['errorTitle'] = 'invoiceListCount';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
@@ -175,7 +175,7 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
         }
         if(response.statusCode == 200){
           if(JSON.parse(response.body).length == limit){
-           let temp = this.invoiceListCountSearch(token,offset+2000,2000);
+           let temp = await invoiceListCountSearch(token,offset+2000,2000);
            resolve(temp);
           }else{
             offset = offset + JSON.parse(response.body).length;
