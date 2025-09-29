@@ -37,7 +37,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData;;
+    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData = {};
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
