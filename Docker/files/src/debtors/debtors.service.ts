@@ -37,7 +37,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = req.body.partyId;
     let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceNumbers,invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData;;
+    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData = {};
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -50,7 +50,7 @@ export class DebtorsService {
       }
       let configDetails:any = await getOctConfig(netcomId);
       
-      if(configDetails.filtered_records != 0){
+      if(configDetails.status && configDetails.records.length > 0){
         configData =  configDetails.records[0].config.serviceStatus
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
