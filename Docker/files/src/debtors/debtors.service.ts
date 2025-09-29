@@ -50,7 +50,7 @@ export class DebtorsService {
       }
       let configDetails:any = await getOctConfig(netcomId);
       
-      if(configDetails.filtered_records != 0){
+      if(configDetails.status && configDetails.records > 0){
         configData =  configDetails.records[0].config.serviceStatus
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
