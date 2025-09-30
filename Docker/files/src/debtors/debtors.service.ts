@@ -311,8 +311,6 @@ export class DebtorsService {
             let contectIds:any = await getContactSearch(accessToken,searchJson);
             arrayContactIds = contectIds.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
-              // invoiceNumbers = getInvoiceIdRslt[0]['invoices']
-            //  contactGroupList
           }
        
       }
