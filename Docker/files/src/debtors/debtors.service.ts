@@ -311,8 +311,6 @@ export class DebtorsService {
             let contectIds:any = await getContactSearch(accessToken,searchJson);
             arrayContactIds = contectIds.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
-              // invoiceNumbers = getInvoiceIdRslt[0]['invoices']
-            //  contactGroupList
           }
        
       }
@@ -1856,20 +1854,6 @@ export class DebtorsService {
               select: { rk_invoice: true },
             });
             const rkInvoice = updatedInvoice?.rk_invoice ? Number(updatedInvoice.rk_invoice) : undefined;
-
-          // const rk_party = Number(refDataQueryResult[0].companyregistered?.rk_party);
-
-          // const resultGetPartyApplication = await connectLibrary.$queryRaw<any>`
-          //   SELECT pa.cid, lp.companyname, a.code AS app, av.version AS appversion
-          //   FROM partyapplication pa
-          //   INNER JOIN application_version av ON av.cid = pa.fk_application_version
-          //   INNER JOIN application a ON a.cid = av.fk_application
-          //   INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
-          //   WHERE pa.fk_party = ${rk_party} AND a.code = 'BEXIO'
-          // `;
-          // const partyApplicationId = resultGetPartyApplication[0].objectid;
-          // console.log('12333');
-          // let invoiceCid:any;
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
 
             console.log('rkInvoice',rkInvoice);
@@ -2161,6 +2145,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
           console.log('notifiBexionotifiBexio', options);
 
           console.log('notifiBexionotifiBexio', response.body);
+          console.log('notifiBexionotifiBexio', response.statusCode);
           console.log('typeoftypeof', typeof (response.body));
           let resStatus;
           if (typeof (response.body) == 'object') {
@@ -2172,10 +2157,10 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
           console.log('statusstatus', resStatus);
 
 
-          if (response.statusCode == 201 || resStatus) {
+          if (response.statusCode == 200 || resStatus) {
+            console.log('JSON.parse(response.body)', JSON.parse(response.body));
 
             resolve(JSON.parse(response.body));
-            console.log('JSON.parse(response.body)', JSON.parse(response.body));
           }
           else {
             // resolve(false)
