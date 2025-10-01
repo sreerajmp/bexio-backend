@@ -5458,3 +5458,201 @@ export async function processNextPendingJob(job: any) {
 
   return pushResult;
 }
+export async function saleforceContactImport(netcomId, companyName) {
+  console.log(`netcomId: ${netcomId}`);
+  console.log(`companyName: ${companyName}`);
+
+  const salesforceService = new SalesforceService();
+
+
+  const contacts = await salesforceService.fetchContacts({ companyName, netcomId });
+  console.log(`Processing contact: ${JSON.stringify(contacts)}`);
+
+  if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
+    return { success: false, message: 'No contacts found' };
+  }
+
+  const pushResult = await pushSchedulerContactToBexio(netcomId, contacts);
+
+  if (pushResult) {
+    return { success: false, message: 'completed successfully' };
+
+  }
+
+  return pushResult;
+}
+export async function pushSchedulerContactToBexio(
+  netcomid: string,
+  contacts: Array<{
+    Name: string;
+    Iso_Email__c?: string;
+    BillingAddress?: { street?: string; postalCode?: string; city?: string };
+    Iso_SAP_Partner_ID__c?: string;
+    [key: string]: any;
+  }>
+): Promise<any[]> {
+  const results: any[] = [];
+  console.log('pushContactToBexio called with netcomid:', netcomid);
+
+  const company = await connectBexio.companyregistered.findFirst({
+    where: { netcomid },
+    select: { refresh_token: true }
+  });
+console.log('company', company);
+  if (!company?.refresh_token) {
+    return [{ success: false, error: 'No refresh_token found' }];
+  }
+
+  const bexioClient = await bexioInterfaceClient();
+  let tokenSet;
+  try {
+    tokenSet = await bexioClient.refresh(company.refresh_token);
+  } catch (err) {
+    return [{ success: false, error: 'Failed to get access token' }];
+  }
+  const accessToken = tokenSet.access_token;
+  console.log('accessToken', accessToken);
+  if (!contacts?.length) return [];
+
+  // Get all SAP IDs
+  const ids = contacts.map(c => c.Iso_SAP_Partner_ID__c).filter(Boolean);
+     console.log('ids', ids.length);
+     console.log('ids', ids);
+  //  Search existing contacts in Bexio
+  let existingContacts: any[] = [];
+  if (ids.length) {
+    const searchOptions = {
+      method: 'POST',
+      url: `https://api.bexio.com/2.0/contact/search`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify([{ field: 'nr', value: ids, criteria: 'in' }])
+    };
+
+    let retryCount = 0;
+    const maxRetries = 3;
+    while (retryCount < maxRetries) {
+      try {
+        existingContacts = await new Promise<any[]>((resolve, reject) => {
+          request(searchOptions, (err, resp, body) => {
+            if (err) return reject(err);
+            if (resp.statusCode === 200) 
+              { console.log('JSON.parse(body)', JSON.parse(body));
+              resolve(JSON.parse(body));}
+            else if (resp.statusCode === 429) reject({ retry: true });
+            else reject(body);
+          });
+        });
+        break;
+      } catch (err: any) {
+        if (err?.retry) {
+          retryCount++;
+          await new Promise(res => setTimeout(res, 60000));
+        } else throw err;
+      }
+    }
+  }
+
+  const existingIds = existingContacts.map(c => c.nr);
+ console.log('existingIds',existingIds);
+  //  Filter new contacts
+  const newContacts = contacts.filter(c => !existingIds.includes(c.Iso_SAP_Partner_ID__c));
+ console.log('newContacts.length',newContacts.length);
+  console.log('newContacts.length',newContacts);
+  if (!newContacts.length) {
+    console.log('No new contacts to push to Bexio.');
+    return [];
+  }
+
+  //  Prepare payload
+  const bexioPayload = newContacts.map(contact => {
+    const fullName = contact.Name?.trim() || '';
+    let firstName1 = '';
+    let lastName1 = '';
+
+    const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+    if (separatorMatch) {
+      const separator = separatorMatch[0];
+      const parts = fullName.split(separator);
+      if (parts.length === 2) {
+        firstName1 = parts[0].trim() + ' &';
+        lastName1 = parts[1].trim();
+      } else firstName1 = fullName;
+    } else {
+      const parts = fullName.split(/\s+/);
+      if (parts.length === 1) firstName1 = parts[0];
+      else if (/^\d/.test(parts[0])) {
+        lastName1 = parts[0];
+        firstName1 = parts.slice(1).join(' ');
+      } else if (/^\d/.test(parts[parts.length - 1])) {
+        lastName1 = parts[parts.length - 1];
+        firstName1 = parts.slice(0, -1).join(' ');
+      } else if (parts.length >= 3) {
+        firstName1 = parts[0];
+        lastName1 = parts.slice(1).join(' ');
+      } else {
+        firstName1 = parts[0];
+        lastName1 = parts.slice(1).join(' ');
+      }
+    }
+
+    return {
+      name_1: lastName1 || null,
+      name_2: firstName1 || null,
+      mail: contact.Iso_Email__c || null,
+      nr: contact.Iso_SAP_Partner_ID__c || null,
+      street_name: contact.BillingAddress?.street || null,
+      postcode: contact.BillingAddress?.postalCode || null,
+      city: contact.BillingAddress?.city || null,
+      contact_type_id: 2,
+      user_id: 1,
+      owner_id: 1
+    };
+  });
+  console.log('bexioPayload',bexioPayload)
+  //  Push to Bexio in bulk
+  const pushOptions = {
+    method: 'POST',
+    url: 'https://api.bexio.com/2.0/contact/_bulk_create',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(bexioPayload)
+  };
+
+  let retryCount = 0;
+  const maxRetries = 3;
+  try {
+    let result;
+    while (retryCount < maxRetries) {
+      try {
+        result = await new Promise<any>((resolve, reject) => {
+          request(pushOptions, (err, resp, body) => {
+            if (err) return reject(err);
+            if (resp.statusCode === 200 || resp.statusCode === 201) 
+               { console.log('JSON.parse(body)', JSON.parse(body))
+                resolve(JSON.parse(body));}
+            else if (resp.statusCode === 429) reject({ retry: true });
+            else reject(body);
+          });
+        });
+        break;
+      } catch (err: any) {
+        if (err?.retry) {
+          retryCount++;
+          await new Promise(res => setTimeout(res, 60000));
+        } else throw err;
+      }
+    }
+    results.push({ success: true, data: result });
+  } catch (err) {
+    results.push({ success: false, error: err });
+  }
+ console.log('results',results);
+  return results;
+}
