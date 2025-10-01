@@ -302,7 +302,7 @@ export class CreditorsService {
                   bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
                   console.log('bcDetails',bcDetails);
                   let tempBc = [0];
-      if(bcDetails){
+      if(bcDetails?.data?.length){
         for (let index = 0; index < bcDetails['data'].length; index++) {
           const element = bcDetails['data'][index];
           if(element['company_details']['doc_type']['data'] == 'Order'){
