@@ -8,13 +8,13 @@ const encryptionControl = require("../common/utils/jwt-decode");
 import connectMssql from '../db/mssql-client'
 import { Request, Response } from 'express';
 import config from '../common/config/index';
-
+import {schedulerContactimportWorkerHost} from'../common/utils/schedulercontactimport.worker.host'
 @Injectable()
 export class ContactImportService {
   constructor(
     // private readonly salesforceService: SalesforceService,
     private readonly dynamoDBService: DynamoDBService,
-    private readonly contactImportWorkerHost: ContactImportWorkerHost,
+    private readonly contactImportWorkerHost: ContactImportWorkerHost,private readonly schedulerContactimportWorkerHost: schedulerContactimportWorkerHost,
   ) { }
 
   async importContacts(dto: any) {
@@ -114,5 +114,8 @@ export class ContactImportService {
     } catch (error) {
       return { message: 'Error during sync', error: error?.message || error };
     }
+  }
+  async schedulercontact(req: Request, res: Response): Promise<any>{
+    this.schedulerContactimportWorkerHost.startWorker();
   }
 }
