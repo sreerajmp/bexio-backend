@@ -892,7 +892,7 @@ export class DebtorsService {
      
       let tempBc = [0];
     
-      if(bcDetails){
+      if(bcDetails?.data?.length){
         for (let index = 0; index < bcDetails['data'].length; index++) {
           const element = bcDetails['data'][index];
           //console.log("element :: ",element);      
