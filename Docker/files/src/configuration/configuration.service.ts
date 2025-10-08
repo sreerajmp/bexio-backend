@@ -600,20 +600,16 @@ export class ConfigurationService {
       }
       console.log('updates length',Object.keys(updates).length)
       // Only update if there are changes
-      if (Object.keys(updates).length > 0) {
-        console.log('updates length1',Object.keys(updates).length)
-        await connectBexio.companyregistered.updateMany({
-            where: { rk_party: Number(encrToken.partyId)},
-          data: {
-            settings: {
-              set: {
-                ...existingSettings,
-                ...updates,
-              },
-            },
-          },
-        });
-      }
+     if (Object.keys(updates).length > 0) {
+      const updatedSettings = { ...existingSettings, ...updates };
+      console.log('updatedSettings:', updatedSettings);
+      const result = await connectBexio.companyregistered.updateMany({
+        where: { rk_party: Number(encrToken.partyId) },
+        data: { settings: { set: updatedSettings } }
+      });
+
+      console.log('Updated rows count:', result.count);
+    }
     } else {
       // If settings not found, only set fields present in payload
       const settingsToSet: any = {};
