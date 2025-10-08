@@ -558,7 +558,7 @@ export class ConfigurationService {
     }
 
   }
-  async changePayementComments(req: Request, res: Response): Promise<any> {
+ async changePayementComments(req: Request, res: Response): Promise<any> {
   let encrToken = req.body;
 
   try {
@@ -580,20 +580,15 @@ export class ConfigurationService {
           ? JSON.parse(settingsRow.settings)
           : settingsRow?.settings || {};
 
-      // Update `notifyPayment` and `notifyComments` if present in payload
+      // Update only fields present in payload
       const updates: any = {};
-       console.log('typeofpayementStatus',typeof encrToken.payementStatus);
-  
-      // Handle `payementStatus` correctly (boolean or string)
+
       if (typeof encrToken.payementStatus !== 'undefined') {
-        updates.notifyPayment =
-          encrToken.payementStatus === true || encrToken.payementStatus === 'true';
+        updates.notifyPayment = encrToken.payementStatus === 'true';
       }
-      console.log('typeofcommentStatus',typeof encrToken.commentStatus);
-      // Handle `commentStatus` correctly (boolean or string)
+
       if (typeof encrToken.commentStatus !== 'undefined') {
-        updates.notifyComments =
-          encrToken.commentStatus === true || encrToken.commentStatus === 'true';
+        updates.notifyComments = encrToken.commentStatus === 'true';
       }
 
       // Only update if there are changes
@@ -611,46 +606,37 @@ export class ConfigurationService {
         });
       }
     } else {
-      // Handle case when settings are not found
-      const notifyPayment =
-        typeof encrToken.payementStatus !== 'undefined'
-          ? encrToken.payementStatus === true || encrToken.payementStatus === 'true'
-          : true;
+      // If settings not found, only set fields present in payload
+      const settingsToSet: any = {};
 
-      const notifyComments =
-        typeof encrToken.commentStatus !== 'undefined'
-          ? encrToken.commentStatus === true || encrToken.commentStatus === 'true'
-          : true;
-         console.log('notifyPayment',notifyPayment);
-           console.log('notifyComments',notifyComments);
+      if (typeof encrToken.payementStatus !== 'undefined') {
+        settingsToSet.notifyPayment = encrToken.payementStatus === 'true';
+      }
+
+      if (typeof encrToken.commentStatus !== 'undefined') {
+        settingsToSet.notifyComments = encrToken.commentStatus === 'true';
+      }
+
       await connectBexio.companyregistered.updateMany({
-          where: { rk_party:Number(encrToken.partyId)},
+        where: { rk_party: Number(encrToken.partyId) },
         data: {
-          settings: {
-            set: {
-              notifyPayment,
-              notifyComments,
-            },
-          },
+          settings: { set: settingsToSet },
         },
       });
     }
 
-    return res.status(status_code.OK).json({
-      status_code: 200,
-      status: true,
-    });
+    return res.status(200).json({ status_code: 200, status: true });
   } catch (error) {
     commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = `From:${path.basename(__filename)} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
+    commonErrors['errorDescription'] = `From:${path.basename(
+      __filename
+    )} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
     warningMessage(commonErrors, error);
 
-    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-      status_code: 500,
-      status: false,
-    });
+    return res.status(500).json({ status_code: 500, status: false });
   }
 }
+
   
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
       let encrToken 
