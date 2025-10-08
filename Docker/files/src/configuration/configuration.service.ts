@@ -582,17 +582,26 @@ export class ConfigurationService {
 
       // Update only fields present in payload
       const updates: any = {};
-
+       console.log('typeof encrToken.payementStatus',typeof encrToken.payementStatus)
+        console.log('payementStatus',encrToken.payementStatus)
+        console.log('is payementStatus1',encrToken.payementStatus === 'true')
       if (typeof encrToken.payementStatus !== 'undefined') {
-        updates.notifyPayment = encrToken.payementStatus === 'true';
+              console.log('encrToken.payementStatus1',encrToken.payementStatus.toString()=== 'true')
+        updates.notifyPayment = encrToken.payementStatus.toString() === 'true';
+        console.log('updates.notifyPayment',updates.notifyPayment)
       }
-
+         console.log('typeof encrToken.commentStatus',typeof encrToken.commentStatus)
+         console.log('typeof encrToken.commentStatus1',encrToken.commentStatus)
+         console.log('iscommentStatus1',encrToken.commentStatus === 'true')
       if (typeof encrToken.commentStatus !== 'undefined') {
-        updates.notifyComments = encrToken.commentStatus === 'true';
+          console.log('encrToken.commentStatus',encrToken.commentStatus.toString()=== 'true')
+        updates.notifyComments = encrToken.commentStatus.toString() === 'true';
+        console.log('updates.notifyComments',updates.notifyComments)
       }
-
+      console.log('updates length',Object.keys(updates).length)
       // Only update if there are changes
       if (Object.keys(updates).length > 0) {
+        console.log('updates length1',Object.keys(updates).length)
         await connectBexio.companyregistered.updateMany({
             where: { rk_party: Number(encrToken.partyId)},
           data: {
@@ -610,11 +619,11 @@ export class ConfigurationService {
       const settingsToSet: any = {};
 
       if (typeof encrToken.payementStatus !== 'undefined') {
-        settingsToSet.notifyPayment = encrToken.payementStatus === 'true';
+        settingsToSet.notifyPayment = encrToken.payementStatus.toString() === 'true';
       }
 
       if (typeof encrToken.commentStatus !== 'undefined') {
-        settingsToSet.notifyComments = encrToken.commentStatus === 'true';
+        settingsToSet.notifyComments = encrToken.commentStatus.toString() === 'true';
       }
 
       await connectBexio.companyregistered.updateMany({
