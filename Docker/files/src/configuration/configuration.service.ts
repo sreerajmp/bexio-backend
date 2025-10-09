@@ -558,89 +558,81 @@ export class ConfigurationService {
     }
 
   }
- async changePayementComments(req: Request, res: Response): Promise<any> {
-  let encrToken = req.body;
+async changePayementComments(req: Request, res: Response): Promise<any> {
+  const encrToken = req.body;
 
   try {
     // Fetch settings for the given party ID
     const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
-      where: {
-          rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
-      },
-      select: {
-          settings: true, // Fetch only the settings JSON field
-      },
+      where: { rk_party: Number(encrToken.partyId) },
+      select: { settings: true },
     });
 
-    // Check if settings exist
-    if (getStatusQryRslt?.length > 0) {
-      const settingsRow = getStatusQryRslt[0];
-      const existingSettings =
-        typeof settingsRow?.settings === 'string'
-          ? JSON.parse(settingsRow.settings)
-          : settingsRow?.settings || {};
+    const updates: any = {};
 
-      // Update only fields present in payload
-      const updates: any = {};
-       console.log('typeof encrToken.payementStatus',typeof encrToken.payementStatus)
-        console.log('payementStatus',encrToken.payementStatus)
-        console.log('is payementStatus1',encrToken.payementStatus === 'true')
-      if (typeof encrToken.payementStatus !== 'undefined') {
-              console.log('encrToken.payementStatus1',encrToken.payementStatus.toString()=== 'true')
-        updates.notifyPayment = encrToken.payementStatus.toString() === 'true';
-        console.log('updates.notifyPayment',updates.notifyPayment)
+    // Check payementStatus
+    if (typeof encrToken.payementStatus !== 'undefined') {
+      console.log('encrToken.payementStatus1', encrToken.payementStatus.toString() === 'true');
+      updates.notifyPayment = encrToken.payementStatus.toString() === 'true';
+      console.log('updates.notifyPayment', updates.notifyPayment);
+    }
+
+    // Check commentStatus
+    console.log('typeof encrToken.commentStatus', typeof encrToken.commentStatus);
+    console.log('typeof encrToken.commentStatus1', encrToken.commentStatus);
+    console.log('iscommentStatus1', encrToken.commentStatus === 'true');
+
+    if (typeof encrToken.commentStatus !== 'undefined') {
+      console.log('encrToken.commentStatus', encrToken.commentStatus.toString() === 'true');
+      updates.notifyComments = encrToken.commentStatus.toString() === 'true';
+      console.log('updates.notifyComments', updates.notifyComments);
+    }
+
+    console.log('updates length', Object.keys(updates).length);
+
+    // Only update if there is something to update
+    if (Object.keys(updates).length > 0) {
+      let updatedSettings: any = {};
+
+      if (getStatusQryRslt?.length > 0) {
+        // Existing settings
+        const settingsRow = getStatusQryRslt[0];
+        const existingSettings =
+          typeof settingsRow?.settings === 'string'
+            ? JSON.parse(settingsRow.settings)
+            : settingsRow?.settings || {};
+
+        // Merge existing settings with updates
+        console.log('updatedSettings1', updates);
+         console.log('existingSettings', existingSettings);
+        updatedSettings = { ...existingSettings, ...updates };
+          console.log('updatedSettings', updatedSettings);
+      } else {
+        // No existing settings → create new
+                console.log('updatedSettingsno1', updates);
+        updatedSettings = { ...updates };
+         console.log('updatedSettingsno', updatedSettings);
       }
-         console.log('typeof encrToken.commentStatus',typeof encrToken.commentStatus)
-         console.log('typeof encrToken.commentStatus1',encrToken.commentStatus)
-         console.log('iscommentStatus1',encrToken.commentStatus === 'true')
-      if (typeof encrToken.commentStatus !== 'undefined') {
-          console.log('encrToken.commentStatus',encrToken.commentStatus.toString()=== 'true')
-        updates.notifyComments = encrToken.commentStatus.toString() === 'true';
-        console.log('updates.notifyComments',updates.notifyComments)
-      }
-      console.log('updates length',Object.keys(updates).length)
-      // Only update if there are changes
-     if (Object.keys(updates).length > 0) {
-      const updatedSettings = { ...existingSettings, ...updates };
-      console.log('updatedSettings:', updatedSettings);
+
+      // Update DB
       const result = await connectBexio.companyregistered.updateMany({
         where: { rk_party: Number(encrToken.partyId) },
-        data: { settings: { set: updatedSettings } }
+        data: { settings: { set: updatedSettings } },
       });
 
       console.log('Updated rows count:', result.count);
-    }
-    } else {
-      // If settings not found, only set fields present in payload
-      const settingsToSet: any = {};
-
-      if (typeof encrToken.payementStatus !== 'undefined') {
-        settingsToSet.notifyPayment = encrToken.payementStatus.toString() === 'true';
-      }
-
-      if (typeof encrToken.commentStatus !== 'undefined') {
-        settingsToSet.notifyComments = encrToken.commentStatus.toString() === 'true';
-      }
-
-      await connectBexio.companyregistered.updateMany({
-        where: { rk_party: Number(encrToken.partyId) },
-        data: {
-          settings: { set: settingsToSet },
-        },
-      });
     }
 
     return res.status(200).json({ status_code: 200, status: true });
   } catch (error) {
     commonErrors['errorTitle'] = req.originalUrl;
-    commonErrors['errorDescription'] = `From:${path.basename(
-      __filename
-    )} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
+    commonErrors['errorDescription'] = `From:${path.basename(__filename)} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
     warningMessage(commonErrors, error);
 
     return res.status(500).json({ status_code: 500, status: false });
   }
 }
+
 
   
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
