@@ -4918,7 +4918,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       }
       console.log('contact::::', contact);
       // If contact exists, check for required keys
-      if (!contact?.name_1 || !contact?.street || !contact?.city || !contact?.country_id || !contact?.postcode) {
+      if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_missing_address_or_postal', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
