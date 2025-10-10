@@ -1075,7 +1075,7 @@ taxIsAdded = invoice.taxs.length;
               "ADDRESS": [{
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
-                  "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
+                  "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                   "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
                   // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
@@ -2426,7 +2426,7 @@ taxIsAdded = invoice.taxs.length;
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
 
-                  "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
+                  "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim(): undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                   "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
                   "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
@@ -3407,7 +3407,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
             //         "bmecat:EMAIL": invitionData.receiveremail
             //     }]
             // }],
-            "bmecat:STREET": order.contact.address?order.contact.address:undefined,
+            "bmecat:STREET": order.contact.street_name?`${order.contact.street_name} ${order.contact.house_number ?? ''}`.trim():undefined,
             "bmecat:ZIP": order.contact.postcode?order.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
             "bmecat:CITY": order.contact.city?order.contact.city:undefined,
             // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
@@ -3978,7 +3978,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             "ADDRESS": [{
               "bmecat:NAME": deliveryNotes.contact.name_1?deliveryNotes.contact.name_1:undefined,
               "bmecat:NAME2": deliveryNotes.contact.name_2?deliveryNotes.contact.name_2:undefined,
-              "bmecat:STREET": deliveryNotes.contact.address?deliveryNotes.contact.address:undefined,
+              "bmecat:STREET": deliveryNotes.contact.street_name?`${deliveryNotes.contact.street_name} ${deliveryNotes.contact.house_number ?? ''}`.trim():undefined,
               "bmecat:ZIP": deliveryNotes.contact.postcode?deliveryNotes.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
               "bmecat:CITY": deliveryNotes.contact.city?deliveryNotes.contact.city:undefined,
               "bmecat:COUNTRY_CODED": deliveryNotes.contact.country_id?coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2:undefined
@@ -4256,7 +4256,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                    "bmecat:NAME": invoice?.contact?.name_1??undefined,
                    "bmecat:NAME2": invoice?.contact?.name_2??undefined,
  
-                   "bmecat:STREET": invoice?.contact?.address?invoice.contact.address:undefined,
+                   "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
                    "bmecat:ZIP": invoice?.contact?.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                    "bmecat:CITY": invoice?.contact?.city?invoice.contact.city:undefined,
                    "bmecat:COUNTRY_CODED": invoice?.contact?.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
@@ -4918,7 +4918,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       }
       console.log('contact::::', contact);
       // If contact exists, check for required keys
-      if (!contact?.name_1 || !contact?.address || !contact?.city || !contact?.country_id || !contact?.postcode) {
+      if (!contact?.name_1 || !contact?.street || !contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_missing_address_or_postal', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
