@@ -391,9 +391,10 @@ export class DebtorsService {
         console.log('resData',resData);
         
       } else {
-          let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          totalCount = totalCountInvoiceList + totalCountInvoiceCount;
+          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+          totalCount = 2000 
+          // + totalCountInvoiceCount;
           console.log('searchJson:',searchJson);          
 
           const getOptions = {

@@ -569,56 +569,48 @@ export class ConfigurationService {
       });
 
       console.log('encrToken.payementStatus', encrToken.payementStatus);
-      console.log('encrToken.payementStatus', encrToken.commentStatus);
-        const existingSettings = getStatusQryRslt[0]?.settings;
-          console.log('existingSettings',existingSettings);
-        if (existingSettings != null) {
-        if (encrToken.payementStatus == 'true' || encrToken.payementStatus == 'false') {
-          let payementStatus = encrToken.payementStatus == 'true' ? '"true"' : '"false"';
-          console.log('payementStatus', payementStatus);
-          const payementStatusQry = await connectBexio.$executeRawUnsafe(
-            `
-              UPDATE companyregistered
-              SET settings = jsonb_set(settings::jsonb, '{notifyPayment}', $1::jsonb)
-              WHERE rk_party = $2
-              `,
-            JSON.stringify(payementStatus), // must be JSON string
-            encrToken.partyId               // second parameter
-          );
-        }
-        if (encrToken.commentStatus == 'true' || encrToken.commentStatus == 'false') {
-          let commentStatus = encrToken.commentStatus == 'true' ? '"true"' : '"false"';
-          console.log('commentStatus', commentStatus);
-          const commentStatusQry = await connectBexio.$executeRawUnsafe(
-            `
-              UPDATE companyregistered
-              SET settings = jsonb_set(settings::jsonb, '{notifyComments}', $1::jsonb)
-              WHERE rk_party = $2
-              `,
-            JSON.stringify(commentStatus), // must be JSON string
-            encrToken.partyId               // second parameter
-          );
+      console.log('encrToken.commentStatus', encrToken.commentStatus);
+      const existingSettings = getStatusQryRslt[0]?.settings;
+      console.log('existingSettings', existingSettings);
 
+      // Normalize incoming string flags to booleans or undefined if not present
+      const payVal = encrToken.payementStatus === 'true' ? true : encrToken.payementStatus === 'false' ? false : undefined;
+      const commentVal = encrToken.commentStatus === 'true' ? true : encrToken.commentStatus === 'false' ? false : undefined;
+      const partyIdNum = Number(encrToken.partyId);
+
+      if (existingSettings != null && typeof existingSettings === 'object') {
+        // Update only the keys provided
+        if (payVal !== undefined) {
+          await connectBexio.$executeRaw`
+            UPDATE companyregistered
+            SET settings = jsonb_set(settings::jsonb, '{notifyPayment}', ${JSON.stringify(payVal)}::jsonb)
+            WHERE rk_party = ${partyIdNum}
+          `;
         }
-      }
-      else {
-        const insertStatusQryRslt = await connectBexio.$executeRawUnsafe(
-          `
+        if (commentVal !== undefined) {
+          await connectBexio.$executeRaw`
+            UPDATE companyregistered
+            SET settings = jsonb_set(settings::jsonb, '{notifyComments}', ${JSON.stringify(commentVal)}::jsonb)
+            WHERE rk_party = ${partyIdNum}
+          `;
+        }
+      } else {
+        // If no settings exist, ensure both keys are set (use provided values or default to true)
+        const payParam = payVal !== undefined ? payVal : true;
+        const commParam = commentVal !== undefined ? commentVal : true;
+        await connectBexio.$executeRaw`
           UPDATE companyregistered
           SET settings = jsonb_set(
-              jsonb_set(
-                  COALESCE(settings::jsonb, '{}'::jsonb),
-                  '{notifyPayment}', $1::jsonb
-              ),
-              '{notifyComments}', $2::jsonb
+            jsonb_set(
+              COALESCE(settings::jsonb, '{}'::jsonb),
+              '{notifyPayment}', ${JSON.stringify(payParam)}::jsonb
+            ),
+            '{notifyComments}', ${JSON.stringify(commParam)}::jsonb
           )
-          WHERE rk_party = $3
-          `,
-          JSON.stringify(encrToken.payementStatus ?? true),
-          JSON.stringify(encrToken.commentStatus ?? true),
-          encrToken.partyId
-        );
+          WHERE rk_party = ${partyIdNum}
+        `;
       }
+
       res.send({
         status_code: 200,
         status: true,
@@ -632,9 +624,7 @@ export class ConfigurationService {
         status_code: 500,
         status: false,
       });
-
     }
-
   }
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
       let encrToken 
