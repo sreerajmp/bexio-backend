@@ -570,7 +570,9 @@ export class ConfigurationService {
 
       console.log('encrToken.payementStatus', encrToken.payementStatus);
       console.log('encrToken.payementStatus', encrToken.commentStatus);
-      if (getStatusQryRslt.rows[0].settings != null) {
+        const existingSettings = getStatusQryRslt[0]?.settings;
+          console.log('existingSettings',existingSettings);
+        if (existingSettings != null) {
         if (encrToken.payementStatus == 'true' || encrToken.payementStatus == 'false') {
           let payementStatus = encrToken.payementStatus == 'true' ? '"true"' : '"false"';
           console.log('payementStatus', payementStatus);
@@ -586,6 +588,7 @@ export class ConfigurationService {
         }
         if (encrToken.commentStatus == 'true' || encrToken.commentStatus == 'false') {
           let commentStatus = encrToken.commentStatus == 'true' ? '"true"' : '"false"';
+          console.log('commentStatus', commentStatus);
           const commentStatusQry = await connectBexio.$executeRawUnsafe(
             `
               UPDATE companyregistered
