@@ -558,83 +558,81 @@ export class ConfigurationService {
     }
 
   }
-async changePayementComments(req: Request, res: Response): Promise<any> {
-  const encrToken = req.body;
+  async changePayementComments(req: Request, res: Response): Promise<any> {
+    const encrToken = req.body;
 
-  try {
-    // Fetch settings for the given party ID
-    const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
-      where: { rk_party: Number(encrToken.partyId) },
-      select: { settings: true },
-    });
-
-    const updates: any = {};
-
-    // Check payementStatus
-    if (typeof encrToken.payementStatus !== 'undefined') {
-      console.log('encrToken.payementStatus1', encrToken.payementStatus.toString() === 'true');
-      updates.notifyPayment = encrToken.payementStatus.toString() === 'true';
-      console.log('updates.notifyPayment', updates.notifyPayment);
-    }
-
-    // Check commentStatus
-    console.log('typeof encrToken.commentStatus', typeof encrToken.commentStatus);
-    console.log('typeof encrToken.commentStatus1', encrToken.commentStatus);
-    console.log('iscommentStatus1', encrToken.commentStatus === 'true');
-
-    if (typeof encrToken.commentStatus !== 'undefined') {
-      console.log('encrToken.commentStatus', encrToken.commentStatus.toString() === 'true');
-      updates.notifyComments = encrToken.commentStatus.toString() === 'true';
-      console.log('updates.notifyComments', updates.notifyComments);
-    }
-
-    console.log('updates length', Object.keys(updates).length);
-
-    // Only update if there is something to update
-    if (Object.keys(updates).length > 0) {
-      let updatedSettings: any = {};
-
-      if (getStatusQryRslt?.length > 0) {
-        // Existing settings
-        const settingsRow = getStatusQryRslt[0];
-        const existingSettings =
-          typeof settingsRow?.settings === 'string'
-            ? JSON.parse(settingsRow.settings)
-            : settingsRow?.settings || {};
-
-        // Merge existing settings with updates
-        console.log('updatedSettings1', updates);
-         console.log('existingSettings', existingSettings);
-        updatedSettings = { ...existingSettings, ...updates };
-          console.log('updatedSettings', updatedSettings);
-      } else {
-        // No existing settings → create new
-                console.log('updatedSettingsno1', updates);
-        updatedSettings = { ...updates };
-         console.log('updatedSettingsno', updatedSettings);
-      }
-
-      // Update DB
-      const result = await connectBexio.companyregistered.updateMany({
+    try {
+      // Fetch settings for the given party ID
+      const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
         where: { rk_party: Number(encrToken.partyId) },
-        data: { settings: { set: updatedSettings } },
+        select: { settings: true },
       });
 
-      console.log('Updated rows count:', result.count);
+      console.log('encrToken.payementStatus', encrToken.payementStatus);
+      console.log('encrToken.payementStatus', encrToken.commentStatus);
+      if (getStatusQryRslt.rows[0].settings != null) {
+        if (encrToken.payementStatus == 'true' || encrToken.payementStatus == 'false') {
+          let payementStatus = encrToken.payementStatus == 'true' ? '"true"' : '"false"';
+          console.log('payementStatus', payementStatus);
+          const payementStatusQry = await connectBexio.$executeRawUnsafe(
+            `
+              UPDATE companyregistered
+              SET settings = jsonb_set(settings::jsonb, '{notifyPayment}', $1::jsonb)
+              WHERE rk_party = $2
+              `,
+            JSON.stringify(payementStatus), // must be JSON string
+            encrToken.partyId               // second parameter
+          );
+        }
+        if (encrToken.commentStatus == 'true' || encrToken.commentStatus == 'false') {
+          let commentStatus = encrToken.commentStatus == 'true' ? '"true"' : '"false"';
+          const commentStatusQry = await connectBexio.$executeRawUnsafe(
+            `
+              UPDATE companyregistered
+              SET settings = jsonb_set(settings::jsonb, '{notifyComments}', $1::jsonb)
+              WHERE rk_party = $2
+              `,
+            JSON.stringify(commentStatus), // must be JSON string
+            encrToken.partyId               // second parameter
+          );
+
+        }
+      }
+      else {
+        const insertStatusQryRslt = await connectBexio.$executeRawUnsafe(
+          `
+          UPDATE companyregistered
+          SET settings = jsonb_set(
+              jsonb_set(
+                  COALESCE(settings::jsonb, '{}'::jsonb),
+                  '{notifyPayment}', $1::jsonb
+              ),
+              '{notifyComments}', $2::jsonb
+          )
+          WHERE rk_party = $3
+          `,
+          JSON.stringify(encrToken.payementStatus ?? true),
+          JSON.stringify(encrToken.commentStatus ?? true),
+          encrToken.partyId
+        );
+      }
+      res.send({
+        status_code: 200,
+        status: true,
+      });
+    } catch (error) {
+      console.log('error', error);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + encrToken;
+      warningMessage(commonErrors, error);
+      res.send({
+        status_code: 500,
+        status: false,
+      });
+
     }
 
-    return res.status(200).json({ status_code: 200, status: true });
-  } catch (error) {
-    commonErrors['errorTitle'] = req.originalUrl;
-    commonErrors['errorDescription'] = `From:${path.basename(__filename)} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
-    warningMessage(commonErrors, error);
-
-    return res.status(500).json({ status_code: 500, status: false });
   }
-}
-
-
-  
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
       let encrToken 
       try {
