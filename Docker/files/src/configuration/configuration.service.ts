@@ -539,8 +539,8 @@ export class ConfigurationService {
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
-          notifyPayment: settings.notifyPayment ?? false,
-          notifyComments: settings.notifyComments ?? false,
+          notifyPayment: settings.notifyPayment ?? "false",
+          notifyComments: settings.notifyComments ?? "false",
         },
         status: true,
       });
@@ -574,8 +574,8 @@ export class ConfigurationService {
       console.log('existingSettings', existingSettings);
 
       // Normalize incoming string flags to booleans or undefined if not present
-      const payVal = encrToken.payementStatus === 'true' ? true : encrToken.payementStatus === 'false' ? false : undefined;
-      const commentVal = encrToken.commentStatus === 'true' ? true : encrToken.commentStatus === 'false' ? false : undefined;
+      const payVal = encrToken.payementStatus === 'true' ? "true" : encrToken.payementStatus === 'false' ? "false" : undefined;
+      const commentVal = encrToken.commentStatus === 'true' ? "true" : encrToken.commentStatus === 'false' ? "false" : undefined;
       const partyIdNum = Number(encrToken.partyId);
 
       if (existingSettings != null && typeof existingSettings === 'object') {
@@ -596,8 +596,8 @@ export class ConfigurationService {
         }
       } else {
         // If no settings exist, ensure both keys are set (use provided values or default to true)
-        const payParam = payVal !== undefined ? payVal : true;
-        const commParam = commentVal !== undefined ? commentVal : true;
+        const payParam = payVal !== undefined ? payVal : "true";
+        const commParam = commentVal !== undefined ? commentVal : "true";
         await connectBexio.$executeRaw`
           UPDATE companyregistered
           SET settings = jsonb_set(
