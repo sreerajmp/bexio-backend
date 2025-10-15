@@ -158,10 +158,6 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
         'Authorization': 'Bearer ' + token
       }
     };
-    // //////console.log(({
-    //   offset: offset,
-    //   limit: limit
-    // });
     
       request(options, async (error, response)=> {
         if (error) {  
@@ -1184,10 +1180,10 @@ invoice.taxs.forEach(element => {
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
               "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code.substring(0, 23):undefined,
-              ...(element.article.intern_code
+              ...(element.article.deliverer_code
                 ? {
                     "bmecat:INTERNATIONAL_PID": {
-                      "_": element.article.intern_code,
+                      "_": element.article.deliverer_code,
                       "$": {
                         "type": "ean"
                       }
