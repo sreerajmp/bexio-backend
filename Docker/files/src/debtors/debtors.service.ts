@@ -393,7 +393,7 @@ export class DebtorsService {
       } else {
           // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
           // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          totalCount = 2000 
+          // totalCount = 2000 
           // + totalCountInvoiceCount;
           console.log('searchJson:',searchJson);          
 
@@ -454,6 +454,7 @@ export class DebtorsService {
           else if (getResponse.statusCode ==200) {
         
           resData = [...parseResponse(getResponse)];
+          totalCount = 2000/showTo;
           }
 
           else  {
