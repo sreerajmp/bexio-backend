@@ -5348,13 +5348,33 @@ export async function pushContactToBexio(
             // name_1 = lastName1;
             // name_2 = firstName1;
             // }
+          let address = contact.BillingAddress?.street?.trim() || '';
+          let parts = address.split(' ').filter(p => p.trim() !== '');
+
+          let streetName = '';
+          let houseNumber = '';
+
+          if (parts.length > 1) {
+            houseNumber = parts.pop() || ''; // safely remove last word
+            streetName = parts.join(' ');
+          } else {
+            streetName = address;
+          }
+
+          streetName = streetName.trim();
+          houseNumber = houseNumber.trim();
+
+
+          console.log('streetName:', streetName);
+          console.log('houseNumber:', houseNumber);
 
             const bexioContact = {
             name_1: lastName1 || null,
             name_2: firstName1 || null,
             mail: contact.Iso_Email__c || null,
             nr: contact.Iso_SAP_Partner_ID__c || null,
-            street_name: contact.BillingAddress?.street,
+            street_name: streetName|| null,
+            house_number:houseNumber|| null,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
             contact_type_id: 2,
@@ -5482,7 +5502,7 @@ export async function pushSchedulerContactToBexio(
   contacts: Array<{
     Name: string;
     Iso_Email__c?: string;
-    BillingAddress?: { street?: string; postalCode?: string; city?: string };
+    BillingAddress?: { street?: string; postalCode?: string; city?: string; country?: string,countryCode?: string};
     Iso_SAP_Partner_ID__c?: string;
     [key: string]: any;
   }>
@@ -5562,9 +5582,49 @@ console.log('company', company);
     console.log('No new contacts to push to Bexio.');
     return [];
   }
+  const saleforceContact = [
+  ...new Map(
+    contacts
+      .map(c => ({
+        country_code: c.BillingAddress?.countryCode?.trim(),
+        country_name: c.BillingAddress?.country?.trim()
+      }))
+      .filter(c => c.country_code && c.country_name)
+      .map(c => [c.country_code, c])
+  ).values()
+];
 
+       console.log('saleforceContact',saleforceContact);
+        let countryList;
+      countryList = await getCountryLists(accessToken);
+      if (countryList) {
+        countryList = JSON.parse(countryList);
+      }
+      
+   console.log('coutryList.',countryList);
+   const existingcountryList = countryList.map(c => c.iso_3166_alpha2);
+    console.log('existingcoutryList',existingcountryList);
+    const newCountries = saleforceContact.filter(c => !existingcountryList.includes(c.country_code));
+   console.log('New countries to add:', newCountries);
+
+      if (!newCountries.length) {
+    console.log('No new country to push to Bexio.');
+     }
+     else{
+            await Promise.all(
+        newCountries.map(contact =>
+          createCountry(
+            accessToken,
+            contact.country_name,
+            contact.country_code,
+            contact.country_code
+          )
+        )
+      );
+     }
+    
   //  Prepare payload
-  const bexioPayload = newContacts.map(contact => {
+  const bexioPayload = newContacts.map(async contact => {
     const fullName = contact.Name?.trim() || '';
     let firstName1 = '';
     let lastName1 = '';
@@ -5594,15 +5654,44 @@ console.log('company', company);
         lastName1 = parts.slice(1).join(' ');
       }
     }
+    
+    let address = contact.BillingAddress?.street?.trim() || '';
+    let parts = address.split(' ').filter(p => p.trim() !== '');
+     console.log('address', address);
+     console.log('parts', parts);
+    let streetName = '';
+    let houseNumber = '';
 
+    if (parts.length > 1) {
+      houseNumber = parts.pop() || ''; // safely remove last word
+      streetName = parts.join(' ');
+    } else {
+      streetName = address;
+    }
+    streetName = streetName.trim();
+    houseNumber = houseNumber.trim();
+    console.log('streetName:', streetName);
+    console.log('houseNumber:', houseNumber);
+     countryList = await getCountryLists(accessToken);
+     let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
+      if (countryList) {
+        countryList = JSON.parse(countryList);
+      }
+      // Find the country object with matching code
+    const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
+     // Get the ID (or undefined if not found)
+    const countryId = countryObj?.id;
+    console.log('Country ID:', countryId);
     return {
       name_1: lastName1 || null,
       name_2: firstName1 || null,
       mail: contact.Iso_Email__c || null,
       nr: contact.Iso_SAP_Partner_ID__c || null,
-      street_name: contact.BillingAddress?.street || null,
+      street_name: streetName|| null,
+      house_number:houseNumber|| null,
       postcode: contact.BillingAddress?.postalCode || null,
       city: contact.BillingAddress?.city || null,
+      country_id:countryId||null,
       contact_type_id: 2,
       user_id: 1,
       owner_id: 1
@@ -5651,4 +5740,44 @@ console.log('company', company);
   }
  console.log('results',results);
   return results;
+}
+
+export const createCountry = async (access_token,name,name_short,country_code)=>{
+  try {
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': `https://api.bexio.com/2.0/country`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        },
+            body: JSON.stringify({
+              "name": name,
+              "name_short":name_short,
+              "iso3166_alpha2":country_code
+            })
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        if(response.statusCode==200)
+        resolve(response.body);
+        else
+        resolve(false)
+
+      });
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = getCountryLists.name;
+    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
+    warningMessage(commonErrors,error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      resolve('');
+    });
+  }
 }
