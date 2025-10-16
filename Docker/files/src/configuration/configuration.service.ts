@@ -537,13 +537,11 @@ export class ConfigurationService {
       // Ensure settings is treated as an object
       const settings = getStatusQryRslt[0]?.settings;
       console.log('getStatusQryRslt',settings);
-      console.log('notifyPayment : ',settings.notifyPayment);
-      console.log('notifyComments : ',settings.notifyComments);
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
-          notifyPayment: settings.notifyPayment ?? "false",
-          notifyComments: settings.notifyComments ?? "false",
+          notifyPayment: settings?.notifyPayment ?? "false",
+          notifyComments: settings?.notifyComments ?? "false",
         },
         status: true,
       });
