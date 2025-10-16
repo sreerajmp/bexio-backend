@@ -5624,120 +5624,132 @@ console.log('company', company);
      }
     
   //  Prepare payload
-  const bexioPayload = newContacts.map(async contact => {
-    const fullName = contact.Name?.trim() || '';
-    let firstName1 = '';
-    let lastName1 = '';
+// Prepare all contacts (each async operation returns a promise)
+const bexioPayloadPromises = newContacts.map(async contact => {
+  const fullName = contact.Name?.trim() || '';
+  let firstName1 = '';
+  let lastName1 = '';
 
-    const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
-    if (separatorMatch) {
-      const separator = separatorMatch[0];
-      const parts = fullName.split(separator);
-      if (parts.length === 2) {
-        firstName1 = parts[0].trim() + ' &';
-        lastName1 = parts[1].trim();
-      } else firstName1 = fullName;
+  const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+  if (separatorMatch) {
+    const separator = separatorMatch[0];
+    const parts = fullName.split(separator);
+    if (parts.length === 2) {
+      firstName1 = parts[0].trim() + ' &';
+      lastName1 = parts[1].trim();
+    } else firstName1 = fullName;
+  } else {
+    const parts = fullName.split(/\s+/);
+    if (parts.length === 1) firstName1 = parts[0];
+    else if (/^\d/.test(parts[0])) {
+      lastName1 = parts[0];
+      firstName1 = parts.slice(1).join(' ');
+    } else if (/^\d/.test(parts[parts.length - 1])) {
+      lastName1 = parts[parts.length - 1];
+      firstName1 = parts.slice(0, -1).join(' ');
+    } else if (parts.length >= 3) {
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
     } else {
-      const parts = fullName.split(/\s+/);
-      if (parts.length === 1) firstName1 = parts[0];
-      else if (/^\d/.test(parts[0])) {
-        lastName1 = parts[0];
-        firstName1 = parts.slice(1).join(' ');
-      } else if (/^\d/.test(parts[parts.length - 1])) {
-        lastName1 = parts[parts.length - 1];
-        firstName1 = parts.slice(0, -1).join(' ');
-      } else if (parts.length >= 3) {
-        firstName1 = parts[0];
-        lastName1 = parts.slice(1).join(' ');
-      } else {
-        firstName1 = parts[0];
-        lastName1 = parts.slice(1).join(' ');
-      }
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
     }
-    
-    let address = contact.BillingAddress?.street?.trim() || '';
-    let parts = address.split(' ').filter(p => p.trim() !== '');
+  }
+
+  let address = contact.BillingAddress?.street?.trim() || '';
+  let parts = address.split(' ').filter(p => p.trim() !== '');
      console.log('address', address);
      console.log('parts', parts);
-    let streetName = '';
-    let houseNumber = '';
+  let streetName = '';
+  let houseNumber = '';
 
-    if (parts.length > 1) {
+  if (parts.length > 1) {
       houseNumber = parts.pop() || ''; // safely remove last word
-      streetName = parts.join(' ');
-    } else {
-      streetName = address;
-    }
-    streetName = streetName.trim();
-    houseNumber = houseNumber.trim();
-    console.log('streetName:', streetName);
-    console.log('houseNumber:', houseNumber);
-     countryList = await getCountryLists(accessToken);
-     let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
-      if (countryList) {
-        countryList = JSON.parse(countryList);
-      }
-      // Find the country object with matching code
-    const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
-     // Get the ID (or undefined if not found)
-    const countryId = countryObj?.id;
-    console.log('Country ID:', countryId);
-    return {
-      name_1: lastName1 || null,
-      name_2: firstName1 || null,
-      mail: contact.Iso_Email__c || null,
-      nr: contact.Iso_SAP_Partner_ID__c || null,
-      street_name: streetName|| null,
-      house_number:houseNumber|| null,
-      postcode: contact.BillingAddress?.postalCode || null,
-      city: contact.BillingAddress?.city || null,
-      country_id:countryId||null,
-      contact_type_id: 2,
-      user_id: 1,
-      owner_id: 1
-    };
-  });
-  console.log('bexioPayload',bexioPayload)
-  //  Push to Bexio in bulk
-  const pushOptions = {
-    method: 'POST',
-    url: 'https://api.bexio.com/2.0/contact/_bulk_create',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(bexioPayload)
-  };
-
-  let retryCount = 0;
-  const maxRetries = 3;
-  try {
-    let result;
-    while (retryCount < maxRetries) {
-      try {
-        result = await new Promise<any>((resolve, reject) => {
-          request(pushOptions, (err, resp, body) => {
-            if (err) return reject(err);
-            if (resp.statusCode === 200 || resp.statusCode === 201) 
-               { console.log('JSON.parse(body)', JSON.parse(body))
-                resolve(JSON.parse(body));}
-            else if (resp.statusCode === 429) reject({ retry: true });
-            else reject(body);
-          });
-        });
-        break;
-      } catch (err: any) {
-        if (err?.retry) {
-          retryCount++;
-          await new Promise(res => setTimeout(res, 60000));
-        } else throw err;
-      }
-    }
-    results.push({ success: true, data: result });
-  } catch (err) {
-    results.push({ success: false, error: err });
+    streetName = parts.join(' ');
+  } else {
+    streetName = address;
   }
+  streetName = streetName.trim();
+  houseNumber = houseNumber.trim();
+
+  // Wait for country list
+  let countryList:any = await getCountryLists(accessToken);
+  if (countryList) {
+    countryList = JSON.parse(countryList);
+  }
+
+  let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
+  const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
+  const countryId = countryObj?.id;
+console.log('countryId', countryId);
+console.log('streetName', streetName);
+console.log('houseNumber', houseNumber);
+
+ const data = {
+  name_1: lastName1 || null,
+  name_2: firstName1 || null,
+  mail: contact.Iso_Email__c || null,
+  nr: contact.Iso_SAP_Partner_ID__c || null,
+  street_name: streetName || null,
+  house_number: houseNumber || null,
+  postcode: contact.BillingAddress?.postalCode || null,
+  city: contact.BillingAddress?.city || null,
+  country_id: countryId || null,
+  contact_type_id: 2,
+  user_id: 1,
+  owner_id: 1
+};
+
+console.log('Prepared contact payload:', data);
+
+return data;
+});
+
+// Wait until all contacts are processed
+const bexioPayload = await Promise.all(bexioPayloadPromises);
+console.log('bexioPayload', JSON.stringify(bexioPayload));
+
+//  Now call bulk create API
+const pushOptions = {
+  method: 'POST',
+  url: 'https://api.bexio.com/2.0/contact/_bulk_create',
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(bexioPayload)
+};
+
+let retryCount = 0;
+const maxRetries = 3;
+try {
+  let result;
+  while (retryCount < maxRetries) {
+    try {
+      result = await new Promise((resolve, reject) => {
+        request(pushOptions, (err, resp, body) => {
+          if (err) return reject(err);
+          if (resp.statusCode === 200 || resp.statusCode === 201) {
+            console.log('JSON.parse(body)', JSON.parse(body));
+            resolve(JSON.parse(body));
+          } else if (resp.statusCode === 429) reject({ retry: true });
+          else reject(body);
+        });
+      });
+      break;
+    } catch (err) {
+      if (err?.retry) {
+        retryCount++;
+        await new Promise(res => setTimeout(res, 60000));
+      } else throw err;
+    }
+  }
+  results.push({ success: true, data: result });
+} catch (err) {
+  results.push({ success: false, error: err });
+}
+
  console.log('results',results);
   return results;
 }
