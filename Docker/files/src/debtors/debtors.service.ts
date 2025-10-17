@@ -292,9 +292,6 @@ export class DebtorsService {
             tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
-            //  let printId = contactGroupList.forEach(element => {
-               
-            //  });
             const targetNames = ['Print', 'Post'];
 
             const ids = contactGroupList
@@ -302,14 +299,14 @@ export class DebtorsService {
               .map(group => group.id);
 
              console.log("contactGroupList",contactGroupList);
-             let searchJson: any[] = [];
-              searchJson.push({
+             let searchContactgrp: any[] = [];
+              searchContactgrp.push({
                 "field": "contact_group_ids",
                 "value": ids,
                 "criteria": "in"
               });
-            let contectIds:any = await getContactSearch(accessToken,searchJson);
-            arrayContactIds = contectIds.map(contact => contact.id);
+            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+            arrayContactIds = contactIds.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
        
