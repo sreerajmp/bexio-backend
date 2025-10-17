@@ -523,6 +523,7 @@ export class ConfigurationService {
   async getPayementComments(req: Request, res: Response,): Promise<any> {
     let encrToken = req.body;
     try {
+      console.log('getPayementComments starts.......');
       const getStatusQryRslt:any = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
@@ -532,15 +533,15 @@ export class ConfigurationService {
         },
       });
 
-
+      console.log('getStatusQryRslt : ',getStatusQryRslt);
       // Ensure settings is treated as an object
       const settings = getStatusQryRslt[0]?.settings;
       console.log('getStatusQryRslt',settings);
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
-          notifyPayment: settings.notifyPayment ?? "false",
-          notifyComments: settings.notifyComments ?? "false",
+          notifyPayment: settings?.notifyPayment ?? "false",
+          notifyComments: settings?.notifyComments ?? "false",
         },
         status: true,
       });
@@ -594,22 +595,7 @@ export class ConfigurationService {
             WHERE rk_party = ${partyIdNum}
           `;
         }
-      } else {
-        // If no settings exist, ensure both keys are set (use provided values or default to true)
-        const payParam = payVal !== undefined ? payVal : "true";
-        const commParam = commentVal !== undefined ? commentVal : "true";
-        await connectBexio.$executeRaw`
-          UPDATE companyregistered
-          SET settings = jsonb_set(
-            jsonb_set(
-              COALESCE(settings::jsonb, '{}'::jsonb),
-              '{notifyPayment}', ${JSON.stringify(payParam)}::jsonb
-            ),
-            '{notifyComments}', ${JSON.stringify(commParam)}::jsonb
-          )
-          WHERE rk_party = ${partyIdNum}
-        `;
-      }
+      } 
 
       res.send({
         status_code: 200,
