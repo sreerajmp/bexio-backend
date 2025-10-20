@@ -66,7 +66,7 @@ export class DebtorsService {
         });
       }
 
-      let resultData: any[] = [], tempStatus = false;
+      let resultData: any[] = [];
       let totalCount;
       let sortColumn = data.sortColumn || 'updated_at';
       let sortType = data.sort || 'asc';
@@ -549,8 +549,9 @@ export class DebtorsService {
           let recipientList = {};
           let recipientIds: any = [];
           recipientIds = await getRecipientList(contact_idList);
+          console.log('recipientIds',recipientIds);          
           recipientIds.forEach(element => {
-            recipientList[element.rk_receivercontactid] = element.recipient_id;
+            recipientList[element.rk_contact] = element.recipient_id;
           });
 
           resultData.forEach((second) => {
