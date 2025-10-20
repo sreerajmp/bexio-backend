@@ -91,12 +91,11 @@ export const getRecipientList = async (contact_idList: number[]) => {
 
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
-        rk_receivercontactid: { in: uniqueIds },
+        rk_contact: { in: uniqueIds },
       },
       select: {
         recipient_id: true, 
-        rk_receivercontactid:true
-        // Remove `docType` for testing
+        rk_contact:true        
       },
     });
     
@@ -4308,7 +4307,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
            });
        }
    })
-   let tempTaxArray = [];
   
   invoice.taxs.length!=0?
  invoice.taxs.forEach(element => {
@@ -4323,8 +4321,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
    
    for (let index = 0; index < invoice.positions.length; index++) {
      let element = invoice.positions[index];
-     let arr,status = true;
-      ////console.log('987');
        obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
            "$": {
                "type": "order_item"
@@ -4363,7 +4359,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
  
    let builder = new xml2js.Builder({'xmldec.version':1.0} );
    var xml = builder.buildObject(obj);
-  ////console.log(xml);
  
    return Buffer.from(xml).toString('base64');
   
