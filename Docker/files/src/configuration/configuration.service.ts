@@ -595,22 +595,7 @@ export class ConfigurationService {
             WHERE rk_party = ${partyIdNum}
           `;
         }
-      } else {
-        // If no settings exist, ensure both keys are set (use provided values or default to true)
-        const payParam = payVal !== undefined ? payVal : "true";
-        const commParam = commentVal !== undefined ? commentVal : "true";
-        await connectBexio.$executeRaw`
-          UPDATE companyregistered
-          SET settings = jsonb_set(
-            jsonb_set(
-              COALESCE(settings::jsonb, '{}'::jsonb),
-              '{notifyPayment}', ${JSON.stringify(payParam)}::jsonb
-            ),
-            '{notifyComments}', ${JSON.stringify(commParam)}::jsonb
-          )
-          WHERE rk_party = ${partyIdNum}
-        `;
-      }
+      } 
 
       res.send({
         status_code: 200,
