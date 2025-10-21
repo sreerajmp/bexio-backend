@@ -443,7 +443,7 @@ export class DebtorsService {
           else if (getResponse.statusCode ==200) {
         
           resData = [...parseResponse(getResponse)];
-          totalCount = getResponse.body ? JSON.parse(getResponse.body).length : 0
+         
           }
 
           else  {
