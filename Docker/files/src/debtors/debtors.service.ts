@@ -282,13 +282,6 @@ export class DebtorsService {
        
           
           if(data.channel.toLowerCase() == 'edi'){
-            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-              Prisma.sql`
-              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
-              ON cr.cid = c.fk_companyregistered
-              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
-              `
-              );
             tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
@@ -388,10 +381,9 @@ export class DebtorsService {
         console.log('resData',resData);
         
       } else {
-          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          // totalCount = 2000 
-          // + totalCountInvoiceCount;
+          let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+          let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+          totalCount = totalCountInvoiceList + totalCountInvoiceCount;
           console.log('searchJson:',searchJson);          
 
           const getOptions = {
@@ -451,7 +443,7 @@ export class DebtorsService {
           else if (getResponse.statusCode ==200) {
         
           resData = [...parseResponse(getResponse)];
-          totalCount = 2000/showTo;
+          totalCount = getResponse.body ? JSON.parse(getResponse.body).length : 0
           }
 
           else  {
