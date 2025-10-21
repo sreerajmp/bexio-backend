@@ -72,11 +72,10 @@ export class DebtorsService {
       let sortType = data.sort || 'asc';
 
       let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.records_per_page ;
+      let showTo = req.body.page_number==1 ? 2000: req.body.records_per_page ;
       console.log('showFrom', showFrom);
       console.log('showTo', showTo);
       let resultArray: any[] = [];
-      let contactArray: any[] = [];
 
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
@@ -89,11 +88,11 @@ export class DebtorsService {
         }
       });
    
-        const getNetcomId = await connectBexio.$queryRaw<any>(
-          Prisma.sql`
-                    SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
-                  `
-        );
+        // const getNetcomId = await connectBexio.$queryRaw<any>(
+        //   Prisma.sql`
+        //             SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
+        //           `
+        // );
 
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
@@ -103,7 +102,7 @@ export class DebtorsService {
                   `
         );
         console.log('getInviteCompanyId',getInviteCompanyId,);
-        console.log('getInviteCompanyId',getNetcomId);
+        console.log('getInviteCompanyId',netcomId);
 
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
@@ -117,7 +116,7 @@ export class DebtorsService {
 
         const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
         let bcDetails;
-        bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
+        bcDetails = await getBcDetails(bcConnectionIds, netcomId);
 
         let tempBc = [0];
         if (bcDetails?.data?.length) {
@@ -448,24 +447,30 @@ export class DebtorsService {
               message: "unauthorized",
             });
           }
-          else if (getResponse.statusCode ==200) {
-        
-          resData = [...parseResponse(getResponse)];
-          totalCount = 2000/showTo;
-          }
-
-          else  {
-            console.log('getResponse',getResponse);
-            console.log('getResponse body',getResponse.body);
-            console.log('getResponse status',getResponse.statusCode);
-            return res.status(getResponse.statusCode).json({
-              status: true,
-              data: getResponse.body,
-              message: getResponse.statusMessage,
-            });
-
+        else if (getResponse.statusCode == 200) {
+          const parsed = getResponse.body as any[];
+          const perPage = Number(req.body.records_per_page);
+          if (Array.isArray(parsed) && parsed.length > perPage) {
+            totalCount = parsed.length / perPage;
+            resData = parseResponse(parsed.slice(0, perPage));
+          } else {
+            resData = [...parseResponse(getResponse)];
+            totalCount = req.body.page_number !=1? req.body.totalCount: parsed.length / showTo;
           }
         }
+
+        else {
+          console.log('getResponse', getResponse);
+          console.log('getResponse body', getResponse.body);
+          console.log('getResponse status', getResponse.statusCode);
+          return res.status(getResponse.statusCode).json({
+            status: true,
+            data: getResponse.body,
+            message: getResponse.statusMessage,
+          });
+
+        }
+      }
 
       if (resData && resData.length > 0) {
           let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
