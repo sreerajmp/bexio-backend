@@ -91,12 +91,11 @@ export const getRecipientList = async (contact_idList: number[]) => {
 
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
-        rk_receivercontactid: { in: uniqueIds },
+        rk_contact: { in: uniqueIds },
       },
       select: {
         recipient_id: true, 
-        rk_receivercontactid:true
-        // Remove `docType` for testing
+        rk_contact:true        
       },
     });
     
@@ -158,10 +157,6 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
         'Authorization': 'Bearer ' + token
       }
     };
-    // //////console.log(({
-    //   offset: offset,
-    //   limit: limit
-    // });
     
       request(options, async (error, response)=> {
         if (error) {  
@@ -1075,7 +1070,7 @@ taxIsAdded = invoice.taxs.length;
               "ADDRESS": [{
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
-                  "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
+                  "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                   "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
                   // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
@@ -1184,10 +1179,10 @@ invoice.taxs.forEach(element => {
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
               "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code.substring(0, 23):undefined,
-              ...(element.article.intern_code
+              ...(element.article.deliverer_code
                 ? {
                     "bmecat:INTERNATIONAL_PID": {
-                      "_": element.article.intern_code,
+                      "_": element.article.deliverer_code,
                       "$": {
                         "type": "ean"
                       }
@@ -2426,7 +2421,7 @@ taxIsAdded = invoice.taxs.length;
                   "bmecat:NAME": invoice.contact.name_1,
                   "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
 
-                  "bmecat:STREET": invoice.contact.address?invoice.contact.address:undefined,
+                  "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim(): undefined,
                   "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                   "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
                   "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
@@ -3407,7 +3402,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
             //         "bmecat:EMAIL": invitionData.receiveremail
             //     }]
             // }],
-            "bmecat:STREET": order.contact.address?order.contact.address:undefined,
+            "bmecat:STREET": order.contact.street_name?`${order.contact.street_name} ${order.contact.house_number ?? ''}`.trim():undefined,
             "bmecat:ZIP": order.contact.postcode?order.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
             "bmecat:CITY": order.contact.city?order.contact.city:undefined,
             // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
@@ -3978,7 +3973,7 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             "ADDRESS": [{
               "bmecat:NAME": deliveryNotes.contact.name_1?deliveryNotes.contact.name_1:undefined,
               "bmecat:NAME2": deliveryNotes.contact.name_2?deliveryNotes.contact.name_2:undefined,
-              "bmecat:STREET": deliveryNotes.contact.address?deliveryNotes.contact.address:undefined,
+              "bmecat:STREET": deliveryNotes.contact.street_name?`${deliveryNotes.contact.street_name} ${deliveryNotes.contact.house_number ?? ''}`.trim():undefined,
               "bmecat:ZIP": deliveryNotes.contact.postcode?deliveryNotes.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
               "bmecat:CITY": deliveryNotes.contact.city?deliveryNotes.contact.city:undefined,
               "bmecat:COUNTRY_CODED": deliveryNotes.contact.country_id?coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2:undefined
@@ -4256,7 +4251,7 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
                    "bmecat:NAME": invoice?.contact?.name_1??undefined,
                    "bmecat:NAME2": invoice?.contact?.name_2??undefined,
  
-                   "bmecat:STREET": invoice?.contact?.address?invoice.contact.address:undefined,
+                   "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
                    "bmecat:ZIP": invoice?.contact?.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
                    "bmecat:CITY": invoice?.contact?.city?invoice.contact.city:undefined,
                    "bmecat:COUNTRY_CODED": invoice?.contact?.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
@@ -4312,7 +4307,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
            });
        }
    })
-   let tempTaxArray = [];
   
   invoice.taxs.length!=0?
  invoice.taxs.forEach(element => {
@@ -4327,8 +4321,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
    
    for (let index = 0; index < invoice.positions.length; index++) {
      let element = invoice.positions[index];
-     let arr,status = true;
-      ////console.log('987');
        obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
            "$": {
                "type": "order_item"
@@ -4367,7 +4359,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
  
    let builder = new xml2js.Builder({'xmldec.version':1.0} );
    var xml = builder.buildObject(obj);
-  ////console.log(xml);
  
    return Buffer.from(xml).toString('base64');
   
@@ -4918,7 +4909,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       }
       console.log('contact::::', contact);
       // If contact exists, check for required keys
-      if (!contact?.name_1 || !contact?.address || !contact?.city || !contact?.country_id || !contact?.postcode) {
+      if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_missing_address_or_postal', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
@@ -5352,13 +5343,33 @@ export async function pushContactToBexio(
             // name_1 = lastName1;
             // name_2 = firstName1;
             // }
+          let address = contact.BillingAddress?.street?.trim() || '';
+          let parts = address.split(' ').filter(p => p.trim() !== '');
+
+          let streetName = '';
+          let houseNumber = '';
+
+          if (parts.length > 1) {
+            houseNumber = parts.pop() || ''; // safely remove last word
+            streetName = parts.join(' ');
+          } else {
+            streetName = address;
+          }
+
+          streetName = streetName.trim();
+          houseNumber = houseNumber.trim();
+
+
+          console.log('streetName:', streetName);
+          console.log('houseNumber:', houseNumber);
 
             const bexioContact = {
             name_1: lastName1 || null,
             name_2: firstName1 || null,
             mail: contact.Iso_Email__c || null,
             nr: contact.Iso_SAP_Partner_ID__c || null,
-            street_name: contact.BillingAddress?.street,
+            street_name: streetName|| null,
+            house_number:houseNumber|| null,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
             contact_type_id: 2,
@@ -5457,4 +5468,323 @@ export async function processNextPendingJob(job: any) {
   }
 
   return pushResult;
+}
+export async function saleforceContactImport(netcomId, companyName) {
+  console.log(`netcomId: ${netcomId}`);
+  console.log(`companyName: ${companyName}`);
+
+  const salesforceService = new SalesforceService();
+
+
+  const contacts = await salesforceService.fetchContacts({ companyName, netcomId });
+  console.log(`Processing contact: ${JSON.stringify(contacts)}`);
+
+  if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
+    return { success: false, message: 'No contacts found' };
+  }
+
+  const pushResult = await pushSchedulerContactToBexio(netcomId, contacts);
+
+  if (pushResult) {
+    return { success: false, message: 'completed successfully' };
+
+  }
+
+  return pushResult;
+}
+export async function pushSchedulerContactToBexio(
+  netcomid: string,
+  contacts: Array<{
+    Name: string;
+    Iso_Email__c?: string;
+    BillingAddress?: { street?: string; postalCode?: string; city?: string; country?: string,countryCode?: string};
+    Iso_SAP_Partner_ID__c?: string;
+    [key: string]: any;
+  }>
+): Promise<any[]> {
+  const results: any[] = [];
+  console.log('pushContactToBexio called with netcomid:', netcomid);
+
+  const company = await connectBexio.companyregistered.findFirst({
+    where: { netcomid },
+    select: { refresh_token: true }
+  });
+console.log('company', company);
+  if (!company?.refresh_token) {
+    return [{ success: false, error: 'No refresh_token found' }];
+  }
+
+  const bexioClient = await bexioInterfaceClient();
+  let tokenSet;
+  try {
+    tokenSet = await bexioClient.refresh(company.refresh_token);
+  } catch (err) {
+    return [{ success: false, error: 'Failed to get access token' }];
+  }
+  const accessToken = tokenSet.access_token;
+  console.log('accessToken', accessToken);
+  if (!contacts?.length) return [];
+
+  // Get all SAP IDs
+  const ids = contacts.map(c => c.Iso_SAP_Partner_ID__c).filter(Boolean);
+     console.log('ids', ids.length);
+     console.log('ids', ids);
+  //  Search existing contacts in Bexio
+  let existingContacts: any[] = [];
+  if (ids.length) {
+    const searchOptions = {
+      method: 'POST',
+      url: `https://api.bexio.com/2.0/contact/search`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify([{ field: 'nr', value: ids, criteria: 'in' }])
+    };
+
+    let retryCount = 0;
+    const maxRetries = 3;
+    while (retryCount < maxRetries) {
+      try {
+        existingContacts = await new Promise<any[]>((resolve, reject) => {
+          request(searchOptions, (err, resp, body) => {
+            if (err) return reject(err);
+            if (resp.statusCode === 200) 
+              { console.log('JSON.parse(body)', JSON.parse(body));
+              resolve(JSON.parse(body));}
+            else if (resp.statusCode === 429) reject({ retry: true });
+            else reject(body);
+          });
+        });
+        break;
+      } catch (err: any) {
+        if (err?.retry) {
+          retryCount++;
+          await new Promise(res => setTimeout(res, 60000));
+        } else throw err;
+      }
+    }
+  }
+
+  const existingIds = existingContacts.map(c => c.nr);
+ console.log('existingIds',existingIds);
+  //  Filter new contacts
+  const newContacts = contacts.filter(c => !existingIds.includes(c.Iso_SAP_Partner_ID__c));
+ console.log('newContacts.length',newContacts.length);
+  console.log('newContacts.length',newContacts);
+  if (!newContacts.length) {
+    console.log('No new contacts to push to Bexio.');
+    return [];
+  }
+  const saleforceContact = [
+  ...new Map(
+    contacts
+      .map(c => ({
+        country_code: c.BillingAddress?.countryCode?.trim(),
+        country_name: c.BillingAddress?.country?.trim()
+      }))
+      .filter(c => c.country_code && c.country_name)
+      .map(c => [c.country_code, c])
+  ).values()
+];
+
+       console.log('saleforceContact',saleforceContact);
+        let countryList;
+      countryList = await getCountryLists(accessToken);
+      if (countryList) {
+        countryList = JSON.parse(countryList);
+      }
+      
+   console.log('coutryList.',countryList);
+   const existingcountryList = countryList.map(c => c.iso_3166_alpha2);
+    console.log('existingcoutryList',existingcountryList);
+    const newCountries = saleforceContact.filter(c => !existingcountryList.includes(c.country_code));
+   console.log('New countries to add:', newCountries);
+
+      if (!newCountries.length) {
+    console.log('No new country to push to Bexio.');
+     }
+     else{
+            await Promise.all(
+        newCountries.map(contact =>
+          createCountry(
+            accessToken,
+            contact.country_name,
+            contact.country_code,
+            contact.country_code
+          )
+        )
+      );
+     }
+    
+  //  Prepare payload
+// Prepare all contacts (each async operation returns a promise)
+const bexioPayloadPromises = newContacts.map(async contact => {
+  const fullName = contact.Name?.trim() || '';
+  let firstName1 = '';
+  let lastName1 = '';
+
+  const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+  if (separatorMatch) {
+    const separator = separatorMatch[0];
+    const parts = fullName.split(separator);
+    if (parts.length === 2) {
+      firstName1 = parts[0].trim() + ' &';
+      lastName1 = parts[1].trim();
+    } else firstName1 = fullName;
+  } else {
+    const parts = fullName.split(/\s+/);
+    if (parts.length === 1) firstName1 = parts[0];
+    else if (/^\d/.test(parts[0])) {
+      lastName1 = parts[0];
+      firstName1 = parts.slice(1).join(' ');
+    } else if (/^\d/.test(parts[parts.length - 1])) {
+      lastName1 = parts[parts.length - 1];
+      firstName1 = parts.slice(0, -1).join(' ');
+    } else if (parts.length >= 3) {
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
+    } else {
+      firstName1 = parts[0];
+      lastName1 = parts.slice(1).join(' ');
+    }
+  }
+
+  let address = contact.BillingAddress?.street?.trim() || '';
+  let parts = address.split(' ').filter(p => p.trim() !== '');
+     console.log('address', address);
+     console.log('parts', parts);
+  let streetName = '';
+  let houseNumber = '';
+
+  if (parts.length > 1) {
+      houseNumber = parts.pop() || ''; // safely remove last word
+    streetName = parts.join(' ');
+  } else {
+    streetName = address;
+  }
+  streetName = streetName.trim();
+  houseNumber = houseNumber.trim();
+
+  // Wait for country list
+  let countryList:any = await getCountryLists(accessToken);
+  if (countryList) {
+    countryList = JSON.parse(countryList);
+  }
+
+  let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
+  const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
+  const countryId = countryObj?.id;
+console.log('countryId', countryId);
+console.log('streetName', streetName);
+console.log('houseNumber', houseNumber);
+
+ const data = {
+  name_1: lastName1 || null,
+  name_2: firstName1 || null,
+  mail: contact.Iso_Email__c || null,
+  nr: contact.Iso_SAP_Partner_ID__c || null,
+  street_name: streetName || null,
+  house_number: houseNumber || null,
+  postcode: contact.BillingAddress?.postalCode || null,
+  city: contact.BillingAddress?.city || null,
+  country_id: countryId || null,
+  contact_type_id: 2,
+  user_id: 1,
+  owner_id: 1
+};
+
+console.log('Prepared contact payload:', data);
+
+return data;
+});
+
+// Wait until all contacts are processed
+const bexioPayload = await Promise.all(bexioPayloadPromises);
+console.log('bexioPayload', JSON.stringify(bexioPayload));
+
+//  Now call bulk create API
+const pushOptions = {
+  method: 'POST',
+  url: 'https://api.bexio.com/2.0/contact/_bulk_create',
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(bexioPayload)
+};
+
+let retryCount = 0;
+const maxRetries = 3;
+try {
+  let result;
+  while (retryCount < maxRetries) {
+    try {
+      result = await new Promise((resolve, reject) => {
+        request(pushOptions, (err, resp, body) => {
+          if (err) return reject(err);
+          if (resp.statusCode === 200 || resp.statusCode === 201) {
+            console.log('JSON.parse(body)', JSON.parse(body));
+            resolve(JSON.parse(body));
+          } else if (resp.statusCode === 429) reject({ retry: true });
+          else reject(body);
+        });
+      });
+      break;
+    } catch (err) {
+      if (err?.retry) {
+        retryCount++;
+        await new Promise(res => setTimeout(res, 60000));
+      } else throw err;
+    }
+  }
+  results.push({ success: true, data: result });
+} catch (err) {
+  results.push({ success: false, error: err });
+}
+
+ console.log('results',results);
+  return results;
+}
+
+export const createCountry = async (access_token,name,name_short,country_code)=>{
+  try {
+    return new Promise(async(resolve, reject) => {
+      var options = {
+        'method': 'POST',
+        'url': `https://api.bexio.com/2.0/country`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer '+access_token
+        },
+            body: JSON.stringify({
+              "name": name,
+              "name_short":name_short,
+              "iso3166_alpha2":country_code
+            })
+      };
+      request(options, function (error, response) {
+        if (error) {  
+          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+          warningMessage(commonErrors,error);
+          resolve(false)
+        }
+        if(response.statusCode==200)
+        resolve(response.body);
+        else
+        resolve(false)
+
+      });
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = getCountryLists.name;
+    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
+    warningMessage(commonErrors,error);
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      resolve('');
+    });
+  }
 }

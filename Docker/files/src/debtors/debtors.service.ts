@@ -66,7 +66,7 @@ export class DebtorsService {
         });
       }
 
-      let resultData: any[] = [], tempStatus = false;
+      let resultData: any[] = [];
       let totalCount;
       let sortColumn = data.sortColumn || 'updated_at';
       let sortType = data.sort || 'asc';
@@ -282,19 +282,9 @@ export class DebtorsService {
        
           
           if(data.channel.toLowerCase() == 'edi'){
-            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-              Prisma.sql`
-              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
-              ON cr.cid = c.fk_companyregistered
-              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
-              `
-              );
             tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
-            //  let printId = contactGroupList.forEach(element => {
-               
-            //  });
             const targetNames = ['Print', 'Post'];
 
             const ids = contactGroupList
@@ -302,14 +292,14 @@ export class DebtorsService {
               .map(group => group.id);
 
              console.log("contactGroupList",contactGroupList);
-             let searchJson: any[] = [];
-              searchJson.push({
+             let searchContactgrp: any[] = [];
+              searchContactgrp.push({
                 "field": "contact_group_ids",
                 "value": ids,
                 "criteria": "in"
               });
-            let contectIds:any = await getContactSearch(accessToken,searchJson);
-            arrayContactIds = contectIds.map(contact => contact.id);
+            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+            arrayContactIds = contactIds.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
        
@@ -453,6 +443,7 @@ export class DebtorsService {
           else if (getResponse.statusCode ==200) {
         
           resData = [...parseResponse(getResponse)];
+         
           }
 
           else  {
@@ -550,8 +541,9 @@ export class DebtorsService {
           let recipientList = {};
           let recipientIds: any = [];
           recipientIds = await getRecipientList(contact_idList);
+          console.log('recipientIds',recipientIds);          
           recipientIds.forEach(element => {
-            recipientList[element.rk_receivercontactid] = element.recipient_id;
+            recipientList[element.rk_contact] = element.recipient_id;
           });
 
           resultData.forEach((second) => {
