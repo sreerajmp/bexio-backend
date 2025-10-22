@@ -2462,7 +2462,7 @@ taxIsAdded = invoice.taxs.length;
         "EBILL.DUE_DATE": invoice?.is_valid_to ? invoice.is_valid_to : '',
         "HEADER_UDX_OPT": [{
           "BEX_VERSION": "VER1",
-          "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
+          "BEX_INVOICE_EBILL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
         }]
       }]))
   })))
