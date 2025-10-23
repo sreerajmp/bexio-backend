@@ -2,16 +2,16 @@ const { parentPort } = require('worker_threads');
 const { pushInvoiceBulk, pushEbillInvoiceProcess,pushEmailInvoice,pushPrintInvoice } = require('./helperfn');
 
 // Listen for messages from the main thread
-parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, billerId,channel,allow }) => {
+parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, billerId,channel }) => {
   try {
     console.log('Push Worker Received:', { bodyParams, invoices, billerId });
 
     if (channel=='EBILL') {
       console.log('Push Worker Received ebill:', { bodyParams, invoices });
-      console.log("allow",allow);
+      console.log("allow");
       
       // Call the pushEbillInvoiceProcess if billerId is provided
-       pushEbillInvoiceProcess(invoices, billerId,allow);
+       pushEbillInvoiceProcess(invoices, billerId);
     } 
     if(channel=='email') {
       console.log('Push Worker Received email:', { bodyParams, invoices });

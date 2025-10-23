@@ -1416,7 +1416,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId,allow)=>{
+export const pushEbillInvoiceProcess = async (invoices,billerId)=>{
 console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
@@ -1435,7 +1435,7 @@ console.log('pushEbillInvoiceProcess',invoices);
       tempParam['body']['contact_pid'] = element.bill_recipient_id;
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
-      tempParam['body']['allow'] = allow;
+      tempParam['body']['allow'] = tempIds.allow;
       tempParam['body']['token'] = tempIds.accessToken;
       let v = await pushEbillInvoice(tempParam,'')
     }
