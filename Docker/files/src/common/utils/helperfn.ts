@@ -91,12 +91,11 @@ export const getRecipientList = async (contact_idList: number[]) => {
 
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
-        rk_receivercontactid: { in: uniqueIds },
+        rk_contact: { in: uniqueIds },
       },
       select: {
         recipient_id: true, 
-        rk_receivercontactid:true
-        // Remove `docType` for testing
+        rk_contact:true        
       },
     });
     
@@ -4308,7 +4307,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
            });
        }
    })
-   let tempTaxArray = [];
   
   invoice.taxs.length!=0?
  invoice.taxs.forEach(element => {
@@ -4323,8 +4321,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
    
    for (let index = 0; index < invoice.positions.length; index++) {
      let element = invoice.positions[index];
-     let arr,status = true;
-      ////console.log('987');
        obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
            "$": {
                "type": "order_item"
@@ -4363,7 +4359,6 @@ export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,
  
    let builder = new xml2js.Builder({'xmldec.version':1.0} );
    var xml = builder.buildObject(obj);
-  ////console.log(xml);
  
    return Buffer.from(xml).toString('base64');
   
@@ -4839,7 +4834,7 @@ export const getOctConfig = async (netComId) => {
 
   }
   }
-export const updateInvoicePosition = async (invoiceId,article,access_token) => {
+export const updateInvoicePosition = async (partyId,invoiceId,article,access_token,channel) => {
   console.log('invoiceId', invoiceId);
   
   return new Promise(async(resolve, reject) => {
@@ -4854,7 +4849,7 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
         };
         console.log('options',options);
         
-        request(options, function (error, response) {
+        request(options, async function (error, response) {
           
           if (error) {  
             console.log('error', error);
@@ -4871,8 +4866,16 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
             return resolve(JSON.parse(response.body));
               // res.send(response.body)
          console.log("kb_position_article :: ",response.body);
-          }      
-        
+          }  
+          else if(response.statusCode == 422)    
+        {
+          let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'The entered value is too large. (Maximum: 10,000,000,000)', channel);
+            commonErrors['errorTitle'] = 'kb_position_article';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'The entered value is too large. (Maximum: 10,000,000,000)' + '-invoices param,';
+            warningMessage(commonErrors, 'The entered value is too large');
+            resolve('The entered value is too large' + invoiceCid);
+            return;
+        }
 
         });
       });
@@ -4903,15 +4906,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
-      if (!contact) {
-        console.log('contact not found');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_contact_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+      
       console.log('contact::::', contact);
       // If contact exists, check for required keys
       if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
@@ -4984,7 +4979,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     "discount_in_percent": '0.000000',
                     "article_id": articleDetail.id
                   }
-                  const invPosUpdate = await updateInvoicePosition(invoice_id, printArticle, accessToken);
+                  const invPosUpdate = await updateInvoicePosition(partyId,invoice_id, printArticle, accessToken,channel);
                   console.log('invPosUpdate::::', invPosUpdate);
                 }
                 else {
