@@ -27,12 +27,13 @@ export class PushWorkerHost implements OnApplicationBootstrap, OnApplicationShut
     await this.worker.terminate();
   }
 
-  async run(invoices: any, bodyParams: any, headerParams: any, billerid?: any, channel?: string): Promise<string> {
+  async run(invoices: any, bodyParams: any, headerParams: any, billerid?: any, channel?: string, allow?:string): Promise<string> {
     const uniqueId = randomUUID(); // Generate a unique ID for the task
 
     try {
         // Send a message to the worker thread
-        this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId, billerId: billerid ,channel: channel});
+        this.worker.postMessage({ invoices, bodyParams, headerParams, id: uniqueId, billerId: billerid ,channel: channel,allow});
+        console.log(`Worker triggered with ID: ${uniqueId}`);
 
         return firstValueFrom(
           this.messages$.pipe(
@@ -45,7 +46,6 @@ export class PushWorkerHost implements OnApplicationBootstrap, OnApplicationShut
             })
           )
         );
-        console.log(`Worker triggered with ID: ${uniqueId}`);
     } catch (error) {
         console.error(`Error triggering worker with ID: ${uniqueId}`, error);
         throw new Error("Failed to trigger worker");

@@ -540,7 +540,7 @@ export class DebtorsService {
 
           let recipientList = {};
           let recipientIds: any = [];
-          recipientIds = await getRecipientList(contact_idList);
+          recipientIds = await getRecipientList(req.body.netcomId,contact_idList);
           console.log('recipientIds',recipientIds);          
           recipientIds.forEach(element => {
             recipientList[element.rk_contact] = element.recipient_id;
@@ -1118,7 +1118,7 @@ export class DebtorsService {
         }
         if (data.otherInvoice) {
             let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
-       //     console.log('getTag', getTag);
+           console.log('getTag', getTag);
           combinedResponse.otherInvoiceResults = [
             ...(combinedResponse.otherInvoiceResults || []),
             ...(getTag?.data || [])
@@ -1127,6 +1127,7 @@ export class DebtorsService {
           for (const item of getTag?.data || []) {
                 if (item.tag === "ebill") {
                  let selectedEbillItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
+                 selectedEbillItem.allow = item.allow;
                   console.log("selectedEbillItem", selectedEbillItem);
                   
                     try {
@@ -1221,7 +1222,7 @@ export class DebtorsService {
                         cookies: req.cookies, // Include cookies
                         signedCookies: req.signedCookies, // Include signed cookies
                         url: req.url,
-                    },'',item.tag);
+                    },'');
                 } catch (error) {
                     console.log("error in sendBulkInvoices :: ", error);
                 }

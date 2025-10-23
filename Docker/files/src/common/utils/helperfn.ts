@@ -81,7 +81,7 @@ export const getAllCurrency = async (access_token) => {
         });
       });
 }
-export const getRecipientList = async (contact_idList: number[]) => {
+export const getRecipientList = async (netcomId:string,contact_idList: number[]) => {
   try {
     // Ensure unique IDs and explicitly cast to number[]
     const uniqueIds: number[] = [...new Set(contact_idList)];
@@ -92,6 +92,10 @@ export const getRecipientList = async (contact_idList: number[]) => {
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
         rk_contact: { in: uniqueIds },
+        companyregistered: {
+      is: { netcomid: netcomId }
+    }
+        
       },
       select: {
         recipient_id: true, 
@@ -1431,6 +1435,7 @@ console.log('pushEbillInvoiceProcess',invoices);
       tempParam['body']['contact_pid'] = element.bill_recipient_id;
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
+      tempParam['body']['allow'] = tempIds.allow;
       tempParam['body']['token'] = tempIds.accessToken;
       let v = await pushEbillInvoice(tempParam,'')
     }
@@ -1443,7 +1448,6 @@ console.log('pushEbillInvoice',req.body);
     let formData
     formData = req.body;
     let invoiceCid: any;
-    let cookie;
     try {
       
       let invoice, paymentType
@@ -1454,7 +1458,8 @@ console.log('pushEbillInvoice',req.body);
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
         'contact_email':decryptData.contact_email,
-        'billerid': decryptData.biller_pid
+        'billerid': decryptData.biller_pid,
+        'allow': decryptData.allow 
       }
 
       let getBiller = `SELECT * 
@@ -2453,7 +2458,7 @@ taxIsAdded = invoice.taxs.length;
       }],
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX":  JSON.parse(JSON.stringify([{
-        ...(billerDetails['recipientid']
+        ...(billerDetails['allow']=='bill_recipient_id'
           ? { "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'] }
           : { "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'] }),
         "EBILL.QR_IBAN": billDetails['iban'],

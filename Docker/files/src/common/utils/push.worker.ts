@@ -8,7 +8,8 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
 
     if (channel=='EBILL') {
       console.log('Push Worker Received ebill:', { bodyParams, invoices });
-
+      console.log("allow");
+      
       // Call the pushEbillInvoiceProcess if billerId is provided
        pushEbillInvoiceProcess(invoices, billerId);
     } 
