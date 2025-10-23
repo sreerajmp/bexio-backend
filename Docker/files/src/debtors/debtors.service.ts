@@ -540,7 +540,7 @@ export class DebtorsService {
 
           let recipientList = {};
           let recipientIds: any = [];
-          recipientIds = await getRecipientList(contact_idList);
+          recipientIds = await getRecipientList(req.body.netcomId,contact_idList);
           console.log('recipientIds',recipientIds);          
           recipientIds.forEach(element => {
             recipientList[element.rk_contact] = element.recipient_id;

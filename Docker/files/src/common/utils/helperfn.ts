@@ -81,7 +81,7 @@ export const getAllCurrency = async (access_token) => {
         });
       });
 }
-export const getRecipientList = async (contact_idList: number[]) => {
+export const getRecipientList = async (netcomId:string,contact_idList: number[]) => {
   try {
     // Ensure unique IDs and explicitly cast to number[]
     const uniqueIds: number[] = [...new Set(contact_idList)];
@@ -92,6 +92,10 @@ export const getRecipientList = async (contact_idList: number[]) => {
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
         rk_contact: { in: uniqueIds },
+        companyregistered: {
+      is: { netcomid: netcomId }
+    }
+        
       },
       select: {
         recipient_id: true, 
