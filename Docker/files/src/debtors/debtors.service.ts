@@ -1118,7 +1118,7 @@ export class DebtorsService {
         }
         if (data.otherInvoice) {
             let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
-       //     console.log('getTag', getTag);
+           console.log('getTag', getTag);
           combinedResponse.otherInvoiceResults = [
             ...(combinedResponse.otherInvoiceResults || []),
             ...(getTag?.data || [])

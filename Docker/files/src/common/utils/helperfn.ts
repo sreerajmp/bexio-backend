@@ -1412,7 +1412,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId)=>{
+export const pushEbillInvoiceProcess = async (invoices,billerId,allow)=>{
 console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
@@ -1431,6 +1431,7 @@ console.log('pushEbillInvoiceProcess',invoices);
       tempParam['body']['contact_pid'] = element.bill_recipient_id;
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
+      tempParam['body']['allow'] = allow;
       tempParam['body']['token'] = tempIds.accessToken;
       let v = await pushEbillInvoice(tempParam,'')
     }
@@ -1443,7 +1444,6 @@ console.log('pushEbillInvoice',req.body);
     let formData
     formData = req.body;
     let invoiceCid: any;
-    let cookie;
     try {
       
       let invoice, paymentType
@@ -1454,7 +1454,8 @@ console.log('pushEbillInvoice',req.body);
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
         'contact_email':decryptData.contact_email,
-        'billerid': decryptData.biller_pid
+        'billerid': decryptData.biller_pid,
+        'allow': decryptData.allow 
       }
 
       let getBiller = `SELECT * 
@@ -2453,7 +2454,7 @@ taxIsAdded = invoice.taxs.length;
       }],
       "REMARKS": invoice.title ? invoice.title : undefined,
       "HEADER_UDX":  JSON.parse(JSON.stringify([{
-        ...(billerDetails['recipientid']
+        ...(billerDetails['allow']=='bill_recipient_id'
           ? { "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'] }
           : { "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'] }),
         "EBILL.QR_IBAN": billDetails['iban'],
