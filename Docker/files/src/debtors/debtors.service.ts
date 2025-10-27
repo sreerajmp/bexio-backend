@@ -397,10 +397,8 @@ export class DebtorsService {
           const parseResponse = (response: any) => {
             if (response) {
               try {
-                // console.log("response.body",response.body);
 
                 let parsedData = JSON.parse(response);
-                // console.log("parsedData",parsedData);
                 
                 if (Array.isArray(parsedData)) {
                   return parsedData;
