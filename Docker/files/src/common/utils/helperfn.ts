@@ -1169,6 +1169,8 @@ invoice.taxs.forEach(element => {
 
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
+    console.log('element*',element);
+    
     let arr,status = true;
 
 
@@ -1178,11 +1180,11 @@ invoice.taxs.forEach(element => {
           },
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code.substring(0, 23):undefined,
-              ...(element.article.deliverer_code
+              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code.substring(0, 23):undefined,
+              ...(element?.article?.deliverer_code
                 ? {
                     "bmecat:INTERNATIONAL_PID": {
-                      "_": element.article.deliverer_code,
+                      "_": element?.article?.deliverer_code,
                       "$": {
                         "type": "ean"
                       }
@@ -4869,14 +4871,13 @@ export const updateInvoicePosition = async (partyId,invoiceId,article,access_tok
           }  
           else if(response.statusCode == 422)    
         {
-          let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'The entered value is too large. (Maximum: 10,000,000,000)', channel);
+          let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invalid_article', channel);
             commonErrors['errorTitle'] = 'kb_position_article';
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'The entered value is too large. (Maximum: 10,000,000,000)' + '-invoices param,';
-            warningMessage(commonErrors, 'The entered value is too large');
-            resolve('The entered value is too large' + invoiceCid);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,';
+            warningMessage(commonErrors, 'invalid_article');
+            resolve('invalid_article' + invoiceCid);
             return;
         }
-
         });
       });
 }
