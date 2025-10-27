@@ -4847,7 +4847,6 @@ export const updateInvoicePosition = async (partyId,invoiceId,article,access_tok
           console.log("response.statusCode :: ",response.statusCode);
           
           if( response.statusCode == 201){
-
             return resolve(JSON.parse(response.body));
          console.log("kb_position_article :: ",response.body);
           }  
