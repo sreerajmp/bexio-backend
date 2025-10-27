@@ -4857,7 +4857,12 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
         request(options, function (error, response) {
           
           if (error || response.statusCode != 201) {
+            if(error){
             console.log('error', error);
+            }
+            else{
+              console.log('response error kb_position_article', response);
+            }
             commonErrors['errorTitle'] = 'kb_position_article';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
