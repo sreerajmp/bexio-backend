@@ -395,11 +395,11 @@ export class DebtorsService {
           };
 
           const parseResponse = (response: any) => {
-            if (response && response.body) {
+            if (response) {
               try {
                 // console.log("response.body",response.body);
 
-                let parsedData = JSON.parse(response.body);
+                let parsedData = JSON.parse(response);
                 // console.log("parsedData",parsedData);
                 
                 if (Array.isArray(parsedData)) {
@@ -442,12 +442,19 @@ export class DebtorsService {
         else if (getResponse.statusCode == 200) {
           const parsed = getResponse.body as any[];
           const perPage = Number(req.body.records_per_page);
+          console.log('parsed', parsed.length);
+          console.log('perPage', perPage);
           if (Array.isArray(parsed) && parsed.length > perPage) {
             totalCount = parsed.length / perPage;
+
+            console.log('entered in if',totalCount);
+            
             resData = parseResponse(parsed.slice(0, perPage));
           } else {
-            resData = [...parseResponse(getResponse)];
-            totalCount = req.body.page_number !=1? req.body.totalCount: parsed.length / showTo;
+            console.log('entered in else',getResponse.body.length);
+            
+            resData = [...parseResponse(parsed.slice(0, perPage))];
+            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo) | 0;
           }
         }
 
