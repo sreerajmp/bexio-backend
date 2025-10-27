@@ -442,7 +442,7 @@ export class DebtorsService {
           const perPage = Number(req.body.records_per_page);
           console.log('parsed', parsed.length);
           console.log('perPage', perPage);
-          if (Array.isArray(parsed) && parsed.length > perPage) {
+          if (Array.isArray(parsed) && (parsed.length > perPage)) {
             totalCount = parsed.length / perPage;
 
             console.log('entered in if',totalCount);
@@ -451,8 +451,8 @@ export class DebtorsService {
           } else {
             console.log('entered in else',getResponse.body.length);
             
-            resData = [...parseResponse(parsed.slice(0, perPage))];
-            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo) | 0;
+            resData = [...parseResponse(getResponse.body.slice(0, perPage))];
+            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo);
           }
         }
 
