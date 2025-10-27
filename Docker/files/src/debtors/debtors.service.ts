@@ -72,11 +72,10 @@ export class DebtorsService {
       let sortType = data.sort || 'asc';
 
       let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.records_per_page ;
+      let showTo = req.body.page_number==1 ? 2000: req.body.records_per_page ;
       console.log('showFrom', showFrom);
       console.log('showTo', showTo);
       let resultArray: any[] = [];
-      let contactArray: any[] = [];
 
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
@@ -89,11 +88,11 @@ export class DebtorsService {
         }
       });
    
-        const getNetcomId = await connectBexio.$queryRaw<any>(
-          Prisma.sql`
-                    SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
-                  `
-        );
+        // const getNetcomId = await connectBexio.$queryRaw<any>(
+        //   Prisma.sql`
+        //             SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
+        //           `
+        // );
 
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
@@ -103,7 +102,7 @@ export class DebtorsService {
                   `
         );
         console.log('getInviteCompanyId',getInviteCompanyId,);
-        console.log('getInviteCompanyId',getNetcomId);
+        console.log('getInviteCompanyId',netcomId);
 
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
@@ -117,7 +116,7 @@ export class DebtorsService {
 
         const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
         let bcDetails;
-        bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
+        bcDetails = await getBcDetails(bcConnectionIds, netcomId);
 
         let tempBc = [0];
         if (bcDetails?.data?.length) {
@@ -282,13 +281,6 @@ export class DebtorsService {
        
           
           if(data.channel.toLowerCase() == 'edi'){
-            const getContactIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-              Prisma.sql`
-              SELECT  array_agg(rk_contact) AS contacts FROM contact_bc c INNER JOIN companyregistered cr
-              ON cr.cid = c.fk_companyregistered
-              WHERE "type"= ${data.channel.toUpperCase()} AND  cr.netcomid='${netcomId}'
-              `
-              );
             tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
              let contactGroupList: any = await getContactGroupList(accessToken);
@@ -388,10 +380,9 @@ export class DebtorsService {
         console.log('resData',resData);
         
       } else {
-          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          // totalCount = 2000 
-          // + totalCountInvoiceCount;
+          let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+          let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+          totalCount = totalCountInvoiceList + totalCountInvoiceCount;
           console.log('searchJson:',searchJson);          
 
           const getOptions = {
@@ -448,24 +439,30 @@ export class DebtorsService {
               message: "unauthorized",
             });
           }
-          else if (getResponse.statusCode ==200) {
-        
-          resData = [...parseResponse(getResponse)];
-          totalCount = 2000/showTo;
-          }
-
-          else  {
-            console.log('getResponse',getResponse);
-            console.log('getResponse body',getResponse.body);
-            console.log('getResponse status',getResponse.statusCode);
-            return res.status(getResponse.statusCode).json({
-              status: true,
-              data: getResponse.body,
-              message: getResponse.statusMessage,
-            });
-
+        else if (getResponse.statusCode == 200) {
+          const parsed = getResponse.body as any[];
+          const perPage = Number(req.body.records_per_page);
+          if (Array.isArray(parsed) && parsed.length > perPage) {
+            totalCount = parsed.length / perPage;
+            resData = parseResponse(parsed.slice(0, perPage));
+          } else {
+            resData = [...parseResponse(getResponse)];
+            totalCount = req.body.page_number !=1? req.body.totalCount: parsed.length / showTo;
           }
         }
+
+        else {
+          console.log('getResponse', getResponse);
+          console.log('getResponse body', getResponse.body);
+          console.log('getResponse status', getResponse.statusCode);
+          return res.status(getResponse.statusCode).json({
+            status: true,
+            data: getResponse.body,
+            message: getResponse.statusMessage,
+          });
+
+        }
+      }
 
       if (resData && resData.length > 0) {
           let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
@@ -548,7 +545,7 @@ export class DebtorsService {
 
           let recipientList = {};
           let recipientIds: any = [];
-          recipientIds = await getRecipientList(contact_idList);
+          recipientIds = await getRecipientList(req.body.netcomId,contact_idList);
           console.log('recipientIds',recipientIds);          
           recipientIds.forEach(element => {
             recipientList[element.rk_contact] = element.recipient_id;
@@ -1126,7 +1123,7 @@ export class DebtorsService {
         }
         if (data.otherInvoice) {
             let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
-       //     console.log('getTag', getTag);
+           console.log('getTag', getTag);
           combinedResponse.otherInvoiceResults = [
             ...(combinedResponse.otherInvoiceResults || []),
             ...(getTag?.data || [])
@@ -1135,6 +1132,7 @@ export class DebtorsService {
           for (const item of getTag?.data || []) {
                 if (item.tag === "ebill") {
                  let selectedEbillItem = JSON.parse(data.otherInvoice).filter((invoice) => invoice.doc_id === item.doc_id);
+                 selectedEbillItem.allow = item.allow;
                   console.log("selectedEbillItem", selectedEbillItem);
                   
                     try {
@@ -1229,7 +1227,7 @@ export class DebtorsService {
                         cookies: req.cookies, // Include cookies
                         signedCookies: req.signedCookies, // Include signed cookies
                         url: req.url,
-                    },'',item.tag);
+                    },'');
                 } catch (error) {
                     console.log("error in sendBulkInvoices :: ", error);
                 }
