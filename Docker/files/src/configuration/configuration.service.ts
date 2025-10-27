@@ -2543,9 +2543,7 @@ const getBcDetails = async (bc_id, netcomId) => {
     commonErrors['errorTitle'] = 'getBcDetails';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
+    resolve('');
   }
 }
 const getCountryLists = async (access_token) => {
@@ -2584,9 +2582,7 @@ const getCountryLists = async (access_token) => {
     commonErrors['errorTitle'] = 'getCountryLists';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
+    resolve('');
   }
 }
 const contactListCountSearch = async (token, search, offset, limit?) => {
@@ -2695,9 +2691,7 @@ const getContactDetails = async (access_token, id) => {
     commonErrors['errorTitle'] = getContactDetails.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
+    resolve('');
   }
 }
 const createConnector = async (params) => {
@@ -2735,9 +2729,7 @@ const createConnector = async (params) => {
     commonErrors['errorTitle'] = createConnector.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + params;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
+    resolve('');
   }
 }
 const inviteCompanySend = async (params) => {
@@ -3069,10 +3061,7 @@ const getStatus = async (code)=>{
       commonErrors['errorTitle'] = getStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
       warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      // res.send();
       resolve('');
-    });
   }
 }
 const getConnections = async (netcomId,docType)=>{

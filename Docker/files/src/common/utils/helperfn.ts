@@ -769,9 +769,7 @@ export const getCountryLists = async (access_token)=>{
       commonErrors['errorTitle'] = getCountryLists.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
       warningMessage(commonErrors,error);
-      fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-        resolve('');
-      });
+      resolve('');
     }
 }
 export const getBank = async (access_token,id)=>{
@@ -861,11 +859,7 @@ export const getloginUserCompanyDetails = async (access_token)=>{
       commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
       warningMessage(commonErrors,error);
-
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-     
       resolve('');
-    });
   }
 }
 export const getPaymentType = async (access_token,id)=>{
@@ -2335,16 +2329,9 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
     'h':'HUR'
   }
   let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
-  //////console.log('invoiceinvoiceinvoice',invoice);
   let total = '';
- ////console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
-
-  total = invoice['total_remaining_payments'];
- ////console.log('totttttal',total);
-
- ////console.log('billDetails',billDetails);
-  
- ////console.log('REFERENCE_NUMBER',billerDetails);
+  total = invoice['total_remaining_payments'];  
+ console.log('REFERENCE_NUMBER',billerDetails);
   if(!billDetails)
   {
     
@@ -2563,11 +2550,11 @@ export const issueEbillInvoice = async (access_token,id)=>{
             warningMessage(commonErrors,error);
             resolve(false)
           }
-          if(response.statusCode==200)
+          if(response.statusCode==200){
           resolve(JSON.parse(response.body)[0]);
+          }
           else{           
-            console.log();
-              
+            console.log("issuebillinvoice response",response);              
             commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
@@ -2814,13 +2801,12 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
       });
       
     } catch (error) {
+      JSON.stringify(error)
       commonErrors['errorTitle'] = 'getRefrenceNumber';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'ebill_xml_not_found '+'-req param,'+invoiceNumber;
-      warningMessage(commonErrors,'ebill_xml_not_found');
-      fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-     
-        resolve('');
-      });
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + invoiceNumber;
+      warningMessage(commonErrors, 'ebill_xml_not_found');
+      resolve('');
+
     }
 }
 export const getTaxListActive = async (access_token) => {
@@ -2877,14 +2863,10 @@ export const getContactDetails = async (access_token,id) => {
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getContactDetails.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
-      warningMessage(commonErrors,error);
-
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      // res.send();
-      resolve('');
-    });
+    commonErrors['errorTitle'] = getContactDetails.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
+    warningMessage(commonErrors, error);
+    resolve('');
   }
 }
 export const setOrderId = async (id,billId) =>{
@@ -2949,13 +2931,10 @@ export const moveFile = async (netcomId,fileName)=>{
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = 'moveFile';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId+fileName;
-      warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      // res.send();
-      resolve('');
-    });
+    commonErrors['errorTitle'] = 'moveFile';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + netcomId + fileName;
+    warningMessage(commonErrors, error);
+    resolve('');
   }
 }
 export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernumber,status,error?) => {
@@ -5789,8 +5768,6 @@ export const createCountry = async (access_token,name,name_short,country_code)=>
     commonErrors['errorTitle'] = getCountryLists.name;
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
     warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('');
-    });
+    resolve('');
   }
 }

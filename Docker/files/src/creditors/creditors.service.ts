@@ -1811,10 +1811,7 @@ const getContactDetails = async (access_token,id) => {
       commonErrors['errorTitle'] = getContactDetails.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
       warningMessage(commonErrors,error);
-
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
       resolve('');
-    });
   }
 }
 const getCountryName = async (access_token,id)=>{
@@ -1846,9 +1843,7 @@ const getCountryName = async (access_token,id)=>{
       commonErrors['errorTitle'] = getCountryName.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
       warningMessage(commonErrors,error);
-      fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-        resolve('');
-      });
+      resolve('');
     }
 }
 function formatDate(date) {
