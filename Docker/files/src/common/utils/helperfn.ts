@@ -4856,7 +4856,7 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
         
         request(options, function (error, response) {
           
-          if (error) {  
+          if (error || response.statusCode != 201) {
             console.log('error', error);
             commonErrors['errorTitle'] = 'kb_position_article';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
@@ -4866,10 +4866,8 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
           console.log("response.statusCode :: ",response.statusCode);
           
           if( response.statusCode == 201){
-         console.log("kb_position_article :: ",response.body);
 
             return resolve(JSON.parse(response.body));
-              // res.send(response.body)
          console.log("kb_position_article :: ",response.body);
           }      
         
@@ -4986,6 +4984,15 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                   }
                   const invPosUpdate = await updateInvoicePosition(invoice_id, printArticle, accessToken);
                   console.log('invPosUpdate::::', invPosUpdate);
+                  if (!invPosUpdate) {
+                    console.error('Article update failed:', articleDetail);
+                    let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'article_update_failed', channel);
+                    commonErrors['errorTitle'] = invoices.originalUrl;
+                    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'article_update_failed ' + '-invoices param,' + JSON.stringify(decryptData);
+                    warningMessage(commonErrors, 'article_update_failed');
+                    resolve('something_went_wrong' + invoiceCid);
+                    return;
+                  }
                 }
                 else {
                   console.error('Article is missing required fields or has empty values:', articleDetail);
