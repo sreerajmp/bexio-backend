@@ -1191,8 +1191,8 @@ invoice.taxs.forEach(element => {
                     }
                   }
                 : {}),
-              "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-              "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
+              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
           }],
           "QUANTITY": element.amount?Math.trunc(element.amount):1,
           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62', // add defult value directly
@@ -2503,17 +2503,17 @@ invoice.taxs.forEach(element => {
           },
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code:undefined,
-              "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, 
-              "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code:undefined,
+              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, 
+              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
           }],
-          "QUANTITY": element.amount?Math.trunc(element.amount):1,
+          "QUANTITY": element?.amount?Math.trunc(element.amount):1,
           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62',
           "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
-              "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-              "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded>0? [{
-                  "bmecat:TAX_TYPE": element.tax?.type,
-                  "bmecat:TAX": element.tax?.value
+              "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+              "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded>0? [{
+                  "bmecat:TAX_TYPE": element?.tax?.type,
+                  "bmecat:TAX": element?.tax?.value
                  
               }]:undefined,
   
@@ -2521,7 +2521,7 @@ invoice.taxs.forEach(element => {
           "bmecat:PRICE_QUANTITY": priceQuantity, 
           })),
         ],
-        "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
+        "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
         "DELIVERY_REFERENCE": [{
           "DELIVERY_DATE": [{
               "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
@@ -3475,30 +3475,30 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
     obj.OPENTRANS.ORDER[0]['ORDER_ITEM_LIST'][0]['ORDER_ITEM'].push(JSON.parse(JSON.stringify({
       "LINE_ITEM_ID": element.pos?element.pos:index,
       "PRODUCT_ID": [{
-        "bmecat:SUPPLIER_PID": element.article?.article_id?element.article.article_id:element.article.id,
-        ...(element.article.id
+        "bmecat:SUPPLIER_PID": element?.article?.article_id?element.article.article_id:element.article.id,
+        ...(element?.article?.id
           ? {
               "bmecat:INTERNATIONAL_PID": {
-                "_": element.article.id,
+                "_": element?.article?.id,
                 "$": {
                   "type": "ean"
                 }
               }
             }
           : {}),
-        "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-        "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
     }],
-      "QUANTITY": element.article.amount?element.article.amount:element.amount,
+      "QUANTITY": element?.article?.amount?element.article.amount:element.amount,
       "bmecat:ORDER_UNIT":orderUnit[element.unit_name]?orderUnit[element.unit_name]:'CT',
       "PRODUCT_PRICE_FIX" : [JSON.parse(JSON.stringify({
-        "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-        "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded? [{
-          "bmecat:TAX": element.tax?.value
+        "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+        "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded? [{
+          "bmecat:TAX": element?.tax?.value
           // "TAX_AMOUNT": element.tax_value
         }]:undefined,
       }))],
-      "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00
+      "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00
     })))
   }
   obj.OPENTRANS['ORDER'][0]['ORDER_SUMMARY'].push(JSON.parse(JSON.stringify({
