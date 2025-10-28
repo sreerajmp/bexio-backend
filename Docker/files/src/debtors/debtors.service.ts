@@ -1234,7 +1234,8 @@ export class DebtorsService {
                         cookies: req.cookies, // Include cookies
                         signedCookies: req.signedCookies, // Include signed cookies
                         url: req.url,
-                    },'');
+                    },'',item.tag); 
+                    console.log("Item tag :: ",item.tag);
                 } catch (error) {
                     console.log("error in sendBulkInvoices :: ", error);
                 }
