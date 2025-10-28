@@ -397,8 +397,9 @@ export class DebtorsService {
           const parseResponse = (response: any) => {
             if (response) {
               try {
-
-                let parsedData = JSON.parse(response);
+                console.log("response:: type", typeof response)
+                // let parsedData = JSON.parse(response);
+                let parsedData = response;
                 
                 if (Array.isArray(parsedData)) {
                   return parsedData;
@@ -441,6 +442,8 @@ export class DebtorsService {
           const parsed = getResponse.body as any[];
           const perPage = Number(req.body.records_per_page);
           console.log('parsed', parsed.length);
+          console.log("isarray:",Array.isArray(parsed));          
+          console.log('perPage', perPage);
           console.log('perPage', perPage);
           if (Array.isArray(parsed) && (parsed.length > perPage)) {
             totalCount = parsed.length / perPage;
@@ -451,8 +454,8 @@ export class DebtorsService {
           } else {
             console.log('entered in else',getResponse.body.length);
             
-            resData = [...parseResponse(getResponse.body.slice(0, perPage))];
-            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo);
+            resData = parseResponse(getResponse.body.slice(0, perPage));
+            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo) | 0;
           }
         }
 
