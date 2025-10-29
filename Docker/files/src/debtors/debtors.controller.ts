@@ -41,6 +41,11 @@ export class DebtorsController {
   async sendInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.sendInvoice(req,res);
   }
+  @Post('sendInvoices')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async sendInvoices(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.sendInvoices(req,res);
+  }
   @Post('sendOrder')
   @UseInterceptors(AnyFilesInterceptor()) 
   async sendOrder(@Req() req: Request, @Res() res: Response): Promise<any> {
