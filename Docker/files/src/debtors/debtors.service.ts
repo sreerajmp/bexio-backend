@@ -398,8 +398,9 @@ export class DebtorsService {
             if (response) {
               try {
                 console.log("response:: type", typeof response)
-                // let parsedData = JSON.parse(response);
-                let parsedData = response;
+                console.log("response:: type",response)
+                let parsedData = JSON.parse(response);
+                // let parsedData = response;
                 
                 if (Array.isArray(parsedData)) {
                   return parsedData;
