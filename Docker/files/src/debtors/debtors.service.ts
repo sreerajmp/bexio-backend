@@ -1349,24 +1349,24 @@ export class DebtorsService {
               console.log("getTagemail", getTag);
               const emailResult = await this.processEmailInvoice(invoice, data, req);
               console.log("emailResult", emailResult);
-              combinedResponse.emailInvoice.push(emailResult);
-              combinedResponse.otherInvoiceResults.push(emailResult);
+             // combinedResponse.emailInvoice.push(emailResult);
+             // combinedResponse.otherInvoiceResults.push(emailResult);
                 console.log("emailResultcombinedResponse", combinedResponse);
               break;
             case 'print':
                 console.log("getTagprint", getTag);
               const printResult = await this.processPrintInvoice(invoice, data, req);
                 console.log("printResult", printResult);
-              combinedResponse.emailInvoice.push(printResult);
-              combinedResponse.otherInvoiceResults.push(printResult);
+            //  combinedResponse.emailInvoice.push(printResult);
+             // combinedResponse.otherInvoiceResults.push(printResult);
                console.log("printResultcombinedResponse", combinedResponse);
               break;
             case 'ebill':
               console.log("getTagebill", getTag);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
               console.log("ebillResult", ebillResult);
-              combinedResponse.ebillResults.push(ebillResult);
-              combinedResponse.otherInvoiceResults.push(ebillResult);
+             // combinedResponse.ebillResults.push(ebillResult);
+             // combinedResponse.otherInvoiceResults.push(ebillResult);
               console.log("ebillResultcombinedResponse", combinedResponse);
               break;
           }
