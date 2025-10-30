@@ -1206,11 +1206,14 @@ export class DebtorsService {
 
               // If contact belongs to any group
               if( contactGroupName.length ) {
-                
-                const preferredGroup =
-                  (contactGroupName.includes('print') || contactGroupName.includes('post')) ? 'print' : ""
+               
                   // contactGroupName.includes('post')  ? 'print'  : "";
-                
+                const preferredGroup = 
+                (contactGroupName.includes('print') || contactGroupName.includes('post')) ? 'print' :
+                contactGroupName.includes('email') ? 'email' :
+                contactGroupName.includes('ebill') ? 'ebill' :
+                "";
+
                 // Assign preferred group to invoice_type
                 second.invoice_type = preferredGroup;
                 second.auto_tag = true;
