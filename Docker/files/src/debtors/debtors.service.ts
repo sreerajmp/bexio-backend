@@ -447,7 +447,7 @@ export class DebtorsService {
           console.log('perPage', perPage);
           console.log('perPage', perPage);
           if (Array.isArray(parsed) && (parsed.length > perPage)) {
-            totalCount = parsed.length / perPage;
+            totalCount = parsed.length ;
 
             console.log('entered in if',totalCount);
             
@@ -456,7 +456,7 @@ export class DebtorsService {
             console.log('entered in else',getResponse.body.length);
             
             resData = parseResponse(getResponse.body.slice(0, perPage));
-            totalCount = req.body.page_number !=1? req.body.totalCount: Math.floor(parsed.length / showTo) | 0;
+            totalCount = req.body.page_number !=1? req.body.totalCount: parsed.length | 0;
           }
         }
 
