@@ -19,6 +19,13 @@ export class DebtorsController {
     console.log('controller getInvoice');
     return this.debtorsService.getInvoice(req, res);
   }
+    @UseInterceptors(RedisCacheInterceptor)
+  @Post('getInvoices')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async getInvoices(@Req() req: Request, @Res() res: Response): Promise<any> {
+    console.log('controller getInvoices');
+    return this.debtorsService.getInvoices(req, res);
+  }
 
   @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
