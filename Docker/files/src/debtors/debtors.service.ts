@@ -399,12 +399,12 @@ export class DebtorsService {
               try {
                 console.log("response:: type", typeof response)
                 console.log("response:: type",response)
-                let parsedData = JSON.parse(response);
+                // let parsedData = JSON.parse(response);
                 // let parsedData = response;
-                console.log("response:: parsedData",parsedData)
-                if (Array.isArray(parsedData)) {
-                  return parsedData;
-                } else if (parsedData && typeof parsedData === "object" && parsedData.message) {
+                console.log("response:: parsedData",response)
+                if (Array.isArray(response)) {
+                  return response;
+                } else if (response && typeof response === "object" && response.message) {
                 return [];
                 }else{
                   return [];
@@ -440,7 +440,7 @@ export class DebtorsService {
             });
           }
         else if (getResponse.statusCode == 200) {
-          const parsed = getResponse.body as any[];
+          const parsed = JSON.parse(getResponse.body) as any[];
           const perPage = Number(req.body.records_per_page);
           console.log('parsed', parsed.length);
           console.log("isarray:",Array.isArray(parsed));          
