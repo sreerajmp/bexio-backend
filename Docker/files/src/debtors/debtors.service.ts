@@ -1309,7 +1309,11 @@ export class DebtorsService {
       data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
       data.emailInvoices = data.emailInvoices ? data.emailInvoices : [];
       data.ebillInvoices = data.ebillInvoices ? data.ebillInvoices : [];
-
+      console.log("invoices", data.invoices);
+      console.log("printInvoices", data.printInvoices);
+      console.log("otherInvoice", data.otherInvoice);
+      console.log("emailInvoices", data.emailInvoices);
+      console.log("ebillInvoices", data.ebillInvoices);
       // ------------------------------
       // 1. Process Print Invoices
       // ------------------------------
@@ -1317,18 +1321,22 @@ export class DebtorsService {
       if (data.printInvoices.length) {
         for (const item of data.printInvoices) {
           const processedInvoice = await this.processPrintInvoice(item, data, req);
+           console.log("processedInvoice", processedInvoice);
           combinedResponse.otherInvoiceResults.push(processedInvoice);
         }
       }
       // ------------------------------
       // 2. Process Other Invoices (tags: email, print, ebill)
       // ------------------------------
-      if (data.otherInvoice.length) {
+      if (data.otherInvoice) {
         let getTag: any = await getTagName(data.netcomId, data.otherInvoice);
+         console.log("getTag", getTag);
+          console.log("combinedResponse", combinedResponse);
         combinedResponse.otherInvoiceResults = [
           ...(combinedResponse.otherInvoiceResults || []),
           ...(getTag?.data || [])
         ];
+       
         console.log("processInvoicesXXX1", combinedResponse);
         for (const item of getTag?.data || []) {
           const invoice = data.otherInvoice.find(inv => inv.doc_id === item.doc_id);
@@ -1336,19 +1344,28 @@ export class DebtorsService {
 
           switch (item.tag) {
             case 'email':
+              console.log("getTagemail", getTag);
               const emailResult = await this.processEmailInvoice(invoice, data, req);
+              console.log("emailResult", emailResult);
               combinedResponse.emailInvoice.push(emailResult);
               combinedResponse.otherInvoiceResults.push(emailResult);
+                console.log("emailResultcombinedResponse", combinedResponse);
               break;
             case 'print':
+                console.log("getTagprint", getTag);
               const printResult = await this.processPrintInvoice(invoice, data, req);
+                console.log("printResult", printResult);
               combinedResponse.emailInvoice.push(printResult);
               combinedResponse.otherInvoiceResults.push(printResult);
+               console.log("printResultcombinedResponse", combinedResponse);
               break;
             case 'ebill':
+              console.log("getTagebill", getTag);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
+              console.log("ebillResult", ebillResult);
               combinedResponse.ebillResults.push(ebillResult);
               combinedResponse.otherInvoiceResults.push(ebillResult);
+              console.log("ebillResultcombinedResponse", combinedResponse);
               break;
           }
         }
@@ -1358,7 +1375,9 @@ export class DebtorsService {
       // ------------------------------
       for (const invoice of data.emailInvoices) {
         const result = await this.processEmailInvoice(invoice, data, req);
+         console.log("emailResultss", result);
         combinedResponse.otherInvoiceResults.push(result);
+            console.log("emailResultsscombinedResponse", combinedResponse);
       }
 
       // ------------------------------
@@ -1366,7 +1385,9 @@ export class DebtorsService {
       // ------------------------------
       if (data.ebillInvoices.length) {
         const results = await this.processEbillInvoices(data, bexioClient, req);
+        console.log("ebillResultss", results);
         combinedResponse.otherInvoiceResults.push(results);
+         console.log("ebillResultsscombinedResponse", combinedResponse);
       }
 
       // ------------------------------
@@ -1374,6 +1395,7 @@ export class DebtorsService {
       // ------------------------------
       if (data.invoices.length) {
         combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
+         console.log("combinedResponse.ediResults", combinedResponse);
       }
 
       return res.status(200).json({
@@ -1407,7 +1429,7 @@ export class DebtorsService {
       signedCookies: req.signedCookies,
       url: req.url
     }, '', 'print');
-
+    console.log("processPrintInvoice", invoice);
     return invoice;
   }
 
@@ -1422,7 +1444,7 @@ export class DebtorsService {
       signedCookies: req.signedCookies,
       url: req.url
     }, '', 'email');
-
+  console.log("processEmailInvoice", invoice);
     return invoice;
   }
 
@@ -1463,7 +1485,7 @@ export class DebtorsService {
     if (getBillerData.recordset.length > 0) {
       this.pushWorkerHost.run([invoice], {}, {}, getBillerData.recordset[0].billerid, 'EBILL');
     }
-
+     console.log("processEbillInvoice", invoice);
     return invoice;
   }
 
@@ -1480,7 +1502,7 @@ export class DebtorsService {
         console.log('Error processing eBill invoice:', error);
       }
     }
-
+   console.log("processEbillInvoices", results);
     return results;
   }
 
@@ -1493,7 +1515,7 @@ export class DebtorsService {
       signedCookies: req.signedCookies,
       url: req.url
     }, '', 'EDI');
-
+     console.log("processEdiInvoices", results);
     return results;
   }
 
@@ -1507,6 +1529,7 @@ export class DebtorsService {
       const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
       results.push(result);
     }
+    console.log("processInvoices", results);
     return results;
   }
 
