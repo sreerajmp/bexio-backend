@@ -453,10 +453,10 @@ export class DebtorsService {
             
             resData = parseResponse(parsed.slice(0, perPage));
           } else {
-            console.log('entered in else',getResponse.body.length);
+            console.log('entered in else',parsed.length);
             
-            resData = parseResponse(getResponse.body.slice(0, perPage));
-            totalCount = req.body.page_number !=1? req.body.totalCount: parsed.length | 0;
+            resData = parseResponse(parsed.slice(0, perPage));
+            totalCount = req.body.page_number !=1? Number(req.body.totalCount): parsed.length | 0;
           }
         }
 
