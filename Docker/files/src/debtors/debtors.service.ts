@@ -1954,7 +1954,10 @@ export class DebtorsService {
       // ------------------------------
       // 1. Process Print Invoices
       // ------------------------------
-
+   console.log("printInvoiceslength", data.printInvoices.length);
+      console.log("otherInvoicelength", data.otherInvoice.length);
+      console.log("emailInvoiceslength", data.emailInvoices.length);
+      console.log("ebillInvoiceslength", data.ebillInvoices.length);
       if (data.printInvoices.length) {
         for (const item of data.printInvoices) {
           const processedInvoice = await this.processPrintInvoice(item, data, req);
@@ -1965,7 +1968,7 @@ export class DebtorsService {
       // ------------------------------
       // 2. Process Other Invoices (tags: email, print, ebill)
       // ------------------------------
-      if (data.otherInvoice) {
+      if (data.otherInvoice.length) {
         let getTag: any = await getTagName(data.netcomId,details);
          console.log("getTag", getTag);
           console.log("combinedResponse", combinedResponse);
