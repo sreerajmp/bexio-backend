@@ -2010,13 +2010,14 @@ export class DebtorsService {
       // ------------------------------
       // 3. Process Email Invoices
       // ------------------------------
+        if (data.emailInvoices.length) {
       for (const invoice of data.emailInvoices) {
         const result = await this.processEmailInvoice(invoice, data, req);
          console.log("emailResultss", result);
         combinedResponse.otherInvoiceResults.push(result);
             console.log("emailResultsscombinedResponse", combinedResponse);
       }
-
+    }
       // ------------------------------
       // 4. Process eBill Invoices
       // ------------------------------
