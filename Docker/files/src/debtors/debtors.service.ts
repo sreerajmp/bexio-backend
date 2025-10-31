@@ -1944,8 +1944,8 @@ export class DebtorsService {
       data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
       data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
       data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
-      data.emailInvoices = data.emailInvoices ? data.emailInvoices : [];
-      data.ebillInvoices = data.ebillInvoices ? data.ebillInvoices : [];
+      data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
+      data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
       console.log("invoices", data.invoices);
       console.log("printInvoices", data.printInvoices);
       console.log("otherInvoice", data.otherInvoice);
@@ -2077,6 +2077,7 @@ export class DebtorsService {
   private async processEmailInvoice(invoice, data, req): Promise<any> {
     const bodyParams = { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId };
     const invoice_uuid = await this.processInvoices(invoice, bodyParams, 'email');
+     console.log("invoice_uuid:::", invoice_uuid);
     invoice['invoice_uuid'] = invoice_uuid[0];
     invoice['tag'] = 'email';
 
@@ -2167,6 +2168,11 @@ export class DebtorsService {
     for (const inv of invoices) {
       const docNumber = inv.documentNumber || '';
       const invoiceId = tag == 'EDI' ? inv.invoiceId : inv.doc_id;
+       console.log('inv.invoiceId',inv.invoiceId);
+        console.log('inv.doc_id',inv.doc_id);
+         console.log('docNumber',docNumber);
+      console.log('bodyData.partyId, invoiceId, docNumber',bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
+      
       const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
       results.push(result);
     }
