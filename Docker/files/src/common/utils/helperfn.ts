@@ -700,37 +700,44 @@ FROM  g2b_business_connections
       warningMessage(commonErrors,error);
   }
 }
-export const getInvoicePdf = async (accessToken,invoiceId)=>{
+export const getInvoicePdf = async (accessToken, invoiceId) => {
   try {
-    return new Promise( async (resolve, reject) => {
-      var options = {
-        'method': 'GET',
-        'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/pdf`,
-        'headers': {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer '+accessToken
-        }
+    return new Promise((resolve) => {
+      const options = {
+        method: 'GET',
+        url: `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/pdf`,
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer ' + accessToken,
+        },
       };
+      console.log("getInvoicePdf options:", options);
+      
+
       request(options, function (error, response) {
         if (error) {  
           commonErrors['errorTitle'] = 'getInvoicePdf';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
-        console.log('response.statusCode pdf::::',response.statusCode);
-        // //console.log('response.body',response.body);
-        // console.log('response pdf',response);
-        
-        if(response.statusCode==200)
-         resolve(response.body);
-        if(response.statusCode==401)
-          resolve({response:response.statusCode,message:'unauthorized'});
-        else
-         resolve(false);
 
+        if (!response) {
+          console.error('No response received for invoice:', invoiceId);
+          return resolve(false);
+        }
+
+        console.log('response.statusCode pdf::::', response.statusCode);
+
+        if (response.statusCode == 200) {
+          return resolve(response.body);
+        } else if (response.statusCode == 401) {
+          return resolve({ response: response.statusCode, message: 'unauthorized' });
+        } else {
+          return resolve(false);
+        }
       });
-  })
+    });
   } catch (error) {
       commonErrors['errorTitle'] = getInvoicePdf.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+accessToken+' '+invoiceId;
@@ -4838,9 +4845,17 @@ export const updateInvoicePosition = async (partyId,invoiceId,article,access_tok
         request(options, async function (error, response) {
           
           if (error || response.statusCode != 201) {
-            console.log('error', error);
+            if(error){
+            console.log('error', error);           
+
             commonErrors['errorTitle'] = 'kb_position_article';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
+            }
+            else{
+            console.log('response error kb_position_article', response);
+            commonErrors['errorTitle'] = 'kb_position_article';
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'kb_position_article'+'-bexio param,'+access_token;
+            }
             warningMessage(commonErrors,error);
             resolve(false)
           }

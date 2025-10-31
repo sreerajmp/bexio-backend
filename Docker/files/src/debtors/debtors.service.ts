@@ -347,7 +347,7 @@ export class DebtorsService {
       if (searchJson.length > 0) {
       console.log('searchJson 2:::',searchJson);
 
-          totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
+          // totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
           options = {
             'method': 'POST',
             'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
@@ -380,9 +380,9 @@ export class DebtorsService {
         console.log('resData',resData);
         
       } else {
-          let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          totalCount = totalCountInvoiceList + totalCountInvoiceCount;
+          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
+          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
+          // totalCount = totalCountInvoiceList + totalCountInvoiceCount;
           console.log('searchJson:',searchJson);          
 
           const getOptions = {
