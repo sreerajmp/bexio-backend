@@ -377,8 +377,53 @@ export class DebtorsService {
 
         resData = JSON.parse(response.body);
 
-        console.log('resData',resData);
-        
+        console.log('resData', resData);
+
+        const parseResponse = (response: any) => {
+          if (response) {
+            try {
+              console.log('response:: type', typeof response);
+              console.log('response:: type', response);
+              // let parsedData = JSON.parse(response);
+              // let parsedData = response;
+              // console.log("response:: parsedData",response)
+              if (Array.isArray(response)) {
+                return response;
+              } else if (
+                response &&
+                typeof response === 'object' &&
+                response.message
+              ) {
+                return [];
+              } else {
+                return [];
+              }
+            } catch (error) {
+              console.error('Error parsing response:', error);
+            }
+          }
+          return [];
+        };
+          
+        const parsed = JSON.parse(response.body) as any[];
+        const perPage = Number(req.body.records_per_page);
+        console.log('parsed', parsed.length);
+        console.log('isarray:', Array.isArray(parsed));
+        console.log('perPage', perPage);
+        console.log('perPage', perPage);
+        if (Array.isArray(parsed) && parsed.length > perPage) {
+          totalCount = parsed.length;
+          console.log('entered in if', totalCount);
+          resData = parseResponse(parsed.slice(0, perPage));
+        } else {
+          console.log('entered in else', parsed.length);
+          resData = parseResponse(parsed.slice(0, perPage));
+          totalCount =
+            req.body.page_number != 1
+              ? Number(req.body.totalCount)
+              : parsed.length | 0;
+        }
+
       } else {
           // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
           // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
