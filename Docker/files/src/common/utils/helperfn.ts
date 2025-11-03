@@ -1180,6 +1180,8 @@ invoice.taxs.forEach(element => {
 
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
+    console.log('element*',element);
+    
     let arr,status = true;
 
 
@@ -1189,19 +1191,19 @@ invoice.taxs.forEach(element => {
           },
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code.substring(0, 23):undefined,
-              ...(element.article.deliverer_code
+              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code.substring(0, 23):undefined,
+              ...(element?.article?.deliverer_code
                 ? {
                     "bmecat:INTERNATIONAL_PID": {
-                      "_": element.article.deliverer_code,
+                      "_": element?.article?.deliverer_code,
                       "$": {
                         "type": "ean"
                       }
                     }
                   }
                 : {}),
-              "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-              "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
+              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
           }],
           "QUANTITY": element.amount?Math.trunc(element.amount):1,
           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62', // add defult value directly
@@ -2342,16 +2344,9 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
     'h':'HUR'
   }
   let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
-  //////console.log('invoiceinvoiceinvoice',invoice);
   let total = '';
- ////console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
-
-  total = invoice['total_remaining_payments'];
- ////console.log('totttttal',total);
-
- ////console.log('billDetails',billDetails);
-  
- ////console.log('REFERENCE_NUMBER',billerDetails);
+  total = invoice['total_remaining_payments'];  
+ console.log('REFERENCE_NUMBER',billerDetails);
   if(!billDetails)
   {
     
@@ -2515,17 +2510,17 @@ invoice.taxs.forEach(element => {
           },
           "LINE_ITEM_ID": element.pos?element.pos:index,
           "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element.article.intern_code?element.article.intern_code:undefined,
-              "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, 
-              "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code:undefined,
+              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, 
+              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
           }],
-          "QUANTITY": element.amount?Math.trunc(element.amount):1,
+          "QUANTITY": element?.amount?Math.trunc(element.amount):1,
           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62',
           "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
-              "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-              "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded>0? [{
-                  "bmecat:TAX_TYPE": element.tax?.type,
-                  "bmecat:TAX": element.tax?.value
+              "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+              "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded>0? [{
+                  "bmecat:TAX_TYPE": element?.tax?.type,
+                  "bmecat:TAX": element?.tax?.value
                  
               }]:undefined,
   
@@ -2533,7 +2528,7 @@ invoice.taxs.forEach(element => {
           "bmecat:PRICE_QUANTITY": priceQuantity, 
           })),
         ],
-        "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
+        "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
         "DELIVERY_REFERENCE": [{
           "DELIVERY_DATE": [{
               "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
@@ -2573,8 +2568,7 @@ export const issueEbillInvoice = async (access_token,id)=>{
           if(response.statusCode==200)
           return resolve(JSON.parse(response.body)[0]);
           else{           
-            console.log();
-              
+            console.log("issuebillinvoice response",response);              
             commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
@@ -2821,6 +2815,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
       });
       
     } catch (error) {
+      JSON.stringify(error)
       commonErrors['errorTitle'] = 'getRefrenceNumber';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'ebill_xml_not_found '+'-req param,'+invoiceNumber;
       warningMessage(commonErrors,'ebill_xml_not_found');
@@ -3487,30 +3482,30 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
     obj.OPENTRANS.ORDER[0]['ORDER_ITEM_LIST'][0]['ORDER_ITEM'].push(JSON.parse(JSON.stringify({
       "LINE_ITEM_ID": element.pos?element.pos:index,
       "PRODUCT_ID": [{
-        "bmecat:SUPPLIER_PID": element.article?.article_id?element.article.article_id:element.article.id,
-        ...(element.article.id
+        "bmecat:SUPPLIER_PID": element?.article?.article_id?element.article.article_id:element.article.id,
+        ...(element?.article?.id
           ? {
               "bmecat:INTERNATIONAL_PID": {
-                "_": element.article.id,
+                "_": element?.article?.id,
                 "$": {
                   "type": "ean"
                 }
               }
             }
           : {}),
-        "bmecat:DESCRIPTION_SHORT": element.article.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-        "bmecat:DESCRIPTION_LONG": element.article.intern_description? element.article.intern_description:undefined
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
     }],
-      "QUANTITY": element.article.amount?element.article.amount:element.amount,
+      "QUANTITY": element?.article?.amount?element.article.amount:element.amount,
       "bmecat:ORDER_UNIT":orderUnit[element.unit_name]?orderUnit[element.unit_name]:'CT',
       "PRODUCT_PRICE_FIX" : [JSON.parse(JSON.stringify({
-        "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-        "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded? [{
-          "bmecat:TAX": element.tax?.value
+        "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+        "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded? [{
+          "bmecat:TAX": element?.tax?.value
           // "TAX_AMOUNT": element.tax_value
         }]:undefined,
       }))],
-      "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00
+      "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00
     })))
   }
   obj.OPENTRANS['ORDER'][0]['ORDER_SUMMARY'].push(JSON.parse(JSON.stringify({
@@ -4848,7 +4843,7 @@ export const getOctConfig = async (netComId) => {
 
   }
   }
-export const updateInvoicePosition = async (invoiceId,article,access_token) => {
+export const updateInvoicePosition = async (partyId,invoiceId,article,access_token,channel) => {
   console.log('invoiceId', invoiceId);
   
   return new Promise(async(resolve, reject) => {
@@ -4863,7 +4858,7 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
         };
         console.log('options',options);
         
-        request(options, function (error, response) {
+        request(options, async function (error, response) {
           
           if (error || response.statusCode != 201) {
             if(error){
@@ -4883,12 +4878,18 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
           console.log("response.statusCode :: ",response.statusCode);
           
           if( response.statusCode == 201){
-
             return resolve(JSON.parse(response.body));
          console.log("kb_position_article :: ",response.body);
-          }      
-        
-
+          }  
+          else if(response.statusCode == 422)    
+        {
+          let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invalid_article', channel);
+            commonErrors['errorTitle'] = 'kb_position_article';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,';
+            warningMessage(commonErrors, 'invalid_article');
+            resolve('invalid_article' + invoiceCid);
+            return;
+        }
         });
       });
 }
@@ -4918,15 +4919,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
-      if (!contact) {
-        console.log('contact not found');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_contact_not_found');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+      
       console.log('contact::::', contact);
       // If contact exists, check for required keys
       if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
@@ -4999,7 +4992,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     "discount_in_percent": '0.000000',
                     "article_id": articleDetail.id
                   }
-                  const invPosUpdate = await updateInvoicePosition(invoice_id, printArticle, accessToken);
+                  const invPosUpdate = await updateInvoicePosition(partyId,invoice_id, printArticle, accessToken,channel);
                   console.log('invPosUpdate::::', invPosUpdate);
                   if (!invPosUpdate) {
                     console.error('Article update failed:', articleDetail);

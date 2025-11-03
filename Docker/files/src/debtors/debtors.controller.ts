@@ -19,6 +19,13 @@ export class DebtorsController {
     console.log('controller getInvoice');
     return this.debtorsService.getInvoice(req, res);
   }
+    @UseInterceptors(RedisCacheInterceptor)
+  @Post('getInvoices')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async getInvoices(@Req() req: Request, @Res() res: Response): Promise<any> {
+    console.log('controller getInvoices');
+    return this.debtorsService.getInvoices(req, res);
+  }
 
   @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
@@ -40,6 +47,11 @@ export class DebtorsController {
   @UseInterceptors(AnyFilesInterceptor()) 
   async sendInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.sendInvoice(req,res);
+  }
+  @Post('sendInvoices')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async sendInvoices(@Req() req: Request, @Res() res: Response): Promise<any> {
+  return this.debtorsService.sendInvoices(req,res);
   }
   @Post('sendOrder')
   @UseInterceptors(AnyFilesInterceptor()) 
