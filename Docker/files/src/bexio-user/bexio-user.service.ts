@@ -332,7 +332,7 @@ export class BexioUserService {
 
         if (response.statusCode === 200) {
           try {
-            resolve(JSON.parse(response.body)[0]?.iso_3166_alpha2);
+            return resolve(JSON.parse(response.body)[0]?.iso_3166_alpha2);
           } catch (e) {
             console.error('Failed to parse company profile:', e);
             return resolve(false);
@@ -399,7 +399,7 @@ export class BexioUserService {
 
         if (response.statusCode === 200) {
           try {
-             resolve(response.body);
+            return resolve(response.body);
           } catch (e) {
             console.error('Failed to parse company profile:', e);
             return resolve(false);
@@ -1101,13 +1101,13 @@ export class BexioUserService {
         return new Promise(function (resolve, reject) {
           request(options, async function (error, response, body) {
             if (!error && response.statusCode == 200) {
-              resolve(body);
+              return resolve(body);
               //console.log('response', body);
 
             } else {
               //console.log('error', error);
 
-              reject(error);
+              return reject(error);
             }
           });
         });
@@ -2045,7 +2045,7 @@ VALUES (
           console.log('b');
 
         }
-        resolve(1);
+        return resolve(1);
       });
     };
 
@@ -2123,7 +2123,7 @@ VALUES (
           let packageResponse = await packagePayment(formData);
 
         }
-        resolve(true)
+        return resolve(true)
       });
 
     }
@@ -2772,11 +2772,11 @@ const planPurchase = async (data) => {
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        resolve(body);
+        return resolve(body);
       } else {
         //console.log('er', error);
 
-        reject(error);
+        return reject(error);
       }
     });
   });
@@ -2795,11 +2795,11 @@ const packagePayment = async (data) => {
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        resolve(body);
+        return resolve(body);
       } else {
           //console.log('er',error);
           
-        reject(error);
+        return reject(error);
       }
     });
   });
@@ -2864,7 +2864,7 @@ const getUserPermissions = async (partyId,accId) => {
                       // Continue execution even if Redis fails
                   }
               }
-              resolve(redisKey);
+              return resolve(redisKey);
           }
       } catch (error) {
         //console.log('getUserPermissions error', error);
@@ -2968,7 +2968,7 @@ const createOctConfig = async (netComId)  => {
             console.log(response.body);
             responseData = JSON.parse(response.body)
 
-            resolve(responseData)
+            return resolve(responseData)
           }
           catch {
             return resolve(responseData)

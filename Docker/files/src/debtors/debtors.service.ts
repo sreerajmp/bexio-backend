@@ -3033,7 +3033,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
               commonErrors['errorTitle'] = 'notifiBexio';
               commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params);
               warningMessage(commonErrors, error);
-              resolve(false)
+              return resolve(false)
             }
             console.log('notifiBexionotifiBexio', options);
 
@@ -3046,7 +3046,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
 
             if (response.statusCode == 201 || resStatus) {
 
-              resolve(JSON.parse(response.body));
+              return resolve(JSON.parse(response.body));
               console.log('JSON.parse(response.body)', JSON.parse(response.body));
             }
             else {
@@ -3055,11 +3055,11 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
                 typeof value === 'bigint' ? Number(value) : value
               );
               warningMessage(commonErrors, error);
-              resolve(false)
+              return resolve(false)
             }
           });
         } else {
-          resolve(false)
+          return resolve(false)
         }
       } else if (status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL') {
         options = {
@@ -3078,7 +3078,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
               typeof value === 'bigint' ? Number(value) : value
             );
             warningMessage(commonErrors, error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
           //console.log(response.body);
@@ -3100,7 +3100,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
           if (response.statusCode == 200 || resStatus) {
             console.log('JSON.parse(response.body)', JSON.parse(response.body));
 
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           }
           else {
             // resolve(false)
@@ -3109,12 +3109,12 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
               typeof value === 'bigint' ? Number(value) : value
             );
             warningMessage(commonErrors, error);
-            resolve(false);
+            return resolve(false);
           }
 
         });
       } else {
-        resolve(true);
+        return resolve(true);
       }
       console.log('options', options);
 
@@ -3126,7 +3126,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
         typeof value === 'bigint' ? Number(value) : value
       );
       warningMessage(commonErrors, error);
-      resolve(false)
+      return resolve(false)
 
     }
   });
@@ -3218,7 +3218,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(parms);
             warningMessage(commonErrors, error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
           //console.log(response.body);
@@ -3227,7 +3227,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
           console.log('response', response.body);
 
           if (response.statusCode == 201) {
-            resolve(JSON.parse(response.body));
+             resolve(JSON.parse(response.body));
             console.log('JSON.parse(response.body)', JSON.parse(response.body));
             return;
           }
@@ -3242,7 +3242,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
           }
         })
       } else {
-        resolve(false)
+        return resolve(false)
       }
     } catch (error) {
 
