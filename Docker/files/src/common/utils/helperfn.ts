@@ -41,14 +41,14 @@ export const getContactById = async (accessToken,contact_idList) => {
         commonErrors['errorTitle'] = 'getContactById';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
         warningMessage(commonErrors,error);
-        resolve(error);
+        return resolve(error);
       }
    
       
       if(response.statusCode == 200){
-        resolve(JSON.parse(response.body));      
+        return resolve(JSON.parse(response.body));      
       }else{
-        resolve(false)
+        return resolve(false)
       }
     }); 
   });
@@ -71,13 +71,13 @@ export const getAllCurrency = async (access_token) => {
             commonErrors['errorTitle'] = 'getAllCurrency';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param';
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           
           if(response?.statusCode==200)
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           else
-            resolve(false)
+            return resolve(false)
         });
       });
 }
@@ -128,7 +128,7 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
         warningMessage(commonErrors,error);
-        resolve(false)
+        return resolve(false)
       }
       if(response?.statusCode == 200){
         if(JSON.parse(response.body).length == limit){
@@ -138,7 +138,7 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
         }else{
           offset = offset + JSON.parse(response.body).length;
           // //////console.log(('lengthhh',offset);
-          resolve(offset)
+          return resolve(offset)
         }
         // //////console.log((JSON.parse(response.body).length);
         
@@ -146,7 +146,7 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
 
       }
       else
-      resolve(false)
+      return resolve(false)
     });
   });
 }
@@ -167,22 +167,22 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
           commonErrors['errorTitle'] = 'invoiceListCount';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
           warningMessage(commonErrors,error);
-          resolve(false);
+          return resolve(false);
         }
         if( response.statusCode == 401 ){
-          resolve(false);
+          return resolve(false);
         }
         if(response.statusCode == 200){
           if(JSON.parse(response.body).length == limit){
            let temp = await invoiceListCountSearch(token,offset+2000,2000);
-           resolve(temp);
+           return resolve(temp);
           }else{
             offset = offset + JSON.parse(response.body).length;
-            resolve(offset);
+            return resolve(offset);
           }  
         }
         else
-        resolve(false);
+        return resolve(false);
       });
   });
 }
@@ -206,13 +206,13 @@ export const getBcDetails= async (bc_id,netcomId ) => {
               if (error) {  
                 commonErrors['errorTitle'] = 'getBcDetails';
                 warningMessage(commonErrors,error);
-                resolve(false)
+                return resolve(false)
               }else{
-                resolve(JSON.parse(response.body));
+                return resolve(JSON.parse(response.body));
               }
             });
           }else{
-            resolve(false)
+            return resolve(false)
           }
            
           });
@@ -238,19 +238,19 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
           commonErrors['errorTitle'] = 'deliveryNotesList';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
           warningMessage(commonErrors,error);
-          resolve(false);
+          return resolve(false);
         }
         if(response.statusCode == 200){
           if(JSON.parse(response.body).length == limit){
            let temp = invoiceListCountSearch(token,offset+2000,2000);
-           resolve(temp);
+           return resolve(temp);
           }else{
             offset = offset + JSON.parse(response.body).length;
-            resolve(offset);            
+            return resolve(offset);            
           }  
         }
         else
-        resolve(false);
+        return resolve(false);
       });
   });
 }
@@ -285,7 +285,7 @@ export const getTagName = async (netcom_id, details) => {
         }
         else {
           try {
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
 
           }
           catch {
@@ -373,14 +373,14 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         //console.log('updateRes',updateRes);
         
       }
-      resolve(sendInvoiceId);
+      return resolve(sendInvoiceId);
     } catch (error) {
       reject(error);
       //console.log(error);
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyId + '-partyId' + invoiceId + '-invoiceId' + invoicenumber + 'invoiceNumber';
       warningMessage(commonErrors, error);
-      resolve('');
+      return resolve('');
 
     }
   });
@@ -613,7 +613,7 @@ console.log('invoiceFilePushD',invoiceFilePushD);
       }
       catch(error){
         console.error('Error in pushInvoiceBulkTest:', error);
-        reject(error); // Ensure the promise is rejected.
+        return reject(error); // Ensure the promise is rejected.
       }
     } catch (error) {
       console.error('Error in pushInvoiceBulkTest:', error);
@@ -642,16 +642,16 @@ export const getInvoiceOT = async (access_token,invoiceId)=>{
             commonErrors['errorTitle'] = 'getInvoiceOT';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
           {
            ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
             
           }
           else {
-            resolve(false)
+            return resolve(false)
 
             }
         });
@@ -763,12 +763,12 @@ export const getCountryLists = async (access_token)=>{
             commonErrors['errorTitle'] = 'getCountryLists';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(response.body);
+          return resolve(response.body);
           else
-          resolve(false)
+          return resolve(false)
 
         });
       });
@@ -777,7 +777,7 @@ export const getCountryLists = async (access_token)=>{
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
       warningMessage(commonErrors,error);
       fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-        resolve('');
+        return resolve('');
       });
     }
 }
@@ -801,12 +801,12 @@ export const getBank = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getBank';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false);
+          return resolve(false);
         });
       });
 }
@@ -826,12 +826,12 @@ export const getCurrency = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getCountryLists';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,',id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           else
-            resolve(false)
+            return resolve(false)
         });
       });
 }
@@ -854,7 +854,7 @@ export const getloginUserCompanyDetails = async (access_token)=>{
           commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
           warningMessage(commonErrors,error);
-           resolve(false);
+           return resolve(false);
         }
         if(response.statusCode==200)
           return resolve(response.body)
@@ -871,7 +871,7 @@ export const getloginUserCompanyDetails = async (access_token)=>{
 
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
      
-      resolve('');
+      return resolve('');
     });
   }
 }
@@ -891,12 +891,12 @@ export const getPaymentType = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getPaymentType';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -916,12 +916,12 @@ export const getContact = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getContact';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -942,12 +942,12 @@ export const getProducts = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getProducts';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false);
+          return resolve(false);
 
 
         });
@@ -969,14 +969,14 @@ export const getTaxs = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getTaxs';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
          ////console.log(response?.body);
           
           if(response?.statusCode==200)
-          resolve(JSON.parse(response?.body));
+          return resolve(JSON.parse(response?.body));
           else
-          resolve(false)
+          return resolve(false)
 
         });
       });
@@ -1278,7 +1278,7 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
         commonErrors['errorTitle'] = 'bexio-file-drop';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
         warningMessage(commonErrors,error);
-        resolve(false)
+        return resolve(false)
       }
       
       
@@ -1419,7 +1419,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     } catch (error) {
        await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
-      reject(error);
+      return reject(error);
     }
   });
 };
@@ -1543,21 +1543,21 @@ console.log('pushEbillInvoice',req.body);
          
           await request(options, async function (error, response) {
             if (error) {
-              resolve(false)
+              return resolve(false)
             }
             else {
               if (response.statusCode == 200) {
                 let resData = JSON.parse(response.body)
 
                 if (resData.items[0].ebillSubmissionStatus != 'NOT_ALLOWED') {
-                  resolve(true)
+                  return resolve(true)
                 }
                 else {
-                  resolve(false)
+                  return resolve(false)
                 }
               }
               else {
-                resolve(false)
+                return resolve(false)
               }
             }
           })
@@ -1624,7 +1624,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_invoice_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_invoice_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
       }
 
@@ -1642,7 +1642,8 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_Recipient_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_Recipient_not_found');
-        resolve('something_went_wrong2')
+        resolve('something_went_wrong2');
+        return;
 
       }
 
@@ -1657,7 +1658,8 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'unauthorized');
 
-        resolve('unauthorized' + invoiceCid)
+        resolve('unauthorized' + invoiceCid);
+        return;
       }
       if (!pdf) {
        
@@ -1669,7 +1671,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_pdf_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_pdf_not_found');
 
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
 
       }
@@ -1684,7 +1686,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_coutryList_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_coutryList_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
       }
       coutryList = JSON.parse(coutryList);
@@ -1699,7 +1701,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_currency_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_currency_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
       }
       invoice['currency'] = currency;
@@ -1714,7 +1716,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_companyDetails_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_companyDetails_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
       }
       invoice['companyProfile'] = temp;
@@ -1729,7 +1731,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_paymentType_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_paymentType_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
 
       }
@@ -1743,7 +1745,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_contact_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_contact_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
 
       }
@@ -1760,7 +1762,7 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_user_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_user_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
 
       }
@@ -1776,7 +1778,7 @@ console.log('pushEbillInvoice',req.body);
               commonErrors['errorTitle'] = req.originalUrl;
               commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_tax_not_found ' + '-req param,' + JSON.stringify(decryptData);
               warningMessage(commonErrors, 'ebill_tax_not_found');
-              resolve('something_went_wrong10')
+              return resolve('something_went_wrong10')
 
             }
             items['tax'] = tempTax;
@@ -1824,20 +1826,20 @@ console.log('pushEbillInvoice',req.body);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_xml_not_found');
-        resolve('something_went_wrong')
+        return resolve('something_went_wrong')
 
       }
       await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
       await issueEbillInvoice(accessToken, decryptData.invoice_id);
       await markAsSent(accessToken, decryptData.invoice_id);
-      resolve(true)
+      return resolve(true)
 
 
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
       warningMessage(commonErrors, error);
-      resolve('something_went_wrong12')
+      return resolve('something_went_wrong12')
 
     }
   });
@@ -1917,13 +1919,13 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
           }
 
           
-          resolve(sendInvoiceId);
+          return resolve(sendInvoiceId);
         } catch (error) {
          console.log(error);
         commonErrors['errorTitle'] = setEbillInvoiceSendStatus.name;
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+invoiceId+'-invoiceId'+invoicenumber+'invoiceNumber';
         warningMessage(commonErrors,error);
-          resolve('');
+          return resolve('');
           
         }
     });
@@ -2024,24 +2026,24 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           let resStatus = 'success' in JSON.parse(response.body) ? true : false;
            if(response.statusCode == 201 || resStatus)
           {
           
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
   
         });
       }else{
-        resolve(false);
+        return resolve(false);
       }
       }else if(status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL'){
         options = {
@@ -2057,7 +2059,7 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
     
          console.log('notifiBexionotifiBexio statusCode',response.statusCode);
@@ -2073,25 +2075,25 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
            if(response.statusCode == 201 || resStatus)
           {
           
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           }
           else{
             commonErrors['errorTitle'] = 'notifiBexio';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
             warningMessage(commonErrors,error);
-            resolve(false);
+            return resolve(false);
           }
   
         });
       }else{
-        resolve(true);
+        return resolve(true);
       }
      ////console.log('options',options);
     } catch (error) {
       commonErrors['errorTitle'] = 'notifiBexio';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
       warningMessage(commonErrors,error);
-      resolve(false)
+      return resolve(false)
     }
   }); 
 }
@@ -2223,14 +2225,14 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' get Country'+' '+'countryId ----${countryId}`;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-countryId,' + countryId;
           warningMessage(commonErrors, error);
-          resolve(false);
+          return resolve(false);
         }
         if (response.statusCode == 200) {
           let responseData = JSON.parse(response.body)
-          resolve(responseData);
+          return resolve(responseData);
         }
         else {
-          resolve(false);
+          return resolve(false);
         }
       })
      })
@@ -2316,14 +2318,14 @@ export const updateBexioContact = async (accessToken,bexioCustomerId, receiptId)
           commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioContact'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + '--receiptId--' + receiptId + '--contactId--' + bexioCustomerId + '--accessToken--' + accessToken;
           warningMessage(commonErrors, error);
-          resolve(false);
+          return resolve(false);
         }
         if (response.statusCode == 200) {
           let responseData = JSON.parse(response.body)
-          resolve(responseData);
+          return resolve(responseData);
         }
         else {
-          resolve(false);
+          return resolve(false);
         }
       })
     })
@@ -2566,17 +2568,17 @@ export const issueEbillInvoice = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body)[0]);
+          return resolve(JSON.parse(response.body)[0]);
           else{           
             console.log();
               
             commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           
           }
         });
@@ -2598,12 +2600,12 @@ export const markAsSent = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'markAsSent';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body)[0]);
+          return resolve(JSON.parse(response.body)[0]);
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -2661,7 +2663,7 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
             commonErrors['errorTitle'] = 'addBexioComment';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
     
           if(response.statusCode == 201)
@@ -2676,7 +2678,7 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
             resolve(false)
             return;
           }
-          resolve(false)
+          // resolve(false)
         })
       } catch (error) {
        
@@ -2705,12 +2707,12 @@ export const getUser = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getUser';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -2729,12 +2731,12 @@ export const getDefaultUser = async (access_token)=>{
             commonErrors['errorTitle'] = 'getDefaultUser';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body)[0]);
+          return resolve(JSON.parse(response.body)[0]);
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -2776,7 +2778,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
             commonErrors['errorTitle'] = 'QR_code_not_found';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(data);
             warningMessage(commonErrors,'QR_code_not_found');
-            resolve(res);
+           return resolve(res);
           }
          
             let paymentDetails = response.body.split("\\n");
@@ -2809,10 +2811,10 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
                 referenceEbil:invoiceNumber+'_'+v
   
               }
-              resolve(res);
+              return resolve(res);
             }
             
-            resolve(res);
+            return resolve(res);
           
 
         });
@@ -2824,7 +2826,7 @@ export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
       warningMessage(commonErrors,'ebill_xml_not_found');
       fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
      
-        resolve('');
+        return resolve('');
       });
     }
 }
@@ -2844,12 +2846,12 @@ export const getTaxListActive = async (access_token) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+           return resolve(JSON.parse(response.body));
           else
-           resolve(false)
+           return resolve(false)
 
         });
       });
@@ -2871,13 +2873,13 @@ export const getContactDetails = async (access_token,id) => {
           commonErrors['errorTitle'] = 'getContactDetails';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
         
         if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
         else
-          resolve(false)
+          return resolve(false)
 
       });
     });
@@ -2888,7 +2890,7 @@ export const getContactDetails = async (access_token,id) => {
 
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
       // res.send();
-      resolve('');
+      return resolve('');
     });
   }
 }
@@ -2946,10 +2948,10 @@ export const moveFile = async (netcomId,fileName)=>{
           commonErrors['errorTitle'] = 'moveFile';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
       
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -2959,7 +2961,7 @@ export const moveFile = async (netcomId,fileName)=>{
       warningMessage(commonErrors,error);
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
       // res.send();
-      resolve('');
+      return resolve('');
     });
   }
 }
@@ -3020,12 +3022,12 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
           },
         });
       }
-      resolve(sendDeliveryNotesId);
+      return resolve(sendDeliveryNotesId);
     } catch (error) {
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+delivery_id+'-deliveryId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
-      resolve('');
+      return resolve('');
     }
   });
 
@@ -3288,12 +3290,12 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
 
       }
     
-      resolve(sendOrderId);
+      return resolve(sendOrderId);
     } catch (error) {
       commonErrors['errorTitle'] =' setInvoiceSendStatus';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+orderId+'-orderId'+ordernumber+'orderNumber';
       warningMessage(commonErrors,error);
-      resolve('');
+      return resolve('');
     }
   });
 
@@ -3543,15 +3545,15 @@ const getOrderOT = async (accessToken,orderId) =>{
           commonErrors['errorTitle'] = 'getOrderOT';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+orderId;
           warningMessage(commonErrors,error);
-          resolve(error);
+          return resolve(error);
         }
         //////console.log('responseresponse',response);
 
         if( response.statusCode == 200){
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
         }
         else{
-          resolve(false);
+          return resolve(false);
         }
       })
     });
@@ -3793,13 +3795,13 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             commonErrors['errorTitle'] = 'getDeliveryNotesCidOT';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
             warningMessage(commonErrors,error);
-            resolve(error);
+            return resolve(error);
           }
           if( response.statusCode == 200){
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           }
           else{
-            resolve(false);
+            return resolve(false);
           }
         })
       });
@@ -3827,13 +3829,13 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
             commonErrors['errorTitle'] = 'getOrderResposnePdf';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
             warningMessage(commonErrors,error);
-            resolve(error);
+            return resolve(error);
           }
           if( respons.statusCode == 200){
-            resolve(respons.body);
+            return resolve(respons.body);
           }
           else{
-            resolve(false);
+            return resolve(false);
           }
         })
       });
@@ -4523,13 +4525,13 @@ export const getContactGroupList = async(accessToken) => {
           commonErrors['errorTitle'] = 'getContactGroupList';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
           warningMessage(commonErrors,error);
-          resolve(error);
+          return resolve(error);
         }
         if( response.statusCode == 200){
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
         }
         else{
-          resolve(false);
+          return resolve(false);
         }
       })
     });
@@ -4560,19 +4562,19 @@ export const getUnitList = async (access_token,unitId) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+           return resolve(JSON.parse(response.body));
           else{
             let returnObject = {
               statuscode: response.statusCode,
               message: response.statusMessage,
               status: false
             }
-            resolve(returnObject)
+            return resolve(returnObject)
           }
 
         });
@@ -4597,7 +4599,7 @@ export const getActiveAccounts = async (access_token) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
         // console.log("response.statusCode :: ",response.statusCode);
@@ -4610,7 +4612,7 @@ export const getActiveAccounts = async (access_token) => {
               message: response.statusMessage,
               status: true
             }
-            resolve(returnData)
+            return resolve(returnData)
           }
           else{
             let returnObject = {
@@ -4618,7 +4620,7 @@ export const getActiveAccounts = async (access_token) => {
               message: response.statusMessage,
               status: false
             }
-            resolve(returnObject);
+            return resolve(returnObject);
           }
         });
       });
@@ -4641,19 +4643,19 @@ export const getActiveArticle = async (access_token) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+           return resolve(JSON.parse(response.body));
           else{
             let returnObject = {
               statuscode: response.statusCode,
               message: response.statusMessage,
               status: false
             }
-            resolve(returnObject)
+            return resolve(returnObject)
           }
 
         });
@@ -4676,19 +4678,19 @@ export const getActiveSalesTaxBexio = async (access_token,tax_id) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           // res.send(response.body)
          ////console.log("getTaxListA :: ",response.body);
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+           return resolve(JSON.parse(response.body));
           else{
             let returnObject = {
               statuscode: response.statusCode,
               message: response.statusMessage,
               status: false
             }
-            resolve(returnObject)
+            return resolve(returnObject)
           }
 
         });
@@ -4710,18 +4712,18 @@ export const getActiveItem = async (access_token,article_id) => {
             commonErrors['errorTitle'] = 'taxes';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
         
           if(response.statusCode==200)
-           resolve(JSON.parse(response.body));
+           return resolve(JSON.parse(response.body));
           else{
             let returnObject = {
               statuscode: response.statusCode,
               message: response.statusMessage,
               status: false
             }
-            resolve(returnObject)
+            return resolve(returnObject)
           }
 
         });
@@ -4748,14 +4750,14 @@ export const getContactSearch = async (accessToken,searchJson) => {
         commonErrors['errorTitle'] = 'getContactById';
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
         warningMessage(commonErrors,error);
-        resolve(error);
+        return resolve(error);
       }
    
       
       if(response.statusCode == 200){
-        resolve(JSON.parse(response.body));      
+        return resolve(JSON.parse(response.body));      
       }else{
-        resolve(false)
+        return resolve(false)
       }
     }); 
   });
@@ -4781,15 +4783,15 @@ export const getInvoiceSearch = async (accessToken,searchJson) => {
       commonErrors['errorTitle'] = 'getContactById';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
       warningMessage(commonErrors,error);
-      resolve(error);
+      return resolve(error);
     }
  
       console.log("response.body",response.statusCode);
       
     if(response.statusCode == 200){
-      resolve(JSON.parse(response.body));      
+      return resolve(JSON.parse(response.body));      
     }else{
-      resolve(false)
+      return resolve(false)
     }
   }); 
 });
@@ -4876,7 +4878,7 @@ export const updateInvoicePosition = async (invoiceId,article,access_token) => {
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'kb_position_article'+'-bexio param,'+access_token;
             }
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           console.log("response.statusCode :: ",response.statusCode);
           
@@ -5326,11 +5328,11 @@ export async function pushContactToBexio(
 
                   if (err) return reject(err);
                   if (resp.statusCode === 200) {
-                    resolve(JSON.parse(body));
+                    return resolve(JSON.parse(body));
                   } else if (resp.statusCode === 429) {
                     return reject({ retry: true });
                   } else {
-                    reject(body);
+                    return reject(body);
                   }
                 }
               );
@@ -5429,11 +5431,11 @@ export async function pushContactToBexio(
 
                       if (err) return reject(err);
                       if (resp.statusCode === 201 || resp.statusCode === 200) {
-                        resolve(JSON.parse(body));
+                        return resolve(JSON.parse(body));
                       } else if (resp.statusCode === 429) {
                         return reject({ retry: true });
                       } else {
-                        reject(body);
+                        return reject(body);
                       }
                     }
                   );
@@ -5579,9 +5581,9 @@ console.log('company', company);
             if (err) return reject(err);
             if (resp.statusCode === 200) 
               { console.log('JSON.parse(body)', JSON.parse(body));
-              resolve(JSON.parse(body));}
-            else if (resp.statusCode === 429) reject({ retry: true });
-            else reject(body);
+              return resolve(JSON.parse(body));}
+            else if (resp.statusCode === 429) return  reject({ retry: true });
+            else return reject(body);
           });
         });
         break;
@@ -5754,9 +5756,9 @@ try {
           if (err) return reject(err);
           if (resp.statusCode === 200 || resp.statusCode === 201) {
             console.log('JSON.parse(body)', JSON.parse(body));
-            resolve(JSON.parse(body));
-          } else if (resp.statusCode === 429) reject({ retry: true });
-          else reject(body);
+            return resolve(JSON.parse(body));
+          } else if (resp.statusCode === 429) return reject({ retry: true });
+          else return reject(body);
         });
       });
       break;
@@ -5797,12 +5799,12 @@ export const createCountry = async (access_token,name,name_short,country_code)=>
           commonErrors['errorTitle'] = 'getCountryLists';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
         if(response.statusCode==200)
-        resolve(response.body);
+        return resolve(response.body);
         else
-        resolve(false)
+        return resolve(false)
 
       });
     });
@@ -5811,7 +5813,7 @@ export const createCountry = async (access_token,name,name_short,country_code)=>
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
     warningMessage(commonErrors,error);
     fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('');
+      return resolve('');
     });
   }
 }
