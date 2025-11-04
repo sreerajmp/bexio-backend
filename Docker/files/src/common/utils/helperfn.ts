@@ -1631,11 +1631,18 @@ console.log('pushEbillInvoice',req.body);
       }
 
       let recipentStatus;
-      if ((config.IS_LIVE == 'true') && (decryptData?.contact_pid != null)) {
+      console.log('decryptData?.contact_pid',decryptData?.contact_pid);
+      
+      if ((config.IS_LIVE == 'true') && (decryptData?.contact_pid!= null)) {
+        console.log('checkRecipient');
         recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
       } else {
         recipentStatus = true;
       }
+      console.log('recipentStatus',recipentStatus);
+      console.log('recipentStatus', recipentStatus, 'Type:', typeof recipentStatus);
+      recipentStatus = (recipentStatus === true || recipentStatus === "true");
+        console.log('Type:', typeof recipentStatus);
       if (!recipentStatus) {
       
         await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
