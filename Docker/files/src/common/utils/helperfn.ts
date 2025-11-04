@@ -1625,7 +1625,7 @@ console.log('pushEbillInvoice',req.body);
       }
 
       let recipentStatus;
-      if (config.IS_LIVE == 'true') {
+      if (config.IS_LIVE == 'true' && decryptData?.contact_pid) {
         recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
       } else {
         recipentStatus = true;
