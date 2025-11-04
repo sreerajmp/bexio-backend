@@ -1441,11 +1441,11 @@ console.log('pushEbillInvoiceProcess',invoices);
       const element = tempIds[index];
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
-      tempParam['body']['contact_pid'] = element.bill_recipient_id;
+      tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
       tempParam['body']['contact_email'] = element.bill_recipient_email??'';
       tempParam['body']['invoice_uuid'] = '';
-      tempParam['body']['allow'] = tempIds.allow;
-      tempParam['body']['token'] = tempIds.accessToken;
+      tempParam['body']['allow'] = element.allow;
+      tempParam['body']['token'] = element.accessToken;
       let v = await pushEbillInvoice(tempParam,'')
     }
 }
@@ -1567,7 +1567,7 @@ console.log('pushEbillInvoice',req.body);
       }
 
       let checkRecipientData;
-      if (config.IS_LIVE == 'true') {
+      if (config.IS_LIVE == 'true' && decryptData?.contact_pid) {
         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
       } else {
         checkRecipientData = true;
