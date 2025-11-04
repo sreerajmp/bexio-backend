@@ -2046,7 +2046,8 @@ export class DebtorsService {
               break;
             case 'ebill':
               console.log("getTagebill", getTag);
-              invoice.allow = getTag.allow;
+              invoice.allow = item.allow;
+                console.log("invoice.allow", invoice.allow);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
               console.log("ebillResult", ebillResult);
              // combinedResponse.ebillResults.push(ebillResult);
@@ -2137,6 +2138,8 @@ export class DebtorsService {
   }
 
   private async processEbillInvoice(invoice, data, bexioClient, req): Promise<any> {
+    console.log('invoiceprocessEbillInvoice',invoice);
+    
     const pool = await connectMssql;
     const recipientToken = await connectBexio.companyregistered.findMany({
       where: { netcomid: data.netcomId },
