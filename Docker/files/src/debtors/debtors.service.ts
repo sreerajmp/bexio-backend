@@ -2046,6 +2046,7 @@ export class DebtorsService {
               break;
             case 'ebill':
               console.log("getTagebill", getTag);
+              invoice.allow = getTag.allow;
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
               console.log("ebillResult", ebillResult);
              // combinedResponse.ebillResults.push(ebillResult);
@@ -2146,7 +2147,7 @@ export class DebtorsService {
 
     const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
     invoice.accessToken = tokenSet.access_token;
-
+      console.log("AccessToken before pushWorkerHost:", invoice.accessToken);
     const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
     await connectBexio.companyregistered.updateMany({
       where: { rk_csn },
@@ -2169,6 +2170,8 @@ export class DebtorsService {
     const getBillerData = await pool.query(`
         SELECT billerid FROM biller WHERE netcomid='${data.netcomId}' AND status='ACTIVE'
     `);
+    
+    
     if (getBillerData.recordset.length > 0) {
       this.pushWorkerHost.run([invoice], {}, {}, getBillerData.recordset[0].billerid, 'EBILL');
     }
