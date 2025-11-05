@@ -5489,7 +5489,8 @@ export async function processNextPendingJob(job: any) {
     return { success: false, message: 'No contacts found' };
   }
 
-  const pushResult = await pushContactToBexio(job.netcomid, contacts);
+  // const pushResult = await pushContactToBexio(job.netcomid, contacts);
+  const pushResult = await pushSchedulerContactToBexio(job.netcomid, contacts);
 
   if (pushResult) {
     console.log(`Job ${job.cid} completed successfully with result: ${JSON.stringify(pushResult)}`);
