@@ -37,9 +37,6 @@ export class DynamoDBService {
     const result = await dynamoDb.query(params).promise();
     return result.Items && result.Items.length > 0 ? result.Items[0] : null;
   }
-  async markJobComplete(cid: string): Promise<void> {
-    await this.updateJobStatus(cid, 'done');
-  }
 
   async createJob(netcomid: string, requestDto: any): Promise<any> {
     // Check for existing pending job for this netcomid
@@ -68,7 +65,6 @@ export class DynamoDBService {
 
 
   async getFirstPendingJobForNetcomid(netcomid: string): Promise<any> {
-    // DynamoDB does not allow FilterExpression on primary key attributes in a GSI query.
     // Instead, query for 'pending' first, then 'in_progress' if not found.
     const pendingParams = {
       TableName: TABLE_NAME,
