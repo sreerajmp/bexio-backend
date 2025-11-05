@@ -1568,9 +1568,11 @@ console.log('pushEbillInvoice',req.body);
 
       let checkRecipientData;
       console.log('decryptData?.contact_pid !',decryptData?.contact_pid);
+      console.log('typeof decryptData.contact_pid',typeof decryptData.contact_pid);
+
       console.log('config.IS_LIVE',config.IS_LIVE);
       
-      if (config.IS_LIVE === 'true' && decryptData?.contact_pid != null) {
+    if ((config.IS_LIVE === 'true') && decryptData?.contact_pid) {
           console.log('checkRecipientValid');
         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
       } else {
@@ -1638,7 +1640,7 @@ console.log('pushEbillInvoice',req.body);
       let recipentStatus;
       console.log('decryptData?.contact_pid',decryptData?.contact_pid);
       
-      if ((config.IS_LIVE === 'true') && (decryptData?.contact_pid!= null)) {
+      if ((config.IS_LIVE === 'true') && (decryptData?.contact_pid)) {
         console.log('checkRecipient');
         recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
       } else {
