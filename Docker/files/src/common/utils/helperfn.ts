@@ -2426,7 +2426,7 @@ taxIsAdded = invoice.taxs.length;
 
           }, {
               "bmecat:PARTY_ID": [{
-                  "_": billerDetails['recipientid'] ?? "0000000000000000",
+                  "_": billerDetails['recipientid'] || "0000000000000000",
                   "$": {
                       "type": "party_specific"
                   }
@@ -2450,7 +2450,7 @@ taxIsAdded = invoice.taxs.length;
         }
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": billerDetails['recipientid'] ?? "0000000000000000",
+          "_": billerDetails['recipientid'] || "0000000000000000",
           "$": {
               "type": "party_specific"
           }
