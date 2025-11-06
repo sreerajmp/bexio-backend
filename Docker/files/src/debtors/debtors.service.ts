@@ -2050,7 +2050,7 @@ export class DebtorsService {
                 console.log("invoice.allow", invoice.allow);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
               console.log("ebillResult", ebillResult);
-             // combinedResponse.ebillResults.push(ebillResult);
+             combinedResponse.ebillResults.push(ebillResult);
              // combinedResponse.otherInvoiceResults.push(ebillResult);
               console.log("ebillResultcombinedResponse", combinedResponse);
               break;
