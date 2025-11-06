@@ -1,6 +1,6 @@
-const { parentPort } = require('worker_threads');
 const { DynamoDBService } = require('../../../contact-import/dynamodb/dynamodb.service');
-const { processNextPendingJob } = require('../helperfn');
+import { processNextPendingJob } from "../utils/helperfn";
+const { parentPort } = require('worker_threads');
 
 if (!parentPort) {
   throw new Error('Worker must be run as a worker thread');
