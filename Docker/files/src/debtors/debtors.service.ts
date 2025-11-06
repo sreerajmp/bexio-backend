@@ -2050,11 +2050,11 @@ export class DebtorsService {
                 console.log("invoice.allow", invoice.allow);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
               console.log("ebillResult", ebillResult);
-              const cleanEbill = { ...ebillResult };
-              delete cleanEbill.req;
-              delete cleanEbill.res;
-              combinedResponse.ebillResults.push(cleanEbill);
-              combinedResponse.otherInvoiceResults.push(cleanEbill);
+              // const cleanEbill = { ...ebillResult };
+              // delete cleanEbill.req;
+              // delete cleanEbill.res;
+              // combinedResponse.ebillResults.push(cleanEbill);
+              // combinedResponse.otherInvoiceResults.push(cleanEbill);
               break;
           }
         }
