@@ -262,7 +262,7 @@ export const getTagName = async (netcom_id, details) => {
     const data = {
       netcom_id: netcom_id,
       module: 'BEX',
-      file_list: JSON.parse(details)
+      file_list: details
     };
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object

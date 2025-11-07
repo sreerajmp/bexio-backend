@@ -1150,7 +1150,7 @@ export class DebtorsService {
 
     try {
       // Ensure arrays
-      let details= data.otherInvoice
+     
       data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
       data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
       data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
@@ -1179,7 +1179,7 @@ export class DebtorsService {
       // 2. Process Other Invoices (tags: email, print, ebill)
       // ------------------------------
       if (data.otherInvoice.length) {
-        let getTag: any = await getTagName(data.netcomId,details);
+        let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
          console.log("getTag", getTag);
           console.log("combinedResponse", combinedResponse);
         combinedResponse.otherInvoiceResults = [
