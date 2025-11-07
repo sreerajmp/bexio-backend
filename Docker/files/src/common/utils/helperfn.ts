@@ -5718,45 +5718,64 @@ return data;
 const bexioPayload = await Promise.all(bexioPayloadPromises);
 console.log('bexioPayload', JSON.stringify(bexioPayload));
 
-//  Now call bulk create API
-const pushOptions = {
-  method: 'POST',
-  url: 'https://api.bexio.com/2.0/contact/_bulk_create',
-  headers: {
-    Authorization: `Bearer ${accessToken}`,
-    Accept: 'application/json',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(bexioPayload)
-};
+if (!bexioPayload || bexioPayload.length === 0) {
+  return results;
+}
 
-let retryCount = 0;
+const BATCH_SIZE = 50;
 const maxRetries = 3;
-try {
-  let result;
-  while (retryCount < maxRetries) {
-    try {
-      result = await new Promise((resolve, reject) => {
-        request(pushOptions, (err, resp, body) => {
-          if (err) return reject(err);
-          if (resp.statusCode === 200 || resp.statusCode === 201) {
-            console.log('JSON.parse(body)', JSON.parse(body));
-            resolve(JSON.parse(body));
-          } else if (resp.statusCode === 429) reject({ retry: true });
-          else reject(body);
+
+for (let i = 0; i < bexioPayload.length; i += BATCH_SIZE) {
+  const batch = bexioPayload.slice(i, i + BATCH_SIZE);
+  const pushOptions = {
+    method: 'POST',
+    url: 'https://api.bexio.com/2.0/contact/_bulk_create',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(batch)
+  };
+
+  let retryCount = 0;
+  try {
+    let result;
+    while (retryCount < maxRetries) {
+      try {
+        result = await new Promise((resolve, reject) => {
+          request(pushOptions, (err, resp, body) => {
+            if (err) return reject(err);
+            if (resp.statusCode === 200 || resp.statusCode === 201) {
+              try {
+                resolve(JSON.parse(body));
+              } catch (parseErr) {
+                // if body is not JSON, resolve raw body
+                resolve(body);
+              }
+            } else if (resp.statusCode === 429) {
+              return reject({ retry: true, statusCode: resp.statusCode });
+            } else {
+              reject({ statusCode: resp.statusCode, body });
+            }
+          });
         });
-      });
-      break;
-    } catch (err) {
-      if (err?.retry) {
-        retryCount++;
-        await new Promise(res => setTimeout(res, 60000));
-      } else throw err;
+        break;
+      } catch (err: any) {
+        if (err?.retry) {
+          retryCount++;
+          console.warn(`Rate limited, retry ${retryCount}/${maxRetries} for batch starting at index ${i}`);
+          await new Promise(res => setTimeout(res, 60000));
+        } else {
+          throw err;
+        }
+      }
     }
+    results.push({ success: true, data: result, batchStart: i, batchSize: batch.length });
+  } catch (err) {
+    console.error(`Failed to push batch starting at ${i}:`, err);
+    results.push({ success: false, error: err, batchStart: i, batchSize: batch.length });
   }
-  results.push({ success: true, data: result });
-} catch (err) {
-  results.push({ success: false, error: err });
 }
 
  console.log('results',results);
