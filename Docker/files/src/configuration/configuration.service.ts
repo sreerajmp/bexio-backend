@@ -780,7 +780,7 @@ export class ConfigurationService {
           if (error) {
             commonErrors['errorTitle'] = 'getInvitionCodeDetails';
             warningMessage(commonErrors, error);
-            resolve(false)
+            return resolve(false)
           }
           //console.log('body', body);
           return res.status(status_code.OK).json({
@@ -2440,7 +2440,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           return reject(error);
         }
         try {
-          resolve(JSON.parse(body));
+          return resolve(JSON.parse(body));
         } catch (parseError) {
           reject(parseError);
         }
@@ -2527,15 +2527,15 @@ const getBcDetails = async (bc_id, netcomId) => {
           if (error) {
             commonErrors['errorTitle'] = 'getBcDetails';
             warningMessage(commonErrors, error);
-            resolve(false)
+            return resolve(false)
           } else {
             //console.log('output',config.PYTHON_API + 'get-contact-bc');
             
-            resolve(JSON.parse(response.body));
+            return resolve(JSON.parse(response.body));
           }
         });
       } else {
-        resolve(false)
+        return resolve(false)
       }
 
     });
@@ -2543,7 +2543,9 @@ const getBcDetails = async (bc_id, netcomId) => {
     commonErrors['errorTitle'] = 'getBcDetails';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
     warningMessage(commonErrors, error);
-    resolve('');
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      return resolve('')
+    });
   }
 }
 const getCountryLists = async (access_token) => {
@@ -2564,16 +2566,16 @@ const getCountryLists = async (access_token) => {
           commonErrors['errorTitle'] = 'getCountryLists';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
           warningMessage(commonErrors, error);
-          resolve(false)
+          return resolve(false)
         }
         if (response.statusCode == 200)
-          resolve(response.body);
+          return resolve(response.body);
         else if(response.statusCode == 401){
-          resolve(response.statusCode);
+          return resolve(response.statusCode);
         }
         else{
         
-          resolve(false)
+          return resolve(false)
         }
 
       });
@@ -2582,7 +2584,9 @@ const getCountryLists = async (access_token) => {
     commonErrors['errorTitle'] = 'getCountryLists';
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
     warningMessage(commonErrors, error);
-    resolve('');
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      return resolve('')
+    });
   }
 }
 const contactListCountSearch = async (token, search, offset, limit?) => {
@@ -2601,7 +2605,7 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode == 200) {
         let parsedBody;
@@ -2609,18 +2613,18 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
           parsedBody = JSON.parse(response.body);
         } catch (e) {
           warningMessage(commonErrors, 'Invalid JSON in response.body: ' + response.body);
-          resolve(false);
+           resolve(false);
           return;
         }
         if (Array.isArray(parsedBody) && parsedBody.length == limit) {
           let temp = contactListCountSearch(token, offset + 2000, 2000)
         } else {
           offset = offset + (Array.isArray(parsedBody) ? parsedBody.length : 0);
-          resolve(offset)
+          return resolve(offset)
         }
       }
       else
-        resolve(false)
+        return resolve(false)
     });
   });
 }
@@ -2640,12 +2644,12 @@ const contactListCount = async (token, offset, limit?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode == 200) {
         if (JSON.parse(response.body).length == limit) {
           let temp = await contactListCount(token, offset + 200, 200);
-          resolve(temp)
+          return resolve(temp)
         } else {
           offset = offset + JSON.parse(response.body).length;
           resolve(offset)
@@ -2654,6 +2658,7 @@ const contactListCount = async (token, offset, limit?) => {
       }
       else
         resolve(false)
+        return 
     });
   });
 }
@@ -2675,13 +2680,13 @@ const getContactDetails = async (access_token, id) => {
           commonErrors['errorTitle'] = 'getContactDetails';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
           warningMessage(commonErrors, error);
-          resolve(false)
+          return resolve(false)
         }
         if (response.statusCode == 200){
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
         }
         else if(response.statusCode == 401){
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
 
         }
 
@@ -2691,7 +2696,9 @@ const getContactDetails = async (access_token, id) => {
     commonErrors['errorTitle'] = getContactDetails.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
     warningMessage(commonErrors, error);
-    resolve('');
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      return resolve('')
+    });
   }
 }
 const createConnector = async (params) => {
@@ -2715,7 +2722,7 @@ const createConnector = async (params) => {
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
         if (!error && response.statusCode == 200) {
-          resolve(body);
+          return resolve(body);
           //console.log('body', body);
 
         } else {
@@ -2729,7 +2736,9 @@ const createConnector = async (params) => {
     commonErrors['errorTitle'] = createConnector.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + params;
     warningMessage(commonErrors, error);
-    resolve('');
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      return resolve('')
+    });
   }
 }
 const inviteCompanySend = async (params) => {
@@ -2754,7 +2763,7 @@ const inviteCompanySend = async (params) => {
         //console.log('response*', response);
 
         if (!error && response.statusCode == 200) {
-          resolve(body);
+          return resolve(body);
           //console.log('body', body);
 
         } else {
@@ -2813,7 +2822,7 @@ const getInvitationDetails = async (code): Promise<any | false> => {
         commonErrors['errorTitle'] = 'getInvitationDetails';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + code;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
 
       // res.send(response.body)
@@ -2823,7 +2832,7 @@ const getInvitationDetails = async (code): Promise<any | false> => {
       if (response.statusCode == 200)
 
        // console.log('JSON.parse(response.body', JSON.parse(response.body))
-       resolve(JSON.parse(response.body));
+       return resolve(JSON.parse(response.body));
       else
       reject(false)
 
@@ -2991,12 +3000,12 @@ const getContact = async (access_token,id)=>{
             commonErrors['errorTitle'] = 'getContact';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
             warningMessage(commonErrors,error);
-            resolve(false)
+            return resolve(false)
           }
           if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
+          return resolve(JSON.parse(response.body));
           else
-          resolve(false)
+          return resolve(false)
         });
       });
 }
@@ -3017,10 +3026,10 @@ const getInvitations = async (code)=>{
           commonErrors['errorTitle'] = 'getInvitations';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+code;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
        
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3048,12 +3057,12 @@ const getStatus = async (code)=>{
           commonErrors['errorTitle'] = 'getStatus';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio params,'+formData;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
         // res.send(response.body)
         //console.log(response.body);
         
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3061,7 +3070,10 @@ const getStatus = async (code)=>{
       commonErrors['errorTitle'] = getStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
       warningMessage(commonErrors,error);
-      resolve('');
+    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
+      // res.send();
+      return resolve('');
+    });
   }
 }
 const getConnections = async (netcomId,docType)=>{
@@ -3090,10 +3102,10 @@ const getConnections = async (netcomId,docType)=>{
           commonErrors['errorTitle'] = 'post-list/connections';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
        
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3128,10 +3140,10 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
           commonErrors['errorTitle'] = 'getLoginUserInfo';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
-          resolve(response.body);
+          return resolve(response.body);
         }
         // res.send(response.body)
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3233,16 +3245,16 @@ const bexioUpdateBiller = async (req, billerId) => {
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie.access_Token;
         commonErrors['errorCode'] = config.ERROR_BEXIO_BILLER
         warningMessage(commonErrors, error);
-        resolve(false);
+        return resolve(false);
       }
       else {
         //console.log("response from bexio update biller----",response.body);
-        resolve(true);
+        return resolve(true);
       }
     })
   }
   catch {
-    resolve(false);
+    return resolve(false);
   }
 })
 }
@@ -3262,7 +3274,7 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode === 200) {
         const currentData = JSON.parse(response.body);

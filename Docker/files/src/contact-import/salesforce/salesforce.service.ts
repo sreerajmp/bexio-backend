@@ -90,7 +90,7 @@ export class SalesforceService {
           console.log(`Salesforce query response status: ${response.statusCode}`);
           try {
             const data = JSON.parse(body);
-            resolve(data.records || []);
+            return resolve(data.records || []);
           } catch (parseError) {
             commonErrors['errorTitle'] = 'Salesforce Response Parse Error';
             commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${parseError.toString()} - Body: ${body}`;
