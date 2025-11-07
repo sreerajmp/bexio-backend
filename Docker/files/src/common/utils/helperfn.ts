@@ -1561,13 +1561,20 @@ console.log('pushEbillInvoice',req.body);
       }
 
       let checkRecipientData;
-      if (config.IS_LIVE == 'true' && decryptData?.contact_pid != null) {
+      console.log('decryptData?.contact_pid !',decryptData?.contact_pid);
+      console.log('typeof decryptData.contact_pid',typeof decryptData.contact_pid);
+
+      console.log('config.IS_LIVE',config.IS_LIVE);
+      
+    if ((config.IS_LIVE === 'true') && decryptData?.contact_pid) {
+          console.log('checkRecipientValid');
         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
       } else {
         checkRecipientData = true;
 
       }
-
+ console.log('checkRecipientData',checkRecipientData);
+      console.log('checkRecipientData', checkRecipientData, 'Type:', typeof checkRecipientData);
      ////console.log("checkRecipientData----", checkRecipientData);
       if (!checkRecipientData) {
 
@@ -1627,7 +1634,7 @@ console.log('pushEbillInvoice',req.body);
       let recipentStatus;
       console.log('decryptData?.contact_pid',decryptData?.contact_pid);
       
-      if ((config.IS_LIVE == 'true') && (decryptData?.contact_pid!= null)) {
+      if ((config.IS_LIVE === 'true') && (decryptData?.contact_pid)) {
         console.log('checkRecipient');
         recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
       } else {
@@ -2419,7 +2426,7 @@ taxIsAdded = invoice.taxs.length;
 
           }, {
               "bmecat:PARTY_ID": [{
-                  "_": billerDetails['recipientid'] ?? "0000000000000000",
+                  "_": billerDetails['recipientid'] || "0000000000000000",
                   "$": {
                       "type": "party_specific"
                   }
@@ -2443,7 +2450,7 @@ taxIsAdded = invoice.taxs.length;
         }
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": billerDetails['recipientid'] ?? "0000000000000000",
+          "_": billerDetails['recipientid'] || "0000000000000000",
           "$": {
               "type": "party_specific"
           }

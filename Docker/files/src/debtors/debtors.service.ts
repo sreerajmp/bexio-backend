@@ -2048,11 +2048,13 @@ export class DebtorsService {
               console.log("getTagebill", getTag);
               invoice.allow = item.allow;
                 console.log("invoice.allow", invoice.allow);
-              const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient, req);
+              const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
               console.log("ebillResult", ebillResult);
-             // combinedResponse.ebillResults.push(ebillResult);
-             // combinedResponse.otherInvoiceResults.push(ebillResult);
-              console.log("ebillResultcombinedResponse", combinedResponse);
+              // const cleanEbill = { ...ebillResult };
+              // delete cleanEbill.req;
+              // delete cleanEbill.res;
+              // combinedResponse.ebillResults.push(cleanEbill);
+              // combinedResponse.otherInvoiceResults.push(cleanEbill);
               break;
           }
         }
@@ -2072,10 +2074,14 @@ export class DebtorsService {
       // 4. Process eBill Invoices
       // ------------------------------
       if (data.ebillInvoices.length) {
-        const results = await this.processEbillInvoices(data, bexioClient, req);
-        console.log("ebillResultss", results);
-        combinedResponse.otherInvoiceResults.push(results);
-         console.log("ebillResultsscombinedResponse", combinedResponse);
+        const results = await this.processEbillInvoices(data, bexioClient);
+         results.forEach(r => {
+        const cleanInvoice = { ...r };
+        delete cleanInvoice.req;
+        delete cleanInvoice.res;
+        combinedResponse.ebillResults.push(cleanInvoice);
+        combinedResponse.otherInvoiceResults.push(cleanInvoice);
+      });
       }
 
       // ------------------------------
@@ -2085,6 +2091,24 @@ export class DebtorsService {
         combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
          console.log("combinedResponse.ediResults", combinedResponse);
       }
+      if (combinedResponse.ebillResults.length > 0) {
+            const latestToken = combinedResponse.ebillResults[combinedResponse.ebillResults.length - 1].accessToken;
+            const latestRefresh = combinedResponse.ebillResults[combinedResponse.ebillResults.length - 1].refreshToken;
+
+            const bexioTokenCookie = {
+              access_Token: latestToken,
+              refresh_Token: latestRefresh,
+              isBexioUser: true
+            };
+
+            res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              httpOnly: true,
+              signed: true,
+              secure: true
+            });
+          }
 
       return res.status(200).json({
         status_code: 200,
@@ -2137,67 +2161,58 @@ export class DebtorsService {
     return invoice;
   }
 
-  private async processEbillInvoice(invoice, data, bexioClient, req): Promise<any> {
-    console.log('invoiceprocessEbillInvoice',invoice);
-    
-    const pool = await connectMssql;
-    const recipientToken = await connectBexio.companyregistered.findMany({
-      where: { netcomid: data.netcomId },
-      select: { refresh_token: true, rk_party: true }
-    });
+ private async processEbillInvoice(invoice, data, bexioClient): Promise<any> {
+  const pool = await connectMssql;
+  const recipientToken = await connectBexio.companyregistered.findMany({
+    where: { netcomid: data.netcomId },
+    select: { refresh_token: true, rk_party: true }
+  });
 
-    await setEbillInvoiceSendStatus(recipientToken[0]?.rk_party, invoice.doc_id, invoice.documentNumber, [invoice], '1', invoice.contactId);
+  await setEbillInvoiceSendStatus(
+    recipientToken[0]?.rk_party,
+    invoice.doc_id,
+    invoice.documentNumber,
+    [invoice],
+    '1',
+    invoice.contactId
+  );
 
-    const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
-    invoice.accessToken = tokenSet.access_token;
-      console.log("AccessToken before pushWorkerHost:", invoice.accessToken);
-    const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
-    await connectBexio.companyregistered.updateMany({
-      where: { rk_csn },
-      data: { refresh_token: tokenSet.refresh_token }
-    });
+  const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
+  invoice.accessToken = tokenSet.access_token;
+  invoice.refreshToken = tokenSet.refresh_token;
 
-    const bexioTokenCookie = {
-      access_Token: tokenSet.access_token,
-      refresh_Token: tokenSet.refresh_token,
-      isBexioUser: true
-    };
-    req.res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
-      domain: config.SESSION_DOMAIN,
-      maxAge: config.SESSION_EXPIRY,
-      httpOnly: true,
-      signed: true,
-      secure: true
-    });
+  const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
+  await connectBexio.companyregistered.updateMany({
+    where: { rk_csn },
+    data: { refresh_token: tokenSet.refresh_token }
+  });
 
-    const getBillerData = await pool.query(`
-        SELECT billerid FROM biller WHERE netcomid='${data.netcomId}' AND status='ACTIVE'
-    `);
-    
-    
-    if (getBillerData.recordset.length > 0) {
-      this.pushWorkerHost.run([invoice], {}, {}, getBillerData.recordset[0].billerid, 'EBILL');
-    }
-     console.log("processEbillInvoice", invoice);
-    return invoice;
+  const getBillerData = await pool.query(`
+      SELECT billerid FROM biller WHERE netcomid='${data.netcomId}' AND status='ACTIVE'
+  `);
+
+  if (getBillerData.recordset.length > 0) {
+    this.pushWorkerHost.run([invoice], {}, {}, getBillerData.recordset[0].billerid, 'EBILL');
   }
 
-  private async processEbillInvoices(data, bexioClient, req): Promise<any[]> {
-    const results: any[] = [];
-    if (!data.ebillInvoices?.length) return results;
+  return invoice;
+}
+  private async processEbillInvoices(data, bexioClient): Promise<any[]> {
+  const results: any[] = [];
+  if (!data.ebillInvoices?.length) return results;
 
-    for (const invoice of data.ebillInvoices) {
-      try {
-        const result = await this.processEbillInvoice(invoice, data, bexioClient, req);
-        result['tag'] = 'EBILL';
-        results.push(result);
-      } catch (error) {
-        console.log('Error processing eBill invoice:', error);
-      }
+  for (const invoice of data.ebillInvoices) {
+    try {
+      const result = await this.processEbillInvoice(invoice, data, bexioClient);
+      result['tag'] = 'EBILL';
+      results.push(result);
+    } catch (error) {
+      console.error('Error processing eBill invoice:', error);
     }
-   console.log("processEbillInvoices", results);
-    return results;
   }
+
+  return results;
+}
 
   private async processEdiInvoices(invoices, data, req): Promise<any[]> {
     const bodyParams = { partyId: data.partyId, accountId: data.accountId };
