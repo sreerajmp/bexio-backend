@@ -1243,7 +1243,7 @@ export class DebtorsService {
             console.log("getTag result:", getTag);
 
             //  Find if any tag is 'bill'
-            const billTagItem = getTag?.data?.find((item: any) => item.tag === 'bill');
+            const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
 
             if (!billTagItem) {
               console.log("No 'bill' tag found, stopping process...");
