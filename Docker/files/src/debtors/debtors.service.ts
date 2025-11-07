@@ -1237,17 +1237,39 @@ export class DebtorsService {
     }
       // ------------------------------
       // 4. Process eBill Invoices
-      // ------------------------------
-      if (data.ebillInvoices.length) {
-        const results = await this.processEbillInvoices(data, bexioClient);
-         results.forEach(r => {
-        const cleanInvoice = { ...r };
-        delete cleanInvoice.req;
-        delete cleanInvoice.res;
-        combinedResponse.ebillResults.push(cleanInvoice);
-        combinedResponse.otherInvoiceResults.push(cleanInvoice);
-      });
-      }
+           if (data.ebillInvoices.length) {
+            //  Call getTagName API
+            const getTag: any = await getTagName(data.netcomId, data.ebillInvoices);
+            console.log("getTag result:", getTag);
+
+            //  Find if any tag is 'bill'
+            const billTagItem = getTag?.data?.find((item: any) => item.tag === 'bill');
+
+            if (!billTagItem) {
+              console.log("No 'bill' tag found, stopping process...");
+              return res.status(200).json({
+                status_code: 200,
+                message: 'Tag not bill – eBill processing skipped',
+                status: false
+              });
+            }
+
+            //  Set invoice.allow = item.allow for matching tag
+            for (const invoice of data.ebillInvoices) {
+              invoice.allow = billTagItem.allow;
+              console.log(`Set allow for invoice ${invoice.doc_id}:`, invoice.allow);
+            }
+
+            //  Continue with eBill processing
+            const results = await this.processEbillInvoices(data, bexioClient);
+
+            results.forEach(r => {
+              const cleanInvoice = { ...r };
+              delete cleanInvoice.req;
+              delete cleanInvoice.res;
+              combinedResponse.otherInvoiceResults.push(cleanInvoice);
+            });
+          }
 
       // ------------------------------
       // 5. Process EDI Invoices
