@@ -1,4 +1,4 @@
-const { DynamoDBService } = require('../../../contact-import/dynamodb/dynamodb.service');
+const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
 import { processNextPendingJob } from "../utils/helperfn";
 const { parentPort } = require('worker_threads');
 
