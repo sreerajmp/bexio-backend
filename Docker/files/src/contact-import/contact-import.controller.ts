@@ -51,14 +51,7 @@ export class ContactImportController {
     }
     return { status: 200, job };
   }
-
-  @Post('ebill-sync')
-  @UseInterceptors(AnyFilesInterceptor())
-
-  async ebillSync(@Req() req: Request, @Res() res: Response): Promise<any> {
-
-    return this.contactImportService.ebillSyncBexioContact(req, res);
-  }
+  
   @Post('scheduler-contact')
   @UseInterceptors(AnyFilesInterceptor())
   async schedulercontact(@Req() req: Request, @Res() res: Response): Promise<any> {
