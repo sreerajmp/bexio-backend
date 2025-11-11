@@ -2118,30 +2118,25 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
   const sql = require('mssql');
   let transaction = new sql.Transaction(pool);
   await transaction.begin();
- 
+
   const getrecipient = `SELECT r.id,b.netcomid,r.fk_biller,r.islinked FROM recipient r 
   INNER JOIN biller b ON b.id = r.fk_biller 
   WHERE b.billerId = '${billerId}' AND r.recipientId = '${receiptId}'`;
   const getrecipientId = await pool.query(getrecipient);
   let getCompanydata = await connectBexio.companyregistered.findMany({
     where: {
-      netcomid: getrecipientId.recordset[0].netcomid, // Replace with your actual variable
+      netcomid: getrecipientId.recordset[0].netcomid,
     },
     select: {
       cid: true,
     },
   });
-  
+
   if (getrecipientId.recordset.length) {
     if (getrecipientId.recordset[0].islinked) {
       await transaction.commit();
-     
       return true;
-    }
-    else {
-
-   
-
+    } else {
       const getContactCheckResult = await connectBexio.contact_bc.findMany({
         where: {
           fk_companyregistered: getCompanydata[0].cid,
@@ -2153,7 +2148,6 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           cid: true,
         },
       });
-     
       if (getContactCheckResult.length == 0) {
         await connectBexio.contact_bc.create({
           data: {
@@ -2163,35 +2157,21 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
             recipient_id: receiptId,
           },
         });
-
       }
       const updateRecipientQuery = `UPDATE recipient SET islinked = '1' 
       WHERE recipientid ='${receiptId}'
        AND fk_biller = '${getrecipientId.recordset[0].fk_biller}'`;
       await new sql.Request(transaction).query(updateRecipientQuery)
-      let bexioUpdate = await updateBexioContact(accessToken,contactId, receiptId)
-     ////console.log("bexioUpdate from if-----", bexioUpdate);
-      if (bexioUpdate) {
-        await transaction.commit();
-        
-      }
-      else {
-        await transaction.rollback();
-       
-      }
-     
-      return bexioUpdate;
+      await transaction.commit();
+      return true;
     }
-  }
-  else {
+  } else {
     const getBiller = `SELECT id,netcomid FROM biller 
                        WHERE billerId = '${billerId}'`;
     const getBillerId = await pool.query(getBiller);
-   ////console.log("--------",getBillerId.recordset, receiptId);
-
     const getCompanyDetails = await connectBexio.companyregistered.findMany({
       where: {
-        netcomid: getBillerId.recordset[0].netcomid, // Replace with your actual variable
+        netcomid: getBillerId.recordset[0].netcomid,
       },
       select: {
         cid: true,
@@ -2208,84 +2188,17 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
         cid: true,
       },
     });
-    
     if (getContactCheckResult.length == 0) {
-          await connectBexio.contact_bc.create({
-            data: {
-              fk_companyregistered: getCompanyDetails[0].cid,
-              rk_contact: contactId,
-              type: 'EBILL',
-              recipient_id: receiptId,
-            },
-          });
-    }
-    let bexioUpdate:any = await updateBexioContact(accessToken,contactId, receiptId)
-   ////console.log("bexioUpdate from else-----",bexioUpdate);
-
-    const getCountry = async (countryId) => { 
-      return new Promise(async (resolve, reject) => {
-      const options = {
-        method: 'GET',
-        url: `https://api.bexio.com/2.0/country/${countryId}`,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        }
-      };
-     ////console.log("options--",options);
-      
-      await request(options, async function (error, response) {
-        if (error) {
-         ////console.log(error);
-          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' get Country'+' '+'countryId ----${countryId}`;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-countryId,' + countryId;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-        if (response.statusCode == 200) {
-          let responseData = JSON.parse(response.body)
-          return resolve(responseData);
-        }
-        else {
-          return resolve(false);
-        }
-      })
-     })
-    }
-    let getCountryData;
-    if(bexioUpdate['country_id'] != null){
-      getCountryData  = await getCountry(bexioUpdate['country_id'])
-     }
-    if (bexioUpdate) {
-      let contactType = bexioUpdate['contact_type_id'] == 1 ? 'COMPANY' : 'PRIVATE';
-      let firstname = bexioUpdate['name_1'] == null ? '': bexioUpdate['name_1']
-      let lastname  = bexioUpdate['name_2'] == null ? '': bexioUpdate['name_2']
-      let postcode = bexioUpdate['postcode'] == null ? '' : bexioUpdate['postcode']
-      let city = bexioUpdate['city'] == null ? '' : bexioUpdate['city']
-      let email = bexioUpdate['mail'] == null ? '': bexioUpdate['mail']
-      let countryName = bexioUpdate['country_id'] != null ? getCountryData['iso_3166_alpha2']: ''
-      let languages = [
-        {id:1,language:'ger'},
-        {id:2,language:'fre'},
-        {id:3,language:'ita'},
-        {id:5,language:'eng'},  
-      ]
-      let languageName;
-     ////console.log("bexioUpdate['language_id'----",bexioUpdate['language_id']);
-      
-      if(bexioUpdate['language_id']!=null){
-        languages.find(element =>{
-          if(element.id == bexioUpdate['language_id']){
-            languageName = element.language;
-          }
-        })
-        languageName = languageName == undefined ? 'ger' : languageName; 
-       ////console.log("gggggggg",languageName);  
-      }
-      else{
-        languageName = 'ger'
-        }
+      await connectBexio.contact_bc.create({
+        data: {
+          fk_companyregistered: getCompanyDetails[0].cid,
+          rk_contact: contactId,
+          type: 'EBILL',
+          recipient_id: receiptId,
+        },
+      });
+    }  
+   
         const addReceipient = ` INSERT INTO recipient (fk_biller,recipientId,islinked,source,status) 
         VALUES('${getBillerId.recordset[0].id}','${receiptId}','${1}','BEX','SUBSCRITPTION')`;
        ////console.log("addReceipient----",addReceipient);
@@ -2300,57 +2213,13 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
         } catch (error) {
          ////console.log('error while adding six logs');
         }
-   
-
-      await transaction.commit();
-     
-    }
-    else {
-      await transaction.rollback();
-     
-    }
-   
-    return bexioUpdate;
+      await transaction.commit();   
+    return true;
   }
 }
-export const updateBexioContact = async (accessToken,bexioCustomerId, receiptId) => {
-    return new Promise(async (resolve, reject) => {
-      let data = {
-        ebill_pid: receiptId
-      }
-      const options = {
-        method: 'PATCH',
-        url: `https://api.bexio.com/3.0/contact/${bexioCustomerId}`,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(data)
-      };
-      await request(options, async function (error, response) {
-        if (error) {
-         ////console.log(error);
-          commonErrors['errorTitle'] = 'from bexio pushInvoice API' + `' updateBexioContact'+' '+'bexioCustomerId ----${bexioCustomerId}'+' '+'receiptId----${receiptId}'`;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + '--receiptId--' + receiptId + '--contactId--' + bexioCustomerId + '--accessToken--' + accessToken;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-        if (response.statusCode == 200) {
-          let responseData = JSON.parse(response.body)
-          return resolve(responseData);
-        }
-        else {
-          return resolve(false);
-        }
-      })
-    })
-  }
+
 export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
  console.log('EBILLLL',billerDetails);
-  
-
-  let emptyValue = 'NA'
   let taxIsAdded;
   let priceQuantity = '1'
   let orderUnit = {
