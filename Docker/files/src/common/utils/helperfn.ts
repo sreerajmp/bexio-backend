@@ -259,7 +259,9 @@ export const getTagName = async (netcom_id, details,autoTag) => {
 
   try {
     let  data
+    console.log('autoTag',autoTag);
     if(autoTag==true){
+       console.log('autoTag is true');
       data = {
           channel_preference: {
                   sequence: ["eBill"],
@@ -270,6 +272,7 @@ export const getTagName = async (netcom_id, details,autoTag) => {
         };
     }
     else{
+       console.log('autoTag is false');
       data = {
           netcom_id: netcom_id,
           module: 'BEX',

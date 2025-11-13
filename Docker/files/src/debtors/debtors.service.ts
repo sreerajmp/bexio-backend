@@ -1350,7 +1350,8 @@ export class DebtorsService {
     where: { netcomid: data.netcomId },
     select: { refresh_token: true, rk_party: true }
   });
- if (!data.allow) {
+console.log('!invoice.allow',invoice.allow);
+ if (!invoice.allow) {
     await setEbillInvoiceSendStatus(
       recipientToken[0]?.rk_party,
       invoice.doc_id,
