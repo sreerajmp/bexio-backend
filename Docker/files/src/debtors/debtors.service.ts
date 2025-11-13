@@ -1150,7 +1150,7 @@ export class DebtorsService {
 
     try {
       // Ensure arrays
-     
+     let autoTag = false
       data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
       data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
       data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
@@ -1179,7 +1179,8 @@ export class DebtorsService {
       // 2. Process Other Invoices (tags: email, print, ebill)
       // ------------------------------
       if (data.otherInvoice.length) {
-        let getTag: any = await getTagName(data.netcomId,data.otherInvoice);
+
+        let getTag: any = await getTagName(data.netcomId,data.otherInvoice,autoTag);
          console.log("getTag", getTag);
           console.log("combinedResponse", combinedResponse);
         combinedResponse.otherInvoiceResults = [
@@ -1239,19 +1240,15 @@ export class DebtorsService {
       // 4. Process eBill Invoices
            if (data.ebillInvoices.length) {
             //  Call getTagName API
-            const getTag: any = await getTagName(data.netcomId, data.ebillInvoices);
+            autoTag = true
+            const getTag: any = await getTagName(data.netcomId, data.ebillInvoices,autoTag);
             console.log("getTag result:", getTag);
 
             //  Find if any tag is 'bill'
             const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
 
             if (!billTagItem) {
-              console.log("No 'bill' tag found, stopping process...");
-              return res.status(200).json({
-                status_code: 200,
-                message: 'Tag not bill – eBill processing skipped',
-                status: false
-              });
+             await this.processEbillInvoices(data, bexioClient);
             }
 
             //  Set invoice.allow = item.allow for matching tag
@@ -1353,7 +1350,20 @@ export class DebtorsService {
     where: { netcomid: data.netcomId },
     select: { refresh_token: true, rk_party: true }
   });
+ if (!data.allow) {
+    await setEbillInvoiceSendStatus(
+      recipientToken[0]?.rk_party,
+      invoice.doc_id,
+      invoice.documentNumber,
+      [invoice],
+      '0',
+      invoice.contactId
+    );
+    console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
+    return null; //  stop here — skip rest of processing
+  }
 
+  // --- Continue normal processing ---
   await setEbillInvoiceSendStatus(
     recipientToken[0]?.rk_party,
     invoice.doc_id,
@@ -1362,7 +1372,6 @@ export class DebtorsService {
     '1',
     invoice.contactId
   );
-
   const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
   invoice.accessToken = tokenSet.access_token;
   invoice.refreshToken = tokenSet.refresh_token;

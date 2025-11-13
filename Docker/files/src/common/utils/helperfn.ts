@@ -255,15 +255,27 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   });
 }
 
-export const getTagName = async (netcom_id, details) => {
+export const getTagName = async (netcom_id, details,autoTag) => {
 
   try {
-
-    const data = {
-      netcom_id: netcom_id,
-      module: 'BEX',
-      file_list: details
-    };
+    let  data
+    if(autoTag==true){
+      data = {
+          channel_preference: {
+                  sequence: ["eBill"],
+                  serviceStatus: { eBill: true }
+                },
+          module: 'BEX',
+          file_list: details
+        };
+    }
+    else{
+      data = {
+          netcom_id: netcom_id,
+          module: 'BEX',
+          file_list: details
+        };
+    }
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
     };
