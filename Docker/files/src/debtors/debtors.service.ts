@@ -1428,8 +1428,7 @@ console.log('!invoice.allow',invoice.allow);
         console.log('inv.doc_id',inv.doc_id);
          console.log('docNumber',docNumber);
       console.log('bodyData.partyId, invoiceId, docNumber',bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
-      
-      const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
+      const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId,invoices);
       results.push(result);
     }
     console.log("processInvoices", results);
