@@ -320,7 +320,7 @@ export const getTagName = async (netcom_id, details,autoTag) => {
   }
 
 }
-export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?) => {
+export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?,formData?) => {
   console.log('channel::::::::::::',channel);
   
   let sendInvoiceId;
@@ -358,6 +358,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             invoice_number: invoicenumber,
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
             invoice_type: channel,
+            invoice_params: formData,
             status: Number(status),
             receiver_contactid:receiverId,
             response:errorBody
@@ -382,7 +383,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             time_stamp: new Date(),
             status: Number(status),
             response:errorBody,
-            invoice_type: channel
+            invoice_type: channel,
+            invoice_params: formData
           }
         });
         //console.log('updateRes',updateRes);
