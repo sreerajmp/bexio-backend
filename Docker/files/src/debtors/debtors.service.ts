@@ -1256,13 +1256,7 @@ export class DebtorsService {
              }
             // Process all eBill invoices (skips invoices where allow=false or undefined)
             const results = await this.processEbillInvoices(data, bexioClient);
-
-            results.forEach(r => {
-              const cleanInvoice = { ...r };
-              delete cleanInvoice.req;
-              delete cleanInvoice.res;
-              combinedResponse.otherInvoiceResults.push(cleanInvoice);
-            });
+            combinedResponse.otherInvoiceResults.push(results);
           }
 
       // ------------------------------
@@ -1289,7 +1283,7 @@ export class DebtorsService {
               signed: true,
               secure: true
             });
-          }
+      }
 
       return res.status(200).json({
         status_code: 200,
@@ -1355,7 +1349,8 @@ console.log('!invoice.allow',invoice.allow);
       invoice.documentNumber,
       [invoice],
       '0',
-      invoice.contactId
+      invoice.contactId,
+      'no_subscription_found'
     );
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
@@ -1399,6 +1394,7 @@ console.log('!invoice.allow',invoice.allow);
       const result = await this.processEbillInvoice(invoice, data, bexioClient);
        if (!result) {
         console.log(`Invoice skipped )`);
+        results.push(invoice);
         continue; // go to next invoice
       }
       result['tag'] = 'EBILL';
