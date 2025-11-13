@@ -1246,18 +1246,15 @@ export class DebtorsService {
 
             //  Find if any tag is 'bill'
             const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-
-            if (!billTagItem) {
-             await this.processEbillInvoices(data, bexioClient);
-            }
-
-            //  Set invoice.allow = item.allow for matching tag
-            for (const invoice of data.ebillInvoices) {
-              invoice.allow = billTagItem.allow;
-              console.log(`Set allow for invoice ${invoice.doc_id}:`, invoice.allow);
-            }
-
-            //  Continue with eBill processing
+             if (billTagItem) {
+               for (const invoice of data.ebillInvoices) {
+                 invoice.allow = billTagItem.allow;
+                 console.log(`Set allow for invoice ${invoice.doc_id}:`, invoice.allow);
+               }
+             } else {
+               console.log('No eBill tag found. Invoices will be processed with allow undefined (skipped automatically).');
+             }
+            // Process all eBill invoices (skips invoices where allow=false or undefined)
             const results = await this.processEbillInvoices(data, bexioClient);
 
             results.forEach(r => {
@@ -1400,6 +1397,10 @@ console.log('!invoice.allow',invoice.allow);
   for (const invoice of data.ebillInvoices) {
     try {
       const result = await this.processEbillInvoice(invoice, data, bexioClient);
+       if (!result) {
+        console.log(`Invoice skipped )`);
+        continue; // go to next invoice
+      }
       result['tag'] = 'EBILL';
       results.push(result);
     } catch (error) {
