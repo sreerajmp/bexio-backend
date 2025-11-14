@@ -607,7 +607,12 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
                 items['article']['intern_description'] = items.text;
     
               }
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'1','',channel);
+              
+            
+              return resolve(true);
+            }));
+
+            invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'1','',channel);
               let xml;
     
               xml = await setInvoiceToOt(invoice,coutryList,invitionData[0],pdfContent,fileName,customerIds,invoiceCid,channel);
@@ -617,13 +622,10 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
                 return resolve('bexio_item_error');
               }
               let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],channel.toUpperCase());
-console.log('invoiceFilePushD',invoiceFilePushD);
+          console.log('invoiceFilePushD',invoiceFilePushD);
 
               let redisKey = req.body.partyId+"_/";
               await deleteRedis('sendInvoice',redisKey);
-            
-              return resolve(true);
-            }));
         }
         else{
             invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','invoice_push_error',channel);
