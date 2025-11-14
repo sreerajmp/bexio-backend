@@ -3,12 +3,9 @@ import { DebtorsService } from './debtors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
-import { PushWorkerHost } from 'src/common/utils/push.worker.host';
-
 @Controller('debtors')
 export class DebtorsController {
   constructor(private readonly debtorsService: DebtorsService,
-    private readonly pushWorkerHost: PushWorkerHost
   ) {
     
   }
