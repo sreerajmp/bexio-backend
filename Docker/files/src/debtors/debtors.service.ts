@@ -652,7 +652,7 @@ export class DebtorsService {
         
           await redisClient.set(redisKey, JSON.stringify({
             status: 200,
-            data: resData,
+            data: resultData,
             configStatus:configData,
             totalCount: totalCount
           }), {
