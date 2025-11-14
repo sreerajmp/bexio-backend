@@ -85,12 +85,6 @@ export class DebtorsService {
           companyregistered: true
         }
       });
-   
-        // const getNetcomId = await connectBexio.$queryRaw<any>(
-        //   Prisma.sql`
-        //             SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
-        //           `
-        // );
 
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
@@ -150,8 +144,6 @@ export class DebtorsService {
             const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
             const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
             console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
-
-            // getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
            
               if (!getSendInvoiceListResult[0].successOrPending[0].invoiceId) {
                 getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
@@ -606,64 +598,51 @@ export class DebtorsService {
               data: []
           });
         }
-        let contactNameList = {};
-        let contactEmailList = {};
-        let contactGroup = {}; // key: contact ID, value: array of group names
-          contactList.forEach(element => {
-            let name_1 = element.name_1 ? element.name_1 : '';
-            let name_2 = element.name_2 && element.name_2.length ? element.name_2 : '';
-            contactNameList[element.id] = name_1 + (name_2 ? ' ' + name_2 : '');
-            contactEmailList[element.id] = element.mail ? element.mail : '';
-            // Process and assign group names based on contact_group_ids
-            let contactGroupNames = [];
-            if( element.contact_group_ids){
-              let group_ids = element.contact_group_ids.split(',');
+                // Build lookup maps for fast enrichment
+                const contactNameMap = new Map(contactList.map(e => [e.id, `${e.name_1 || ''}${e.name_2 ? ' ' + e.name_2 : ''}`]));
+                const contactEmailMap = new Map(contactList.map(e => [e.id, e.mail || '']));
+                const contactAddressExistMap = new Map(contactList.map(e => [e.id, !!(e?.name_1 && e?.street_name && e?.city && e?.country_id && e?.postcode)]));
+                const contactGroupMap = new Map(
+                  contactList.map(e => [
+                    e.id,
+                    e.contact_group_ids
+                      ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(Boolean)
+                      : []
+                  ])
+                );
+          const currencyArr: any[] = await getAllCurrency(accessToken) as any[];
+          const currencyMap = new Map(currencyArr.map(e => [e.id, e.name]));
+          const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
+          const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
 
-              // Map group IDs to their respective names from contactGroupList
-              contactGroupNames = group_ids.map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(name => !!name); // removes undefined;
-              contactGroup[element.id] = contactGroupNames;
-            }
-          });
+                // Enrich resultData efficiently
+                resultData = resultData.map(second => {
+                  const contactId = second["contact_id"];
+                  const currencyId = second["currency_id"];
+                  const groupNamesRaw = contactGroupMap.get(contactId);
+                  const groupNames: string[] = Array.isArray(groupNamesRaw) ? groupNamesRaw : [];
+                  let invoiceType = second.invoice_type;
+                  let autoTag = second.auto_tag;
 
-          let currencyList = {};
-          let currency: any = [];
-          currency = await getAllCurrency(accessToken);
-          currency.forEach(element => {
-            currencyList[element.id] = element.name;
-          });
+                  // Auto-tag logic
+                  if (!invoiceType && groupNames.length) {
+                    if (groupNames.includes('ebill')) invoiceType = 'ebill';
+                    else if (groupNames.includes('email')) invoiceType = 'email';
+                    else if (groupNames.includes('print') || groupNames.includes('post')) invoiceType = 'print';
+                    autoTag = true;
+                  }
 
-          let recipientList = {};
-          let recipientIds: any = [];
-          recipientIds = await getRecipientList(req.body.netcomId,contact_idList);
-          console.log('recipientIds',recipientIds);          
-          recipientIds.forEach(element => {
-            recipientList[element.rk_contact] = element.recipient_id;
-          });
-
-          resultData.forEach((second) => {
-            second.companyName = contactNameList[second["contact_id"]];
-            second.currency = currencyList[second['currency_id']];
-            second.email = contactEmailList[second["contact_id"]];
-            second.recipient_id = recipientList[second["contact_id"]] ? recipientList[second["contact_id"]] : '';
-
-            // Check if invoice_type is empty
-            if( second.invoice_type == ''){     
-              // Get the contact group names for the current contact ID or default to an empty array      
-              const contactGroupName = contactGroup[second["contact_id"]] || [];
-
-              // If contact belongs to any group
-              if( contactGroupName.length ) {
-                const preferredGroup = 
-                contactGroupName.includes('ebill') ? 'ebill' :
-                contactGroupName.includes('email') ? 'email' :
-                (contactGroupName.includes('print') || contactGroupName.includes('post')) ? 'print' :
-                "";
-                // Assign preferred group to invoice_type
-                second.invoice_type = preferredGroup;
-                second.auto_tag = true;
-              }
-            }
-          });
+                  return {
+                    ...second,
+                    companyName: contactNameMap.get(contactId) || '',
+                    currency: currencyMap.get(currencyId) || '',
+                    email: contactEmailMap.get(contactId) || '',
+                    recipient_id: recipientMap.get(contactId) || '',
+                    addressExist: contactAddressExistMap.get(contactId) || false,
+                    invoice_type: invoiceType || '',
+                    auto_tag: autoTag || false
+                  };
+                });
 
           let redisKey = req.body.partyId + "_" + req.url + "_";
         let keys = Object.keys(req.body);
