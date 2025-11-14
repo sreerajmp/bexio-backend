@@ -423,7 +423,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
         },
       };
 
-      //console.log("start processing invoice", tempParam);
+      console.log("start processing invoice", tempParam);
       try {
         const result = await pushInvoiceBulkTest(tempParam, "",channel);
         console.log("result:", result);
@@ -442,6 +442,8 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
   return new Promise(async (resolve, reject) => {
     try {
       let decryptData = req;
+      console.log('decryptData',decryptData);
+      
       if (!req || !req.signedCookies || !decryptData.body.partyId) {
         return reject('Invalid input data');
       }
