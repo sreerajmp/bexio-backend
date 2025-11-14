@@ -638,7 +638,7 @@ export class DebtorsService {
                     currency: currencyMap.get(currencyId) || '',
                     email: contactEmailMap.get(contactId) || '',
                     recipient_id: recipientMap.get(contactId) || '',
-                    addressExist: contactAddressExistMap.get(contactId) || false,
+                    address_exist: contactAddressExistMap.get(contactId) || false,
                     invoice_type: invoiceType || '',
                     auto_tag: autoTag || false
                   };
