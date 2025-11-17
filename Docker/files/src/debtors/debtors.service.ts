@@ -638,7 +638,7 @@ export class DebtorsService {
                     currency: currencyMap.get(currencyId) || '',
                     email: contactEmailMap.get(contactId) || '',
                     recipient_id: recipientMap.get(contactId) || '',
-                    addressExist: contactAddressExistMap.get(contactId) || false,
+                    address_exist: contactAddressExistMap.get(contactId) || false,
                     invoice_type: invoiceType || '',
                     auto_tag: autoTag || false
                   };
@@ -1138,7 +1138,7 @@ export class DebtorsService {
       console.log("emailInvoices", data.emailInvoices);
       console.log("ebillInvoices", data.ebillInvoices);
       // ------------------------------
-      // 1. Process Print Invoices
+      // 1. Process Autotag Print Invoices
       // ------------------------------
    console.log("printInvoiceslength", data.printInvoices.length);
       console.log("otherInvoicelength", data.otherInvoice.length);
@@ -1152,7 +1152,7 @@ export class DebtorsService {
         }
       }
       // ------------------------------
-      // 2. Process Other Invoices (tags: email, print, ebill)
+      // 2. Process Other Invoices (check tags: email, print, ebill)
       // ------------------------------
       if (data.otherInvoice.length) {
 
@@ -1202,7 +1202,7 @@ export class DebtorsService {
         }
       }
       // ------------------------------
-      // 3. Process Email Invoices
+      // 3. Process Autotag Email Invoices
       // ------------------------------
         if (data.emailInvoices.length) {
       for (const invoice of data.emailInvoices) {
@@ -1213,14 +1213,14 @@ export class DebtorsService {
       }
     }
       // ------------------------------
-      // 4. Process eBill Invoices
+      // 4. Process Autotag eBill Invoices
            if (data.ebillInvoices.length) {
             //  Call getTagName API
             autoTag = true
             const getTag: any = await getTagName(data.netcomId, data.ebillInvoices,autoTag);
             console.log("getTag result:", getTag);
 
-            //  Find if any tag is 'bill'
+            //  Find if any tag is 'ebill'
             const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
              if (billTagItem) {
                for (const invoice of data.ebillInvoices) {
@@ -1242,25 +1242,6 @@ export class DebtorsService {
         combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
          console.log("combinedResponse.ediResults", combinedResponse);
       }
-      if (combinedResponse.ebillResults.length > 0) {
-            const latestToken = combinedResponse.ebillResults[combinedResponse.ebillResults.length - 1].accessToken;
-            const latestRefresh = combinedResponse.ebillResults[combinedResponse.ebillResults.length - 1].refreshToken;
-
-            const bexioTokenCookie = {
-              access_Token: latestToken,
-              refresh_Token: latestRefresh,
-              isBexioUser: true
-            };
-
-            res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
-              domain: config.SESSION_DOMAIN,
-              maxAge: config.SESSION_EXPIRY,
-              httpOnly: true,
-              signed: true,
-              secure: true
-            });
-      }
-
       return res.status(200).json({
         status_code: 200,
         message: 'common_success',
@@ -1955,7 +1936,7 @@ console.log('!invoice.allow',invoice.allow);
             break;
         }
         
-
+       let errorBody = formData?.technicalReason ?? '';
           const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
             where: {
               reference_id: referenceId, 
@@ -1974,6 +1955,7 @@ console.log('!invoice.allow',invoice.allow);
             data: {
               status: status,
               is_notifyed: true,
+              response:errorBody
             },
           });
 
