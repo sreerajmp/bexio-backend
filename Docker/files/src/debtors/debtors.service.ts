@@ -1935,8 +1935,9 @@ console.log('!invoice.allow',invoice.allow);
             status = 1;
             break;
         }
-        
-       let errorBody = formData?.technicalReason ?? '';
+        console.log('JSON.parse(formData.message)',JSON.parse(formData.message || '{}'));
+         let errorBody = (JSON.parse(formData.message || '{}')).technicalReason || '';
+          console.log('errorBody',errorBody);
           const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
             where: {
               reference_id: referenceId, 
