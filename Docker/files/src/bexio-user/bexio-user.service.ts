@@ -940,13 +940,13 @@ export class BexioUserService {
 
         createOctConfig(netcomIdG2b)
       } 
-      if (isCompanyAlreadyExists.length == 0) {
+      // if (isCompanyAlreadyExists.length == 0) {
         let decryptData = encryptionControl.decrypt(req.body.encrToken);
 
         if (decryptData?.planId && decryptData?.subScriptionType) {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
         }
-      }
+      // }
       if (isCompanyAlreadyExists.length > 0 && isCompanyAlreadyExists[0]?.netcomid) {
         createOctConfig(isCompanyAlreadyExists[0]?.netcomid)
       }
@@ -2105,6 +2105,9 @@ VALUES (
             paymentDetails = updateResult[0]?.paymentdata;
 
             let packageSuccess = await packagePayment(paymentDetails);
+            console.log("packageSuccess: activation table",packageSuccess);
+            
+            return resolve(true)
           }
 
 
@@ -2121,6 +2124,8 @@ VALUES (
           };
 
           let packageResponse = await packagePayment(formData);
+          console.log("packageSuccess:",packageResponse);
+
 
         }
         return resolve(true)
@@ -2480,7 +2485,6 @@ console.log('inside');
 async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
   console.log('55555555555555555555');
 
-    let params = null;
     let decryptData;
   
     try {
