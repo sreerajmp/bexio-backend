@@ -941,7 +941,7 @@ export class BexioUserService {
         createOctConfig(netcomIdG2b)
       } 
       // if (isCompanyAlreadyExists.length == 0) {
-        let decryptData = req.body.encrToken?encryptionControl.decrypt(req.body.encrToken):null;
+        let decryptData = req?.body?.encrToken?encryptionControl.decrypt(req.body.encrToken):null;
 
         if (decryptData?.planId && decryptData?.subScriptionType) {
           await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
