@@ -1193,10 +1193,8 @@ export class DebtorsService {
                 console.log("invoice.allow", invoice.allow);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
               console.log("ebillResult", ebillResult);
-                
-            ebillResult.forEach(invoice => {
-              if (invoice) ebillProcessed.push(invoice); // <-- make sure ebillResults is filled
-             });
+              ebillProcessed.push(ebillResult); 
+              console.log("ebillProcessed", ebillProcessed);
               break;
           }
         }
@@ -1232,10 +1230,9 @@ export class DebtorsService {
              }
             // Process all eBill invoices (skips invoices where allow=false or undefined)
             const results = await this.processEbillInvoices(data, bexioClient);
-            results.forEach(invoice => {
-              combinedResponse.otherInvoiceResults.push(invoice);
-              if (invoice) ebillProcessed.push(invoice); // <-- make sure ebillResults is filled
-          });
+            results.forEach(data => combinedResponse.otherInvoiceResults.push(data)); 
+            ebillProcessed.push(results); 
+              console.log("ebillProcessed", ebillProcessed);// <-- make sure ebillResults is filled
           }
 
       // ------------------------------
@@ -1245,7 +1242,7 @@ export class DebtorsService {
         combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
          console.log("combinedResponse.ediResults", combinedResponse);
       }
-         
+         console.log("ebillProcessed.length", ebillProcessed.length);
         if (ebillProcessed.length > 0) {
             const latestEbill = ebillProcessed[ebillProcessed.length - 1];
             if(latestEbill?.accessToken && latestEbill?.refreshToken) {
@@ -1381,7 +1378,7 @@ console.log('!invoice.allow',invoice.allow);
         results.push(invoice);
         continue; // go to next invoice
       }
-      result['tag'] = 'ebill';
+      result['tag'] = 'EBILL';
       results.push(result);
     } catch (error) {
       console.error('Error processing eBill invoice:', error);
@@ -1517,7 +1514,7 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
 
       ebillResults.forEach(inv => {
         if (!inv) return;
-        inv['tag'] = 'ebill';
+        inv['tag'] = 'EBILL';
         combinedResponse.otherInvoiceResults.push(inv);
       });
     }
@@ -1551,7 +1548,7 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
       const ebillResults = await this.processEbillInvoices(data, bexioClient);
       ebillResults.forEach(inv => {
         if (!inv) return;
-        inv['tag'] = 'ebill';
+        inv['tag'] = 'EBILL';
         combinedResponse.otherInvoiceResults.push(inv);
       });
     }
