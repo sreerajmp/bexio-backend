@@ -11,7 +11,7 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
       console.log("allow");
       
       // Call the pushEbillInvoiceProcess if billerId is provided
-       pushEbillInvoiceProcess(invoices, billerId);
+       pushEbillInvoiceProcess(invoices, billerId,bodyParams);
     } 
     if(channel=='email') {
       console.log('Push Worker Received email:', { bodyParams, invoices });
