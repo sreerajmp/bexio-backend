@@ -1381,7 +1381,7 @@ console.log('!invoice.allow',invoice.allow);
         results.push(invoice);
         continue; // go to next invoice
       }
-      result['tag'] = 'EBILL';
+      result['tag'] = 'ebill';
       results.push(result);
     } catch (error) {
       console.error('Error processing eBill invoice:', error);
@@ -1517,7 +1517,7 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
 
       ebillResults.forEach(inv => {
         if (!inv) return;
-        inv['tag'] = 'EBILL';
+        inv['tag'] = 'ebill';
         combinedResponse.otherInvoiceResults.push(inv);
       });
     }
@@ -1551,7 +1551,7 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
       const ebillResults = await this.processEbillInvoices(data, bexioClient);
       ebillResults.forEach(inv => {
         if (!inv) return;
-        inv['tag'] = 'EBILL';
+        inv['tag'] = 'ebill';
         combinedResponse.otherInvoiceResults.push(inv);
       });
     }
