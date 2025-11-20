@@ -1232,7 +1232,6 @@ export class DebtorsService {
              }
             // Process all eBill invoices (skips invoices where allow=false or undefined)
             const results = await this.processEbillInvoices(data, bexioClient);
-            results.forEach(data => combinedResponse.otherInvoiceResults.push(data)); 
             results.forEach(invoice => {
               combinedResponse.otherInvoiceResults.push(invoice);
               if (invoice) ebillProcessed.push(invoice); // <-- make sure ebillResults is filled
