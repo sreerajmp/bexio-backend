@@ -1808,13 +1808,11 @@ const getContactDetails = async (access_token,id) => {
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getContactDetails.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = getContactDetails.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
+    warningMessage(commonErrors, error);
 
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      return resolve('');
-    });
+    return resolve('');
   }
 }
 const getCountryName = async (access_token,id)=>{
@@ -1846,9 +1844,7 @@ const getCountryName = async (access_token,id)=>{
       commonErrors['errorTitle'] = getCountryName.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
       warningMessage(commonErrors,error);
-      fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-        return resolve('');
-      });
+      return resolve('');
     }
 }
 function formatDate(date) {
@@ -1923,10 +1919,7 @@ const moveFile = async (netcomId,fileName)=>{
       commonErrors['errorTitle'] = 'moveFile';
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId+fileName;
       warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      // res.send();
-      return resolve('');
-    });
+    return resolve('');
   }
 }
 
@@ -2043,9 +2036,7 @@ const getCountryLists = async (access_token)=>{
     commonErrors['errorTitle'] = getCountryLists.name;
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
     warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      return resolve('');
-    });
+    return resolve('');
   }
 }
 const getCurrency = async (access_token,id)=>{
@@ -2105,119 +2096,9 @@ const getloginUserCompanyDetails = async (access_token)=>{
     });
     
   } catch (error) {
-      commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
-      warningMessage(commonErrors,error);
-
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-     
-      return resolve('');
-    });
+    commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
+    warningMessage(commonErrors, error);
+    return resolve('');
   }
-}
-const getPaymentType = async (access_token,id)=>{
-
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/payment_type`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getPaymentType';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false)
-        });
-      });
-}
-const getContact = async (access_token,id)=>{
-
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/contact/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getContact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false)
-        });
-      });
-}
-const getTaxs = async (access_token,id)=>{
-
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/taxes/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getTaxs';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          console.log(response?.body);
-          
-          if(response?.statusCode==200)
-          return resolve(JSON.parse(response?.body));
-          else
-          return resolve(false)
-
-        });
-      });
-}
-const getProducts = async (access_token,id)=>{
-  console.log('IDDD',id);
-
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/article/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getProducts';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false);
-
-
-        });
-      });
 }
