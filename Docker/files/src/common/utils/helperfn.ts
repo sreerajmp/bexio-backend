@@ -321,8 +321,9 @@ export const getTagName = async (netcom_id, details,autoTag) => {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?,formData?) => {
-  console.log('channel::::::::::::',channel);
-  
+  console.log('channel,invoiceId::::::::::::',channel,invoiceId);
+    console.log('channel,invoiceId,partyId::::::::::::',partyId);
+    console.log('invoicenumber::::::::::::',invoicenumber);
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
@@ -939,6 +940,8 @@ export const getContact = async (access_token,id)=>{
             warningMessage(commonErrors,error);
             return resolve(false)
           }
+         console.log('responseof contact',response);
+     
           if(response.statusCode==200)
           return resolve(JSON.parse(response.body));
           else
