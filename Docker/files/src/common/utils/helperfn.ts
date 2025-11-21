@@ -1458,27 +1458,19 @@ console.log('pushEbillInvoiceProcess',invoices);
       token:''
     }
   };
-
-   const invoice: any = await getInvoiceOT(invoices.accessToken,invoices.doc_id);
-      console.log('invoice::::', typeof (invoice.positions));
-      console.log('invoice::::', invoice.positions);
-      let contact: any = await getContact(invoices.accessToken, invoice.contact_id);
-      
-      
-      console.log('contact::::', contact);
+    for (let index = 0; index < tempIds.length; index++) {
+       let contact: any = await getContact(invoices.accessToken, invoices.contact_id);
+      console.log('contact::::1', contact);
       // If contact exists, check for required keys
       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
-        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId, invoices.doc_id, '', '0', 'contact_missing_address_or_postal', 'EBILL');
+        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId, invoices.doc_id, '', '0', 'contact_missing_address_or_postal');
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
         warningMessage(commonErrors, 'contact_missing_address_or_postal');
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
-
-  
-    for (let index = 0; index < tempIds.length; index++) {
       const element = tempIds[index];
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
