@@ -1462,7 +1462,10 @@ console.log('pushEbillInvoiceProcess',invoices);
     }
   };
     for (let index = 0; index < tempIds.length; index++) {
-       let contact: any = await getContact(invoices.accessToken, invoices.contact_id);
+         const element = tempIds[index];
+         console.log('element.accessToken',element.accessToken);
+         console.log('element.contactId',element.contactId);
+        let contact: any = await getContact(element.accessToken, element.contactId);
       console.log('contact::::1', contact);
       // If contact exists, check for required keys
       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
@@ -1474,7 +1477,6 @@ console.log('pushEbillInvoiceProcess',invoices);
         resolve('something_went_wrong' + invoiceCid);
         return;
       }
-      const element = tempIds[index];
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
