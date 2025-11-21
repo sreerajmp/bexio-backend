@@ -1449,7 +1449,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues)=>{
+export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues,channel)=>{
 console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
@@ -1470,7 +1470,8 @@ console.log('pushEbillInvoiceProcess',invoices);
       // If contact exists, check for required keys
       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
-        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId, invoices.doc_id, '', '0', 'contact_missing_address_or_postal');
+          console.log('channel detail',channel);
+        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId,element.doc_id, '', '0', 'contact_missing_address_or_postal',channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
         warningMessage(commonErrors, 'contact_missing_address_or_postal');
