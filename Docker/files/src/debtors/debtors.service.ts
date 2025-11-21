@@ -1193,7 +1193,7 @@ export class DebtorsService {
                 console.log("invoice.allow", invoice.allow);
               const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
               console.log("ebillResult", ebillResult);
-              ebillProcessed.push(ebillResult); 
+              ebillProcessed.push(...ebillResult);
               console.log("ebillProcessed", ebillProcessed);
               break;
           }
@@ -1231,7 +1231,7 @@ export class DebtorsService {
             // Process all eBill invoices (skips invoices where allow=false or undefined)
             const results = await this.processEbillInvoices(data, bexioClient);
             results.forEach(data => combinedResponse.otherInvoiceResults.push(data)); 
-            ebillProcessed.push(results); 
+            ebillProcessed.push(...results);
               console.log("ebillProcessed", ebillProcessed);// <-- make sure ebillResults is filled
           }
 
@@ -1244,8 +1244,12 @@ export class DebtorsService {
       }
          console.log("ebillProcessed.length", ebillProcessed.length);
         if (ebillProcessed.length > 0) {
+            console.log("ebillProcessed.length***", );
             const latestEbill = ebillProcessed[ebillProcessed.length - 1];
+                 console.log("latestEbill***",latestEbill );
             if(latestEbill?.accessToken && latestEbill?.refreshToken) {
+                console.log("latestEbill***accessToken",latestEbill?.accessToken);
+                console.log("latestEbill***refreshToken",latestEbill?.refreshToken);
                 const bexioTokenCookie = {
                     access_Token: latestEbill.accessToken,
                     refresh_Token: latestEbill.refreshToken,
