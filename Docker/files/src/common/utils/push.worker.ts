@@ -7,11 +7,11 @@ parentPort.on('message', async ({ invoices, bodyParams, headerParams, id, biller
     console.log('Push Worker Received:', { bodyParams, invoices, billerId });
 
     if (channel=='EBILL') {
-      console.log('Push Worker Received ebill:', { bodyParams, invoices });
+      console.log('Push Worker Received ebill:', { bodyParams, invoices,channel});
       console.log("allow");
       
       // Call the pushEbillInvoiceProcess if billerId is provided
-       pushEbillInvoiceProcess(invoices, billerId,bodyParams);
+       pushEbillInvoiceProcess(invoices, billerId,bodyParams,channel);
     } 
     if(channel=='email') {
       console.log('Push Worker Received email:', { bodyParams, invoices });
