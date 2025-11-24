@@ -351,7 +351,7 @@ export class DebtorsService {
           "criteria": "in"
         });
         
-        if(getNotInvoiceId.length != 0)
+        if(getNotInvoiceId?.length > 0)
           searchJson.push({
             "field": "id",
             "value": getNotInvoiceId,
