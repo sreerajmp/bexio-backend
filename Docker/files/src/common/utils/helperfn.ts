@@ -1902,7 +1902,7 @@ console.log('pushEbillInvoice',req.body);
 export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
-    let responseBody = error;
+    let responseBody = error || '';
     
     return new Promise(async function (resolve, reject) {
      try {
