@@ -321,8 +321,9 @@ export const getTagName = async (netcom_id, details,autoTag) => {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?,formData?) => {
-  console.log('channel::::::::::::',channel);
-  
+  console.log('channel,invoiceId::::::::::::',channel,invoiceId);
+    console.log('channel,invoiceId,partyId::::::::::::',partyId);
+    console.log('invoicenumber::::::::::::',invoicenumber);
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
@@ -933,6 +934,8 @@ export const getContact = async (access_token,id)=>{
             warningMessage(commonErrors,error);
             return resolve(false)
           }
+         console.log('responseof contact',response);
+     
           if(response.statusCode==200)
           return resolve(JSON.parse(response.body));
           else
@@ -1440,7 +1443,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId)=>{
+export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues,channel)=>{
 console.log('pushEbillInvoiceProcess',invoices);
   let tempIds = invoices
   let tempParam = {
@@ -1453,7 +1456,22 @@ console.log('pushEbillInvoiceProcess',invoices);
     }
   };
     for (let index = 0; index < tempIds.length; index++) {
-      const element = tempIds[index];
+         const element = tempIds[index];
+         console.log('element.accessToken',element.accessToken);
+         console.log('element.contactId',element.contactId);
+        let contact: any = await getContact(element.accessToken, element.contactId);
+      console.log('contact::::1', contact);
+      // If contact exists, check for required keys
+      if (!contact?.city || !contact?.country_id || !contact?.postcode) {
+        console.log('contact missing address or postal');
+          console.log('channel detail',channel);
+        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId,element.doc_id, '', '0', 'contact_missing_address_or_postal',channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
+        warningMessage(commonErrors, 'contact_missing_address_or_postal');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
@@ -1847,7 +1865,7 @@ console.log('pushEbillInvoice',req.body);
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
       let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1');
       console.log('billerDetails', billerDetails);
-      
+      invoice.partyId=partyId
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
 
 
@@ -1878,7 +1896,7 @@ console.log('pushEbillInvoice',req.body);
 export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
-    let responseBody = error;
+    let responseBody = error || '';
     
     return new Promise(async function (resolve, reject) {
      try {
@@ -2247,7 +2265,7 @@ export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fil
  console.log('REFERENCE_NUMBER',billerDetails);
   if(!billDetails)
   {
-    
+    invoiceCid = await setEbillInvoiceSendStatus( invoice.partyId,invoice.document_nr, '', formData, '0', 'QR_code_not_found');
     commonErrors['errorTitle'] = 'QR_code_not_found';
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
     warningMessage(commonErrors,'QR_code_not_found');
