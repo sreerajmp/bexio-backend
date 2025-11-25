@@ -39,8 +39,8 @@ export class DynamoDBService {
   }
 
   async createJob(netcomid: string, requestDto: any): Promise<any> {
-    // Clear all existing records for this netcomid (regardless of status)
-    const itemsToDelete: { cid: string }[] = [];
+    // Clear all existing records for this netcomid by deleting each item using DynamoDB Delete (other method).
+    const itemsToDelete: string[] = [];
     let ExclusiveStartKey: AWS.DynamoDB.DocumentClient.Key | undefined = undefined;
 
     do {
@@ -55,24 +55,15 @@ export class DynamoDBService {
       const res = await dynamoDb.query(queryParams).promise();
       if (res.Items && res.Items.length) {
         for (const it of res.Items) {
-          if (it.cid) itemsToDelete.push({ cid: it.cid });
+          if (it.cid) itemsToDelete.push(it.cid);
         }
       }
       ExclusiveStartKey = res.LastEvaluatedKey as AWS.DynamoDB.DocumentClient.Key | undefined;
     } while (ExclusiveStartKey);
 
-    // Batch delete (max 25 items per batch)
-    while (itemsToDelete.length > 0) {
-      const batch = itemsToDelete.splice(0, 25);
-      const deleteRequests = batch.map(d => ({
-        DeleteRequest: { Key: { cid: d.cid } },
-      }));
-      const batchParams: AWS.DynamoDB.DocumentClient.BatchWriteItemInput = {
-        RequestItems: {
-          [TABLE_NAME]: deleteRequests,
-        },
-      };
-      await dynamoDb.batchWrite(batchParams).promise();
+    // Delete each item using the Delete API (parallel, but safe with Promise.allSettled)
+    if (itemsToDelete.length > 0) {
+      await Promise.allSettled(itemsToDelete.map(cid => this.deleteJob(cid)));
     }
 
     // Create new pending job
@@ -92,6 +83,15 @@ export class DynamoDBService {
     };
     await dynamoDb.put(putParams).promise();
     return item;
+  }
+
+  // Delete a single job by cid using DynamoDB Delete API
+  async deleteJob(cid: string): Promise<void> {
+    const params: AWS.DynamoDB.DocumentClient.DeleteItemInput = {
+      TableName: TABLE_NAME,
+      Key: { cid },
+    };
+    await dynamoDb.delete(params).promise();
   }
 
 
