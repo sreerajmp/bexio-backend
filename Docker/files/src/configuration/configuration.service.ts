@@ -3112,8 +3112,8 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
 
     formData = {
       invite_code:code,
-      logged_in_netcom_id:netComId
-    
+      logged_in_netcom_id:netComId,
+      module:'BEX'    
     }
     console.log('invite_code',formData);
     
