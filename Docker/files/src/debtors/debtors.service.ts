@@ -1479,10 +1479,10 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
     // ------------------------------
     if (data.otherInvoice.length) {
       const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
-      combinedResponse.otherInvoiceResults = [
-        ...(combinedResponse.otherInvoiceResults || []),
-        ...(getTag?.data || [])
-      ];
+      // combinedResponse.otherInvoiceResults = [
+      //   ...(combinedResponse.otherInvoiceResults || []),
+      //   ...(getTag?.data || [])
+      // ];
 
       for (const item of getTag?.data || []) {
         const invoice = data.otherInvoice.find(inv => inv.doc_id === item.doc_id);
