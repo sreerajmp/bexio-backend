@@ -39,11 +39,43 @@ export class DynamoDBService {
   }
 
   async createJob(netcomid: string, requestDto: any): Promise<any> {
-    // Check for existing pending job for this netcomid
-    const existing = await this.getFirstPendingJobForNetcomid(netcomid);
-    if (existing) {
-      return { message: 'A job is already pending for this company', jobId: existing.cid, status: existing.status };
+    // Clear all existing records for this netcomid (regardless of status)
+    const itemsToDelete: { cid: string }[] = [];
+    let ExclusiveStartKey: AWS.DynamoDB.DocumentClient.Key | undefined = undefined;
+
+    do {
+      const queryParams: AWS.DynamoDB.DocumentClient.QueryInput = {
+        TableName: TABLE_NAME,
+        IndexName: 'netcomid-status-index',
+        KeyConditionExpression: '#netcomid = :netcomid',
+        ExpressionAttributeNames: { '#netcomid': 'netcomid' },
+        ExpressionAttributeValues: { ':netcomid': netcomid },
+        ExclusiveStartKey,
+      };
+      const res = await dynamoDb.query(queryParams).promise();
+      if (res.Items && res.Items.length) {
+        for (const it of res.Items) {
+          if (it.cid) itemsToDelete.push({ cid: it.cid });
+        }
+      }
+      ExclusiveStartKey = res.LastEvaluatedKey as AWS.DynamoDB.DocumentClient.Key | undefined;
+    } while (ExclusiveStartKey);
+
+    // Batch delete (max 25 items per batch)
+    while (itemsToDelete.length > 0) {
+      const batch = itemsToDelete.splice(0, 25);
+      const deleteRequests = batch.map(d => ({
+        DeleteRequest: { Key: { cid: d.cid } },
+      }));
+      const batchParams: AWS.DynamoDB.DocumentClient.BatchWriteItemInput = {
+        RequestItems: {
+          [TABLE_NAME]: deleteRequests,
+        },
+      };
+      await dynamoDb.batchWrite(batchParams).promise();
     }
+
+    // Create new pending job
     const cid = `${netcomid}-${Date.now()}`;
     const item = {
       cid,
@@ -54,11 +86,11 @@ export class DynamoDBService {
       lastUpdated: new Date().toISOString(),
       // requestDto,
     };
-    const params = {
+    const putParams = {
       TableName: TABLE_NAME,
       Item: item,
     };
-    await dynamoDb.put(params).promise();
+    await dynamoDb.put(putParams).promise();
     return item;
   }
 
