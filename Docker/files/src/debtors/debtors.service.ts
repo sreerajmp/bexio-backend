@@ -1444,7 +1444,11 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
     data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
     data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
     data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
-
+    console.log('data.invoices',data.invoices);
+    console.log('data.printInvoices',data.printInvoices);
+    console.log('data.otherInvoice',data.otherInvoice);
+    console.log('data.emailInvoices',data.emailInvoices);
+    console.log('data.ebillInvoices',data.ebillInvoices);
     const bodyParams = {
       partyId: data.partyId,
       accountId: data.accountId,
@@ -1473,16 +1477,20 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
     // ------------------------------
     if (data.otherInvoice.length) {
       const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
-
+      console.log('getTag',getTag);
+              
       data.otherInvoice.forEach(inv => {
         const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
         if (tagItem) inv.allow = tagItem.allow;
       });
-
-      const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'email'));
-      const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'print'));
-      const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'ebill'));
-
+        console.log('data.otherInvoice',data.otherInvoice);
+      const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
+      const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
+      const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'ebill'));
+      console.log('otherEmailInvoices',otherEmailInvoices);
+      console.log('otherEmailInvoices',otherPrintInvoices);
+      console.log('otherEmailInvoices',otherEbillInvoices);
+      
       const [emailResults, printResults, ebillResults] = await Promise.all([
         Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))),
         Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))),
@@ -1507,7 +1515,6 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
         
         combinedResponse.otherInvoiceResults.push(inv);
         console.log('print combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        
         this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
       });
 
@@ -1517,7 +1524,6 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
           console.log('EBILL inv',inv);
         combinedResponse.otherInvoiceResults.push(inv);
         console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
         ebillProcessed.push(inv);
       });
     }
