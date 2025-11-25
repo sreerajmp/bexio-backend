@@ -2406,13 +2406,12 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
 
 
             if (response.statusCode == 201 || resStatus) {
-
-              return resolve(JSON.parse(response.body));
               console.log('JSON.parse(response.body)', JSON.parse(response.body));
+              return resolve(JSON.parse(response.body));
             }
             else {
               commonErrors['errorTitle'] = 'notifiBexio';
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + response.toString() + '-bexio param,' + JSON.stringify(params, (key, value) =>
                 typeof value === 'bigint' ? Number(value) : value
               );
               warningMessage(commonErrors, error);
