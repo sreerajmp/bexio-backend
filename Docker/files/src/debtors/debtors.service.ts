@@ -1348,8 +1348,8 @@ console.log('!invoice.allow',invoice.allow);
     invoice.documentNumber,
     [invoice],
     '1',
+    '',
     invoice.contactId,
-    ''
   );
   const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
   invoice.accessToken = tokenSet.access_token;
