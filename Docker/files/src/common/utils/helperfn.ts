@@ -1894,7 +1894,7 @@ console.log('pushEbillInvoice',req.body);
     }
   });
 }
-export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
+export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?,receiverId?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
    console.log('responseBody error',error);
