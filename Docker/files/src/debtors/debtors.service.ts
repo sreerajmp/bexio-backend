@@ -1334,8 +1334,8 @@ console.log('!invoice.allow',invoice.allow);
       invoice.documentNumber,
       [invoice],
       '0',
-      invoice.contactId,
-      'no_subscription_found'
+      'no_subscription_found',
+      invoice.contactId
     );
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing

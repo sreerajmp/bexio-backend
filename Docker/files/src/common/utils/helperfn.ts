@@ -1462,16 +1462,7 @@ console.log('pushEbillInvoiceProcess',invoices);
         let contact: any = await getContact(element.accessToken, element.contactId);
       console.log('contact::::1', contact);
       // If contact exists, check for required keys
-      if (!contact?.city || !contact?.country_id || !contact?.postcode) {
-        console.log('contact missing address or postal');
-          console.log('channel detail',channel);
-        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId,element.doc_id, '', '0', 'contact_missing_address_or_postal',channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
-        warningMessage(commonErrors, 'contact_missing_address_or_postal');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+     
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
@@ -1479,6 +1470,16 @@ console.log('pushEbillInvoiceProcess',invoices);
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['allow'] = element.allow;
       tempParam['body']['token'] = element.accessToken;
+       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
+        console.log('contact missing address or postal');
+          console.log('channel detail',channel);
+        let invoiceCid = await setEbillInvoiceSendStatus (bodyValues?.partyId,element.doc_id, '',tempParam,'0','contact_missing_address_or_postal');
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
+        warningMessage(commonErrors, 'contact_missing_address_or_postal');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
       let v = await pushEbillInvoice(tempParam,'')
     }
 }
@@ -1863,7 +1864,7 @@ console.log('pushEbillInvoice',req.body);
       let xml;
 
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
-      let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1');
+      let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1','');
       console.log('billerDetails', billerDetails);
       invoice.partyId=partyId
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
