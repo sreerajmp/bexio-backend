@@ -1114,211 +1114,211 @@ export class DebtorsService {
         
     }
   }
-  async sendInvoice(req: Request, res: Response): Promise<any> {
-    const data = req.body;
-    const bexioClient = await bexioInterfaceClient();
-    const combinedResponse: any = {
-      otherInvoiceResults: [],
-      emailInvoice: [],
-      ediResults: [],
-      ebillResults: []
-    };
+  // async sendInvoice(req: Request, res: Response): Promise<any> {
+  //   const data = req.body;
+  //   const bexioClient = await bexioInterfaceClient();
+  //   const combinedResponse: any = {
+  //     otherInvoiceResults: [],
+  //     emailInvoice: [],
+  //     ediResults: [],
+  //     ebillResults: []
+  //   };
 
-    try {
-      // Ensure arrays
-     let autoTag = false
-     const ebillProcessed: any[] = [];
-      data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
-      data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
-      data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
-      data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
-      data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
-      console.log("invoices", data.invoices);
-      console.log("printInvoices", data.printInvoices);
-      console.log("otherInvoice", data.otherInvoice);
-      console.log("emailInvoices", data.emailInvoices);
-      console.log("ebillInvoices", data.ebillInvoices);
-      // ------------------------------
-      // 1. Process Autotag Print Invoices
-      // ------------------------------
-   console.log("printInvoiceslength", data.printInvoices.length);
-      console.log("otherInvoicelength", data.otherInvoice.length);
-      console.log("emailInvoiceslength", data.emailInvoices.length);
-      console.log("ebillInvoiceslength", data.ebillInvoices.length);
-      if (data.printInvoices.length) {
-        for (const item of data.printInvoices) {
-          const processedInvoice = await this.processPrintInvoice(item, data, req);
-           console.log("processedInvoice", processedInvoice);
-          combinedResponse.otherInvoiceResults.push(processedInvoice);
-        }
-      }
-      // ------------------------------
-      // 2. Process Other Invoices (check tags: email, print, ebill)
-      // ------------------------------
-      if (data.otherInvoice.length) {
+  //   try {
+  //     // Ensure arrays
+  //    let autoTag = false
+  //    const ebillProcessed: any[] = [];
+  //     data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
+  //     data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
+  //     data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
+  //     data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
+  //     data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
+  //     console.log("invoices", data.invoices);
+  //     console.log("printInvoices", data.printInvoices);
+  //     console.log("otherInvoice", data.otherInvoice);
+  //     console.log("emailInvoices", data.emailInvoices);
+  //     console.log("ebillInvoices", data.ebillInvoices);
+  //     // ------------------------------
+  //     // 1. Process Autotag Print Invoices
+  //     // ------------------------------
+  //  console.log("printInvoiceslength", data.printInvoices.length);
+  //     console.log("otherInvoicelength", data.otherInvoice.length);
+  //     console.log("emailInvoiceslength", data.emailInvoices.length);
+  //     console.log("ebillInvoiceslength", data.ebillInvoices.length);
+  //     if (data.printInvoices.length) {
+  //       for (const item of data.printInvoices) {
+  //         const processedInvoice = await this.processPrintInvoice(item, data, req);
+  //          console.log("processedInvoice", processedInvoice);
+  //         combinedResponse.otherInvoiceResults.push(processedInvoice);
+  //       }
+  //     }
+  //     // ------------------------------
+  //     // 2. Process Other Invoices (check tags: email, print, ebill)
+  //     // ------------------------------
+  //     if (data.otherInvoice.length) {
 
-        let getTag: any = await getTagName(data.netcomId,data.otherInvoice,autoTag);
-         console.log("getTag", getTag);
-          console.log("combinedResponse", combinedResponse);
-        combinedResponse.otherInvoiceResults = [
-          ...(combinedResponse.otherInvoiceResults || []),
-          ...(getTag?.data || [])
-        ];
+  //       let getTag: any = await getTagName(data.netcomId,data.otherInvoice,autoTag);
+  //        console.log("getTag", getTag);
+  //         console.log("combinedResponse", combinedResponse);
+  //       combinedResponse.otherInvoiceResults = [
+  //         ...(combinedResponse.otherInvoiceResults || []),
+  //         ...(getTag?.data || [])
+  //       ];
        
-        console.log("processInvoicesXXX1", combinedResponse);
-        for (const item of getTag?.data || []) {
-          const invoice = data.otherInvoice.find(inv => inv.doc_id === item.doc_id);
-          if (!invoice) continue;
+  //       console.log("processInvoicesXXX1", combinedResponse);
+  //       for (const item of getTag?.data || []) {
+  //         const invoice = data.otherInvoice.find(inv => inv.doc_id === item.doc_id);
+  //         if (!invoice) continue;
 
-          switch (item.tag) {
-            case 'email':
-              console.log("getTagemail", getTag);
-              const emailResult = await this.processEmailInvoice(invoice, data, req);
-              console.log("emailResult", emailResult);
-             // combinedResponse.emailInvoice.push(emailResult);
-             // combinedResponse.otherInvoiceResults.push(emailResult);
-                console.log("emailResultcombinedResponse", combinedResponse);
-              break;
-            case 'print':
-                console.log("getTagprint", getTag);
-              const printResult = await this.processPrintInvoice(invoice, data, req);
-                console.log("printResult", printResult);
-            //  combinedResponse.emailInvoice.push(printResult);
-             // combinedResponse.otherInvoiceResults.push(printResult);
-               console.log("printResultcombinedResponse", combinedResponse);
-              break;
-            case 'ebill':
-              console.log("getTagebill", getTag);
-              invoice.allow = item.allow;
-                console.log("invoice.allow", invoice.allow);
-              const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
-              console.log("ebillResult", ebillResult);
-              ebillProcessed.push(...ebillResult);
-              console.log("ebillProcessed", ebillProcessed);
-              break;
-          }
-        }
-      }
-      // ------------------------------
-      // 3. Process Autotag Email Invoices
-      // ------------------------------
-        if (data.emailInvoices.length) {
-      for (const invoice of data.emailInvoices) {
-        const result = await this.processEmailInvoice(invoice, data, req);
-         console.log("emailResultss", result);
-        combinedResponse.otherInvoiceResults.push(result);
-            console.log("emailResultsscombinedResponse", combinedResponse);
-      }
-    }
-      // ------------------------------
-      // 4. Process Autotag eBill Invoices
-           if (data.ebillInvoices.length) {
-            //  Call getTagName API
-            autoTag = true
-            const getTag: any = await getTagName(data.netcomId, data.ebillInvoices,autoTag);
-            console.log("getTag result:", getTag);
+  //         switch (item.tag) {
+  //           case 'email':
+  //             console.log("getTagemail", getTag);
+  //             const emailResult = await this.processEmailInvoice(invoice, data, req);
+  //             console.log("emailResult", emailResult);
+  //            // combinedResponse.emailInvoice.push(emailResult);
+  //            // combinedResponse.otherInvoiceResults.push(emailResult);
+  //               console.log("emailResultcombinedResponse", combinedResponse);
+  //             break;
+  //           case 'print':
+  //               console.log("getTagprint", getTag);
+  //             const printResult = await this.processPrintInvoice(invoice, data, req);
+  //               console.log("printResult", printResult);
+  //           //  combinedResponse.emailInvoice.push(printResult);
+  //            // combinedResponse.otherInvoiceResults.push(printResult);
+  //              console.log("printResultcombinedResponse", combinedResponse);
+  //             break;
+  //           case 'ebill':
+  //             console.log("getTagebill", getTag);
+  //             invoice.allow = item.allow;
+  //               console.log("invoice.allow", invoice.allow);
+  //             const ebillResult = await this.processEbillInvoice(invoice, data, bexioClient);
+  //             console.log("ebillResult", ebillResult);
+  //             ebillProcessed.push(...ebillResult);
+  //             console.log("ebillProcessed", ebillProcessed);
+  //             break;
+  //         }
+  //       }
+  //     }
+  //     // ------------------------------
+  //     // 3. Process Autotag Email Invoices
+  //     // ------------------------------
+  //       if (data.emailInvoices.length) {
+  //     for (const invoice of data.emailInvoices) {
+  //       const result = await this.processEmailInvoice(invoice, data, req);
+  //        console.log("emailResultss", result);
+  //       combinedResponse.otherInvoiceResults.push(result);
+  //           console.log("emailResultsscombinedResponse", combinedResponse);
+  //     }
+  //   }
+  //     // ------------------------------
+  //     // 4. Process Autotag eBill Invoices
+  //          if (data.ebillInvoices.length) {
+  //           //  Call getTagName API
+  //           autoTag = true
+  //           const getTag: any = await getTagName(data.netcomId, data.ebillInvoices,autoTag);
+  //           console.log("getTag result:", getTag);
 
-            //  Find if any tag is 'ebill'
-            const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-             if (billTagItem) {
-               for (const invoice of data.ebillInvoices) {
-                 invoice.allow = billTagItem.allow;
-                 console.log(`Set allow for invoice ${invoice.doc_id}:`, invoice.allow);
-               }
-             } else {
-               console.log('No eBill tag found. Invoices will be processed with allow undefined (skipped automatically).');
-             }
-            // Process all eBill invoices (skips invoices where allow=false or undefined)
-            const results = await this.processEbillInvoices(data, bexioClient);
-            results.forEach(data => combinedResponse.otherInvoiceResults.push(data)); 
-            ebillProcessed.push(...results);
-              console.log("ebillProcessed", ebillProcessed);// <-- make sure ebillResults is filled
-          }
+  //           //  Find if any tag is 'ebill'
+  //           const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
+  //            if (billTagItem) {
+  //              for (const invoice of data.ebillInvoices) {
+  //                invoice.allow = billTagItem.allow;
+  //                console.log(`Set allow for invoice ${invoice.doc_id}:`, invoice.allow);
+  //              }
+  //            } else {
+  //              console.log('No eBill tag found. Invoices will be processed with allow undefined (skipped automatically).');
+  //            }
+  //           // Process all eBill invoices (skips invoices where allow=false or undefined)
+  //           const results = await this.processEbillInvoices(data, bexioClient);
+  //           results.forEach(data => combinedResponse.otherInvoiceResults.push(data)); 
+  //           ebillProcessed.push(...results);
+  //             console.log("ebillProcessed", ebillProcessed);// <-- make sure ebillResults is filled
+  //         }
 
-      // ------------------------------
-      // 5. Process EDI Invoices
-      // ------------------------------
-      if (data.invoices.length) {
-        combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
-         console.log("combinedResponse.ediResults", combinedResponse);
-      }
-         console.log("ebillProcessed.length", ebillProcessed.length);
-        if (ebillProcessed.length > 0) {
-            console.log("ebillProcessed.length***", );
-            const latestEbill = ebillProcessed[ebillProcessed.length - 1];
-                 console.log("latestEbill***",latestEbill );
-            if(latestEbill?.accessToken && latestEbill?.refreshToken) {
-                console.log("latestEbill***accessToken",latestEbill?.accessToken);
-                console.log("latestEbill***refreshToken",latestEbill?.refreshToken);
-                const bexioTokenCookie = {
-                    access_Token: latestEbill.accessToken,
-                    refresh_Token: latestEbill.refreshToken,
-                    isBexioUser: true
-                };
+  //     // ------------------------------
+  //     // 5. Process EDI Invoices
+  //     // ------------------------------
+  //     if (data.invoices.length) {
+  //       combinedResponse.ediResults = await this.processEdiInvoices(data.invoices, data, req);
+  //        console.log("combinedResponse.ediResults", combinedResponse);
+  //     }
+  //        console.log("ebillProcessed.length", ebillProcessed.length);
+  //       if (ebillProcessed.length > 0) {
+  //           console.log("ebillProcessed.length***", );
+  //           const latestEbill = ebillProcessed[ebillProcessed.length - 1];
+  //                console.log("latestEbill***",latestEbill );
+  //           if(latestEbill?.accessToken && latestEbill?.refreshToken) {
+  //               console.log("latestEbill***accessToken",latestEbill?.accessToken);
+  //               console.log("latestEbill***refreshToken",latestEbill?.refreshToken);
+  //               const bexioTokenCookie = {
+  //                   access_Token: latestEbill.accessToken,
+  //                   refresh_Token: latestEbill.refreshToken,
+  //                   isBexioUser: true
+  //               };
 
-                res.cookie(
-                    config.TOKEN_COOKIE_BEXIO_NAME,
-                    encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)),
-                    {
-                        domain: config.SESSION_DOMAIN,
-                        maxAge: config.SESSION_EXPIRY,
-                        httpOnly: true,
-                        signed: true,
-                        secure: true
-                    }
-                );
-            }
-        }
+  //               res.cookie(
+  //                   config.TOKEN_COOKIE_BEXIO_NAME,
+  //                   encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)),
+  //                   {
+  //                       domain: config.SESSION_DOMAIN,
+  //                       maxAge: config.SESSION_EXPIRY,
+  //                       httpOnly: true,
+  //                       signed: true,
+  //                       secure: true
+  //                   }
+  //               );
+  //           }
+  //       }
 
-      return res.status(200).json({
-        status_code: 200,
-        message: 'common_success',
-        status: true,
-        data: combinedResponse
-      });
+  //     return res.status(200).json({
+  //       status_code: 200,
+  //       message: 'common_success',
+  //       status: true,
+  //       data: combinedResponse
+  //     });
 
-    } catch (error) {
-      console.error("sendInvoices error:", error);
-      return res.status(500).json({ status: 500, message: 'something_went_wrong' });
-    }
-  }
+  //   } catch (error) {
+  //     console.error("sendInvoices error:", error);
+  //     return res.status(500).json({ status: 500, message: 'something_went_wrong' });
+  //   }
+  // }
   // ------------------------------
   // Individual Functions
   // ------------------------------
 
-  private async processPrintInvoice(invoice, data, req): Promise<any> {
-    const bodyParams = { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId };
-    // Call generic processInvoices function
-    const invoice_uuid = await this.processInvoices(invoice, bodyParams, 'print');
-    console.log("invoice_uuid:::", invoice_uuid);
-    // Attach UUID and tag
-    invoice['invoice_uuid'] = invoice_uuid[0];
-    invoice['tag'] = 'print';
-    // Trigger background worker
-    this.pushWorkerHost.run(invoice, bodyParams, {
-      cookies: req.cookies,
-      signedCookies: req.signedCookies,
-      url: req.url
-    }, '', 'print');
-    console.log("processPrintInvoice", invoice);
-    return invoice;
-  }
+  // private async processPrintInvoice(invoice, data, req): Promise<any> {
+  //   const bodyParams = { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId };
+  //   // Call generic processInvoices function
+  //   const invoice_uuid = await this.processInvoices(invoice, bodyParams, 'print');
+  //   console.log("invoice_uuid:::", invoice_uuid);
+  //   // Attach UUID and tag
+  //   invoice['invoice_uuid'] = invoice_uuid[0];
+  //   invoice['tag'] = 'print';
+  //   // Trigger background worker
+  //   this.pushWorkerHost.run(invoice, bodyParams, {
+  //     cookies: req.cookies,
+  //     signedCookies: req.signedCookies,
+  //     url: req.url
+  //   }, '', 'print');
+  //   console.log("processPrintInvoice", invoice);
+  //   return invoice;
+  // }
 
-  private async processEmailInvoice(invoice, data, req): Promise<any> {
-    const bodyParams = { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId };
-    const invoice_uuid = await this.processInvoices(invoice, bodyParams, 'email');
-     console.log("invoice_uuid:::", invoice_uuid);
-    invoice['invoice_uuid'] = invoice_uuid[0];
-    invoice['tag'] = 'email';
+  // private async processEmailInvoice(invoice, data, req): Promise<any> {
+  //   const bodyParams = { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId };
+  //   const invoice_uuid = await this.processInvoices(invoice, bodyParams, 'email');
+  //    console.log("invoice_uuid:::", invoice_uuid);
+  //   invoice['invoice_uuid'] = invoice_uuid[0];
+  //   invoice['tag'] = 'email';
 
-    this.pushWorkerHost.run(invoice, bodyParams, {
-      cookies: req.cookies,
-      signedCookies: req.signedCookies,
-      url: req.url
-    }, '', 'email');
-  console.log("processEmailInvoice", invoice);
-    return invoice;
-  }
+  //   this.pushWorkerHost.run(invoice, bodyParams, {
+  //     cookies: req.cookies,
+  //     signedCookies: req.signedCookies,
+  //     url: req.url
+  //   }, '', 'email');
+  // console.log("processEmailInvoice", invoice);
+  //   return invoice;
+  // }
 
  private async processEbillInvoice(invoice, data, bexioClient): Promise<any> {
   const pool = await connectMssql;
@@ -1393,18 +1393,18 @@ console.log('!invoice.allow',invoice.allow);
   return results;
 }
 
-  private async processEdiInvoices(invoices, data, req): Promise<any[]> {
-    const bodyParams = { partyId: data.partyId, accountId: data.accountId };
-    // Call generic processInvoices function
-    const results = await this.processInvoices(invoices, bodyParams, 'EDI');
-    this.pushWorkerHost.run(invoices, bodyParams, {
-      cookies: req.cookies,
-      signedCookies: req.signedCookies,
-      url: req.url
-    }, '', 'EDI');
-     console.log("processEdiInvoices", results);
-    return results;
-  }
+  // private async processEdiInvoices(invoices, data, req): Promise<any[]> {
+  //   const bodyParams = { partyId: data.partyId, accountId: data.accountId };
+  //   // Call generic processInvoices function
+  //   const results = await this.processInvoices(invoices, bodyParams, 'EDI');
+  //   this.pushWorkerHost.run(invoices, bodyParams, {
+  //     cookies: req.cookies,
+  //     signedCookies: req.signedCookies,
+  //     url: req.url
+  //   }, '', 'EDI');
+  //    console.log("processEdiInvoices", results);
+  //   return results;
+  // }
 
   private async processInvoices(obj: any | any[], bodyData, tag: string): Promise<any[]> {
     const invoices = Array.isArray(obj) ? obj : [obj];
@@ -1423,9 +1423,10 @@ console.log('!invoice.allow',invoice.allow);
     console.log("processInvoices", results);
     return results;
   }
-async sendInvoices(req: Request, res: Response): Promise<any> {
+async sendInvoice(req: Request, res: Response): Promise<any> {
   const data = req.body;
   const bexioClient = await bexioInterfaceClient();
+
   const combinedResponse: any = {
     otherInvoiceResults: [],
     emailInvoice: [],
@@ -1434,127 +1435,134 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
   };
 
   try {
-    // Ensure arrays
+    // Ensure all arrays
     let autoTag = false;
+    const ebillProcessed: any[] = [];
+
     data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
     data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
     data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
     data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
     data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
-
-    console.log("invoices", data.invoices);
-    console.log("printInvoices", data.printInvoices);
-    console.log("otherInvoice", data.otherInvoice);
-    console.log("emailInvoices", data.emailInvoices);
-    console.log("ebillInvoices", data.ebillInvoices);
+    console.log('data.invoices',data.invoices);
+    console.log('data.printInvoices',data.printInvoices);
+    console.log('data.otherInvoice',data.otherInvoice);
+    console.log('data.emailInvoices',data.emailInvoices);
+    console.log('data.ebillInvoices',data.ebillInvoices);
+    const bodyParams = {
+      partyId: data.partyId,
+      accountId: data.accountId,
+      netcomId: data.netcomId
+    };
 
     // ------------------------------
-    // 1. Process Autotag Print Invoices
+    // 1. Process Print Invoices
     // ------------------------------
     if (data.printInvoices.length) {
       const printResults = await Promise.all(
-        data.printInvoices.map(invoice => this.processInvoices(invoice, {
-          partyId: data.partyId,
-          accountId: data.accountId,
-          netcomId: data.netcomId
-        }, 'print'))
+        data.printInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))
       );
-      for (let i = 0; i < data.printInvoices.length; i++) {
-        data.printInvoices[i]['invoice_uuid'] = printResults[i][0];
-        data.printInvoices[i]['tag'] = 'print';
-        combinedResponse.otherInvoiceResults.push(data.printInvoices[i]);
-      }
-      // Trigger workers after saving all
-      data.printInvoices.forEach(invoice => {
-        this.pushWorkerHost.run(invoice, {
-          partyId: data.partyId,
-          accountId: data.accountId,
-          netcomId: data.netcomId
-        }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
+
+      data.printInvoices.forEach((inv, i) => {
+        inv['invoice_uuid'] = printResults[i][0];
+        inv['tag'] = 'print';
+        combinedResponse.otherInvoiceResults.push(inv);
+        console.log('print auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
       });
     }
 
     // ------------------------------
-    // 2. Process Other Invoices
+    // 2. Process Other Invoices (email, print, ebill)
     // ------------------------------
     if (data.otherInvoice.length) {
       const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
-      // combinedResponse.otherInvoiceResults = [
-      //   ...(combinedResponse.otherInvoiceResults || []),
-      //   ...(getTag?.data || [])
-      // ];
-
-      for (const item of getTag?.data || []) {
-        const invoice = data.otherInvoice.find(inv => inv.doc_id === item.doc_id);
-        if (!invoice) continue;
-
-        invoice.allow = item.allow; // save allow
-      }
-
-      // Process all email, print, ebill in parallel for otherInvoice
-      const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'email'));
-      const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'print'));
-      const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id === inv.doc_id && t.tag === 'ebill'));
-
-      // Process in parallel
+      console.log('getTag',getTag);
+              
+      data.otherInvoice.forEach(inv => {
+        const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
+        if (tagItem) inv.allow = tagItem.allow;
+      });
+        console.log('data.otherInvoice',data.otherInvoice);
+      const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
+      const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
+      const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'ebill'));
+      console.log('otherEmailInvoices',otherEmailInvoices);
+      console.log('otherEmailInvoices',otherPrintInvoices);
+      console.log('otherEmailInvoices',otherEbillInvoices);
+      
       const [emailResults, printResults, ebillResults] = await Promise.all([
-        Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, 'email'))),
-        Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, 'print'))),
+        Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))),
+        Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))),
         Promise.all(otherEbillInvoices.map(inv => this.processEbillInvoice(inv, data, bexioClient)))
       ]);
-
+      console.log('emailResults',emailResults);
+      console.log('printResults',printResults);
+      console.log('ebillResults',ebillResults);
       otherEmailInvoices.forEach((inv, i) => {
         inv['invoice_uuid'] = emailResults[i][0];
         inv['tag'] = 'email';
+           console.log('email inv',inv);
         combinedResponse.otherInvoiceResults.push(inv);
-        this.pushWorkerHost.run(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
+        console.log('email combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
       });
 
       otherPrintInvoices.forEach((inv, i) => {
         inv['invoice_uuid'] = printResults[i][0];
         inv['tag'] = 'print';
+        console.log('print inv',inv);
+        
         combinedResponse.otherInvoiceResults.push(inv);
-        this.pushWorkerHost.run(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
+        console.log('print combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
       });
 
       ebillResults.forEach(inv => {
         if (!inv) return;
         inv['tag'] = 'EBILL';
+          console.log('EBILL inv',inv);
         combinedResponse.otherInvoiceResults.push(inv);
+        console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        ebillProcessed.push(inv);
       });
     }
 
     // ------------------------------
-    // 3. Process Autotag Email Invoices
+    // 3. Process Email Invoices
     // ------------------------------
     if (data.emailInvoices.length) {
       const emailResults = await Promise.all(
-        data.emailInvoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, 'email'))
+        data.emailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))
       );
       data.emailInvoices.forEach((inv, i) => {
         inv['invoice_uuid'] = emailResults[i][0];
         inv['tag'] = 'email';
+           console.log('email inv',inv)
         combinedResponse.otherInvoiceResults.push(inv);
-        this.pushWorkerHost.run(inv, { partyId: data.partyId, accountId: data.accountId, netcomId: data.netcomId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
+          console.log('email auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
       });
     }
 
     // ------------------------------
-    // 4. Process Autotag eBill Invoices
+    // 4. Process eBill Invoices
     // ------------------------------
     if (data.ebillInvoices.length) {
       autoTag = true;
       const getTag: any = await getTagName(data.netcomId, data.ebillInvoices, autoTag);
       const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-      if (billTagItem) {
-        data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
-      }
+      if (billTagItem) data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
 
       const ebillResults = await this.processEbillInvoices(data, bexioClient);
       ebillResults.forEach(inv => {
         if (!inv) return;
         inv['tag'] = 'EBILL';
+           console.log('ebillResults inv',inv)
         combinedResponse.otherInvoiceResults.push(inv);
+         console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+        this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+        ebillProcessed.push(inv);
       });
     }
 
@@ -1565,10 +1573,29 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
       const ediResults = await Promise.all(
         data.invoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId }, 'EDI'))
       );
-      data.invoices.forEach((inv, i) => {
-        combinedResponse.ediResults.push(inv);
-      });
+      data.invoices.forEach(inv => combinedResponse.ediResults.push(inv));
       this.pushWorkerHost.run(data.invoices, { partyId: data.partyId, accountId: data.accountId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'EDI');
+    }
+
+    // ------------------------------
+    // 6. Set Bexio token cookie if any eBill processed
+    // ------------------------------
+    const validEbill = ebillProcessed.filter(inv => inv?.accessToken && inv?.refreshToken);
+       console.log('validEbill',validEbill)
+    if (validEbill.length > 0) {
+      const latestEbill = validEbill[validEbill.length - 1];
+      const bexioTokenCookie = {
+        access_Token: latestEbill.accessToken,
+        refresh_Token: latestEbill.refreshToken,
+        isBexioUser: true
+      };
+      res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+        domain: config.SESSION_DOMAIN,
+        maxAge: config.SESSION_EXPIRY,
+        httpOnly: true,
+        signed: true,
+        secure: true
+      });
     }
 
     return res.status(200).json({
@@ -1583,6 +1610,7 @@ async sendInvoices(req: Request, res: Response): Promise<any> {
     return res.status(500).json({ status: 500, message: 'something_went_wrong' });
   }
 }
+
 
   async sendOrder(req: Request, res: Response,): Promise<any> {
     let formData ;
