@@ -1634,7 +1634,7 @@ console.log('pushEbillInvoice',req.body);
       if (result.length == 0) {
 
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0','refreshToken_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1745,7 +1745,7 @@ console.log('pushEbillInvoice',req.body);
       if (!currency) {
        
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_currency_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1761,7 +1761,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (!temp) {
         
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_companyDetails_not_found');
 
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_companyDetails_not_found ' + '-req param,' + JSON.stringify(decryptData);
@@ -1775,7 +1775,7 @@ console.log('pushEbillInvoice',req.body);
       paymentType = true;
       if (!paymentType) {
      
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_paymentType_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1790,7 +1790,7 @@ console.log('pushEbillInvoice',req.body);
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
       
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_contact_not_found');
 
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_contact_not_found ' + '-req param,' + JSON.stringify(decryptData);
@@ -1805,7 +1805,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (!user) {
      
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_user_not_found');
 
 
 
@@ -1872,7 +1872,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (xml == false) {
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_xml_not_found');
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_xml_not_found');
