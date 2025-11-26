@@ -1896,7 +1896,9 @@ console.log('pushEbillInvoice',req.body);
 export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
+   console.log('responseBody error',error);
     let responseBody = error || '';
+    console.log('responseBody',responseBody);
     
     return new Promise(async function (resolve, reject) {
      try {
@@ -1922,6 +1924,8 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
 
           if(selectQryResult.length == 0)
           {
+            console.log('create');
+            
             const selectCompanyregisteredQryResult = await connectBexio.companyregistered.findMany({
               where: {
                 rk_party: Number(partyId), 
@@ -1947,7 +1951,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
             sendInvoiceId = result.object_id;
           }else{
             sendInvoiceId = selectQryResult[0].object_id;           
-            
+             console.log('updateMany');
             await connectBexio.documents_invoice_send.updateMany({
               where: {
                 fk_companyregistered: selectQryResult[0].companyregistered?.cid,
@@ -1961,13 +1965,9 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 response: responseBody,
                 status: Number(status),
                 invoice_type: 'EBILL',
-
               },
             });
-
           }
-
-          
           return resolve(sendInvoiceId);
         } catch (error) {
          console.log(error);
