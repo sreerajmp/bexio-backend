@@ -1561,7 +1561,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
            console.log('ebillResults inv',inv)
         combinedResponse.otherInvoiceResults.push(inv);
          console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+        //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
         ebillProcessed.push(inv);
       });
     }
