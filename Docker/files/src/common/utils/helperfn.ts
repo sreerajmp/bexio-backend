@@ -1921,7 +1921,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
               },
             },
           });
-
+      console.log('Type of fk_companyregistered:', typeof selectQryResult[0].companyregistered?.cid);
           if(selectQryResult.length == 0)
           {
             console.log('create');
@@ -1971,7 +1971,7 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
           });
 
           console.log("Records that will be updated:", recordsToUpdates);
-            await connectBexio.documents_invoice_send.updateMany({
+         const updateResult =  await connectBexio.documents_invoice_send.updateMany({
               where: {
                 fk_companyregistered: selectQryResult[0].companyregistered?.cid,
                 rk_invoice: BigInt(invoiceId),
@@ -1986,8 +1986,27 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 invoice_type: 'EBILL',
               },
             });
+                console.log("updateResult:", updateResult); 
+
+                const updateResult1 = await connectBexio.documents_invoice_send.updateMany({
+                where: {
+                  fk_companyregistered: Number(selectQryResult[0].companyregistered?.cid), // keep as Number if Int column
+                  rk_invoice: BigInt(invoiceId),
+                },
+                data: {
+                  time_stamp: new Date(),
+                  invoice_params: formData,
+                  is_notifyed: false,
+                  reference_id: null,
+                  response: responseBody,
+                  status: Number(status),
+                  invoice_type: 'EBILL',
+                },
+              });
+
+              console.log("updateResult1:", updateResult1);
           }
-          
+     
           return resolve(sendInvoiceId);
         } catch (error) {
          console.log(error);
