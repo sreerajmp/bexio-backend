@@ -1954,11 +1954,27 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
              console.log('updateMany');
              console.log('Number(invoiceId)',Number(invoiceId));
               console.log('bigint(invoiceId)',BigInt(invoiceId));
+              console.log('responseBody',responseBody);
+                const recordsToUpdate = await connectBexio.documents_invoice_send.findMany({
+            where: {
+              fk_companyregistered: selectQryResult[0].companyregistered?.cid,
+              rk_invoice: BigInt(invoiceId),
+            },
+          });
 
+          console.log("Records that will be updated:", recordsToUpdate);
+            const recordsToUpdates = await connectBexio.documents_invoice_send.findMany({
+            where: {
+              fk_companyregistered: selectQryResult[0].companyregistered?.cid,
+              rk_invoice: Number(invoiceId),
+            },
+          });
+
+          console.log("Records that will be updated:", recordsToUpdates);
             await connectBexio.documents_invoice_send.updateMany({
               where: {
                 fk_companyregistered: selectQryResult[0].companyregistered?.cid,
-                rk_invoice: Number(invoiceId),
+                rk_invoice: BigInt(invoiceId),
               },
               data: {
                 time_stamp: new Date(), 
