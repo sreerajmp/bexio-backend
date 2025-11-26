@@ -3075,9 +3075,10 @@ const getConnections = async (netcomId,docType)=>{
       active_only:'true',
       doc_type: doc_type[0]['id'],
       //doc_format:config.DOC_FORMAT,
-      show_all: 'true'
+      show_all: 'true',
+      module:'BEX'
     }
-    //console.log('formData',formData);
+    console.log('formData post-list/connections',formData);
     
     return new Promise(async(resolve, reject) => {
       var options = {
@@ -3113,7 +3114,6 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
     formData = {
       invite_code:code,
       logged_in_netcom_id:netComId,
-      module:'BEX'    
     }
     console.log('invite_code',formData);
     
