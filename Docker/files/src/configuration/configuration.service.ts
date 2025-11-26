@@ -19,7 +19,7 @@ import { resolve } from 'path';
 // const fetchEmailContent = require('../common/utils/fetchEmailData');
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
-import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem } from 'src/common/utils/helperfn';
+import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -1463,6 +1463,9 @@ console.log('req.body',req.body);
       let userId = jwt.decode(access_token)['company_user_id'];
       let coutryList;
       coutryList = await getCountryLists(access_token);
+      if(!coutryList){
+        coutryList = '[]';
+      }
          
       let countryId = JSON.parse(coutryList).filter( c => c.iso_3166_alpha2 == data.country_id);
       console.log(countryId);
@@ -2509,82 +2512,8 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 }
 
 }
-const getBcDetails = async (bc_id, netcomId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      if (bc_id) {
-        let formData = {
-          bc: bc_id.toString(),
-          netcom_id: netcomId
-        }
-        let options = {
-          'method': 'POST',
-          'url': config.PYTHON_API + 'get-contact-bc',
-          formData: formData
-        };
 
-        request(options, async function (error, response, body) {
-          if (error) {
-            commonErrors['errorTitle'] = 'getBcDetails';
-            warningMessage(commonErrors, error);
-            return resolve(false)
-          } else {
-            //console.log('output',config.PYTHON_API + 'get-contact-bc');
-            
-            return resolve(JSON.parse(response.body));
-          }
-        });
-      } else {
-        return resolve(false)
-      }
 
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-}
-const getCountryLists = async (access_token) => {
-  try {
-    //console.log('acce',access_token);
-    
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        'method': 'GET',
-        'url': `${config.BEXIO_API}2.0/country`,
-        'headers': {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + access_token
-        }
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getCountryLists';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
-          warningMessage(commonErrors, error);
-          return resolve(false)
-        }
-        if (response.statusCode == 200)
-          return resolve(response.body);
-        else if(response.statusCode == 401){
-          return resolve(response.statusCode);
-        }
-        else{
-        
-          return resolve(false)
-        }
-
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getCountryLists';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-}
 const contactListCountSearch = async (token, search, offset, limit?) => {
   return new Promise(async (resolve, reject) => {
     var options = {
@@ -2658,43 +2587,7 @@ const contactListCount = async (token, offset, limit?) => {
     });
   });
 }
-const getContactDetails = async (access_token, id) => {
-  //console.log('access_token:',access_token,id);
 
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        'method': 'GET',
-        'url': `${config.BEXIO_API}2.0/contact/${id}`,
-        'headers': {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + access_token
-        }
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getContactDetails';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
-          warningMessage(commonErrors, error);
-          return resolve(false)
-        }
-        if (response.statusCode == 200){
-          return resolve(JSON.parse(response.body));
-        }
-        else if(response.statusCode == 401){
-          return resolve(JSON.parse(response.body));
-
-        }
-
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = getContactDetails.name;
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-}
 const createConnector = async (params) => {
   try {
     let config_key = 'BEXIO_CONNECTION_CONFIG_ORDER_' + params.direction;
@@ -2976,31 +2869,7 @@ const createBexiobiller = async(data)=>{
       }
     })
 }
-const getContact = async (access_token,id)=>{
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}2.0/contact/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getContact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false)
-        });
-      });
-}
 const getInvitations = async (code)=>{
   try {
     let formData = {

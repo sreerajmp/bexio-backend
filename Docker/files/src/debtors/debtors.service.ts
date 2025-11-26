@@ -1799,7 +1799,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         let iteamArray:any = [];
         let taxId:any = [];
         let taxStatus = true;
-        let tempTaxIdTmp = taxList.filter((e) =>  (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
+        let tempTaxIdTmp = taxList?.filter((e) =>  (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
         console.log('tempTaxIdTmp[0]',tempTaxIdTmp[0].id);
   
         itemList[0].ORDER_ITEM.forEach(element => {

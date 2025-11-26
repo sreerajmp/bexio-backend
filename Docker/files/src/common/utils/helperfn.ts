@@ -77,7 +77,7 @@ export const getAllCurrency = async (access_token) => {
           if(response?.statusCode==200)
             return resolve(JSON.parse(response.body));
           else
-            return resolve(false)
+            return resolve([])
         });
       });
 }
@@ -151,7 +151,6 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
   });
 }
 export const invoiceListCountSearch = async (token,offset,limit?) => {
-
   return new Promise(async(resolve, reject) => {
     var options = {
       'method': 'GET',
@@ -186,42 +185,37 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
       });
   });
 }
-export const getBcDetails= async (bc_id,netcomId ) => {
-   
-      try{
-      
-        return new Promise(async(resolve, reject) => {
-          if(bc_id){
-            let formData = {
-              bc : bc_id.toString(),
-              netcom_id : netcomId
-            } 
-            let  options = {
-              'method': 'POST',
-              'url': config.PYTHON_API+'get-contact-bc',
-              formData: formData
-            };
-    
-            request(options, async function (error, response, body) {
-              if (error) {  
-                commonErrors['errorTitle'] = 'getBcDetails';
-                warningMessage(commonErrors,error);
-                return resolve(false)
-              }else{
-                return resolve(JSON.parse(response.body));
-              }
-            });
-          }else{
-            return resolve(false)
-          }
-           
-          });
-      } catch (error) {
-          commonErrors['errorTitle'] = 'getBcDetails';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+'access_token';
-          warningMessage(commonErrors,error);
-        
+export const getBcDetails = async (bc_id, netcomId) => {
+  try {
+    return new Promise(async (resolve, reject) => {
+      if (!bc_id) resolve(false);
+        let formData = {
+          bc: bc_id.toString(),
+          netcom_id: netcomId
         }
+        let options = {
+          'method': 'POST',
+          'url': config.PYTHON_API + 'get-contact-bc',
+          formData: formData
+        };
+
+        request(options, async function (error, response, body) {
+          if (error) {
+            commonErrors['errorTitle'] = 'getBcDetails';
+            warningMessage(commonErrors, error);
+            return resolve(false)
+          } else {
+            //console.log('output',config.PYTHON_API + 'get-contact-bc');
+            return resolve(JSON.parse(response.body));
+          }
+        });
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = 'getBcDetails';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
+    warningMessage(commonErrors, error);
+    // return resolve('');
+  }
 }
 export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   return new Promise(async(resolve, reject) => {
@@ -787,15 +781,18 @@ export const getCountryLists = async (access_token)=>{
             warningMessage(commonErrors,error);
             return resolve(false)
           }
-          if(response.statusCode==200)
-          return resolve(response.body);
-          else
-          return resolve(false)
+          if(response.statusCode==200){
+            return resolve(response.body);
+          }else if(response.statusCode == 401){
+          return resolve(response.statusCode);
+        }else{
+            return resolve(false)
+          }
 
         });
       });
     } catch (error) {
-      commonErrors['errorTitle'] = getCountryLists.name;
+      commonErrors['errorTitle'] = "getCountryLists";
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
       warningMessage(commonErrors,error);
       return resolve('');
@@ -871,7 +868,7 @@ export const getloginUserCompanyDetails = async (access_token)=>{
       
       request(options, function (error, response) {
         if (error) {
-          commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
+          commonErrors['errorTitle'] = "getloginUserCompanyDetails";
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
           warningMessage(commonErrors,error);
            return resolve(false);
@@ -885,7 +882,7 @@ export const getloginUserCompanyDetails = async (access_token)=>{
     });
     
   } catch (error) {
-      commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
+      commonErrors['errorTitle'] = "getloginUserCompanyDetails";
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
       warningMessage(commonErrors,error);
       return resolve('');
@@ -946,7 +943,7 @@ export const getContact = async (access_token,id)=>{
 export const getProducts = async (access_token,id)=>{
  ////console.log('IDDD',id);
 
-  return new Promise(async(resolve, reject) => {
+  return new Promise((resolve, reject) => {
         var options = {
           'method': 'GET',
           'url': `https://api.bexio.com/2.0/article/${id}`,
@@ -1292,17 +1289,17 @@ export async function invoiceFilePush(netcomId,service,data,filename,type) {
         formData: formData
       };
     request(options, function (error, response) {
-      
-      if (error) { 
-        
-        commonErrors['errorTitle'] = 'bexio-file-drop';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-        warningMessage(commonErrors,error);
-        return resolve(false)
+      try{
+        if (error) { 
+          commonErrors['errorTitle'] = 'bexio-file-drop';
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
+          warningMessage(commonErrors,error);
+          return resolve(false)
+        }
+        return resolve(response?.body)
+      }catch(error){
+        reject(error)
       }
-      
-      
-      return resolve(response?.body)
      
     });
   });
@@ -1377,7 +1374,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
       coutryList = JSON.parse(coutryList);
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
-      let contact = await getContact(accessToken, invoice.contact_id);
+      let contact = await getContact(accessToken, invoice?.contact_id);
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
@@ -1838,18 +1835,15 @@ console.log('pushEbillInvoice',req.body);
 
           if ('article_id' in items) {
             tempItem = await getProducts(accessToken, items.article_id);
-            items['article'] = tempItem;
-
+            if(tempItem){
+              items['article'] = tempItem;
+            }
           } else {
-
-
             items['article'] = {}
             items['article']['intern_name'] = items.text;
             items['article']['intern_description'] = items.text;
 
           }
-
-
         }
       } else {
         let items = {};
@@ -2475,22 +2469,27 @@ export const issueEbillInvoice = async (access_token,id)=>{
           }
         };
         request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'issueEbillInvoice';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
-            warningMessage(commonErrors,error);
+          try{
+
+            if (error) {  
+              commonErrors['errorTitle'] = 'issueEbillInvoice';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
+              warningMessage(commonErrors,error);
             return resolve(false)
           }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body)[0]);
-          else{           
+          if(response.statusCode==200){
+            return resolve(JSON.parse(response.body)[0]);
+          }else{           
             console.log("issuebillinvoice response",response);              
             commonErrors['errorTitle'] = 'issueEbillInvoice';
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
             warningMessage(commonErrors,error);
             return resolve(false)
-          
+            
           }
+        }catch(err){
+          reject(err)
+        }
         });
       });
 }
@@ -2506,16 +2505,21 @@ export const markAsSent = async (access_token,id)=>{
           }
         };
         request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'markAsSent';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
-            warningMessage(commonErrors,error);
+          try{
+
+            if (error) {  
+              commonErrors['errorTitle'] = 'markAsSent';
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
+              warningMessage(commonErrors,error);
             return resolve(false)
           }
           if(response.statusCode==200)
-          return resolve(JSON.parse(response.body)[0]);
+            return resolve(JSON.parse(response.body)[0]);
           else
-          return resolve(false)
+            return resolve(false)
+        }catch(err){
+          reject(err) 
+        }
         });
       });
 }
@@ -2784,10 +2788,17 @@ export const getContactDetails = async (access_token,id) => {
           return resolve(false)
         }
         
-        if(response.statusCode==200)
+        if(response.statusCode==200){
+
           return resolve(JSON.parse(response.body));
-        else
+        }
+          else if(response.statusCode == 401){
+          return resolve(JSON.parse(response.body));
+
+        }
+        else{
           return resolve(false)
+        }
 
       });
     });
@@ -3085,7 +3096,9 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
           let tempItem;
           if('article_id' in items){
             tempItem = await getProducts(accessToken,items.article_id);
-            items['article'] = tempItem;
+            if(tempItem){
+              items['article'] = tempItem;
+            }
           }else{
             items['article'] = {}
             items['article']['article_id'] = items.id;
@@ -5524,6 +5537,8 @@ console.log('company', company);
       countryList = await getCountryLists(accessToken);
       if (countryList) {
         countryList = JSON.parse(countryList);
+      }else{
+        countryList = [];
       }
       
    console.log('coutryList.',countryList);
@@ -5601,6 +5616,8 @@ const bexioPayloadPromises = newContacts.map(async contact => {
   let countryList:any = await getCountryLists(accessToken);
   if (countryList) {
     countryList = JSON.parse(countryList);
+  }else{
+    countryList = [];
   }
 
   let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
@@ -5729,7 +5746,7 @@ export const createCountry = async (access_token,name,name_short,country_code)=>
       });
     });
   } catch (error) {
-    commonErrors['errorTitle'] = getCountryLists.name;
+    commonErrors['errorTitle'] = "getCountryLists";
     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
     warningMessage(commonErrors,error);
     return resolve('');

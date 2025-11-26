@@ -62,7 +62,7 @@ export class BexioUserService {
 
       let companyDetails = await this.getloginUserCompanyDetails(tokenSet.access_token);
       //console.log('companyDetails',companyDetails);
-      let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
+      let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails?.[0]?.['country_name'])
       //console.log('coutryCode',coutryCode);
       let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
       //console.log('userDetails',userDetails);
@@ -2051,7 +2051,7 @@ VALUES (
 
     async function addSubscriptionParty(partyValue, accountValue, planId, subScriptionType, netcomIdG2b) {
       return new Promise(async (resolve, reject) => {
-
+        try{
         if (subScriptionType == 'PLAN') {
 
           let formData = {
@@ -2129,6 +2129,11 @@ VALUES (
 
         }
         return resolve(true)
+      } catch (error) {
+        console.log("Error in addSubscriptionParty:", error);
+        return reject(error);
+      }
+
       });
 
     }
@@ -2983,7 +2988,9 @@ const createOctConfig = async (netComId)  => {
     });
 
   }
-  catch {
+  catch(error) {
+    console.log("Error in createOctConfig:", error);
+    
     // return resolve(responseData)
   }
 }
