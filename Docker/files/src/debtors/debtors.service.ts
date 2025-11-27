@@ -1041,8 +1041,9 @@ export class DebtorsService {
   }
             tempStatus = false;
             // resData[deliveryNotes]['allowSend'] =  true;
-            console.log('test',resultArray.includes((resData[deliveryNotes].contact_id)));
-              console.log('**********************', resData[deliveryNotes].contact_id)
+            console.log('resultArray deliveryNotes',resultArray);
+            console.log('test',resultArray?.includes((resData[deliveryNotes]?.contact_id)));
+              console.log('**********************', resData[deliveryNotes]?.contact_id)
             resultArray?resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
