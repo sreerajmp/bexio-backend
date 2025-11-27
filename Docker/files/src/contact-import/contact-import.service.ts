@@ -33,7 +33,12 @@ export class ContactImportService {
     return this.dynamoDBService.getJobDataByNetcomid(netcomid);
   }
 
-  async schedulercontact(req: Request, res: Response): Promise<any>{
-    this.schedulerContactimportWorkerHost.startWorker();
+  async schedulercontact(req: Request, res: Response): Promise<any> {
+    try {
+      await this.schedulerContactimportWorkerHost.startWorker();
+      return res.status(200).json({ success: true, message: 'Worker started' });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: 'Failed to start worker', error: err?.message || err });
+    }
   }
 }

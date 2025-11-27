@@ -571,31 +571,52 @@ export class ConfigurationService {
 
       console.log('encrToken.payementStatus', encrToken.payementStatus);
       console.log('encrToken.commentStatus', encrToken.commentStatus);
-      const existingSettings = getStatusQryRslt[0]?.settings;
-      console.log('existingSettings', existingSettings);
+      const existingSettingsRaw = getStatusQryRslt[0]?.settings;
+      console.log('existingSettings', existingSettingsRaw);
 
       // Normalize incoming string flags to booleans or undefined if not present
-      const payVal = encrToken.payementStatus === 'true' ? "true" : encrToken.payementStatus === 'false' ? "false" : undefined;
-      const commentVal = encrToken.commentStatus === 'true' ? "true" : encrToken.commentStatus === 'false' ? "false" : undefined;
+      const payValRaw = encrToken.payementStatus;
+      const commentValRaw = encrToken.commentStatus;
+      const payVal = payValRaw === 'true' ? true : payValRaw === 'false' ? false : undefined;
+      const commentVal = commentValRaw === 'true' ? true : commentValRaw === 'false' ? false : undefined;
       const partyIdNum = Number(encrToken.partyId);
 
-      if (existingSettings != null && typeof existingSettings === 'object') {
-        // Update only the keys provided
-        if (payVal !== undefined) {
-          await connectBexio.$executeRaw`
-            UPDATE companyregistered
-            SET settings = jsonb_set(settings::jsonb, '{notifyPayment}', ${JSON.stringify(payVal)}::jsonb)
-            WHERE rk_party = ${partyIdNum}
-          `;
+      // Ensure we have an object to merge updates into
+      let settingsObj: any = {};
+      try {
+        if (existingSettingsRaw == null) {
+          settingsObj = {};
+        } else if (typeof existingSettingsRaw === 'string') {
+          settingsObj = existingSettingsRaw ? JSON.parse(existingSettingsRaw) : {};
+        } else if (typeof existingSettingsRaw === 'object') {
+          settingsObj = { ...existingSettingsRaw };
+        } else {
+          settingsObj = {};
         }
-        if (commentVal !== undefined) {
-          await connectBexio.$executeRaw`
-            UPDATE companyregistered
-            SET settings = jsonb_set(settings::jsonb, '{notifyComments}', ${JSON.stringify(commentVal)}::jsonb)
-            WHERE rk_party = ${partyIdNum}
-          `;
-        }
-      } 
+      } catch (parseErr) {
+        // fallback to empty object if parsing fails
+        settingsObj = {};
+      }
+
+      // Apply only provided updates
+      let shouldUpdate = false;
+      if (payVal !== undefined) {
+        settingsObj.notifyPayment = payVal;
+        shouldUpdate = true;
+      }
+      if (commentVal !== undefined) {
+        settingsObj.notifyComments = commentVal;
+        shouldUpdate = true;
+      }
+
+      if (shouldUpdate) {
+        // Write the merged settings back (works whether existing was null or an object)
+        await connectBexio.$executeRaw`
+          UPDATE companyregistered
+          SET settings = ${JSON.stringify(settingsObj)}::jsonb
+          WHERE rk_party = ${partyIdNum}
+        `;
+      }
 
       res.send({
         status_code: 200,
