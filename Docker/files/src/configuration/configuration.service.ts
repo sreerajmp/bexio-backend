@@ -569,16 +569,13 @@ export class ConfigurationService {
         select: { settings: true },
       });
 
-      console.log('encrToken.payementStatus', encrToken.payementStatus);
-      console.log('encrToken.commentStatus', encrToken.commentStatus);
       const existingSettingsRaw = getStatusQryRslt[0]?.settings;
-      console.log('existingSettings', existingSettingsRaw);
 
-      // Normalize incoming string flags to booleans or undefined if not present
+      // Keep incoming values as strings "true"/"false" (or undefined if not provided)
       const payValRaw = encrToken.payementStatus;
       const commentValRaw = encrToken.commentStatus;
-      const payVal = payValRaw === 'true' ? true : payValRaw === 'false' ? false : undefined;
-      const commentVal = commentValRaw === 'true' ? true : commentValRaw === 'false' ? false : undefined;
+      const payVal = payValRaw === 'true' ? 'true' : payValRaw === 'false' ? 'false' : undefined;
+      const commentVal = commentValRaw === 'true' ? 'true' : commentValRaw === 'false' ? 'false' : undefined;
       const partyIdNum = Number(encrToken.partyId);
 
       // Ensure we have an object to merge updates into
@@ -594,11 +591,10 @@ export class ConfigurationService {
           settingsObj = {};
         }
       } catch (parseErr) {
-        // fallback to empty object if parsing fails
         settingsObj = {};
       }
 
-      // Apply only provided updates
+      // Apply only provided updates (store as strings)
       let shouldUpdate = false;
       if (payVal !== undefined) {
         settingsObj.notifyPayment = payVal;
@@ -610,7 +606,14 @@ export class ConfigurationService {
       }
 
       if (shouldUpdate) {
-        // Write the merged settings back (works whether existing was null or an object)
+        // Normalize existing values to string form as well to ensure stored values are strings
+        if ('notifyPayment' in settingsObj) {
+          settingsObj.notifyPayment = String(settingsObj.notifyPayment);
+        }
+        if ('notifyComments' in settingsObj) {
+          settingsObj.notifyComments = String(settingsObj.notifyComments);
+        }
+
         await connectBexio.$executeRaw`
           UPDATE companyregistered
           SET settings = ${JSON.stringify(settingsObj)}::jsonb
