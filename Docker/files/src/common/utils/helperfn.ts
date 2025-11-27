@@ -186,9 +186,9 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
   });
 }
 export const getBcDetails = async (bc_id, netcomId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      if (!bc_id) resolve(false);
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!bc_id) return resolve(false);
         let formData = {
           bc: bc_id.toString(),
           netcom_id: netcomId
@@ -199,23 +199,29 @@ export const getBcDetails = async (bc_id, netcomId) => {
           formData: formData
         };
 
-        request(options, async function (error, response, body) {
+        request(options, function (error, response, body) {
           if (error) {
             commonErrors['errorTitle'] = 'getBcDetails';
             warningMessage(commonErrors, error);
-            return resolve(false)
-          } else {
-            //console.log('output',config.PYTHON_API + 'get-contact-bc');
-            return resolve(JSON.parse(response.body));
-          }
+            return reject(error)
+          } 
+            try{
+
+              //console.log('output',config.PYTHON_API + 'get-contact-bc');
+              const result = JSON.parse(response.body);
+              resolve(result);
+            }catch(err){
+              return reject(err)
+            }
+          
         });
+      } catch (error) {
+        commonErrors['errorTitle'] = 'getBcDetails';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
+        warningMessage(commonErrors, error);
+        reject(error);
+      }
     });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
-    warningMessage(commonErrors, error);
-    // return resolve('');
-  }
 }
 export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
   return new Promise(async(resolve, reject) => {
