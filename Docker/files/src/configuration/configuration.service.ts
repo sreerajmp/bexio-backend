@@ -65,8 +65,13 @@ export class ConfigurationService {
 
               })
             }
-            catch {
-              return resolve(responseData)
+            catch(error) {
+              // return resolve(responseData)
+              return res.send({
+                status: 500,
+                message:"Something went wrong in SetConfiguration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -130,7 +135,12 @@ export class ConfigurationService {
               })
             }
             catch {
-              return resolve(responseData)
+              // return resolve(responseData)
+               return res.send({
+                status: 500,
+                message:"Something went wrong in Update Configuration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -188,7 +198,13 @@ export class ConfigurationService {
               })
             }
             catch {
-              return resolve(responseData)
+              // return resolve(responseData)
+
+               return res.send({
+                status: 500,
+                message:"Something went wrong in Get Configuration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -1500,7 +1516,7 @@ console.log('req.body',req.body);
         })
       }
      
-      request(options, async function (error, response) {
+      request(options, function (error, response) {
         if (error) {  
           commonErrors['errorTitle'] = 'bexio_contact';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param'+access_token;
@@ -2125,8 +2141,8 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       activeAccounts = await getActiveAccounts(accessToken);
       console.log('activeAccounts',activeAccounts.status );
       if(activeAccounts?.status === true)
-      accountList = activeAccounts.data.filter(item => item.id == accountId);
-    console.log('activeAccounts',activeAccounts.data.filter(item => item.id == accountId));
+      accountList = activeAccounts?.data?.filter(item => item.id == accountId);
+    console.log('activeAccounts',activeAccounts?.data?.filter(item => item.id == accountId));
     }
 
     // Fetch unit
@@ -2189,9 +2205,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       let accessToken = cookie.access_Token;
       const articleList: any = await getActiveArticle(accessToken);
       if( articleList?.status == false ){
-        return res.status(articleList.statuscode).send({
-          status_code: articleList.statuscode,
-          message: articleList.message,
+        return res.status(articleList?.statuscode).send({
+          status_code: articleList?.statuscode,
+          message: articleList?.message,
           status: false,
         })
       }
@@ -2481,8 +2497,8 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
     } else {
       contacts = await getAllcontacts(accessToken, 0, 2000, '');
-      const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
-      const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
+      const resultCustomer = new Map(contacts?.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+      const resultMail = new Map(contacts?.map(c => [c.id, c.mail]));
 
       const updatedConnectData = connectData.data.map(item => {
         const id = Number(item.partner_company_details.customer_id);
@@ -2714,12 +2730,14 @@ const getInvitationDetails = async (code): Promise<any | false> => {
       ////console.log(response.body);
       //console.log(response.body);
 
-      if (response.statusCode == 200)
+      if (response.statusCode == 200){
 
-       // console.log('JSON.parse(response.body', JSON.parse(response.body))
-       return resolve(JSON.parse(response.body));
-      else
-      reject(false)
+        
+        // console.log('JSON.parse(response.body', JSON.parse(response.body))
+        return resolve(JSON.parse(response.body));
+      }else{
+        reject(false)
+      }
 
     });
   });

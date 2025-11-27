@@ -24,7 +24,7 @@ import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
 import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from '../common/utils/fetchEmailData';
-import { getAllCurrency, getBcDetails, getContactById, getContactDetails } from 'src/common/utils/helperfn';
+import { getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, moveFile } from 'src/common/utils/helperfn';
 
 @Injectable()
 export class CreditorsService {
@@ -184,7 +184,7 @@ export class CreditorsService {
               element['companyName'] = getBc[0].companyname;
               element['netcomId'] = getBc[0].netcomId;
               if (!element['rk_invoice']) {
-                let temp = contacts.filter(
+                let temp = contacts?.filter(
                   (e) => e.id == getBc[0].sender_custom_id,
                 );
                 element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
@@ -193,7 +193,7 @@ export class CreditorsService {
                 element['connectioStatus'] = 'active';
               } else {
                 element['contactId'] = '';
-                let temp = contacts.filter(
+                let temp = contacts?.filter(
                   (e) => e.id == getBc[0].sender_custom_id,
                 );
                 element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
@@ -504,12 +504,12 @@ export class CreditorsService {
             resData[invoice]['statusLabel'] =
               status[resData[invoice].kb_item_status_id];
             resData[invoice]['timestamp'] = '';
-            resData[invoice]['total_net'] = order.positions.total_net;
-            resData[invoice]['total'] = order.positions.total;
-            resData[invoice]['total_gross'] = order.positions.total_gross;
+            resData[invoice]['total_net'] = order?.positions?.total_net;
+            resData[invoice]['total'] = order?.positions?.total;
+            resData[invoice]['total_gross'] = order?.positions?.total_gross;
             //resData[invoice]['companyName'] = resData[invoice]['contact_address'].split("\n")[0];
             resData[invoice]['companyName'] =
-              order['contact_address_manual'].split('\n')[0];
+              order?.['contact_address_manual']?.split('\n')[0];
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
@@ -896,7 +896,7 @@ export class CreditorsService {
                   'bmecat:TAX' in
                   element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]
                 ) {
-                  taxId = taxList.filter(
+                  taxId = taxList?.filter(
                     (e) =>
                       e.type ==
                         element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
@@ -1642,56 +1642,6 @@ const orderCountSearch = async (token, search, offset, limit?) => {
   });
 };
 
-const getOrderOT = async (accessToken, orderId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'GET',
-        url: `https://api.bexio.com/3.0/purchase_orders/${orderId}`,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      };
-      // console.log('optionsoptions',options);
-
-      request(options, function (error, response) {
-        if (error) {
-          console.log('errorerrorerror', error);
-          commonErrors['errorTitle'] = 'getOrderOT';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            orderId;
-          warningMessage(commonErrors, error);
-          return resolve(error);
-        }
-        // console.log('responseresponse',response);
-
-        if (response.statusCode == 200) {
-          return resolve(JSON.parse(response.body));
-        } else {
-          return resolve(false);
-        }
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getOrderOT';
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-bexio param,' +
-      orderId;
-    warningMessage(commonErrors, error);
-    return;
-  }
-};
-
 const setOrderSendStatus = async (
   partyId,
   orderId,
@@ -1962,56 +1912,6 @@ const setBillId = async (id, billId) => {
       billId;
     warningMessage(commonErrors, error);
     return 0;
-  }
-};
-const moveFile = async (netcomId, fileName) => {
-  let formData;
-  try {
-    formData = {
-      netcom_id: netcomId,
-      filename: fileName,
-    };
-    console.log(formData);
-
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'POST',
-        url: config.PYTHON_API + 'move-file',
-
-        formData: formData,
-      };
-
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'moveFile';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            formData;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-
-        console.log('move', response.body);
-
-        return resolve(response.body);
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'moveFile';
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      netcomId +
-      fileName;
-    warningMessage(commonErrors, error);
-    return resolve('');
   }
 };
 

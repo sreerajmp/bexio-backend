@@ -3440,7 +3440,7 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
  ////console.log("xml:  ---------------------------\n",xml);
   return Buffer.from(xml).toString('base64');
 }
-const getOrderOT = async (accessToken,orderId) =>{
+export const getOrderOT = async (accessToken,orderId) =>{
   try {
     return new Promise( async( resolve, reject) => {
       var options = {
@@ -4700,7 +4700,6 @@ export const getInvoiceSearch = async (accessToken,searchJson) => {
       warningMessage(commonErrors,error);
       return resolve(error);
     }
- 
       console.log("response.body",response.statusCode);
       
     if(response.statusCode == 200){
@@ -4737,7 +4736,7 @@ export const getOctConfig = async (netComId) => {
           commonErrors['errorTitle'] = 'getConfiguration';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
           warningMessage(commonErrors, error);
-          return resolve(error)
+          return reject(error)
         }
         else {
           try {
@@ -4748,7 +4747,7 @@ export const getOctConfig = async (netComId) => {
             return resolve(responseData)
           }
           catch {
-            return resolve(responseData)
+            return resolve(false)
           }
         }
       })
@@ -4899,7 +4898,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 console.log('article', article);
                 let articleDetail: any = await getActiveItem(accessToken, article.article_id);
 
-                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
+                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id && articleDetail.name) {
                   console.log('articleDetail::::', articleDetail);
 
                   let printArticle = {
