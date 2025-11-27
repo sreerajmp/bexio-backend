@@ -24,6 +24,7 @@ import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
 import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from '../common/utils/fetchEmailData';
+import { getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, moveFile } from 'src/common/utils/helperfn';
 
 @Injectable()
 export class CreditorsService {
@@ -183,7 +184,7 @@ export class CreditorsService {
               element['companyName'] = getBc[0].companyname;
               element['netcomId'] = getBc[0].netcomId;
               if (!element['rk_invoice']) {
-                let temp = contacts.filter(
+                let temp = contacts?.filter(
                   (e) => e.id == getBc[0].sender_custom_id,
                 );
                 element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
@@ -192,7 +193,7 @@ export class CreditorsService {
                 element['connectioStatus'] = 'active';
               } else {
                 element['contactId'] = '';
-                let temp = contacts.filter(
+                let temp = contacts?.filter(
                   (e) => e.id == getBc[0].sender_custom_id,
                 );
                 element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
@@ -503,12 +504,12 @@ export class CreditorsService {
             resData[invoice]['statusLabel'] =
               status[resData[invoice].kb_item_status_id];
             resData[invoice]['timestamp'] = '';
-            resData[invoice]['total_net'] = order.positions.total_net;
-            resData[invoice]['total'] = order.positions.total;
-            resData[invoice]['total_gross'] = order.positions.total_gross;
+            resData[invoice]['total_net'] = order?.positions?.total_net;
+            resData[invoice]['total'] = order?.positions?.total;
+            resData[invoice]['total_gross'] = order?.positions?.total_gross;
             //resData[invoice]['companyName'] = resData[invoice]['contact_address'].split("\n")[0];
             resData[invoice]['companyName'] =
-              order['contact_address_manual'].split('\n')[0];
+              order?.['contact_address_manual']?.split('\n')[0];
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
@@ -895,7 +896,7 @@ export class CreditorsService {
                   'bmecat:TAX' in
                   element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]
                 ) {
-                  taxId = taxList.filter(
+                  taxId = taxList?.filter(
                     (e) =>
                       e.type ==
                         element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
@@ -1640,164 +1641,7 @@ const orderCountSearch = async (token, search, offset, limit?) => {
     });
   });
 };
-const getBcDetails = async (bc_id, netcomId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      if (bc_id) {
-        let formData = {
-          bc: bc_id.toString(),
-          netcom_id: netcomId,
-        };
-        console.log('formData', formData);
 
-        let options = {
-          method: 'POST',
-          url: config.PYTHON_API + 'get-contact-bc',
-          // 'url': 'http://192.168.2.166:5005/api/'+'get-contact-bc',
-
-          formData: formData,
-        };
-
-        request(options, async function (error, response, body) {
-          if (error) {
-            commonErrors['errorTitle'] = 'getBcDetails';
-            warningMessage(commonErrors, error);
-            resolve(false);
-          } else {
-            console.log('1111111111');
-
-            resolve(JSON.parse(response.body));
-          }
-        });
-      } else {
-        resolve(false);
-      }
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      'access_token';
-    warningMessage(commonErrors, error);
-  }
-};
-const getOrderOT = async (accessToken, orderId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'GET',
-        url: `https://api.bexio.com/3.0/purchase_orders/${orderId}`,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/json',
-        },
-      };
-      // console.log('optionsoptions',options);
-
-      request(options, function (error, response) {
-        if (error) {
-          console.log('errorerrorerror', error);
-          commonErrors['errorTitle'] = 'getOrderOT';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            orderId;
-          warningMessage(commonErrors, error);
-          return resolve(error);
-        }
-        // console.log('responseresponse',response);
-
-        if (response.statusCode == 200) {
-          return resolve(JSON.parse(response.body));
-        } else {
-          return resolve(false);
-        }
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getOrderOT';
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-bexio param,' +
-      orderId;
-    warningMessage(commonErrors, error);
-    return;
-  }
-};
-const getContactById = async (accessToken, contact_idList) => {
-  return new Promise(async (resolve, reject) => {
-    let searchJson: any[] = [];
-    searchJson.push({
-      field: 'id',
-      value: contact_idList,
-      criteria: 'in',
-    });
-    let optionsContact = {
-      method: 'POST',
-      url: `${config.BEXIO_API}2.0/contact/search`,
-
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer ' + accessToken,
-      },
-      body: JSON.stringify(searchJson),
-    };
-    let contactList: any = [];
-    request(optionsContact, async function (error, response) {
-      if (error) {
-        commonErrors['errorTitle'] = 'getContactById';
-        commonErrors['errorDescription'] =
-          'From:' + path.basename(__filename) + '-bexio param,' + accessToken;
-        warningMessage(commonErrors, error);
-        resolve(error);
-      }
-      if (response.statusCode == 200) {
-        resolve(JSON.parse(response.body));
-      } else {
-        resolve(false);
-      }
-    });
-  });
-};
-const getAllCurrency = async (access_token) => {
-  return new Promise(async (resolve, reject) => {
-    var options = {
-      method: 'GET',
-      url: `https://api.bexio.com/3.0/currencies`,
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer ' + access_token,
-      },
-    };
-    request(options, function (error, response) {
-      if (error) {
-        commonErrors['errorTitle'] = 'getAllCurrency';
-        commonErrors['errorDescription'] =
-          'From:' +
-          path.basename(__filename) +
-          ' ' +
-          error.toString() +
-          '-bexio param';
-        warningMessage(commonErrors, error);
-        return resolve(false);
-      }
-
-      if (response?.statusCode == 200)
-        return resolve(JSON.parse(response.body));
-      else return resolve(false);
-    });
-  });
-};
 const setOrderSendStatus = async (
   partyId,
   orderId,
@@ -1986,53 +1830,7 @@ const fileUpload = async (transaction_id, file, access_token) => {
     });
   });
 };
-const getContactDetails = async (access_token, id) => {
-  console.log(id);
 
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'GET',
-        url: `https://api.bexio.com/2.0/contact/${id}`,
-        headers: {
-          Accept: 'application/json',
-          Authorization: 'Bearer ' + access_token,
-        },
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getContactDetails';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            id;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-
-        if (response.statusCode == 200)
-          return resolve(JSON.parse(response.body));
-        else return resolve(false);
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = getContactDetails.name;
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      access_token +
-      id;
-    warningMessage(commonErrors, error);
-
-    return resolve('');
-  }
-};
 const getCountryName = async (access_token, id) => {
   try {
     return new Promise(async (resolve, reject) => {
@@ -2116,56 +1914,6 @@ const setBillId = async (id, billId) => {
     return 0;
   }
 };
-const moveFile = async (netcomId, fileName) => {
-  let formData;
-  try {
-    formData = {
-      netcom_id: netcomId,
-      filename: fileName,
-    };
-    console.log(formData);
-
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'POST',
-        url: config.PYTHON_API + 'move-file',
-
-        formData: formData,
-      };
-
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'moveFile';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            formData;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-
-        console.log('move', response.body);
-
-        return resolve(response.body);
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'moveFile';
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      netcomId +
-      fileName;
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-};
 
 const getConnectionDetails = async (partyId, accountId, contactId, req) => {
   try {
@@ -2224,161 +1972,7 @@ const deleteRedis = async (api, key) => {
     console.log(error);
   }
 };
-async function invoiceFilePush(netcomId, service, data, filename, type) {
-  let formData;
-  console.log('123654');
 
-  return new Promise(async (resolve, reject) => {
-    formData = {
-      netcom_id: netcomId,
-      interface: service,
-      data: data,
-      filename: filename + '.xml',
-      module: type,
-    };
-
-    let options = {
-      method: 'POST',
-      // 'url':'http://192.168.2.63:5005/api/bexio-file-drop',
-      url: config.PYTHON_API + 'bexio-file-drop',
-      // 'headers': headers,
-      formData: formData,
-    };
-    request(options, function (error, response) {
-      if (error) {
-        console.log('sdfdsfdsf', error);
-
-        commonErrors['errorTitle'] = 'bexio-file-drop';
-        commonErrors['errorDescription'] =
-          'From:' +
-          path.basename(__filename) +
-          ' ' +
-          error.toString() +
-          '-bexio param,' +
-          formData;
-        warningMessage(commonErrors, error);
-        return resolve(false);
-      }
-
-      // console.log('invoiceFilePush',response.body);
-      console.log('asdsadsadsad', response?.body);
-
-      return resolve(response?.body);
-
-      // res.send(response.body)
-    });
-  });
-}
-const getCountryLists = async (access_token) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'GET',
-        url: `https://api.bexio.com/2.0/country`,
-        headers: {
-          Accept: 'application/json',
-          Authorization: 'Bearer ' + access_token,
-        },
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getCountryLists';
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            access_token;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-        if (response.statusCode == 200) return resolve(response.body);
-        else return resolve(false);
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = getCountryLists.name;
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      access_token;
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-};
-const getCurrency = async (access_token, id) => {
-  return new Promise(async (resolve, reject) => {
-    var options = {
-      method: 'GET',
-      url: `https://api.bexio.com/3.0/currencies/${id}`,
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer ' + access_token,
-      },
-    };
-    request(options, function (error, response) {
-      if (error) {
-        commonErrors['errorTitle'] = 'getCountryLists';
-        ((commonErrors['errorDescription'] =
-          'From:' +
-          path.basename(__filename) +
-          ' ' +
-          error.toString() +
-          '-bexio param,'),
-          id);
-        warningMessage(commonErrors, error);
-        return resolve(false);
-      }
-      // res.send(response.body)
-      //console.log(response.body);
-      if (response.statusCode == 200) return resolve(JSON.parse(response.body));
-      else return resolve(false);
-    });
-  });
-};
-const getloginUserCompanyDetails = async (access_token) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        method: 'GET',
-        url: 'https://api.bexio.com/2.0/company_profile',
-        headers: {
-          Accept: 'application/json',
-          Authorization: 'Bearer ' + access_token,
-        },
-      };
-
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
-          commonErrors['errorDescription'] =
-            'From:' +
-            path.basename(__filename) +
-            ' ' +
-            error.toString() +
-            '-bexio param,' +
-            access_token;
-          warningMessage(commonErrors, error);
-          return resolve(false);
-        }
-        if (response.statusCode == 200) return resolve(response.body);
-        else return resolve(false);
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = getloginUserCompanyDetails.name;
-    commonErrors['errorDescription'] =
-      'From:' +
-      path.basename(__filename) +
-      ' ' +
-      error.toString() +
-      '-req param,' +
-      access_token;
-    warningMessage(commonErrors, error);
-    return resolve('');
-  }
-};
+// getCurrencyList removed , if needed  import from helperfn.ts 
+// getloginUserCompanyDetails List removed , if needed  import from helperfn.ts 
+// invoiceFilePush List removed , if needed  import from helperfn.ts 

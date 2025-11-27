@@ -266,7 +266,7 @@ export class DebtorsService {
 
           console.log("invoiceListTemp",invoiceListTemp);
           if(invoiceListTemp){
-            invoiceContactListIds = invoiceListTemp.map(inv => inv.contact_id);
+            invoiceContactListIds = invoiceListTemp?.map(inv => inv.contact_id);
             console.log("invoiceContactListIds",invoiceContactListIds);
           }
        
@@ -278,7 +278,7 @@ export class DebtorsService {
             const targetNames = ['Print', 'Post'];
 
             const ids = contactGroupList
-              .filter(group => targetNames.includes(group.name))
+              ?.filter(group => targetNames.includes(group.name))
               .map(group => group.id);
 
              console.log("contactGroupList",contactGroupList);
@@ -289,7 +289,7 @@ export class DebtorsService {
                 "criteria": "in"
               });
             let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds.map(contact => contact.id);
+            arrayContactIds = contactIds?.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
        else if(data.channel.toLowerCase() == 'email'){
@@ -297,7 +297,7 @@ export class DebtorsService {
             const targetNames = ['email'];
 
             const ids = contactGroupList
-              .filter(group => targetNames.includes(group.name))
+              ?.filter(group => targetNames.includes(group.name))
               .map(group => group.id);
 
              console.log("contactGroupList",contactGroupList);
@@ -308,7 +308,7 @@ export class DebtorsService {
                 "criteria": "in"
               });
             let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds.map(contact => contact.id);
+            arrayContactIds = contactIds?.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
            else if(data.channel.toLowerCase() == 'ebill'){
@@ -316,7 +316,7 @@ export class DebtorsService {
             const targetNames = ['ebill'];
 
             const ids = contactGroupList
-              .filter(group => targetNames.includes(group.name))
+              ?.filter(group => targetNames.includes(group.name))
               .map(group => group.id);
 
              console.log("contactGroupList",contactGroupList);
@@ -327,7 +327,7 @@ export class DebtorsService {
                 "criteria": "in"
               });
             let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds.map(contact => contact.id);
+            arrayContactIds = contactIds?.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
       }
@@ -1807,7 +1807,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         let iteamArray:any = [];
         let taxId:any = [];
         let taxStatus = true;
-        let tempTaxIdTmp = taxList.filter((e) =>  (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
+        let tempTaxIdTmp = taxList?.filter((e) =>  (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
         console.log('tempTaxIdTmp[0]',tempTaxIdTmp[0].id);
   
         itemList[0].ORDER_ITEM.forEach(element => {
