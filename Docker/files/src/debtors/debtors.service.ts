@@ -47,6 +47,7 @@ export class DebtorsService {
         });
       }
       let configDetails:any = await getOctConfig(netcomId);
+      console.log("configdetails:",configDetails);
       
       if(configDetails.status && configDetails.records.length > 0){
         configData =  configDetails.records[0].config.serviceStatus
