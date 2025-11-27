@@ -4910,7 +4910,12 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 console.log('article', article);
                 let articleDetail: any = await getActiveItem(accessToken, article.article_id);
 
-                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id && articleDetail.name) {
+                console.log("Article Details----------------",articleDetail);
+                console.log("Article Details name ----------------",articleDetail?.name);
+
+                
+
+                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
                   console.log('articleDetail::::', articleDetail);
 
                   let printArticle = {
@@ -4918,7 +4923,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     "unit_id": articleDetail.unit_id,
                     "account_id": articleDetail.account_id,
                     "tax_id": articleDetail.tax_id,
-                    "text": articleDetail.name,
+                    "text": articleDetail?.name,
                     "unit_price": articleDetail.sale_price,
                     "discount_in_percent": '0.000000',
                     "article_id": articleDetail.id
