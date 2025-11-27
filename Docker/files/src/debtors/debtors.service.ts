@@ -1484,6 +1484,13 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
         if (tagItem) inv.allow = tagItem.allow;
       });
+      const notFoundInvoices = data.otherInvoice.filter(inv => {
+          return !getTag?.data?.some(t => t.doc_id == inv.doc_id);
+        });
+        console.log("Not found in getTagName:", notFoundInvoices);
+        notFoundInvoices.forEach(inv => {
+          combinedResponse.otherInvoiceResults.push(inv);
+        });
         console.log('data.otherInvoice',data.otherInvoice);
       const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
       const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
