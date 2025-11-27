@@ -1459,16 +1459,7 @@ console.log('pushEbillInvoiceProcess',invoices);
         let contact: any = await getContact(element.accessToken, element.contactId);
       console.log('contact::::1', contact);
       // If contact exists, check for required keys
-      if (!contact?.city || !contact?.country_id || !contact?.postcode) {
-        console.log('contact missing address or postal');
-          console.log('channel detail',channel);
-        let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId,element.doc_id, '', '0', 'contact_missing_address_or_postal',channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
-        warningMessage(commonErrors, 'contact_missing_address_or_postal');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
-      }
+     
       tempParam['body']['invoice_id'] = element.doc_id;
       tempParam['body']['biller_pid'] = billerId;
       tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
@@ -1476,6 +1467,16 @@ console.log('pushEbillInvoiceProcess',invoices);
       tempParam['body']['invoice_uuid'] = '';
       tempParam['body']['allow'] = element.allow;
       tempParam['body']['token'] = element.accessToken;
+       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
+        console.log('contact missing address or postal');
+          console.log('channel detail',channel);
+        let invoiceCid = await setEbillInvoiceSendStatus (bodyValues?.partyId,element.doc_id, '',tempParam,'0','contact_missing_address_or_postal');
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
+        warningMessage(commonErrors, 'contact_missing_address_or_postal');
+        resolve('something_went_wrong' + invoiceCid);
+        return;
+      }
       let v = await pushEbillInvoice(tempParam,'')
     }
 }
@@ -1630,7 +1631,7 @@ console.log('pushEbillInvoice',req.body);
       if (result.length == 0) {
 
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0','refreshToken_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1741,7 +1742,7 @@ console.log('pushEbillInvoice',req.body);
       if (!currency) {
        
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_currency_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1757,7 +1758,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (!temp) {
         
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_companyDetails_not_found');
 
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_companyDetails_not_found ' + '-req param,' + JSON.stringify(decryptData);
@@ -1771,7 +1772,7 @@ console.log('pushEbillInvoice',req.body);
       paymentType = true;
       if (!paymentType) {
      
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_paymentType_not_found');
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1786,7 +1787,7 @@ console.log('pushEbillInvoice',req.body);
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
       
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_contact_not_found');
 
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_contact_not_found ' + '-req param,' + JSON.stringify(decryptData);
@@ -1801,7 +1802,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (!user) {
      
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_user_not_found');
 
 
 
@@ -1857,7 +1858,7 @@ console.log('pushEbillInvoice',req.body);
       let xml;
 
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
-      let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1');
+      let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1','');
       console.log('billerDetails', billerDetails);
       invoice.partyId=partyId
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
@@ -1865,7 +1866,7 @@ console.log('pushEbillInvoice',req.body);
 
       if (xml == false) {
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'something_went_wrong');
+        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_xml_not_found');
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_xml_not_found');
@@ -1887,10 +1888,12 @@ console.log('pushEbillInvoice',req.body);
     }
   });
 }
-export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,receiverId?,error?) => {
+export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?,receiverId?) => {
   let sendInvoiceId;
    console.log('invoiceId',invoiceId);
+   console.log('responseBody error',error);
     let responseBody = error || '';
+    console.log('responseBody',responseBody);
     
     return new Promise(async function (resolve, reject) {
      try {
@@ -1913,9 +1916,11 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
               },
             },
           });
-
+    
           if(selectQryResult.length == 0)
           {
+            console.log('create');
+            
             const selectCompanyregisteredQryResult = await connectBexio.companyregistered.findMany({
               where: {
                 rk_party: Number(partyId), 
@@ -1941,8 +1946,11 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
             sendInvoiceId = result.object_id;
           }else{
             sendInvoiceId = selectQryResult[0].object_id;           
-            
-            await connectBexio.documents_invoice_send.updateMany({
+             console.log('updateMany');
+             console.log('Number(invoiceId)',Number(invoiceId));
+              console.log('bigint(invoiceId)',BigInt(invoiceId));
+              console.log('responseBody',responseBody);
+         const updateResult =  await connectBexio.documents_invoice_send.updateMany({
               where: {
                 fk_companyregistered: selectQryResult[0].companyregistered?.cid,
                 rk_invoice: BigInt(invoiceId),
@@ -1955,13 +1963,11 @@ export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,
                 response: responseBody,
                 status: Number(status),
                 invoice_type: 'EBILL',
-
               },
             });
-
+                console.log("updateResult:", updateResult); 
           }
-
-          
+     
           return resolve(sendInvoiceId);
         } catch (error) {
          console.log(error);

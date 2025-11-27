@@ -585,33 +585,57 @@ export class ConfigurationService {
         select: { settings: true },
       });
 
-      console.log('encrToken.payementStatus', encrToken.payementStatus);
-      console.log('encrToken.commentStatus', encrToken.commentStatus);
-      const existingSettings = getStatusQryRslt[0]?.settings;
-      console.log('existingSettings', existingSettings);
+      const existingSettingsRaw = getStatusQryRslt[0]?.settings;
 
-      // Normalize incoming string flags to booleans or undefined if not present
-      const payVal = encrToken.payementStatus === 'true' ? "true" : encrToken.payementStatus === 'false' ? "false" : undefined;
-      const commentVal = encrToken.commentStatus === 'true' ? "true" : encrToken.commentStatus === 'false' ? "false" : undefined;
+      // Keep incoming values as strings "true"/"false" (or undefined if not provided)
+      const payValRaw = encrToken.payementStatus;
+      const commentValRaw = encrToken.commentStatus;
+      const payVal = payValRaw === 'true' ? 'true' : payValRaw === 'false' ? 'false' : undefined;
+      const commentVal = commentValRaw === 'true' ? 'true' : commentValRaw === 'false' ? 'false' : undefined;
       const partyIdNum = Number(encrToken.partyId);
 
-      if (existingSettings != null && typeof existingSettings === 'object') {
-        // Update only the keys provided
-        if (payVal !== undefined) {
-          await connectBexio.$executeRaw`
-            UPDATE companyregistered
-            SET settings = jsonb_set(settings::jsonb, '{notifyPayment}', ${JSON.stringify(payVal)}::jsonb)
-            WHERE rk_party = ${partyIdNum}
-          `;
+      // Ensure we have an object to merge updates into
+      let settingsObj: any = {};
+      try {
+        if (existingSettingsRaw == null) {
+          settingsObj = {};
+        } else if (typeof existingSettingsRaw === 'string') {
+          settingsObj = existingSettingsRaw ? JSON.parse(existingSettingsRaw) : {};
+        } else if (typeof existingSettingsRaw === 'object') {
+          settingsObj = { ...existingSettingsRaw };
+        } else {
+          settingsObj = {};
         }
-        if (commentVal !== undefined) {
-          await connectBexio.$executeRaw`
-            UPDATE companyregistered
-            SET settings = jsonb_set(settings::jsonb, '{notifyComments}', ${JSON.stringify(commentVal)}::jsonb)
-            WHERE rk_party = ${partyIdNum}
-          `;
+      } catch (parseErr) {
+        settingsObj = {};
+      }
+
+      // Apply only provided updates (store as strings)
+      let shouldUpdate = false;
+      if (payVal !== undefined) {
+        settingsObj.notifyPayment = payVal;
+        shouldUpdate = true;
+      }
+      if (commentVal !== undefined) {
+        settingsObj.notifyComments = commentVal;
+        shouldUpdate = true;
+      }
+
+      if (shouldUpdate) {
+        // Normalize existing values to string form as well to ensure stored values are strings
+        if ('notifyPayment' in settingsObj) {
+          settingsObj.notifyPayment = String(settingsObj.notifyPayment);
         }
-      } 
+        if ('notifyComments' in settingsObj) {
+          settingsObj.notifyComments = String(settingsObj.notifyComments);
+        }
+
+        await connectBexio.$executeRaw`
+          UPDATE companyregistered
+          SET settings = ${JSON.stringify(settingsObj)}::jsonb
+          WHERE rk_party = ${partyIdNum}
+        `;
+      }
 
       res.send({
         status_code: 200,
@@ -2962,9 +2986,10 @@ const getConnections = async (netcomId,docType)=>{
       active_only:'true',
       doc_type: doc_type[0]['id'],
       //doc_format:config.DOC_FORMAT,
-      show_all: 'true'
+      show_all: 'true',
+      module:'BEX'
     }
-    //console.log('formData',formData);
+    console.log('formData post-list/connections',formData);
     
     return new Promise(async(resolve, reject) => {
       var options = {
@@ -2999,8 +3024,7 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
 
     formData = {
       invite_code:code,
-      logged_in_netcom_id:netComId
-    
+      logged_in_netcom_id:netComId,
     }
     console.log('invite_code',formData);
     

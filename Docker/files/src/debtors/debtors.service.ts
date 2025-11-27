@@ -47,6 +47,7 @@ export class DebtorsService {
         });
       }
       let configDetails:any = await getOctConfig(netcomId);
+      console.log("configdetails:",configDetails);
       
       if(configDetails.status && configDetails.records.length > 0){
         configData =  configDetails.records[0].config.serviceStatus
@@ -1334,8 +1335,8 @@ console.log('!invoice.allow',invoice.allow);
       invoice.documentNumber,
       [invoice],
       '0',
-      invoice.contactId,
-      'no_subscription_found'
+      'no_subscription_found',
+      invoice.contactId
     );
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
@@ -1348,8 +1349,8 @@ console.log('!invoice.allow',invoice.allow);
     invoice.documentNumber,
     [invoice],
     '1',
+    '',
     invoice.contactId,
-    ''
   );
   const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
   invoice.accessToken = tokenSet.access_token;
@@ -1483,6 +1484,13 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
         if (tagItem) inv.allow = tagItem.allow;
       });
+      const notFoundInvoices = data.otherInvoice.filter(inv => {
+          return !getTag?.data?.some(t => t.doc_id == inv.doc_id);
+        });
+        console.log("Not found in getTagName:", notFoundInvoices);
+        notFoundInvoices.forEach(inv => {
+          combinedResponse.otherInvoiceResults.push(inv);
+        });
         console.log('data.otherInvoice',data.otherInvoice);
       const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
       const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
@@ -1561,7 +1569,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
            console.log('ebillResults inv',inv)
         combinedResponse.otherInvoiceResults.push(inv);
          console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+        //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
         ebillProcessed.push(inv);
       });
     }
