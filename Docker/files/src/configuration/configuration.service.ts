@@ -2880,7 +2880,7 @@ const getPythonData = async (netcomId) => {
       'url': config.PYTHON_API + 'post-list/connections',
         formData: formData
       };
-      //console.log('options',options);
+      console.log('getPythonData options',options);
       
       await request(options, async function (error, response) {
        
