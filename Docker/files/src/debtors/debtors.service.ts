@@ -220,14 +220,14 @@ export class DebtorsService {
       if (data.dateFrom) {
         searchJson.push({
           "field": "is_valid_from",
-          "value": new Date(data.dateFrom),
+          "value": data.dateFrom,
           "criteria": ">="
         });
       }
       if (data.dateTo) {
         searchJson.push({
           "field": "is_valid_to",
-          "value": new Date(data.dateTo),
+          "value": data.dateTo,
           "criteria": "<="
         });
       }
