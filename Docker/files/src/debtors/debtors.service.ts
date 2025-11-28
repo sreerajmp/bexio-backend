@@ -735,6 +735,18 @@ export class DebtorsService {
              });
   
             } 
+
+            console.log("Deptors Order response--------------",response);
+            
+            if(response.statusCode === 401)
+            {
+              return res.status(401).json({
+                status: 'fail',
+                message: 'unauthorized',
+              })
+            }
+
+
             if(response.statusCode != 200)
             {
               return res.status(200).json({
