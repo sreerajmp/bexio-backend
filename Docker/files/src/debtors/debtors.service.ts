@@ -1480,17 +1480,17 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     if (data.otherInvoice.length) {
       const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
       console.log('getTag',getTag);
-      data.otherInvoice.forEach(inv => {
+          data.otherInvoice.forEach(inv => {
       const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
-        if (tagItem) {
-          inv.allow = tagItem.allow;
-        } else {
-          console.log('inv',inv);
-          combinedResponse.otherInvoiceResults.push(inv); // <-- safe
-          console.log('combinedResponse',combinedResponse.otherInvoiceResults);
-          
-        }
-      });
+      console.log('tagItem',tagItem);
+      if (tagItem) {
+        inv.allow = tagItem.allow;
+      } else {
+        console.log('tagItem************',inv);
+        combinedResponse.otherInvoiceResults.push(inv);
+      }
+    });
+
       console.log('data.otherInvoice',data.otherInvoice);
       const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
       const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
