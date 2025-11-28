@@ -226,7 +226,7 @@ export class DebtorsService {
       }
       if (data.dateTo) {
         searchJson.push({
-          "field": "is_valid_from",
+          "field": "is_valid_to",
           "value": new Date(data.dateTo),
           "criteria": "<="
         });
