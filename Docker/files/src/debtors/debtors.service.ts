@@ -203,6 +203,9 @@ export class DebtorsService {
         
       }
 
+      console.log("Query Datas",data);
+      
+
       if (data.documentNo) {
         searchJson.push({
           "field": "document_nr",
