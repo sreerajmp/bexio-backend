@@ -1492,16 +1492,15 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     if (data.otherInvoice.length) {
       const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
       console.log('getTag',getTag);
-              
-      data.otherInvoice.forEach(inv => {
-        const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
-        if (tagItem) inv.allow = tagItem.allow;
-        else {
-          combinedResponse.otherInvoiceResults.push(inv);
-         }
-      });
-    
-        console.log('data.otherInvoice',data.otherInvoice);
+          data.otherInvoice.forEach(inv => {
+      const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
+      console.log('tagItem',tagItem);
+      if (tagItem) {
+        inv.allow = tagItem.allow;
+      } 
+    });
+
+      console.log('data.otherInvoice',data.otherInvoice);
       const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
       const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
       const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'ebill'));
@@ -1544,6 +1543,13 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
         ebillProcessed.push(inv);
       });
+          data.otherInvoice.forEach(inv => {
+             console.log('no inv',inv);
+      if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
+        console.log('no inv1',inv);
+        combinedResponse.otherInvoiceResults.push(inv);
+      }
+    });
     }
 
     // ------------------------------
