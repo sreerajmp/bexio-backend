@@ -4909,12 +4909,6 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 console.log('No matching position found for item:');
                 console.log('article', article);
                 let articleDetail: any = await getActiveItem(accessToken, article.article_id);
-
-                console.log("Article Details----------------",articleDetail);
-                console.log("Article Details name ----------------",articleDetail?.name);
-
-                
-
                 if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
                   console.log('articleDetail::::', articleDetail);
 
