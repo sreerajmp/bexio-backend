@@ -1485,10 +1485,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       console.log('tagItem',tagItem);
       if (tagItem) {
         inv.allow = tagItem.allow;
-      } else {
-        console.log('tagItem************',inv);
-        combinedResponse.otherInvoiceResults.push(inv);
-      }
+      } 
     });
 
       console.log('data.otherInvoice',data.otherInvoice);
@@ -1534,6 +1531,13 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
         ebillProcessed.push(inv);
       });
+          data.otherInvoice.forEach(inv => {
+             console.log('no inv',inv);
+      if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
+        console.log('no inv1',inv);
+        combinedResponse.otherInvoiceResults.push(inv);
+      }
+    });
     }
 
     // ------------------------------
