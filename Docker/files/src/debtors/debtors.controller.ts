@@ -20,7 +20,7 @@ export class DebtorsController {
 
 // for testing purposes
     @UseInterceptors(RedisCacheInterceptor)
-  @Post('getInvoice')
+  @Post('getInvoiceTest')
   @UseInterceptors(AnyFilesInterceptor()) 
   async getInvoiceTest(@Req() req: Request, @Res() res: Response): Promise<any> {
     console.log('controller getInvoiceTest');
