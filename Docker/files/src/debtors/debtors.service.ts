@@ -28,9 +28,6 @@ import status_code from 'src/common/utils/statusCodes';
 @Injectable()
 export class DebtorsService {
   constructor(private readonly pushWorkerHost: PushWorkerHost, private readonly sendDeliveryNotesHost: SendDeliveryNotesHost) {}
-
- 
-
   async getInvoice(req: Request, res: Response): Promise<any> {
    let data = req.body;
     let partyId = req.body.partyId;
@@ -86,7 +83,7 @@ export class DebtorsService {
           companyregistered: true
         }
       });
-
+     console.log('invoiceList', invoiceList);
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
                     SELECT array_agg(pa.cid) AS cid 
@@ -94,8 +91,8 @@ export class DebtorsService {
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
         );
-        console.log('getInviteCompanyId',getInviteCompanyId,);
-        console.log('getInviteCompanyId',netcomId);
+        console.log('getInviteCompanyId',getInviteCompanyId);
+        console.log('netcomId',netcomId);
 
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
@@ -106,11 +103,11 @@ export class DebtorsService {
                   AND cb.rk_businessconnection IS NOT NULL
                 `
         );
-
+      console.log('getConnectionStatusList',getConnectionStatusList);
         const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
         let bcDetails;
         bcDetails = await getBcDetails(bcConnectionIds, netcomId);
-
+       console.log('bcDetails',bcDetails);
         let tempBc = [0];
         if (bcDetails?.data?.length) {
           for (const element of bcDetails.data) {
@@ -120,9 +117,9 @@ export class DebtorsService {
           }
         }
         const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
+        console.log('getConnectionBcResult',getConnectionBcResult);
         resultArray = getConnectionBcResult[0]?.array_agg;
-     
-
+        console.log('resultArray',resultArray);
       let options;
       let searchJson: any[] = [];
       let getSendInvoiceListResult;
@@ -143,6 +140,7 @@ export class DebtorsService {
             ];
 
             const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
+            console.log('paidOrPendingBexioInvoices',paidOrPendingBexioInvoices);
             const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
             console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
            
@@ -289,6 +287,7 @@ export class DebtorsService {
                 "criteria": "in"
               });
             let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+            console.log("contactIds",contactIds);
             arrayContactIds = contactIds?.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
@@ -299,7 +298,6 @@ export class DebtorsService {
             const ids = contactGroupList
               ?.filter(group => targetNames.includes(group.name))
               .map(group => group.id);
-
              console.log("contactGroupList",contactGroupList);
              let searchContactgrp: any[] = [];
               searchContactgrp.push({
@@ -308,6 +306,7 @@ export class DebtorsService {
                 "criteria": "in"
               });
             let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+             console.log("contactIds",contactIds);
             arrayContactIds = contactIds?.map(contact => contact.id);
               console.log("arrayContactIds",arrayContactIds);
           }
@@ -331,8 +330,8 @@ export class DebtorsService {
               console.log("arrayContactIds",arrayContactIds);
           }
       }
-      console.log("arrayContactIds1111111111",arrayContactIds);
-      console.log("arrayContactIds1111111111",invoiceContactListIds);
+      
+      console.log("invoiceContactListIds",invoiceContactListIds);
       if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
         let tempArray = [...arrayContactIds,...invoiceContactListIds]
         if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
@@ -344,7 +343,8 @@ export class DebtorsService {
           `
           );
           getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
-
+          console.log("getNotInvoiceIdRslt",getNotInvoiceIdRslt);
+         console.log("getNotInvoiceId",getNotInvoiceId);
           tempArray = [...tempArray,...tempContact]
         searchJson.push({
           "field": "contact_id",
@@ -735,6 +735,7 @@ export class DebtorsService {
              });
   
             } 
+            console.log('contact response',response);
             if(response.statusCode != 200)
             {
               return res.status(200).json({
@@ -743,7 +744,7 @@ export class DebtorsService {
             });
             }
             contacts = JSON.parse(response.body);
-            // //console.log('contacts',contacts);
+           console.log('contacts',contacts);
             
             const getRegisteredId = await connectBexio.companyregistered.findMany({
               where: {
@@ -753,6 +754,7 @@ export class DebtorsService {
                 cid: true, // Selects only `cid`
               },
             });
+             console.log('getRegisteredId',getRegisteredId);
             
             const validDate = (date) => {
               const parsedDate = new Date(date);
@@ -913,14 +915,15 @@ export class DebtorsService {
           companyregistered : true, // Includes related company details if needed
         },
       });
-      
+       console.log('deliveryNotesList',deliveryNotesList);
+            
 
       const getNetcomId = await connectBexio.$queryRaw<any>(
         Prisma.sql`
         SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
       `
       );
-      //console.log('getNetcomId',getNetcomId);
+      console.log('getNetcomId',getNetcomId);
 
       
 
@@ -931,13 +934,7 @@ export class DebtorsService {
         WHERE pa.fk_party = ${Number(partyId)}
       `
       );
-
-    
-      //console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId[0].cid);
-    
-      
-
-
+      console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId);
       const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
         Prisma.sql`
         SELECT array_agg(rk_businessconnection) AS "bcConnection"
@@ -949,12 +946,13 @@ export class DebtorsService {
         AND cb.rk_businessconnection IS NOT NULL
       `
       );
-
+     console.log('getConnectionStatusList',getConnectionStatusList);
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
       let bcDetails;
       bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
 
-     
+      console.log('bcDetails',bcDetails);
+
       let tempBc = [0];
     
       if(bcDetails?.data?.length){
@@ -985,6 +983,7 @@ export class DebtorsService {
       if(isBexioUser){
          var options
         totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
+        console.log('totalCount',totalCount);
         if(data.documentNo){
             let docNumber = data.documentNo;
           if (docNumber.includes('-')) {
@@ -1024,7 +1023,7 @@ export class DebtorsService {
           });
           }
         let resData = Array.isArray(JSON.parse(response.body))?JSON.parse(response.body):[JSON.parse(response.body)];    
-// console.log('resData', resData);
+        console.log('resData', resData);
 
 // console.log('resData', resData);
           if(response.statusCode != 200)
@@ -2050,7 +2049,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       async function processInvoices(obj, bodyData) {
         for (let index = 0; index < obj.length; index++) {
           const element = obj[index];
-          await setDeliveryNotesCidSendStatus(bodyData.partyId, element.delivery_id, '', '1', '');
+          await setDeliveryNotesCidSendStatus(bodyData.partyId, element.delivery_id, element.documentNr, '1', '');
         }
       }
       await processInvoices(obj, bodyData);
