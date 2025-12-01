@@ -16,6 +16,16 @@ export class DebtorsController {
     console.log('controller getInvoice');
     return this.debtorsService.getInvoice(req, res);
   }
+
+
+// for testing purposes
+    @UseInterceptors(RedisCacheInterceptor)
+  @Post('getInvoice')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async getInvoiceTest(@Req() req: Request, @Res() res: Response): Promise<any> {
+    console.log('controller getInvoiceTest');
+    return this.debtorsService.getInvoiceTest(req, res);
+  }
   @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
   @UseInterceptors(AnyFilesInterceptor()) 
