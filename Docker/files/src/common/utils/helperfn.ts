@@ -5815,3 +5815,13 @@ export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
   let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
   return contactIds?.map(contact => contact.id) || []
 }
+
+export const validDate = (date:string,isEnd?:boolean) => {
+  const parsedDate = new Date(date);
+  if(isNaN(parsedDate.getTime())) return undefined
+  if(isEnd){
+    parsedDate.setHours(23,59,59,999)
+  }
+  return parsedDate;
+};
+            
