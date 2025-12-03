@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel, validDate } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -1266,18 +1266,12 @@ export class DebtorsService {
               },
             });
              console.log('getRegisteredId',getRegisteredId);
-            
-            const validDate = (date) => {
-              const parsedDate = new Date(date);
-              return isNaN(parsedDate.getTime()) ? undefined : parsedDate;
-            };
-            
             const orderList = await connectBexio.documents_order_receive.findMany({
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: data.startDate,
-                  lte: data.endDate,
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate,true),
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -1289,14 +1283,15 @@ export class DebtorsService {
               skip: Number(showFrom) - 1,
               take: Number(showTo) - Number(showFrom) + 1,
             });
+            console.log("end Date converted",validDate(data.endDate));
             
            console.log("orderList:", orderList);
             const orderListCount = await connectBexio.documents_order_receive.count({
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: data.startDate,
-                  lte: data.endDate,
+                  gte: validDate(data.startDate),
+                  lte: validDate(data.endDate,true),
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -1305,6 +1300,7 @@ export class DebtorsService {
                 ...(data.orderStatus === "No" ? { rk_order: null } : {}),
               },
             });
+            
             console.log("Total Orders:", orderListCount);
             const totalOrders = Number(orderListCount); // Convert BigInt to Number
             
