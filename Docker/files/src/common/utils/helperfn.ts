@@ -5762,3 +5762,56 @@ export const createCountry = async (access_token,name,name_short,country_code)=>
     return resolve('');
   }
 }
+
+
+export const parseResponse = (response: any) => {
+          if (response) {
+            try {
+              console.log('response:: type', typeof response);
+              console.log('response:: type', response);
+              // let parsedData = JSON.parse(response);
+              // let parsedData = response;
+              // console.log("response:: parsedData",response)
+              if (Array.isArray(response)) {
+                return response;
+              } else if (
+                response &&
+                typeof response === 'object' &&
+                response.message
+              ) {
+                return [];
+              } else {
+                return [];
+              }
+            } catch (error) {
+              console.error('Error parsing response:', error);
+            }
+          }
+          return [];
+        };
+
+const CHANNEL_GROUP={
+  print: ["Print", "Post"],
+  email: ["email"],
+  ebill: ["ebill"]
+}
+
+export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
+  const targetChannel=CHANNEL_GROUP[channel.toLowerCase()]
+  if(!targetChannel) return []
+
+   let contactGroupList: any = await getContactGroupList(accessToken);
+
+   const ids = contactGroupList
+              ?.filter(group => targetChannel.includes(group.name))
+              .map(group => group.id);
+
+    let searchContactgrp: any[] = [{
+    field: "contact_group_ids",
+    value: ids,
+    criteria: "in"
+  }];
+
+  let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+  return contactIds?.map(contact => contact.id) || []
+}

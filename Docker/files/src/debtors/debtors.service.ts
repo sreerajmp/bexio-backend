@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -229,7 +229,7 @@ export class DebtorsService {
       }
       if (data.dateTo) {
         searchJson.push({
-          "field": "is_valid_to",
+          "field": "is_valid_from",
           "value": data.dateTo,
           "criteria": "<="
         });
@@ -692,9 +692,9 @@ export class DebtorsService {
   }
 
   async getInvoiceTest(req: Request, res: Response): Promise<any> {
-   let data = req.body;
-    let partyId = req.body.partyId;
-    let netcomId = req.body.netcomId;
+    let data = req.body;
+    let partyId = data.partyId;
+    let netcomId = data.netcomId;
     let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData = {};
     let invoiceListTemp;
     try {
@@ -730,8 +730,8 @@ export class DebtorsService {
       let sortColumn = data.sortColumn || 'updated_at';
       let sortType = data.sort || 'asc';
 
-      let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.page_number==1 ? 2000: req.body.records_per_page ;
+      let showFrom = data.records_per_page * (data.page_number - 1);
+      let showTo = data.page_number==1 ? 2000: data.records_per_page ;
       console.log('showFrom', showFrom);
       console.log('showTo', showTo);
       let resultArray: any[] = [];
@@ -739,7 +739,7 @@ export class DebtorsService {
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
           companyregistered: {
-            rk_party: Number(req.body?.partyId)
+            rk_party: Number(data?.partyId)
           }
         },
         include: {
@@ -816,16 +816,12 @@ export class DebtorsService {
             searchJson.push(
               {
                 field: 'id',
-                value: getSendInvoiceListResult[0].successOrPending[0].invoiceId
-                  ? getSendInvoiceListResult[0].successOrPending[0].invoiceId
-                  : '',
+                value: getSendInvoiceListResult?.[0]?.successOrPending?.[0]?.invoiceId || '',
                 criteria: 'in',
               },
               {
                 field: 'id',
-                value: getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
-                  ? getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
-                  : '',
+                value: getSendInvoiceListResult?.[1]?.failedGate2b?.[0]?.invoiceId|| '',
                 criteria: 'not_in',
               },
             );
@@ -834,7 +830,7 @@ export class DebtorsService {
             searchJson.push(
             {
               "field": "id",
-              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
+              "value": getSendInvoiceListResult?.[0]?.invoiceId || "",
               "criteria": "in"
             });
           }
@@ -849,7 +845,7 @@ export class DebtorsService {
             // },
             {
               "field": "id",
-              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
+              "value": getSendInvoiceListResult?.[0]?.invoiceId ||"",
               "criteria": "not_in"
             },
             {
@@ -889,7 +885,7 @@ export class DebtorsService {
       }
       if (data.dateTo) {
         searchJson.push({
-          "field": "is_valid_to",
+          "field": "is_valid_from",
           "value": data.dateTo,
           "criteria": "<="
         });
@@ -916,7 +912,7 @@ export class DebtorsService {
 
           if(getInvoiceIdRslt[0]['invoices']){
             console.log('22222222222222222222222');
-             dbInvoice = getInvoiceIdRslt[0]['invoices']
+            dbInvoice = getInvoiceIdRslt[0]['invoices']
             let searchJson: any[] = [];
             searchJson.push({
               "field": "id",
@@ -937,60 +933,15 @@ export class DebtorsService {
           if(data.channel.toLowerCase() == 'edi'){
             tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
           }else if(data.channel.toLowerCase() == 'print'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['Print', 'Post'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
-              console.log("arrayContactIds",arrayContactIds);
+            arrayContactIds =await getContactIdsByChannel(accessToken,"print");
+            console.log("arrayContactIds",arrayContactIds);
           }
        else if(data.channel.toLowerCase() == 'email'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['email'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
+            arrayContactIds = await getContactIdsByChannel(accessToken,"email");
               console.log("arrayContactIds",arrayContactIds);
           }
            else if(data.channel.toLowerCase() == 'ebill'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['ebill'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
+            arrayContactIds = await getContactIdsByChannel(accessToken,"ebill");
               console.log("arrayContactIds",arrayContactIds);
           }
       }
@@ -1028,185 +979,71 @@ export class DebtorsService {
             "value": dbInvoice,
             "criteria": "in"
           });
-        }
-        
+        }  
       }
 
       }
       let resData: any[] = [];
-      console.log('searchJson:::',searchJson);
-      if (searchJson.length > 0) {
       console.log('searchJson 2:::',searchJson);
+      const isSearch=searchJson.length > 0
+      let url = isSearch
+                ? `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`
+                : `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`;
 
-          // totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
-          options = {
-            'method': 'POST',
-            'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
+      options = {
+            'method': isSearch?'POST' :'GET',
+            'url': url,
             'headers': {
               'Accept': 'application/json',
               'Authorization': 'Bearer ' + accessToken
             },
-            body: JSON.stringify(searchJson)
           };
-          console.log("optionsoptions",options);
-          
-        const response = await new Promise<any>((resolve, reject) => {
+
+      if (isSearch) {
+       options.body = JSON.stringify(searchJson);
+      }
+      const response = await new Promise<any>((resolve, reject) => {
           request(options, (error, response) => {
             if (error) reject(error);
             else resolve(response);
           });
         });
-
-        if (response.statusCode != 200) {
-              return res.status(401).json({
+      
+      if(response.statusCode==401){
+        return res.status(401).json({
                 status: true,
-                status_code: response.statusCode,
                 data: [],
                 message: 'unauthorized',
               });
-            }
+      }else if(response.statusCode==200){       
+          const parsed=JSON.parse(response.body)as any[]
+          const perPage = Number(data.records_per_page);
+          console.log('parsed------', parsed);
+        console.log('perPage========', perPage);
 
-        resData = JSON.parse(response.body);
-
-        console.log('resData', resData);
-
-        const parseResponse = (response: any) => {
-          if (response) {
-            try {
-              console.log('response:: type', typeof response);
-              console.log('response:: type', response);
-              // let parsedData = JSON.parse(response);
-              // let parsedData = response;
-              // console.log("response:: parsedData",response)
-              if (Array.isArray(response)) {
-                return response;
-              } else if (
-                response &&
-                typeof response === 'object' &&
-                response.message
-              ) {
-                return [];
-              } else {
-                return [];
-              }
-            } catch (error) {
-              console.error('Error parsing response:', error);
-            }
-          }
-          return [];
-        };
-          
-        const parsed = JSON.parse(response.body) as any[];
-        const perPage = Number(req.body.records_per_page);
-        console.log('parsed', parsed.length);
-        console.log('isarray:', Array.isArray(parsed));
-        console.log('perPage', perPage);
-        console.log('perPage', perPage);
-        if (Array.isArray(parsed) && parsed.length > perPage) {
+        if(Array.isArray(parsed) && parsed.length>perPage){
+          console.log('entered in if',totalCount);
           totalCount = parsed.length;
-          console.log('entered in if', totalCount);
           resData = parseResponse(parsed.slice(0, perPage));
-        } else {
-          console.log('entered in else', parsed.length);
+        }else {
+          console.log('entered in else',totalCount);
           resData = parseResponse(parsed.slice(0, perPage));
           totalCount =
-            req.body.page_number != 1
-              ? Number(req.body.totalCount)
-              : parsed.length | 0;
+          data.page_number != 1
+                ? Number(data.totalCount)
+                : parsed.length | 0;
         }
-
+      
       } else {
-          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          // totalCount = totalCountInvoiceList + totalCountInvoiceCount;
-          console.log('searchJson:',searchJson);          
-
-          const getOptions = {
-            'method': 'GET',
-            'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-            'headers': {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer ' + accessToken
-            }
-          };
-
-          const parseResponse = (response: any) => {
-            if (response) {
-              try {
-                console.log("response:: type", typeof response)
-                console.log("response:: type",response)
-                // let parsedData = JSON.parse(response);
-                // let parsedData = response;
-                // console.log("response:: parsedData",response)
-                if (Array.isArray(response)) {
-                  return response;
-                } else if (response && typeof response === "object" && response.message) {
-                return [];
-                }else{
-                  return [];
-
-                }
-              } catch (error) {
-                console.error("Error parsing response:", error);
-              }
-            }
-            return [];
-          };
-
-          const getResponse = await new Promise<any>((resolve, reject) => {
-            request(getOptions, (error, response) => {
-              if (error) reject(error);
-              else resolve(response);
-            });
-          }).catch(error => {
-            console.error("Request error:", error);
-          return null;
-          });
-          console.log('searchJson',searchJson);
-          console.log('getOptions',getOptions);
-
-          console.log('getResponse',getResponse.statusCode);
-          // console.log('getResponse message',getResponse);
-         
-          if (getResponse.statusCode == 401) {
-            return res.status(401).json({
-              status: true,
-              data: [],
-              message: "unauthorized",
-            });
-          }
-        else if (getResponse.statusCode == 200) {
-          const parsed = JSON.parse(getResponse.body) as any[];
-          const perPage = Number(req.body.records_per_page);
-          console.log('parsed', parsed.length);
-          console.log("isarray:",Array.isArray(parsed));          
-          console.log('perPage', perPage);
-          console.log('perPage', perPage);
-          if (Array.isArray(parsed) && (parsed.length > perPage)) {
-            totalCount = parsed.length ;
-
-            console.log('entered in if',totalCount);
-            
-            resData = parseResponse(parsed.slice(0, perPage));
-          } else {
-            console.log('entered in else',parsed.length);
-            
-            resData = parseResponse(parsed.slice(0, perPage));
-            totalCount = req.body.page_number !=1? Number(req.body.totalCount): parsed.length | 0;
-          }
-        }
-
-        else {
-          console.log('getResponse', getResponse);
-          console.log('getResponse body', getResponse.body);
-          console.log('getResponse status', getResponse.statusCode);
-          return res.status(getResponse.statusCode).json({
+          console.log('getResponse', response);
+          console.log('response body', response.body);
+          console.log('response status', response.statusCode);
+          return res.status(response.statusCode).json({
             status: true,
-            data: getResponse.body,
-            message: getResponse.statusMessage,
+            data: response.body,
+            message: response.statusMessage,
           });
 
-        }
       }
 
       if (resData && resData.length > 0) {
@@ -1308,7 +1145,7 @@ export class DebtorsService {
                   };
                 });
 
-          let redisKey = req.body.partyId + "_" + req.url + "_";
+        let redisKey = req.body.partyId + "_" + req.url + "_";
         let keys = Object.keys(req.body);
           keys.forEach(element => {
           redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey;
@@ -1350,6 +1187,7 @@ export class DebtorsService {
       });
     }
   }
+
   async getOrderList(req: Request, res: Response,): Promise<any> {
     let cookie = null
     let data = req.body;
@@ -1438,8 +1276,8 @@ export class DebtorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.startDate),
-                  lte: validDate(data.endDate),
+                  gte: data.startDate,
+                  lte: data.endDate,
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
@@ -1457,8 +1295,8 @@ export class DebtorsService {
               where: {
                 fk_companyregistered: getRegisteredId[0]?.cid,
                 created_date: {
-                  gte: validDate(data.startDate),
-                  lte: validDate(data.endDate),
+                  gte: data.startDate,
+                  lte: data.endDate,
                 },
                 rk_order: data.documentNo?.trim()
                   ? { contains: data.documentNo.trim(), mode: "insensitive" }
