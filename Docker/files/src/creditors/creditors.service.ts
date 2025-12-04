@@ -33,6 +33,12 @@ export class CreditorsService {
     let cookie = null;
     let data = req.body;
 
+    console.log("request Body ",data);
+
+    console.log( "Status ", data.status);
+    
+    
+
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
@@ -140,7 +146,7 @@ export class CreditorsService {
               take: Number(showTo) - Number(showFrom) + 1,
             });
 
-          //  console.log("billsList", billsList);
+           console.log("billsList ----------------", billsList);
 
           const billsListCount =
             await connectBexio.documents_invoice_receive.count({
@@ -234,6 +240,7 @@ export class CreditorsService {
         .json({ status: 500, message: 'something_went_wrong' });
     }
   }
+
   async getOrderList(req: Request, res: Response): Promise<any> {
     console.log('getOrderList:');
 
