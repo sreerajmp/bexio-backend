@@ -2650,33 +2650,68 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     let formData 
     formData = req.body;
     try {
-        const referenceId = formData.referenceId ;
-        let status;
-        
-        console.log('formData',formData);
-        switch (formData.status.trim()) {
-          case 'ERROR':
-          case 'INCORRECT':
-          case 'REJECTED':
-            status = 0;
-            break;
-          case 'COMPLETED':
-            status = 2;
-            break;
-          case 'OPEN ':
-          case 'APPROVED':  
-            status = 1;
-          default:
-            status = 1;
-            break;
-        }
-        console.log('JSON.parse(formData.message)',JSON.parse(formData.message || '{}'));
-         let errorBody = (JSON.parse(formData.message || '{}')).technicalReason || '';
-          console.log('errorBody',errorBody);
+       const referenceId = formData.referenceId;
+const transactionId = formData.transactionId;
+let status, response;
+
+// Set default service as 'ebill' if not provided
+const service = (formData.service || 'ebill').toLowerCase();
+
+console.log('formData', formData);
+console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}'));
+
+          if (service === 'ebill') {
+            switch (formData.status.trim()) {
+              case 'ERROR':
+                status = 0;
+                response = (JSON.parse(formData.message || '{}'))?.technicalReason || '';
+                break;
+              case 'INCORRECT':
+                status = 0;
+                response = 'failed';
+                break;
+              case 'REJECTED':
+                status = 0;
+                response = 'rejected';
+                break;
+              case 'COMPLETED':
+                status = 2;
+                response = 'completed';
+                break;
+              case 'OPEN':
+                status = 1;
+                response = 'open';
+                break;
+              case 'APPROVED':
+                status = 1;
+                response = 'approved';
+                break;
+              default:
+                status = 1;
+                break;
+            }
+          } else if (service === 'print') {
+            switch (formData.status.trim()) {
+              case 'ERROR':
+                status = 0;
+                response = 'rejected';
+                break;
+              case 'SENT':
+                status = 2;
+                response = 'completed';
+                break;
+              default:
+                status = 1;
+                break;
+            }
+          }
           const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
             where: {
-              reference_id: referenceId, 
-            },
+            OR: [
+              { reference_id: referenceId },
+              { rk_globaltransaction: transactionId },
+            ],
+          },
             include: {
               companyregistered: true,
             },
@@ -2686,18 +2721,25 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           // Update status and fetch updated invoice(s) to get rk_invoice
           await connectBexio.documents_invoice_send.updateMany({
             where: {
-              reference_id: referenceId,
+                OR: [
+              { reference_id: referenceId },
+              { rk_globaltransaction: transactionId },
+            ],
             },
             data: {
               status: status,
               is_notifyed: true,
-              response:errorBody
+              response:response
             },
           });
 
             // Fetch the updated record to get rk_invoice as a number
             const updatedInvoice = await connectBexio.documents_invoice_send.findFirst({
-              where: { reference_id: referenceId },
+              where: {   OR: [
+                  { reference_id: referenceId },
+                  { rk_globaltransaction: transactionId },
+                ],
+              },
               select: { rk_invoice: true },
             });
             const rkInvoice = updatedInvoice?.rk_invoice ? Number(updatedInvoice.rk_invoice) : undefined;
