@@ -473,6 +473,12 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
         if( invitionData.length != 0){    
 
             let customerIds = await constGetContactId(invitionData[0].rk_businessconnection);
+            if(!customerIds){
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_custimerIds -req param,',JSON.stringify(req.body);
+              warningMessage(commonErrors,'error_custimerIds ');
+              return resolve('customer_ids_not_found');
+            }
             //console.log(customerIds);
             //console.log('invitionData',invitionData);     
             let pdf,fileName,pdfContent;
@@ -1375,12 +1381,23 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       let coutryList;
       coutryList = await getCountryLists(accessToken);
       if (!coutryList) {
-        resolve('coutryList not found');
+        resolve('countryList not found');
         return;
       }
       coutryList = JSON.parse(coutryList);
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
       let contact = await getContact(accessToken, invoice?.contact_id);
+      if(!invoice){
+        console.log('Invoice not found');
+        // let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'invoice_not_found');
+        // resolve('something_went_wrong' + invoiceCid);
+        resolve('something_went_wrong' );
+
+        return;
+      }
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
@@ -1446,46 +1463,92 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues,channel)=>{
-console.log('pushEbillInvoiceProcess',invoices);
-  let tempIds = invoices
-  let tempParam = {
-    body:{
-      invoice_id:'',
-      biller_pid:'',
-      contact_pid:'',
-      invoice_uuid:'',
-      token:''
-    }
-  };
-    for (let index = 0; index < tempIds.length; index++) {
+export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues,channel)=>{  
+  return new Promise(async(resolve,reject)=>{
+    try{      
+      console.log('pushEbillInvoiceProcess',invoices);
+      let tempIds = invoices
+      for (let index = 0; index < tempIds.length; index++) {
          const element = tempIds[index];
          console.log('element.accessToken',element.accessToken);
          console.log('element.contactId',element.contactId);
-        let contact: any = await getContact(element.accessToken, element.contactId);
-      console.log('contact::::1', contact);
-      // If contact exists, check for required keys
-     
-      tempParam['body']['invoice_id'] = element.doc_id;
-      tempParam['body']['biller_pid'] = billerId;
-      tempParam['body']['contact_pid'] = element.bill_recipient_id??'';
-      tempParam['body']['contact_email'] = element.bill_recipient_email??'';
-      tempParam['body']['invoice_uuid'] = '';
-      tempParam['body']['allow'] = element.allow;
-      tempParam['body']['token'] = element.accessToken;
-       if (!contact?.city || !contact?.country_id || !contact?.postcode) {
-        console.log('contact missing address or postal');
-          console.log('channel detail',channel);
-        let invoiceCid = await setEbillInvoiceSendStatus (bodyValues?.partyId,element.doc_id, '',tempParam,'0','contact_missing_address_or_postal');
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
-        warningMessage(commonErrors, 'contact_missing_address_or_postal');
-        resolve('something_went_wrong' + invoiceCid);
-        return;
+         let contact: any = await getContact(element.accessToken, element.contactId);
+         console.log('contact::::1', contact);
+         // If contact exists, check for required keys
+         
+         const tempParam={
+           body:{
+             invoice_id: element.doc_id,
+             biller_pid: billerId,
+             contact_pid: element.bill_recipient_id ?? "",
+             contact_email: element.bill_recipient_email ?? "",
+             invoice_uuid: "",
+             allow: element.allow,
+             token: element.accessToken
+            }
+          }
+          if (!contact?.city || !contact?.country_id || !contact?.postcode) {
+            console.log('contact missing address or postal');
+            console.log('channel detail',channel);
+            let invoiceCid = await setEbillInvoiceSendStatus (bodyValues?.partyId,element.doc_id, '',tempParam,'0','contact_missing_address_or_postal');
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
+            warningMessage(commonErrors, 'contact_missing_address_or_postal');
+            return resolve('something_went_wrong' + invoiceCid);
+            
+          }
+          let v = await pushEbillInvoice(tempParam,'')
+        }
+        resolve(true)
+      }catch(error){
+        reject(error)
       }
-      let v = await pushEbillInvoice(tempParam,'')
-    }
+  })
 }
+const checkRecipientValid = async (billerid, pid) => {
+        return new Promise(async (resolve, reject) => {
+          const correlationId = crypto.randomBytes(15).toString('hex');
+          let data = {
+            items: [{
+              'billRecipientId': pid,
+            }]
+          }
+          const options = {
+            method: 'POST',
+            url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerid}/bill-recipients/search`,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-networkpartner-id': config.NETWORK_PARTNER_ID,
+              'X-Correlation-Id': correlationId,
+            },
+            body: JSON.stringify(data),
+            key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+            cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
+          };
+         
+          await request(options, async function (error, response) {
+            if (error) {
+              return resolve(false)
+            }
+            else {
+              if (response.statusCode == 200) {
+                let resData = JSON.parse(response.body)
+
+                if (resData.items[0].ebillSubmissionStatus != 'NOT_ALLOWED') {
+                  return resolve(true)
+                }
+                else {
+                  return resolve(false)
+                }
+              }
+              else {
+                return resolve(false)
+              }
+            }
+          })
+        })
+      }
+
 export const pushEbillInvoice = async (req, res) => {
 console.log('pushEbillInvoice',req.body);
 
@@ -1557,51 +1620,6 @@ console.log('pushEbillInvoice',req.body);
 
       let tempCompanyName = companyJson['legalName'];
       let tempMail = companyJson['localizedData'][defaultLang]['emailAddress'];
-
-
-      const checkRecipientValid = async (billerid, pid) => {
-        return new Promise(async (resolve, reject) => {
-          const correlationId = crypto.randomBytes(15).toString('hex');
-          let data = {
-            items: [{
-              'billRecipientId': pid,
-            }]
-          }
-          const options = {
-            method: 'POST',
-            url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerid}/bill-recipients/search`,
-            headers: {
-              'Content-Type': 'application/json',
-              'x-networkpartner-id': config.NETWORK_PARTNER_ID,
-              'X-Correlation-Id': correlationId,
-            },
-            body: JSON.stringify(data),
-            key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-            cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
-          };
-         
-          await request(options, async function (error, response) {
-            if (error) {
-              return resolve(false)
-            }
-            else {
-              if (response.statusCode == 200) {
-                let resData = JSON.parse(response.body)
-
-                if (resData.items[0].ebillSubmissionStatus != 'NOT_ALLOWED') {
-                  return resolve(true)
-                }
-                else {
-                  return resolve(false)
-                }
-              }
-              else {
-                return resolve(false)
-              }
-            }
-          })
-        })
-      }
 
       let checkRecipientData;
       console.log('decryptData?.contact_pid !',decryptData?.contact_pid);
@@ -1737,8 +1755,8 @@ console.log('pushEbillInvoice',req.body);
 
 
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_coutryList_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_coutryList_not_found');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_countryList_not_found ' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'ebill_countryList_not_found');
         return resolve('something_went_wrong')
 
       }
@@ -1759,9 +1777,6 @@ console.log('pushEbillInvoice',req.body);
       }
       invoice['currency'] = currency;
       let temp = await getloginUserCompanyDetails(accessToken);
-
-
-
       if (!temp) {
         
         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_companyDetails_not_found');
@@ -4838,6 +4853,13 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
+      if(!invoice){
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'error');
+        resolve(false)
+        return
+      }
       console.log('invoice::::', typeof (invoice.positions));
       console.log('invoice::::', invoice.positions);
       let contact: any = await getContact(accessToken, invoice.contact_id);
@@ -4909,7 +4931,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 console.log('No matching position found for item:');
                 console.log('article', article);
                 let articleDetail: any = await getActiveItem(accessToken, article.article_id);
-                if (articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
+                if (articleDetail && articleDetail.id && articleDetail.sale_price && articleDetail.tax_id && articleDetail.unit_id && articleDetail.account_id) {
                   console.log('articleDetail::::', articleDetail);
 
                   let printArticle = {
@@ -4936,7 +4958,6 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                 }
                 else {
                   console.error('Article is missing required fields or has empty values:', articleDetail);
-
                   // Stop the process if articleDetail is invalid or null
                   let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
                   commonErrors['errorTitle'] = invoices.originalUrl;
@@ -4951,8 +4972,6 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               console.log('Article not found in config, skipping update.');
             }
           }
-          const invoice2: any = await getInvoiceOT(accessToken, invoice_id);
-          console.log('invoice::::2', invoice2);
 
           pdf = await getInvoicePdf(accessToken, invoice_id);
           // console.log('pdf::::', pdf, invoice_id);
@@ -4982,7 +5001,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           let coutryList;
           coutryList = await getCountryLists(accessToken);
           if (!coutryList) {
-            resolve('coutryList not found');
+            warningMessage(commonErrors, 'country_list_not_found');
+            resolve('countryList_not_found');
             return;
           }
           coutryList = JSON.parse(coutryList);
@@ -5824,4 +5844,16 @@ export const validDate = (date:string,isEnd?:boolean) => {
   }
   return parsedDate;
 };
+
+export const getInvoicesQuery=async(channel:string,netcomId,include: boolean)=>{
+  const operator= include ? "=" :"!="
+
+  return  await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+    Prisma.sql`
+              SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
+              INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+              WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) ${Prisma.raw(operator)} UPPER(${channel.toUpperCase()})
+              `
+              );
+}
             

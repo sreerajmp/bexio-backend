@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel, validDate } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -693,7 +693,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = data.partyId;
     let netcomId = data.netcomId;
-    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData = {};
+    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -899,13 +899,7 @@ export class DebtorsService {
     
       if("channel" in data){
   
-        const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
-          `
-          );
+        const getInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, true)
           console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
 
           if(getInvoiceIdRslt[0]['invoices']){
@@ -948,13 +942,7 @@ export class DebtorsService {
       if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
         let tempArray = [...arrayContactIds,...invoiceContactListIds]
         if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
-           const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
-          `
-          );
+           const getNotInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, false)
           getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
           console.log("getNotInvoiceIdRslt",getNotInvoiceIdRslt);
          console.log("getNotInvoiceId",getNotInvoiceId);
