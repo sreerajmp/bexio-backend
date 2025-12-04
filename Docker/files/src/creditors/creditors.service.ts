@@ -376,6 +376,13 @@ export class CreditorsService {
             criteria: 'like',
           });
         }
+        if (data.search!='' && data.search != null && data.search != undefined) {
+          searchJson.push({
+            field: 'title',
+            value: data.search,
+            criteria: 'like',
+          });
+        }
 
         if (data.startDate) {
           searchJson.push({
