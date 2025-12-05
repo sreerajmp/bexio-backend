@@ -88,21 +88,20 @@ export default {
 
 
 	//Local   
-	  BEXIO_REDIRECT_URIS: ['http://localhost:3001/api/v1/bexio-user/bexio-redirect'],
-	  API_URL:process.env.API_URL ||'http://localhost:3001/',
+	  BEXIO_REDIRECT_URIS: ['http://localhost:3000/api/v1/gate2bAPI/bexio-redirect'],
+	  API_URL:process.env.API_URL ||'http://localhost:3000/',
 	  URL:'http://testadmin-bexio.io-procurement.com/',
 	  DB_NAME_BEXIO : 'bexio',
 
 	// // test server   
 	//   BEXIO_REDIRECT_URIS: ['https://jlegl.api.io-market.net/api/v1/gate2bAPI/bexio-redirect'],
 	//   API_URL: process.env.API_URL,
-	  // BEXIO_APP_URL: process.env.BEXIO_APP_URL || 'https://gate2b-bexio.io-market.net/',
-	   BEXIO_APP_URL: process.env.BEXIO_APP_URL || 'http://localhost:3000',
+	   BEXIO_APP_URL: process.env.BEXIO_APP_URL || 'https://gate2b-bexio.io-market.net/',
 	//   DB_NAME_BEXIO : process.env.DB_NAME_BEXIO,
 
 	  BEXIO_API:'https://api.bexio.com/',
-	  BEXIO_CLIENT_ID:process.env.BEXIO_CLIENT_ID ||'a15cb6b2-f1ad-4506-a936-d730843a6280',
-	  BEXIO_SECRET:process.env.BEXIO_SECRET ||'AP1GRaFVh8yBVuBPvxWR_jZDud8JzoWYJ_89NqdWXpY72zcC08mSWmfYA_TqZt-MYwMaYmuB6L72IEKZ0kQ9OtU',
+	  BEXIO_CLIENT_ID:process.env.BEXIO_CLIENT_ID ||'4d86db92-6cd7-416a-8855-66ee5a9a9219',
+	  BEXIO_SECRET:process.env.BEXIO_SECRET ||'JlwF2zMsf4LKweYCNNTCHKfdXLBnEqy6Gug2wuhRhZtr-J0nI388YH2X17LlVDNwylondFjWto4f3UeqQhf9JQ',
 	
 
 	  NETCOM_NETWORK:process.env.NETCOM_NETWORK,
@@ -131,8 +130,8 @@ export default {
 	  BEXIO_CONNECTION_CONFIG_SEND:process.env.BEXIO_CONNECTION_CONFIG_SEND,
 	  BEXIO_CONNECTION_CONFIG_RECEIVE:process.env.BEXIO_CONNECTION_CONFIG_RECEIVE,
 	  BEXIO_INVITE_CONFIG:process.env.BEXIO_INVITE_CONFIG,
-	  BEXIO_CONNECTION_CONFIG_ORDER_RECEIVE: process.env.BEXIO_CONNECTION_CONFIG_ORDER_RECEIVE || '{"config":{"platform":{"module":"EDI","config":{"type":"network","code":"BEX","direction":"OUT"}},"netcom_id":"$netcom_id$","name":"$name$","direction":"OUT","fk_doc_type":"$doc_type$","fk_doc_format":"OpenTrans2.1","fk_netcomid_doc_interface":"WS","status":"1","fk_encoding_details":"utf-8","fk_culture":"en-us","allow_duplicate":"0","file_export_filename":"%DNO%_%TST:yyyyMMddHHmmss%.xml","create-pdf":"0","create-signed-doc":"0","export-doc-ref":"0","validate-sign":"0","provider":{"provider":"BEX"}}}',
-	  BEXIO_CONNECTION_CONFIG_ORDER_SEND: process.env.BEXIO_CONNECTION_CONFIG_ORDER_SEND ||  '{"config":{"platform":{"module":"EDI","config":{"type":"network","code":"BEX","direction":"IN"}},"include_pdf":"0","netcom_id":"$netcom_id$","name":"$name$","direction":"IN","fk_doc_type":"$doc_type$","fk_doc_format":"OpenTrans2.1","fk_netcomid_doc_interface":"WS","status":"1","fk_encoding_details":"utf-8","fk_culture":"en-us","create-pdf":"0","create-signed-doc":"0","export-doc-ref":"0","validate-sign":"0","provider":{"provider":"BEX"}}}',
+	  BEXIO_CONNECTION_CONFIG_ORDER_RECEIVE: process.env.BEXIO_CONNECTION_CONFIG_ORDER_RECEIVE || '{"config":{"platform":{"module":"EDI","config":{"type":"network","code":"BEX","direction":"OUT"}},"netcom_id":"$netcom_id$","name":"$name$","direction":"OUT","fk_doc_type":"$doc_type$","fk_doc_format":"OpenTrans2.1","fk_netcomid_doc_interface":"WS","status":"1","fk_encoding_details":"utf-8","fk_culture":"en-us","allow_duplicate":"0","file_export_filename":"%DNO%_%TST:yyyyMMddHHmmss%.xml","create-pdf":"0","create-signed-doc":"0","export-doc-ref":"0","validate-sign":"0"}}',
+	  BEXIO_CONNECTION_CONFIG_ORDER_SEND: process.env.BEXIO_CONNECTION_CONFIG_ORDER_SEND || '{"config":{"platform":{"module":"EDI","config":{"type":"network","code":"BEX","direction":"IN"}},"include_pdf":"0","netcom_id":"$netcom_id$","name":"$name$","direction":"IN","fk_doc_type":"$doc_type$","fk_doc_format":"OpenTrans2.1","fk_netcomid_doc_interface":"WS","status":"1","fk_encoding_details":"utf-8","fk_culture":"en-us","create-pdf":"0","create-signed-doc":"0","export-doc-ref":"0","validate-sign":"0"}}',
 	  logs: {
         level: process.env.LOG_LEVEL || 'silly',
         path: process.env.LOG_PATH || './',
@@ -150,7 +149,7 @@ export default {
 	  G2B_COMMON_INACTIVE : process.env.G2B_COMMON_INACTIVE,
 	  G2B_COMMON_ACTIVE : process.env.G2B_COMMON_ACTIVE,
 	  G2B_COMMON_DELETED : process.env.G2B_COMMON_DELETED,
-	  BEXIO_COMPANY_TYPE:process.env.BEXIO_COMPANY_TYPE||'{"1":"COMPANY","2":"PRIVATE"}',
+	  BEXIO_COMPANY_TYPE:process.env.BEXIO_COMPANY_TYPE,
 	  MAIL_FROM:process.env.MAIL_FROM,
 	  INVOICE_STATUS:process.env.INVOICE_STATUS,
 	  BEXIO_DELETE_BC:process.env.BEXIO_DELETE_BC,
@@ -193,7 +192,7 @@ export default {
 	  NETWORK_PARTNER_ID:process.env.NETWORK_PARTNER_ID,
 	  CERTIFICATE_PATH:process.env.CERTIFICATE_PATH,
 	  SIX_API_CERTIFICATE_BASE:process.env.SIX_API_CERTIFICATE_BASE,
-	  BEXIO_CODE:process.env.BEXIO_CODE||'Bexio',
+	  BEXIO_CODE:process.env.BEXIO_CODE,
 	  GATE2BURL: process.env.GATE2BURL,
 	  SET_TIME_OUT: parseInt(process.env.SET_TIME_OUT || '30000', 10),
 	  ERROR_BEXIO_CONTACT:process.env.ERROR_BEXIO_CONTACT,
@@ -237,12 +236,11 @@ export default {
 	  SALESFORCE_PASSWORD: process.env.SALESFORCE_PASSWORD,
 	  SALESFORCE_CLIENT_ID: process.env.SALESFORCE_CLIENT_ID,
 	  SALESFORCE_CLIENT_SECRET: process.env.SALESFORCE_CLIENT_SECRET,
-	  EBILL_REPORT_CONFIG:process.env.EBILL_REPORT_CONFIG || '[{"update_type":"bc","channel":"api","application":"bex"}]',
 	  
 	  DYNAMODB_CLIENT_ID: process.env.DYNAMODB_CLIENT_ID,
 	  DYNAMODB_SECRET_KEY: process.env.DYNAMODB_SECRET_KEY,
 	  DYNAMODB_REGION: process.env.DYNAMODB_REGION,
 	  DYNAMODB_TABLE_NAME: process.env.DYNAMODB_TABLE_NAME || 'contact_import_manager',
 	  GATE2BURL_PYTHON_URL: process.env.GATE2BURL_PYTHON_URL || 'http://ebill-report.py-apps.svc.cluster.local',
-	 
+	 EBILL_REPORT_CONFIG:process.env.EBILL_REPORT_CONFIG || '[{"update_type":"bc","channel":"api","application":"bex"}]',
 };
