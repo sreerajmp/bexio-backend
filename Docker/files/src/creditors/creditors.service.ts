@@ -948,7 +948,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'something_went_wrong',
+              message: 'contact_details_not_found',
               status: false,
             });
             return;
@@ -972,7 +972,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'something_went_wrong',
+              message: 'country_name_not_found',
               status: false,
             });
             return;
@@ -1059,7 +1059,7 @@ export class CreditorsService {
             } else {
               res.send({
                 status_code: 500,
-                message: 'something_went_wrong',
+                message: 'create_bill_error',
                 status: false,
               });
             }
