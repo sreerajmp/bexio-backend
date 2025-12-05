@@ -12,9 +12,6 @@ import { RedisStore } from 'connect-redis';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Set 'trust proxy' on the underlying Express instance
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
-
   app.use(cookieParser(config.SESSION_SECRET));
   app.use(
     session({
@@ -26,7 +23,7 @@ export async function bootstrap() {
       saveUninitialized: false,
       name: config.SESSION_COOKIE_NAME || 'nestjs.session', 
       cookie: {
-        secure: true, // true in production
+        secure: process.env.NODE_ENV === 'production', // true in production
         httpOnly: true,
         maxAge: config.SESSION_EXPIRY || 86400000, // Default: 1 day
         domain: config.SESSION_DOMAIN || undefined,
@@ -79,8 +76,8 @@ export async function bootstrap() {
   app.use(cookieParser(config.SESSION_SECRET));
   console.log('config.BEXIO_APP_URL', config.BEXIO_APP_URL);
 
-  await app.listen(3000);
-  Logger.log(`App running on Port 3000`);
+  await app.listen(3001);
+  Logger.log(`App running on Port 3001`);
 
 
 }

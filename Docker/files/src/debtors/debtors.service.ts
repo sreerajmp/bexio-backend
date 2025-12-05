@@ -2682,11 +2682,15 @@ console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}')
             switch (formData.status.trim()) {
               case 'ERROR':
                 status = 0;
-                response = 'rejected';
+                response = 'print_rejected';
                 break;
               case 'SENT':
                 status = 2;
                 response = 'completed';
+                break;
+              case 'INPROGRESS':
+                status = 1;
+                response = 'process_ in _print_partner';
                 break;
               default:
                 status = 1;
