@@ -129,9 +129,6 @@ export class CreditorsService {
               : data.billStatus === 'No'
               ? { rk_invoice: null }
               : {};
-          
-          console.log("docSearch---",docSearch);
-          console.log("rkCondition---",rkCondition)
 
           const billsList =
             await connectBexio.documents_invoice_receive.findMany({
@@ -1308,9 +1305,6 @@ export class CreditorsService {
                               FROM documents_invoice_send dis
                               INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered WHERE time_stamp  
                               BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz`;
-      console.log('startTimestamp', startTimestamp);
-      console.log('endTimestamp', endTimestamp);
-      console.log("Email Address", req.body?.email)
 
       console.log('getDistinctCompany', getDistinctCompany);
 
@@ -1545,13 +1539,23 @@ export class CreditorsService {
           }
           console.log('subject :: ', subject);
           try {
-            await sendEmail({
+            const result=await sendEmail({
               email: req.body.email || getCompanyName[0].email,
               subject,
               message,
             });
+            return res.status(200).json({              
+              status_code: 200,
+              message: 'Email sent successfully',
+              data: result.info,
+            })
           } catch (error) {
-            throw error;
+            // throw error;      
+            return res.status(500).json({              
+              status_code: 500,
+              message: 'Email sent failed',
+              error: error,
+            })      
           }
         }
       }
