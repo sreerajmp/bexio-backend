@@ -3,6 +3,7 @@ import { CreditorsService } from './creditors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
+import { ApiBody } from '@nestjs/swagger';
 @Controller('creditors')
 export class CreditorsController {
   constructor(private readonly creditorsService: CreditorsService) {
@@ -52,11 +53,35 @@ export class CreditorsController {
     
   return this.creditorsService.passTog2b(req,res,req.method,pathValue);
   }
+  
+  // @ApiQuery({name:'startDate',required:false,description: 'Start date '})
+  // @ApiQuery({name:'endDate',required:false,description: 'End date '})
+  // @ApiQuery({name:'email',required:false,description: 'Receiver Email Address '})
+  // @Query('startDate') startDate?:string,
+  // @Query('endDate') endDate?:string,
+  // @Query('email') email?:string,
+
   @Post('emailSendingScheduler')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
-  async emailSendingScheduler(@Req() req: Request, @Res() res: Response): Promise<any> {
-  return this.creditorsService.emailSendingScheduler(req,res);
+  @ApiBody({
+    description:"Email scheduler details",
+    schema:{
+      type:"object",
+      properties:{
+        startDate: { type: 'string', nullable: true },
+        endDate: { type: 'string', nullable: true },
+        email: { type: 'string', nullable: true }
+      }
+    }
+  })
+  async emailSendingScheduler(
+  @Req() req: Request, 
+  @Res() res: Response,
+  @Body() body:any
+  ): Promise<any> {
+  return this.creditorsService.emailSendingScheduler(req,res);  
   }
+
   @All('gate2bApi/*')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
   async byPassApi(@Req() req: Request, @Res() res: Response,@Param('path') path: string,@Param('id') id: string): Promise<any> {
