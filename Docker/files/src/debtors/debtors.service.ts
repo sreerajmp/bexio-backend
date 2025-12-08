@@ -2068,6 +2068,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
                 '0',
                 'email_id_not_found'
               );
+              combinedResponse.otherInvoiceResults.push(inv);
               continue; 
             }
           else{
