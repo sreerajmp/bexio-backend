@@ -2056,10 +2056,22 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     // ------------------------------
     if (data.ebillInvoices.length) {
       autoTag = true;
-      if(!data.ebillInvoices.bill_recipient_email){
-         await setInvoiceSendStatus(data.partyId,data.ebillInvoices.doc_id,data.ebillInvoices.documentNumber,'0', 'email_id_not_found');
-         return;
-      }
+      for (const inv of data.ebillInvoices) {
+        console.log('**************inv',inv);
+        console.log('**************!inv.bill_recipient_email?.trim()',!inv.bill_recipient_email?.trim());
+        if (!inv.bill_recipient_email?.trim()) {
+          console.log('**************!inv.bill_recipient_email?.trim()',!inv.bill_recipient_email?.trim());
+              await setInvoiceSendStatus(
+                data.partyId,
+                inv.doc_id,
+                inv.documentNumber,
+                '0',
+                'email_id_not_found'
+              );
+              return;
+            }
+          }
+
       const getTag: any = await getTagName(data.netcomId, data.ebillInvoices, autoTag);
       const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
       if (billTagItem) data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
