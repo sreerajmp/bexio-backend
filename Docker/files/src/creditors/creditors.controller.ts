@@ -53,13 +53,6 @@ export class CreditorsController {
     
   return this.creditorsService.passTog2b(req,res,req.method,pathValue);
   }
-  
-  // @ApiQuery({name:'startDate',required:false,description: 'Start date '})
-  // @ApiQuery({name:'endDate',required:false,description: 'End date '})
-  // @ApiQuery({name:'email',required:false,description: 'Receiver Email Address '})
-  // @Query('startDate') startDate?:string,
-  // @Query('endDate') endDate?:string,
-  // @Query('email') email?:string,
 
   @Post('emailSendingScheduler')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
