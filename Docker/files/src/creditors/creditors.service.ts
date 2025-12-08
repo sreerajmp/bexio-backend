@@ -1293,9 +1293,8 @@ export class CreditorsService {
     try {
       // Get yesterday's date
       let accessToken: any = '';
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
 
       // Format as YYYY-MM-DD
       const yyyy = yesterday.getFullYear();
@@ -1304,8 +1303,11 @@ export class CreditorsService {
       const targetDate = `${yyyy}-${mm}-${dd}`;
 
       // Define start and end timestamps for the day
-      const startTimestamp = `${targetDate} 00:00:00+05:30`;
-      const endTimestamp = `${targetDate} 23:59:59+05:30`;
+      const startDate=req.body?.startDate ?? targetDate
+      const endDate=req.body?.endDate ?? targetDate
+
+      const startTimestamp = `${startDate} 00:00:00+05:30` ;
+      const endTimestamp = `${endDate} 23:59:59+05:30`
 
       const getDistinctCompany =
         await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
@@ -1315,6 +1317,7 @@ export class CreditorsService {
                               BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz`;
       console.log('startTimestamp', startTimestamp);
       console.log('endTimestamp', endTimestamp);
+      console.log("Email Address", req.body?.email)
 
       console.log('getDistinctCompany', getDistinctCompany);
 
@@ -1339,7 +1342,7 @@ export class CreditorsService {
           let companyregistered = getDistinctCompany[j].fk_companyregistered;
           let company_partyid = getDistinctCompany[j].partyid;
           let invoicedCompanyName = '';
-          console.log({
+          console.log("company reg and partyID", { 
             companyregistered,
             company_partyid,
           });
@@ -1550,7 +1553,7 @@ export class CreditorsService {
           console.log('subject :: ', subject);
           try {
             await sendEmail({
-              email: getCompanyName[0].email,
+              email: req.body.email || getCompanyName[0].email,
               subject,
               message,
             });
