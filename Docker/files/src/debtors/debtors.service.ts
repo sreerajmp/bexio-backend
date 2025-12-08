@@ -2068,24 +2068,25 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
                 '0',
                 'email_id_not_found'
               );
-              return;
+              continue; 
             }
+          else{
+              const getTag: any = await getTagName(data.netcomId, data.ebillInvoices, autoTag);
+                const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
+                if (billTagItem) data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
+
+                const ebillResults = await this.processEbillInvoices(data, bexioClient);
+                ebillResults.forEach(inv => {
+                  if (!inv) return;
+                  inv['tag'] = 'EBILL';
+                    console.log('ebillResults inv',inv)
+                  combinedResponse.otherInvoiceResults.push(inv);
+                  console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
+                  //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+                  ebillProcessed.push(inv);
+                });
           }
-
-      const getTag: any = await getTagName(data.netcomId, data.ebillInvoices, autoTag);
-      const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-      if (billTagItem) data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
-
-      const ebillResults = await this.processEbillInvoices(data, bexioClient);
-      ebillResults.forEach(inv => {
-        if (!inv) return;
-        inv['tag'] = 'EBILL';
-           console.log('ebillResults inv',inv)
-        combinedResponse.otherInvoiceResults.push(inv);
-         console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
-        ebillProcessed.push(inv);
-      });
+      }
     }
 
     // ------------------------------
