@@ -24,7 +24,7 @@ import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
 import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from '../common/utils/fetchEmailData';
-import { getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, moveFile } from 'src/common/utils/helperfn';
+import { escapeLikeChars, getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, moveFile } from 'src/common/utils/helperfn';
 
 @Injectable()
 export class CreditorsService {
@@ -122,6 +122,16 @@ export class CreditorsService {
             const parsedDate = new Date(date);
             return isNaN(parsedDate.getTime()) ? undefined : parsedDate;
           };
+          const docSearch=data.documentNo?.trim() ? escapeLikeChars(data.documentNo?.trim()) : undefined
+          const rkCondition =
+            data.billStatus === 'Yes'
+              ? { rk_invoice: { not: null } }
+              : data.billStatus === 'No'
+              ? { rk_invoice: null }
+              : {};
+          
+          console.log("docSearch---",docSearch);
+          console.log("rkCondition---",rkCondition)
 
           const billsList =
             await connectBexio.documents_invoice_receive.findMany({
@@ -132,12 +142,9 @@ export class CreditorsService {
                   lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
-                  ? { contains: data.documentNo.trim(), mode: 'insensitive' }
+                  ? { contains: docSearch, mode: 'insensitive' }
                   : undefined,
-                ...(data.billStatus === 'Yes'
-                  ? { rk_invoice: { not: null } }
-                  : {}),
-                ...(data.billStatus === 'No' ? { rk_invoice: null } : {}),
+                ...rkCondition,
               },
               orderBy: {
                 created_date: 'desc',
@@ -157,12 +164,9 @@ export class CreditorsService {
                   lte: validDate(data.endDate),
                 },
                 document_number: data.documentNo?.trim()
-                  ? { contains: data.documentNo.trim(), mode: 'insensitive' }
+                  ? { contains: docSearch, mode: 'insensitive' }
                   : undefined,
-                ...(data.orderStatus === 'Yes'
-                  ? { rk_invoice: { not: null } }
-                  : {}),
-                ...(data.orderStatus === 'No' ? { rk_invoice: null } : {}),
+                ...rkCondition,
               },
             });
 
