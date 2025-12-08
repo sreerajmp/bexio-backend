@@ -5816,3 +5816,7 @@ export const getInvoicesQuery=async(channel:string,netcomId,include: boolean)=>{
               );
 }
             
+
+export function escapeLikeChars(text) {
+  return text.replace(/[_%]/g, "\\$&")
+}
