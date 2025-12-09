@@ -2055,7 +2055,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           inv.documentNumber,
           '0',
           'email_id_not_found',
-          'EMAIL'
+          'email'
         );
 
         combinedResponse.otherInvoiceResults.push(inv);
