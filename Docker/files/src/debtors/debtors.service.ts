@@ -2157,7 +2157,6 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
   var options = {
     'method': 'POST',
         'url': config.PYTHON_API+'file-download',
-      
         formData: formData
       };
       console.log('formData',formData);
@@ -2166,6 +2165,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           commonErrors['errorTitle'] = 'xmlToJson';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
+          console.log("Error Occure in python api");
           res.send({
             status_code: 500,
             message: 'something_went_wrong',
@@ -2179,6 +2179,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
      console.log('response',response.body);
      if (JSON.parse(response.body).message == "something_went_wrong") {
      console.log('response',response.body);
+     console.log("Error Occure Response body message condition");
 
         return res.status(500).json({
           status: false,
@@ -2411,7 +2412,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
   
         console.log("contact++ ",contact);
         if (!contact) {
-       
+       console.log("Error Occure in No contact Available");
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getContactDetails_not_found -req param,',JSON.stringify(req.body);
           warningMessage(commonErrors,'getContactDetails_not_found');
@@ -2507,6 +2508,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'SEND_G2B_ORDER -req param,',JSON.stringify(req.body);
             warningMessage(commonErrors,'SEND_G2B_ORDER');
+            console.log("Error Occure in Status code not 201");
            return res.send({
               status_code: 500,
               message: 'something_went_wrong',
