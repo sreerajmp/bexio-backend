@@ -249,7 +249,7 @@ export class BexioUserService {
                 secure: false
               });
               let bexioURL = config.BILLING_APP;
-              return res.redirect(`${bexioURL}plans`);
+              return res.redirect(`${bexioURL}`);
             }
           }
         } else {
