@@ -2162,6 +2162,8 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       console.log('formData',formData);
       request(options, async function (error, response) {
         if (error) {  
+          console.log("python error",error);
+          
           commonErrors['errorTitle'] = 'xmlToJson';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
@@ -2178,7 +2180,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       let title;
      console.log('response',response.body);
      if (JSON.parse(response.body).message == "something_went_wrong") {
-     console.log('response',response.body);
+     console.log('response.body log',response.body);
      console.log("Error Occure Response body message condition");
 
         return res.status(500).json({
@@ -2489,6 +2491,8 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
               status: false,
             })
           }
+          console.log("create order response:", response );
+          
           if(response.statusCode==201){
             let footer = JSON.parse(response.body)['footer'];
             if(orderId != ' '){
