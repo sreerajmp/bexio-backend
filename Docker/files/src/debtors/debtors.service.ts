@@ -2037,57 +2037,107 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     // ------------------------------
     // 3. Process Email Invoices
     // ------------------------------
+  // 3. Process Email Invoices
+// ------------------------------
+
     if (data.emailInvoices.length) {
-      const emailResults = await Promise.all(
-        data.emailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))
+
+      // Filter invoices with missing email
+      const invalidEmailInvoices = data.emailInvoices.filter(
+        inv => !inv.bill_recipient_email?.trim()
       );
-      data.emailInvoices.forEach((inv, i) => {
-        inv['invoice_uuid'] = emailResults[i][0];
-        inv['tag'] = 'email';
-           console.log('email inv',inv)
+
+      // Handle invalid invoices (set status + push)
+      for (const inv of invalidEmailInvoices) {
+        await setInvoiceSendStatus(
+          data.partyId,
+          inv.doc_id,
+          inv.documentNumber,
+          '0',
+          'email_id_not_found',
+          'EMAIL'
+        );
+
         combinedResponse.otherInvoiceResults.push(inv);
-          console.log('email auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
-      });
+      }
+
+      // Filter valid invoices (email exists)
+      const validEmailInvoices = data.emailInvoices.filter(
+        inv => inv.bill_recipient_email?.trim()
+      );
+
+      // If valid invoices exist → process them
+      if (validEmailInvoices.length) {
+
+        const emailResults = await Promise.all(
+          validEmailInvoices.map(inv =>
+            this.processInvoices(inv, bodyParams, 'email')
+          )
+        );
+
+        validEmailInvoices.forEach((inv, i) => {
+          inv.invoice_uuid = emailResults[i][0];
+          inv.tag = 'email';
+
+          combinedResponse.otherInvoiceResults.push(inv);
+
+          this.pushWorkerHost.run(
+            inv,
+            bodyParams,
+            { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url },
+            '',
+            'email'
+          );
+        });
+      }
     }
+
 
     // ------------------------------
     // 4. Process eBill Invoices
     // ------------------------------
     if (data.ebillInvoices.length) {
       autoTag = true;
-      for (const inv of data.ebillInvoices) {
-        console.log('**************inv',inv);
-        console.log('**************!inv.bill_recipient_email?.trim()',!inv.bill_recipient_email?.trim());
-        if (!inv.bill_recipient_email?.trim()) {
-          console.log('**************!inv.bill_recipient_email?.trim()',!inv.bill_recipient_email?.trim());
-              await setInvoiceSendStatus(
-                data.partyId,
-                inv.doc_id,
-                inv.documentNumber,
-                '0',
-                'email_id_not_found',
-                'EBILL'
-              );
-              combinedResponse.otherInvoiceResults.push(inv);
-              continue; 
-            }
-          else{
-              const getTag: any = await getTagName(data.netcomId, data.ebillInvoices, autoTag);
-                const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-                if (billTagItem) data.ebillInvoices.forEach(inv => inv.allow = billTagItem.allow);
 
-                const ebillResults = await this.processEbillInvoices(data, bexioClient);
-                ebillResults.forEach(inv => {
-                  if (!inv) return;
-                  inv['tag'] = 'EBILL';
-                    console.log('ebillResults inv',inv)
-                  combinedResponse.otherInvoiceResults.push(inv);
-                  console.log('EBILL auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-                  //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
-                  ebillProcessed.push(inv);
-                });
-          }
+      const invalidEbillInvoices = data.ebillInvoices.filter(
+        inv => !inv.bill_recipient_email?.trim()
+      );
+
+      // Handle invalid invoices (set status + push)
+      for (const inv of invalidEbillInvoices) {
+        await setInvoiceSendStatus(
+          data.partyId,
+          inv.doc_id,
+          inv.documentNumber,
+          '0',
+          'email_id_not_found',
+          'EBILL'
+        );
+
+        combinedResponse.otherInvoiceResults.push(inv);
+      }
+
+      // Filter valid invoices (email exists)
+      const validEbillnvoices = data.ebillInvoices.filter(
+        inv => inv.bill_recipient_email?.trim()
+      );
+
+      if (validEbillnvoices.length) {
+        const getTag: any = await getTagName(data.netcomId, validEbillnvoices, autoTag);
+        const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
+        if (billTagItem) validEbillnvoices.forEach(inv => inv.allow = billTagItem.allow);
+
+        const ebillResults = await this.processEbillInvoices(data, bexioClient);
+        ebillResults.forEach(inv => {
+          if (!inv) return;
+          inv['tag'] = 'EBILL';
+          console.log('ebillResults inv', inv)
+          combinedResponse.otherInvoiceResults.push(inv);
+          console.log('EBILL auto combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+          //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+          ebillProcessed.push(inv);
+        });
+
       }
     }
 
