@@ -244,16 +244,16 @@ export class BexioUserService {
               res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
                 domain: config.SESSION_DOMAIN,
                 maxAge: config.SESSION_EXPIRY,
-                httpOnly: false,
+                httpOnly: true,
                 signed: true,
-                secure: false
+                secure: true
               });
               let bexioURL = config.BILLING_APP;
               return res.redirect(`${bexioURL}`);
             }
           }
         } else {
-          return res.redirect(`${config.BEXIO_APP_URL}/login/permissiondenied`);
+          return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
         }
       }
     } catch (error) {
