@@ -246,7 +246,7 @@ export class BexioUserService {
                 maxAge: config.SESSION_EXPIRY,
                 httpOnly: false,
                 signed: true,
-                secure: true
+                secure: false
               });
               let bexioURL = config.BILLING_APP;
               return res.redirect(`${bexioURL}`);
