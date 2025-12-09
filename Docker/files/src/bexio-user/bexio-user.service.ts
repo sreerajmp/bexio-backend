@@ -241,14 +241,16 @@ export class BexioUserService {
                 refresh_Token: tokenSet.refresh_token,
                 isBexioUser: true
               }
-              res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
-                domain: config.SESSION_DOMAIN,
-                maxAge: config.SESSION_EXPIRY,
-                httpOnly: false,
-                signed: true,
-                secure: false
-              });
-              let bexioURL = config.BILLING_APP;
+              const bexioTokenCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              secure: false,
+              httpOnly: false,
+              signed: true,
+            };
+            const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
+              res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie,bexioTokenCookieOptions);
+              let bexioURL = process.env.BILLING_URL+`/user-plans`;
               return res.redirect(`${bexioURL}`);
             }
           }
