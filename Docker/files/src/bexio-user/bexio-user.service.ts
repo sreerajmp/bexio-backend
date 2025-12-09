@@ -222,7 +222,7 @@ export class BexioUserService {
                 planFound = false;
               }
             }
-            
+            planFound = true; // Temporarily forcing planFound to true
             console.log("planFound:", planFound);
             
             if (planFound) {
