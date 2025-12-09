@@ -44,10 +44,19 @@ const sendEmail = async (options) => {
         html: options.message,
     };
     try {
-    await transporter.sendMail(mailOptions);
-        
+   const info= await transporter.sendMail(mailOptions);
+   return {
+    success:true,
+    message:"Email send successful",
+    info
+   }
     } catch (error) {
         console.log("errorMail:",error);
+        throw{
+            success:true,
+            message:"Email send failed",
+            error
+        }
         
     }
 };

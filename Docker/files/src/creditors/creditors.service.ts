@@ -129,9 +129,6 @@ export class CreditorsService {
               : data.billStatus === 'No'
               ? { rk_invoice: null }
               : {};
-          
-          console.log("docSearch---",docSearch);
-          console.log("rkCondition---",rkCondition)
 
           const billsList =
             await connectBexio.documents_invoice_receive.findMany({
@@ -1293,9 +1290,8 @@ export class CreditorsService {
     try {
       // Get yesterday's date
       let accessToken: any = '';
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
 
       // Format as YYYY-MM-DD
       const yyyy = yesterday.getFullYear();
@@ -1304,8 +1300,11 @@ export class CreditorsService {
       const targetDate = `${yyyy}-${mm}-${dd}`;
 
       // Define start and end timestamps for the day
-      const startTimestamp = `${targetDate} 00:00:00+05:30`;
-      const endTimestamp = `${targetDate} 23:59:59+05:30`;
+      const startDate=req.body?.startDate ?? targetDate
+      const endDate=req.body?.endDate ?? targetDate
+
+      const startTimestamp = `${startDate} 00:00:00+05:30` ;
+      const endTimestamp = `${endDate} 23:59:59+05:30`
 
       const getDistinctCompany =
         await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
@@ -1313,8 +1312,6 @@ export class CreditorsService {
                               FROM documents_invoice_send dis
                               INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered WHERE time_stamp  
                               BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz`;
-      console.log('startTimestamp', startTimestamp);
-      console.log('endTimestamp', endTimestamp);
 
       console.log('getDistinctCompany', getDistinctCompany);
 
@@ -1339,7 +1336,7 @@ export class CreditorsService {
           let companyregistered = getDistinctCompany[j].fk_companyregistered;
           let company_partyid = getDistinctCompany[j].partyid;
           let invoicedCompanyName = '';
-          console.log({
+          console.log("company reg and partyID", { 
             companyregistered,
             company_partyid,
           });
@@ -1549,13 +1546,23 @@ export class CreditorsService {
           }
           console.log('subject :: ', subject);
           try {
-            await sendEmail({
-              email: getCompanyName[0].email,
+            const result=await sendEmail({
+              email: req.body.email || getCompanyName[0].email,
               subject,
               message,
             });
+            return res.status(200).json({              
+              status_code: 200,
+              message: 'Email sent successfully',
+              data: result.info,
+            })
           } catch (error) {
-            throw error;
+            // throw error;      
+            return res.status(500).json({              
+              status_code: 500,
+              message: 'Email sent failed',
+              error: error,
+            })      
           }
         }
       }

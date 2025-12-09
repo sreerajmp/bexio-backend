@@ -133,7 +133,8 @@ export class BexioUserService {
           const check = await connectBexio.companyregistered.findMany({
             where: { rk_csn: rk_csn },
           });
-
+          console.log("Check rk_csn:",rk_csn);
+          
           if (check.length == 0) {
 
             const insertData = await connectLibrary.$queryRaw<any[]>`
@@ -198,12 +199,57 @@ export class BexioUserService {
             return res.redirect(`${bexioURL}`);
           }
           else {
-            let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
-            console.log('responseResult', responseResult);
-            if(responseResult.status) {
-              return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+            // Check if company already has an active plan or addon
+            let planFound = true;
+            const partyId = check[0].rk_party;
+            
+            // Check for active plan (non-free)
+            const activePlan = await connectLibrary.$queryRaw<any[]>`
+              SELECT * FROM party_application_version_plan pap
+              INNER JOIN application_version_plan ap ON pap.fk_application_version_plan = ap.cid 
+              WHERE pap.fk_party = ${partyId}
+              AND LOWER(ap.name) != 'free'
+            `;
+            
+            if (activePlan.length === 0) {
+              // Check for addon
+              const hasAddon = await connectLibrary.$queryRaw<any[]>`
+                SELECT * FROM party_application_version_addon 
+                WHERE fk_party = ${partyId}
+              `;
+              
+              if (hasAddon.length === 0) {
+                planFound = false;
+              }
+            }
+            
+            console.log("planFound:", planFound);
+            
+            if (planFound) {
+              // User has active plan/addon, proceed with bexioUserCreate
+              let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
+              console.log('responseResult', responseResult);
+              if(responseResult.status) {
+                return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+              } else {
+                return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
+              }
             } else {
-              return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
+              // No active plan found, redirect to billing/plans page
+              let bexioTokenCookie = {
+                access_Token: tokenSet.access_token,
+                refresh_Token: tokenSet.refresh_token,
+                isBexioUser: true
+              }
+              res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+                domain: config.SESSION_DOMAIN,
+                maxAge: config.SESSION_EXPIRY,
+                httpOnly: false,
+                signed: true,
+                secure: false
+              });
+              let bexioURL = config.BILLING_APP;
+              return res.redirect(`${bexioURL}`);
             }
           }
         } else {
