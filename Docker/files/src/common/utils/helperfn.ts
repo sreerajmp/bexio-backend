@@ -5804,18 +5804,36 @@ export const validDate = (date:string,isEnd?:boolean) => {
   return parsedDate;
 };
 
-export const getInvoicesQuery=async(channel:string,netcomId,include: boolean)=>{
-  const operator= include ? "=" :"!="
+export const getInvoicesQuery = async (
+  channel: string,
+  netcomId: number,
+  include: boolean
+) => {
+  const operator = include ? "=" : "!=";
 
-  return  await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+  const normalizedChannel =
+    channel.toLowerCase() === "print"
+      ? ["PRINT", "POST"]
+      : [channel.toUpperCase()];
+
+  return await connectBexio.$queryRaw<
+    { invoices: number[]; contacts: number[] }[]
+  >(
     Prisma.sql`
-              SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-              INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-              WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) ${Prisma.raw(operator)} UPPER(${channel.toUpperCase()})
-              `
-              );
-}
-            
+      SELECT 
+        array_agg(ds.rk_invoice::int) AS invoices,
+        array_agg(ds.contact_id::int) AS contacts
+      FROM documents_invoice_send ds
+      INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+      WHERE c.netcomid = ${netcomId}
+        AND (
+          UPPER(ds.invoice_type) ${Prisma.raw(operator)}
+          ANY(ARRAY[${Prisma.join(normalizedChannel)}])
+        )
+  `
+  );
+};
+     
 
 export function escapeLikeChars(text) {
   return text.replace(/[_%]/g, "\\$&")
