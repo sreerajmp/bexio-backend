@@ -693,7 +693,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = data.partyId;
     let netcomId = data.netcomId;
-    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
+    let arrayContactIds:number[] = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
     let invoiceListTemp;
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -897,79 +897,143 @@ export class DebtorsService {
       }
     console.log('channel',data);
     
-      if("channel" in data){
+      // if("channel" in data){
   
-        const getInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, true)
-          console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
+      //   const getInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, true)
+      //     console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
 
-          if(getInvoiceIdRslt[0]['invoices']){
-            console.log('22222222222222222222222');
-            dbInvoice = getInvoiceIdRslt[0]['invoices']
-            let searchJson: any[] = [];
-            searchJson.push({
-              "field": "id",
-              "value": getInvoiceIdRslt[0]['invoices'],
-              "criteria": "in"
-            });
+      //     if(getInvoiceIdRslt[0]['invoices']){
+      //       console.log('22222222222222222222222');
+      //       dbInvoice = getInvoiceIdRslt[0]['invoices']
+      //       let searchJson: any[] = [];
+      //       searchJson.push({
+      //         "field": "id",
+      //         "value": getInvoiceIdRslt[0]['invoices'],
+      //         "criteria": "in"
+      //       });
 
-            invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
-          }
+      //       invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
+      //     }
 
-          console.log("invoiceListTemp",invoiceListTemp);
-          if(invoiceListTemp){
-            invoiceContactListIds = invoiceListTemp?.map(inv => inv.contact_id);
-            console.log("invoiceContactListIds",invoiceContactListIds);
-          }
+      //     console.log("invoiceListTemp",invoiceListTemp);
+      //     if(invoiceListTemp){
+      //       invoiceContactListIds = invoiceListTemp?.map(inv => inv.contact_id);
+      //       console.log("invoiceContactListIds",invoiceContactListIds);
+      //     }
        
           
-          if(data.channel.toLowerCase() == 'edi'){
-            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
-          }else if(data.channel.toLowerCase() == 'print'){
-            arrayContactIds =await getContactIdsByChannel(accessToken,"print");
-            console.log("arrayContactIds",arrayContactIds);
-          }
-       else if(data.channel.toLowerCase() == 'email'){
-            arrayContactIds = await getContactIdsByChannel(accessToken,"email");
-              console.log("arrayContactIds",arrayContactIds);
-          }
-           else if(data.channel.toLowerCase() == 'ebill'){
-            arrayContactIds = await getContactIdsByChannel(accessToken,"ebill");
-              console.log("arrayContactIds",arrayContactIds);
-          }
-      }
+      //     if(data.channel.toLowerCase() == 'edi'){
+      //       tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
+      //     }else if(data.channel.toLowerCase() == 'print'){
+      //       arrayContactIds =await getContactIdsByChannel(accessToken,"print");
+      //       console.log("arrayContactIds",arrayContactIds);
+      //     }
+      //  else if(data.channel.toLowerCase() == 'email'){
+      //       arrayContactIds = await getContactIdsByChannel(accessToken,"email");
+      //         console.log("arrayContactIds",arrayContactIds);
+      //     }
+      //      else if(data.channel.toLowerCase() == 'ebill'){
+      //       arrayContactIds = await getContactIdsByChannel(accessToken,"ebill");
+      //         console.log("arrayContactIds",arrayContactIds);
+      //     }
+      // }
       
-      console.log("invoiceContactListIds",invoiceContactListIds);
-      if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
-        let tempArray = [...arrayContactIds,...invoiceContactListIds]
-        if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
-           const getNotInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, false)
-          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
-          console.log("getNotInvoiceIdRslt",getNotInvoiceIdRslt);
-         console.log("getNotInvoiceId",getNotInvoiceId);
-          tempArray = [...tempArray,...tempContact]
-        searchJson.push({
-          "field": "contact_id",
-          "value": tempArray,
-          "criteria": "in"
-        });
+      // console.log("invoiceContactListIds",invoiceContactListIds);
+      // if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
+      //   let tempArray = [...arrayContactIds,...invoiceContactListIds]
+      //   if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
+      //      const getNotInvoiceIdRslt =await getInvoicesQuery(data.channel,netcomId, false)
+      //     getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
+      //     console.log("getNotInvoiceIdRslt",getNotInvoiceIdRslt);
+      //    console.log("getNotInvoiceId",getNotInvoiceId);
+      //     tempArray = [...tempArray,...tempContact]
+      //   searchJson.push({
+      //     "field": "contact_id",
+      //     "value": tempArray,
+      //     "criteria": "in"
+      //   });
         
-        if(getNotInvoiceId?.length > 0)
-          searchJson.push({
-            "field": "id",
-            "value": getNotInvoiceId,
-            "criteria": "not_in"
-          });
-      }else{
-        if(dbInvoice){
-          searchJson.push({
-            "field": "id",
-            "value": dbInvoice,
-            "criteria": "in"
-          });
-        }  
-      }
+      //   if(getNotInvoiceId?.length > 0)
+      //     searchJson.push({
+      //       "field": "id",
+      //       "value": getNotInvoiceId,
+      //       "criteria": "not_in"
+      //     });
+      // }else{
+      //   if(dbInvoice){
+      //     searchJson.push({
+      //       "field": "id",
+      //       "value": dbInvoice,
+      //       "criteria": "in"
+      //     });
+      //   }  
+      // }
 
-      }
+      // }
+
+if ("channel" in data) {
+  const channel = data.channel.toLowerCase();
+  console.log("CHANNEL FILTER REQUEST:", channel);
+
+  const channelResult = await getInvoicesQuery(channel, netcomId, true);
+  const invoices = channelResult?.[0]?.invoices || [];
+  const contacts = channelResult?.[0]?.contacts || [];
+
+  console.log("Include - Invoices for channel:", invoices);
+  console.log("Include - Contacts for channel:", contacts);
+
+  // If invoices exist → filter ONLY these invoices
+  if (invoices.length > 0) {
+    searchJson.push({
+      field: "id",
+      value: invoices,
+      criteria: "in"
+    });
+  }
+
+  if (channel === "edi") {
+    arrayContactIds = contacts;
+    console.log("EDI contacts:", arrayContactIds);
+
+  } else if (channel === "print") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "print");
+    console.log("PRINT contacts:", arrayContactIds);
+
+  } else if (channel === "email") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "email");
+    console.log("EMAIL contacts:", arrayContactIds);
+
+  } else if (channel === "ebill") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
+    console.log("EBILL contacts:", arrayContactIds);
+  }
+
+  const mergedContacts = [...new Set([...arrayContactIds, ...contacts])];
+  console.log("Final merged contacts:", mergedContacts);
+
+  if (mergedContacts.length > 0) {
+    searchJson.push({
+      field: "contact_id",
+      value: mergedContacts,
+      criteria: "in"
+    });
+  }
+
+  const excludeResult = await getInvoicesQuery(channel, netcomId, false);
+  const excludeInvoices = excludeResult?.[0]?.invoices || [];
+
+  console.log("Exclude - Invoice IDs:", excludeInvoices);
+
+  if (excludeInvoices.length > 0) {
+    searchJson.push({
+      field: "id",
+      value: excludeInvoices,
+      criteria: "not_in"
+    });
+  }
+
+  console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
+}
       let resData: any[] = [];
       console.log('searchJson 2:::',searchJson);
       const isSearch=searchJson.length > 0
