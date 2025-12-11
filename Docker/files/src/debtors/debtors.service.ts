@@ -2765,7 +2765,7 @@ console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}')
                 break;
               case 'INPROGRESS':
                 status = 1;
-                response = 'process_ in _print_partner';
+                response = 'process_in_print_partner';
                 break;
               default:
                 status = 1;
