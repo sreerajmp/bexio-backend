@@ -970,47 +970,118 @@ export class DebtorsService {
       // }
 
       // }
-
 if ("channel" in data) {
-  const channel = data.channel.toLowerCase();
-  console.log("CHANNEL FILTER REQUEST:", channel);
+  const channel = String(data.channel).toLowerCase();
+  console.log("Channel:", channel);
 
-  const channelResult = await getInvoicesQuery(channel, netcomId, true);
-  const invoices = channelResult?.[0]?.invoices || [];
-  const contacts = channelResult?.[0]?.contacts || [];
+  const getInvoiceIdRslt = await connectBexio.$queryRaw<
+    { invoices: number[] }[]
+  >(Prisma.sql`
+    SELECT array_agg(rk_invoice::int) AS invoices
+    FROM documents_invoice_send ds
+    INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+    WHERE netcomid = ${netcomId}
+      AND UPPER(ds.invoice_type) = UPPER(${channel.toUpperCase()})
+  `);
 
-  console.log("Include - Invoices for channel:", invoices);
-  console.log("Include - Contacts for channel:", contacts);
+  console.log("SQL getInvoiceIdRslt:", getInvoiceIdRslt);
 
-  // If invoices exist → filter ONLY these invoices
-  if (invoices.length > 0) {
+  const invoicesForChannel: number[] =
+    (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
+
+  console.log("Invoices for channel:", invoicesForChannel);
+
+  let invoiceContactIds: number[] = [];
+
+  if (invoicesForChannel.length > 0) {
+    console.log("Calling getInvoiceSearch with invoice IDs:", invoicesForChannel);
+
+    const tmpSearch = [
+      { field: "id", value: invoicesForChannel, criteria: "in" }
+    ];
+
+    invoiceListTemp = await getInvoiceSearch(accessToken, tmpSearch) || [];
+
+    console.log("Bexio invoiceListTemp:", invoiceListTemp);
+
+    invoiceContactIds = (invoiceListTemp || [])
+      .map((inv: any) => inv?.contact_id)
+      .filter(Boolean);
+
+    console.log("Invoice contact IDs:", invoiceContactIds);
+  }
+
+  let groupContactIds: number[] = [];
+
+  if (channel !== "edi") {
+    console.log("Fetching contact group list for:", channel);
+
+    let contactGroupList = await getContactGroupList(accessToken) || [];
+    console.log("contactGroupList:", contactGroupList);
+
+    const nameMap = {
+      print: ["print", "post"],
+      email: ["email"],
+      ebill: ["ebill"]
+    };
+
+    const targets = nameMap[channel] || [];
+
+    console.log("Matching group names:", targets);
+
+    const groupListArr = Array.isArray(contactGroupList) ? contactGroupList : [];
+
+    const groupIds = groupListArr
+      .filter(g => g?.name && targets.includes(String(g.name).toLowerCase()))
+      .map(g => g.id)
+      .filter(Boolean);
+
+    console.log("Group IDs:", groupIds);
+
+    console.log("Group IDs for channel:", groupIds);
+
+    if (groupIds.length > 0) {
+      const searchContactgrp = [
+        { field: "contact_group_ids", value: groupIds, criteria: "in" }
+      ];
+
+      console.log("Calling getContactSearch with:", searchContactgrp);
+
+      const contactRows = await getContactSearch(accessToken, searchContactgrp) || [];
+
+      console.log("Contact rows:", contactRows);
+
+     const contactRowsArr = Array.isArray(contactRows) ? contactRows : [];
+
+      groupContactIds = contactRowsArr
+      .map((c: any) => c.id)
+      .filter(Boolean);
+    }
+
+    console.log("Group-derived contact IDs:", groupContactIds);
+  } else {
+    console.log("EDI mode: groupContactIds left empty");
+    groupContactIds = [];
+  }
+
+  const mergedContacts = Array.from(
+    new Set([...(invoiceContactIds || []), ...(groupContactIds || [])])
+  );
+
+  console.log("Merged contact IDs:", mergedContacts);
+
+  if (!Array.isArray(searchJson)) searchJson = [];
+
+  // Include invoice IDs
+  if (invoicesForChannel.length > 0) {
     searchJson.push({
       field: "id",
-      value: invoices,
+      value: invoicesForChannel,
       criteria: "in"
     });
   }
 
-  if (channel === "edi") {
-    arrayContactIds = contacts;
-    console.log("EDI contacts:", arrayContactIds);
-
-  } else if (channel === "print") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "print");
-    console.log("PRINT contacts:", arrayContactIds);
-
-  } else if (channel === "email") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "email");
-    console.log("EMAIL contacts:", arrayContactIds);
-
-  } else if (channel === "ebill") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
-    console.log("EBILL contacts:", arrayContactIds);
-  }
-
-  const mergedContacts = [...new Set([...arrayContactIds, ...contacts])];
-  console.log("Final merged contacts:", mergedContacts);
-
+  // Include contact IDs
   if (mergedContacts.length > 0) {
     searchJson.push({
       field: "contact_id",
@@ -1019,21 +1090,37 @@ if ("channel" in data) {
     });
   }
 
-  const excludeResult = await getInvoicesQuery(channel, netcomId, false);
-  const excludeInvoices = excludeResult?.[0]?.invoices || [];
+  if (invoicesForChannel.length === 0) {
+    console.log("Fetching NOT_IN invoice list...");
 
-  console.log("Exclude - Invoice IDs:", excludeInvoices);
+    const notRows = await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+      Prisma.sql`
+        SELECT array_agg(rk_invoice::int) AS invoices
+        FROM documents_invoice_send ds
+        INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+        WHERE netcomid = ${netcomId}
+          AND UPPER(ds.invoice_type) != UPPER(${channel.toUpperCase()})
+      `
+    );
 
-  if (excludeInvoices.length > 0) {
-    searchJson.push({
-      field: "id",
-      value: excludeInvoices,
-      criteria: "not_in"
-    });
+    console.log("SQL notRows:", notRows);
+
+    const excludeInvoices = (notRows?.[0]?.invoices ?? []).filter(Boolean);
+
+    console.log("Exclude invoice IDs:", excludeInvoices);
+
+    if (excludeInvoices.length > 0) {
+      searchJson.push({
+        field: "id",
+        value: excludeInvoices,
+        criteria: "not_in"
+      });
+    }
   }
 
   console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
 }
+
       let resData: any[] = [];
       console.log('searchJson 2:::',searchJson);
       const isSearch=searchJson.length > 0
