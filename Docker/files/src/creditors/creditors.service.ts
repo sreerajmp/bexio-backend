@@ -1290,6 +1290,7 @@ export class CreditorsService {
     try {
       // Get yesterday's date
       let accessToken: any = '';
+      const results:any[]=[]
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
@@ -1303,8 +1304,8 @@ export class CreditorsService {
       const startDate=req.body?.startDate ?? targetDate
       const endDate=req.body?.endDate ?? targetDate
 
-      const startTimestamp = `${startDate} 00:00:00+05:30` ;
-      const endTimestamp = `${endDate} 23:59:59+05:30`
+      const startTimestamp = `${startDate}T00:00:00+05:30` ;
+      const endTimestamp = `${endDate}T23:59:59+05:30`
 
       const getDistinctCompany =
         await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
@@ -1313,7 +1314,7 @@ export class CreditorsService {
                               INNER JOIN companyregistered c ON c.cid = dis.fk_companyregistered WHERE time_stamp  
                               BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz`;
 
-      console.log('getDistinctCompany', getDistinctCompany);
+      console.log('getDistinctCompany outside loop', getDistinctCompany);
 
       const bexioClient = await bexioInterfaceClient();
 
@@ -1354,6 +1355,9 @@ export class CreditorsService {
           } else {
             continue;
           }
+
+          console.log("invoicedCompanyName ----",invoicedCompanyName);
+          
           const qryListAllInvoice =
             await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type
                             FROM public.documents_invoice_send
@@ -1463,7 +1467,7 @@ export class CreditorsService {
           const date = new Date();
           date.setDate(date.getDate() - 1); // Subtract 1 day to get yesterday
 
-          const germanDate = date.toLocaleDateString('de-DE');
+          const germanDate = startDate ?`${new Date(startTimestamp).toLocaleDateString('de-DE')}` : date.toLocaleDateString('de-DE');
 
           // const today = new Date();
           // today.setDate(today.getDate()); // Subtract 1 day to get yesterday
@@ -1551,18 +1555,31 @@ export class CreditorsService {
               subject,
               message,
             });
-            return res.status(200).json({              
-              status_code: 200,
-              message: 'Email sent successfully',
-              data: result.info,
+
+            results.push({
+                company: getDistinctCompany[j].fk_companyregistered,
+                message: 'Email sent successfully',
+                status: "success",
+                info: result.info
             })
+            // return res.status(200).json({              
+            //   status_code: 200,
+            //   message: 'Email sent successfully',
+            //   data: result.info,
+            // })
           } catch (error) {
             // throw error;      
-            return res.status(500).json({              
-              status_code: 500,
-              message: 'Email sent failed',
-              error: error,
-            })      
+            // return res.status(500).json({              
+            //   status_code: 500,
+            //   message: 'Email sent failed',
+            //   error: error,
+            // })      
+            results.push({
+                company: getDistinctCompany[j].fk_companyregistered,
+                message: 'Email sent failed',
+                status: "failed",
+                error
+            })
           }
         }
       }
@@ -1571,6 +1588,7 @@ export class CreditorsService {
         status_code: 200,
         message: 'success',
         status: true,
+        results
       });
     } catch (error) {
       console.log('error :: ', error);
