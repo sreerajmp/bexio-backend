@@ -2791,11 +2791,11 @@ console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}')
             switch (formData.status.trim()) {
               case 'ERROR':
                 status = 0;
-                response = (JSON.parse(formData.message || '{}'))?.technicalReason || '';
+                response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'ERROR';
                 break;
               case 'INCORRECT':
                 status = 0;
-                response = 'failed';
+                response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'INCORRECT';
                 break;
               case 'REJECTED':
                 status = 0;
