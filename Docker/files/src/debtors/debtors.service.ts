@@ -2197,9 +2197,12 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       const invalidEmailInvoices = data.emailInvoices.filter(
         inv => !inv.bill_recipient_email?.trim()
       );
-
+      console.log("invalidEmailInvoices",invalidEmailInvoices);
+      
       // Handle invalid invoices (set status + push)
       for (const inv of invalidEmailInvoices) {
+        console.log("email inv----",inv);
+        
         await setInvoiceSendStatus(
           data.partyId,
           inv.doc_id,
@@ -2208,7 +2211,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           'email_id_not_found',
           'email'
         );
-
+        inv.tag="email"
         combinedResponse.otherInvoiceResults.push(inv);
       }
 
