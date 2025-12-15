@@ -377,6 +377,13 @@ export class CreditorsService {
             criteria: 'like',
           });
         }
+         if (data.search!='' && data.search != null && data.search != undefined) {
+          searchJson.push({
+            field: 'title',
+            value: data.search,
+            criteria: 'like',
+          });
+        }
 
         if (data.startDate) {
           searchJson.push({
@@ -942,7 +949,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'something_went_wrong',
+              message: 'contact_details_not_found',
               status: false,
             });
             return;
@@ -966,7 +973,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'something_went_wrong',
+              message: 'country_name_not_found',
               status: false,
             });
             return;
@@ -1053,7 +1060,7 @@ export class CreditorsService {
             } else {
               res.send({
                 status_code: 500,
-                message: 'something_went_wrong',
+                message: 'create_bill_error',
                 status: false,
               });
             }
