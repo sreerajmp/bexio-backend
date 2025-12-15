@@ -377,13 +377,6 @@ export class CreditorsService {
             criteria: 'like',
           });
         }
-        if (data.search!='' && data.search != null && data.search != undefined) {
-          searchJson.push({
-            field: 'title',
-            value: data.search,
-            criteria: 'like',
-          });
-        }
 
         if (data.startDate) {
           searchJson.push({
@@ -949,7 +942,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'contact_details_not_found',
+              message: 'something_went_wrong',
               status: false,
             });
             return;
@@ -973,7 +966,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'country_name_not_found',
+              message: 'something_went_wrong',
               status: false,
             });
             return;
@@ -1060,7 +1053,7 @@ export class CreditorsService {
             } else {
               res.send({
                 status_code: 500,
-                message: 'create_bill_error',
+                message: 'something_went_wrong',
                 status: false,
               });
             }
@@ -1713,6 +1706,9 @@ const setOrderSendStatus = async (
         },
       });
 
+      console.log("selectQryResult",selectQryResult);
+      
+
       if (selectQryResult.length == 0) {
         console.log('ifffffffffffff');
 
@@ -1735,7 +1731,7 @@ const setOrderSendStatus = async (
             cid: true, // This is the equivalent of RETURNING cid
           },
         });
-        console.log(result);
+        console.log("send order status result",result);
         sendOrderId = result.cid;
       } else {
         console.log('elseeeeeeeeeee');
@@ -1757,7 +1753,7 @@ const setOrderSendStatus = async (
 
       return resolve(sendOrderId);
     } catch (error) {
-      console.log(error);
+      console.log("error in send Order status" ,error);
       commonErrors['errorTitle'] = ' setInvoiceSendStatus';
       commonErrors['errorDescription'] =
         'From:' +
