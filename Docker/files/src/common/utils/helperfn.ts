@@ -345,6 +345,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           },
         },
       });
+      console.log("selectQryResult",selectQryResult);
+      
       if (selectQryResult.length == 0) {
         console.log('createany');
 
@@ -368,6 +370,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             cid: true,
           },
         });
+        console.log("SendInvoice Status result",result);
+        
         sendInvoiceId = result.cid;
       }
       else {
