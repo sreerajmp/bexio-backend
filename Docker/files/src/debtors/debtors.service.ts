@@ -2267,7 +2267,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           'email_id_not_found',
           'EBILL'
         );
-
+         inv.tag="EBILL"
         combinedResponse.otherInvoiceResults.push(inv);
       }
 
