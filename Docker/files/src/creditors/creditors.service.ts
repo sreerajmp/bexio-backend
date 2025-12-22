@@ -1358,15 +1358,25 @@ export class CreditorsService {
 
           console.log("invoicedCompanyName ----",invoicedCompanyName);
           
-          const qryListAllInvoice =
-            await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type, status
-                            FROM public.documents_invoice_send
-                            WHERE time_stamp  BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz ORDER BY time_stamp DESC`;
+          // const qryListAllInvoice =
+          //   await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type, status
+          //                   FROM public.documents_invoice_send
+          //                   WHERE time_stamp  BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz ORDER BY time_stamp DESC`;
           //   const qryListAllInvoice = await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type
           //   FROM public.documents_invoice_send
           //  `;
 
+          const qryListAllInvoice =
+                  await connectBexio.$queryRaw<any>` 
+                  SELECT cid, rk_invoice, invoice_number, invoice_type, status
+                  FROM public.documents_invoice_send
+                  WHERE fk_companyregistered = ${companyregistered}
+                    AND time_stamp BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz 
+                  ORDER BY time_stamp DESC`;
+
           console.log("qryListAllInvoice---",qryListAllInvoice);
+          console.log(`getCompanyName Invoices`,getCompanyName ,"+",qryListAllInvoice);
+          
           
           const invoiceList: number[] = [];
           const invoiceChannelList: any = [];
