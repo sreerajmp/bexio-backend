@@ -5845,11 +5845,11 @@ export function escapeLikeChars(text) {
 
 export const getStatusLabel=(status:number)=>{
   if(status===0){
-    return "Failed"
+    return "Fehlgeschlagen"
   }else if(status===1){
-    return "In Progress"
+    return "In Bearbeitung"
   }else if(status===2){
-    return "Completed"
+    return "Abgeschlossen"
   }
   return null;
 }

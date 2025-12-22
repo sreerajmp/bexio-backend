@@ -1304,8 +1304,8 @@ export class CreditorsService {
       const startDate=req.body?.startDate ?? targetDate
       const endDate=req.body?.endDate ?? targetDate
 
-      const startTimestamp = `${startDate}T00:00:00+05:30` ;
-      const endTimestamp = `${endDate}T23:59:59+05:30`
+      const startTimestamp = `${startDate}T00:00:00` ;
+      const endTimestamp = `${endDate}T23:59:59`
 
       const getDistinctCompany =
         await connectBexio.$queryRaw<any>`SELECT DISTINCT ON (dis.fk_companyregistered) dis.fk_companyregistered, 
@@ -1376,8 +1376,6 @@ export class CreditorsService {
 
           console.log("qryListAllInvoice---",qryListAllInvoice);
           console.log(`getCompanyName Invoices`,getCompanyName ,"+",qryListAllInvoice);
-          
-          
           const invoiceList: number[] = [];
           const invoiceChannelList: any = [];
           for (let index = 0; index < qryListAllInvoice.length; index++) {
