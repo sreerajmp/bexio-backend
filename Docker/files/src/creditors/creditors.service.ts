@@ -24,7 +24,7 @@ import { SendOrderWorkerHost } from '../common/utils/sendOrder_worker.host';
 const sendEmail = require('../common/utils/email');
 import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from '../common/utils/fetchEmailData';
-import { escapeLikeChars, getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, moveFile } from 'src/common/utils/helperfn';
+import { escapeLikeChars, getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, getStatusLabel, moveFile } from 'src/common/utils/helperfn';
 
 @Injectable()
 export class CreditorsService {
@@ -1375,6 +1375,7 @@ export class CreditorsService {
             invoiceChannelList.push({
               invoice_id: Number(qryListAllInvoice[index]['rk_invoice']),
               channel: qryListAllInvoice[index]['invoice_type'],
+              status:getStatusLabel(qryListAllInvoice[index]['status']),
             });
           }
           var searchJson: any = [];
@@ -1451,6 +1452,7 @@ export class CreditorsService {
               contact_name: contact ? contact.contact_name : null, // or "Unknown"
               channel: channel ? channel.channel : null,
               doc_number: invoice.document_nr,
+              status:channel? channel.status : null
             };
           });
           console.log('enrichedInvoices :: ', enrichedInvoices);
@@ -1471,6 +1473,7 @@ export class CreditorsService {
                           <td style="text-align:left">${element.doc_number}</td>
                           <td style="text-align:left">${element.contact_name}</td>
                           <td style="text-align:left">${chanelKeys[element.channel]}</td>
+                          <td style="text-align:left">${element.status}</td>
                         </tr>`;
           }
           const date = new Date();
@@ -1515,6 +1518,9 @@ export class CreditorsService {
                                                           <td>
                                                               <b>Kanal</b>
                                                           </td>
+                                                          <td>
+                                                              <b>Status</b>
+                                                          </td>
                                                       </tr>
                                                       ${text}                                                    
                                                   </table>
@@ -1532,6 +1538,7 @@ export class CreditorsService {
               <th style="text-align:left">Belegnummer</th>
               <th style="text-align:left">Kunde</th>
               <th style="text-align:left">Kanal</th>
+              <th style="text-align:left">Status</th>
             </tr>
           ${text}
           </table>`;
