@@ -5842,3 +5842,14 @@ export const getInvoicesQuery = async (
 export function escapeLikeChars(text) {
   return text.replace(/[_%]/g, "\\$&")
 }
+
+export const getStatusLabel=(status:number)=>{
+  if(status===0){
+    return "Failed"
+  }else if(status===1){
+    return "In Progress"
+  }else if(status===2){
+    return "Completed"
+  }
+  return null;
+}
