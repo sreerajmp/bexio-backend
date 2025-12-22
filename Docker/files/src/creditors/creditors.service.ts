@@ -1359,12 +1359,15 @@ export class CreditorsService {
           console.log("invoicedCompanyName ----",invoicedCompanyName);
           
           const qryListAllInvoice =
-            await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type
+            await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type, status
                             FROM public.documents_invoice_send
                             WHERE time_stamp  BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz ORDER BY time_stamp DESC`;
           //   const qryListAllInvoice = await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type
           //   FROM public.documents_invoice_send
           //  `;
+
+          console.log("qryListAllInvoice---",qryListAllInvoice);
+          
           const invoiceList: number[] = [];
           const invoiceChannelList: any = [];
           for (let index = 0; index < qryListAllInvoice.length; index++) {
@@ -1412,6 +1415,9 @@ export class CreditorsService {
             contactIdList.push(invoiceDataList[i]['contact_id']);
           }
 
+          console.log("invoiceDataList ----",invoiceDataList);
+          
+
           const bexioContactResponse: any = await getContactById(
             accessToken,
             contactIdList,
@@ -1428,6 +1434,9 @@ export class CreditorsService {
               `${element.name_1 || ''} ${element.name_2 || ''}`.trim();
             contactNameIdList.push({ contact_name: name, id: element.id });
           });
+
+          console.log("contactNameIdList---" ,contactNameIdList);
+          
 
           const enrichedInvoices = invoiceDataList.map((invoice) => {
             const contact = contactNameIdList.find(
