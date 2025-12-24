@@ -109,7 +109,6 @@ export default {
 	  MODULO:process.env.MODULO,
 	  NETCOM_VALUE:process.env.NETCOM_VALUE,
 	  TOKEN_COOKIE_NAME: process.env.TOKEN_COOKIE_NAME || 'tokenCookie',
-	  USER_COOKIE_NAME: process.env.USER_COOKIE_NAME || 'userCookie',
 	  GATE2B_DB_USER : process.env.G2_DB_USER,
 	  GATE2B_DB_HOST:process.env.G2_DB_HOST,
 	  GATE2B_DB_PASSWORD : process.env.G2_DB_PASSWORD,
