@@ -157,7 +157,8 @@ export class BexioUserService {
             let billingCookie = {
               bexio: true,
               objectid: insertData[0]?.objectid,
-              isNew:true
+              isNew:true,
+              isnewUser:true,
             }
 
             console.log('4. Billing Cookie Data:', billingCookie);
@@ -187,17 +188,6 @@ export class BexioUserService {
               httpOnly: false,
               signed: true,
             };
-            let newUser = { 
-            isnewUser:true,
-          }
-          res.cookie(config.USER_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(newUser)), {
-            domain: config.SESSION_DOMAIN,
-            maxAge: config.SESSION_EXPIRY,
-            httpOnly: true,
-            signed: true,
-            secure: false
-          });
-
             //console.log('8. Billing Cookie Options:', billingCookieOptions);
             //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
             
@@ -1593,16 +1583,19 @@ export class BexioUserService {
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
-      let newUser = { 
-            isnewUser:true,
-          }
-          res.cookie(config.USER_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(newUser)), {
-            domain: config.SESSION_DOMAIN,
-            maxAge: config.SESSION_EXPIRY,
-            httpOnly: true,
-            signed: true,
-            secure: false
-          });
+       let billingCookie = {
+              isnewUser:true,
+            }
+            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+          const billingCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              httpOnly: false,
+              signed: false,
+              secure: false,
+              path: '/'
+            };
+         res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
       return userCid
     }
     async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
@@ -2270,7 +2263,7 @@ VALUES (
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
-        res.clearCookie(config.USER_COOKIE_NAME);
+        
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
         // Set cookie with proper options for local development
