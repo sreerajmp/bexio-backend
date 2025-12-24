@@ -2263,7 +2263,7 @@ VALUES (
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
-        res.clearCookie(config.USER_COOKIE_NAME);
+        
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
         // Set cookie with proper options for local development
