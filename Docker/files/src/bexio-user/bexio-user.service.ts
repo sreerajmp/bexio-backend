@@ -187,7 +187,17 @@ export class BexioUserService {
               httpOnly: false,
               signed: true,
             };
-            
+            let newUser = { 
+            isnewUser:true,
+          }
+          res.cookie(config.USER_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(newUser)), {
+            domain: config.SESSION_DOMAIN,
+            maxAge: config.SESSION_EXPIRY,
+            httpOnly: true,
+            signed: true,
+            secure: false
+          });
+
             //console.log('8. Billing Cookie Options:', billingCookieOptions);
             //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
             
@@ -1583,13 +1593,18 @@ export class BexioUserService {
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
-
+      let newUser = { 
+            isnewUser:true,
+          }
+          res.cookie(config.USER_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(newUser)), {
+            domain: config.SESSION_DOMAIN,
+            maxAge: config.SESSION_EXPIRY,
+            httpOnly: true,
+            signed: true,
+            secure: false
+          });
       return userCid
-
-
     }
-
-
     async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
 
       const valuesaccount = [
@@ -2255,7 +2270,7 @@ VALUES (
         // Clear existing cookies
         res.clearCookie(config.BILLING_COOKIE_NAME);
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
-
+        res.clearCookie(config.USER_COOKIE_NAME);
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
         // Set cookie with proper options for local development
