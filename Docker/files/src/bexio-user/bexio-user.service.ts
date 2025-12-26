@@ -839,6 +839,19 @@ export class BexioUserService {
       let userId = await userCheck(userDetails);
       if (!userId) {
         userId = await saveUser(userDetails);
+             console.log('first user');
+          let billingCookie = {
+              isnewUser:true,
+            }
+            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+          const billingCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              httpOnly: false,
+              signed: false,
+              secure: false,
+            };
+         res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
       }
       let userAccountStatus = await checkUserAccount(userId)
 
@@ -1583,19 +1596,7 @@ export class BexioUserService {
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
-       let billingCookie = {
-              isnewUser:true,
-            }
-            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
-          const billingCookieOptions = {
-              domain: config.SESSION_DOMAIN,
-              maxAge: config.SESSION_EXPIRY,
-              httpOnly: false,
-              signed: false,
-              secure: false,
-              path: '/'
-            };
-         res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
+     
       return userCid
     }
     async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
