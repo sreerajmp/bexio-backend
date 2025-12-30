@@ -1682,7 +1682,7 @@ export class BexioUserService {
         resultdata // this is fk_user
       ];
 
-      const personalAddressResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      const personalAddressResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
         INSERT INTO address 
           (fk_party, _type, number, line1, line2, line3, street, streetno, zip, city, state, country_code, fk_user)
         VALUES (
@@ -2382,16 +2382,20 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     //console.log('INSERT end');
 
     } else {
-        await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
-        const deleteOldTokens50thFromGeneratedNow = `
-            DELETE FROM public.authtable
-            WHERE mail = $1
-            AND  "id" NOT IN (
-            SELECT "id" FROM public.authtable
-            WHERE mail = $1
-            ORDER BY timestamp DESC
-            LIMIT 50)`;
-        await connectLibrary.$executeRaw(Prisma.sql`${deleteOldTokens50thFromGeneratedNow}`, [email]);
+      await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
+      const deleteOldTokens50thFromGeneratedNow = await connectLibrary.$executeRaw(
+        Prisma.sql`
+    DELETE FROM public.authtable
+    WHERE mail = ${email}
+    AND "id" NOT IN (
+      SELECT "id" FROM public.authtable
+      WHERE mail = ${email}
+      ORDER BY timestamp DESC
+      LIMIT 50
+    )
+  `
+      );
+      console.log("deleteOldTokens50thFromGeneratedNow", deleteOldTokens50thFromGeneratedNow);
 
   }
   if(isNewCompany === "true"){
