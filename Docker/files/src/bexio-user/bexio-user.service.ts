@@ -2436,11 +2436,6 @@ async getAccessToken(req: any, res: Response): Promise<any>{
 
   } catch (error) { 
     console.log("getAccesstoken error:",error);
-    
-    // commonErrors['errorTitle'] = req.originalUrl;
-    // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-    // warningMessage(commonErrors,error);
-    //console.log(error);
     res.status(500).send({
       status_code: 500,
       message: JSON.stringify(error),
