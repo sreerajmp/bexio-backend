@@ -897,77 +897,69 @@ export class DebtorsService {
       }
     console.log('channel',data);
     
-      if("channel" in data){
-        const getInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, true);
-        console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
+    if ("channel" in data) {
+  const channel = data.channel.toLowerCase();
+  console.log("CHANNEL FILTER REQUEST:", channel);
 
-        if(getInvoiceIdRslt?.[0]?.['invoices']?.length > 0){
-            dbInvoice = getInvoiceIdRslt[0]['invoices'];
-            let tempSearchJson: any[] = [];
-            tempSearchJson.push({
-              "field": "id",
-              "value": dbInvoice,
-              "criteria": "in"
-            });
-            // We need to fetch these invoices to find their contact IDs
-            invoiceListTemp = await getInvoiceSearch(accessToken, tempSearchJson);
-        }
+  const channelResult = await getInvoicesQuery(channel, netcomId, true);
+  const invoices = channelResult?.[0]?.invoices || [];
+  const contacts = channelResult?.[0]?.contacts || [];
 
-        if(invoiceListTemp && Array.isArray(invoiceListTemp)){
-            invoiceContactListIds = invoiceListTemp.map((inv: any) => inv.contact_id);
-            console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
-        }
-       
-        if(data.channel.toLowerCase() == 'edi'){
-            tempContact = getInvoiceIdRslt?.[0]?.['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
-        } else if(data.channel.toLowerCase() == 'print'){
-            arrayContactIds = await getContactIdsByChannel(accessToken, "print");
-        } else if(data.channel.toLowerCase() == 'email'){
-            arrayContactIds = await getContactIdsByChannel(accessToken, "email");
-        } else if(data.channel.toLowerCase() == 'ebill'){
-            arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
-        }
-      }
-      
-      console.log("Implict Group Contact IDs:", arrayContactIds);
-      
-      if((arrayContactIds && arrayContactIds.length != 0) || (invoiceContactListIds && invoiceContactListIds.length != 0) || (tempContact && tempContact.length != 0)){
-        let tempArray: any[] = [...(arrayContactIds || []), ...(invoiceContactListIds || []), ...(tempContact || [])];
-        // unique
-        tempArray = [...new Set(tempArray)];
-        console.log("Merged Contact IDs:", tempArray);
+  console.log("Include - Invoices for channel:", invoices);
+  console.log("Include - Contacts for channel:", contacts);
 
-        if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
-           const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
-           if (getNotInvoiceIdRslt && getNotInvoiceIdRslt[0]) {
-               getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
-           }
-           
-           console.log("Invoices to Exclude (Wrong Channel):", getNotInvoiceId);
+  // If invoices exist → filter ONLY these invoices
+  if (invoices.length > 0) {
+    searchJson.push({
+      field: "id",
+      value: invoices,
+      criteria: "in"
+    });
+  }
 
-           searchJson.push({
-            "field": "contact_id",
-            "value": tempArray,
-            "criteria": "in"
-           });
-        
-           if(getNotInvoiceId?.length > 0) {
-             searchJson.push({
-               "field": "id",
-               "value": getNotInvoiceId,
-               "criteria": "not_in"
-             });
-           }
-        }
-      } else if ("channel" in data) {
-         // Channel filter on, but no contacts found. Return empty.
-         console.log("No contacts found for channel. Forcing empty result.");
-         searchJson.push({
-            "field": "id",
-            "value": -1,
-            "criteria": "equal"
-         });
-      }
+  if (channel === "edi") {
+    arrayContactIds = contacts;
+    console.log("EDI contacts:", arrayContactIds);
+
+  } else if (channel === "print") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "print");
+    console.log("PRINT contacts:", arrayContactIds);
+
+  } else if (channel === "email") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "email");
+    console.log("EMAIL contacts:", arrayContactIds);
+
+  } else if (channel === "ebill") {
+    arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
+    console.log("EBILL contacts:", arrayContactIds);
+  }
+
+  const mergedContacts = [...new Set([...arrayContactIds, ...contacts])];
+  console.log("Final merged contacts:", mergedContacts);
+
+  if (mergedContacts.length > 0) {
+    searchJson.push({
+      field: "contact_id",
+      value: mergedContacts,
+      criteria: "in"
+    });
+  }
+
+  const excludeResult = await getInvoicesQuery(channel, netcomId, false);
+  const excludeInvoices = excludeResult?.[0]?.invoices || [];
+
+  console.log("Exclude - Invoice IDs:", excludeInvoices);
+
+  if (excludeInvoices.length > 0) {
+    searchJson.push({
+      field: "id",
+      value: excludeInvoices,
+      criteria: "not_in"
+    });
+  }
+
+  console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
+}
 
       let resData: any[] = [];
       console.log('searchJson 2:::',searchJson);
