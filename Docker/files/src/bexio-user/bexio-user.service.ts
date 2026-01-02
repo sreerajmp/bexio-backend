@@ -2262,7 +2262,13 @@ VALUES (
             Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
         );
         // Clear existing cookies
-        res.clearCookie(config.BILLING_COOKIE_NAME);
+       res.clearCookie(config.BILLING_COOKIE_NAME, {
+          domain: config.SESSION_DOMAIN,
+          httpOnly: false,
+          secure: false,
+          path: '/'
+        });
+
         res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
         
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
