@@ -897,69 +897,78 @@ export class DebtorsService {
       }
     console.log('channel',data);
     
-    if ("channel" in data) {
-  const channel = data.channel.toLowerCase();
-  console.log("CHANNEL FILTER REQUEST:", channel);
+      if("channel" in data) {
+         
+         const channel = String(data.channel).toLowerCase();
+         // ERROR LOCATION: The helper 'getInvoicesQuery' executes a SQL query that selects 'ds.contact_id'.
+         // However, the column 'contact_id' does NOT exist on the 'documents_invoice_send' table, causing the crash "column ds.contact_id does not exist".
+         const getInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, true);
+         
+         console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
-  const channelResult = await getInvoicesQuery(channel, netcomId, true);
-  const invoices = channelResult?.[0]?.invoices || [];
-  const contacts = channelResult?.[0]?.contacts || [];
+      const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
+      console.log("Include - Invoices for channel:", invoices);
 
-  console.log("Include - Invoices for channel:", invoices);
-  console.log("Include - Contacts for channel:", contacts);
+      // 2. Resolve Contacts for these invoices (Explicit Contacts)
+      let invoiceContactListIds: number[] = [];
+      if (invoices.length > 0) {
+        searchJson.push({
+          field: "id",
+          value: invoices,
+          criteria: "in"
+        });
 
-  // If invoices exist → filter ONLY these invoices
-  if (invoices.length > 0) {
-    searchJson.push({
-      field: "id",
-      value: invoices,
-      criteria: "in"
-    });
-  }
+        // Fetch contacts for these invoices from Bexio
+        const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
+        invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
+            .map((inv: any) => inv?.contact_id)
+            .filter(Boolean);
+        console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
+      }
 
-  if (channel === "edi") {
-    arrayContactIds = contacts;
-    console.log("EDI contacts:", arrayContactIds);
+      // 3. Resolve Implicit Contacts (Group-based)
+      if (channel === "edi") {
+         // EDI relies on Explicit Contacts (resolved above) or previously 'contacts' from DB which is broken.
+         // We rely on invoiceContactListIds.
+         arrayContactIds = []; 
+      } else if (channel === "print") {
+        arrayContactIds = await getContactIdsByChannel(accessToken, "print");
+      } else if (channel === "email") {
+        arrayContactIds = await getContactIdsByChannel(accessToken, "email");
+      } else if (channel === "ebill") {
+        arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
+      }
+      console.log("Implicit/Group contacts:", arrayContactIds);
 
-  } else if (channel === "print") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "print");
-    console.log("PRINT contacts:", arrayContactIds);
+      // 4. Merge Contacts
+      const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
+      console.log("Final merged contacts:", mergedContacts);
 
-  } else if (channel === "email") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "email");
-    console.log("EMAIL contacts:", arrayContactIds);
+      if (mergedContacts.length > 0) {
+        searchJson.push({
+          field: "contact_id",
+          value: mergedContacts,
+          criteria: "in"
+        });
+      }
 
-  } else if (channel === "ebill") {
-    arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
-    console.log("EBILL contacts:", arrayContactIds);
-  }
+      // 5. Exclude Invoices (Inline SQL)
+      // ERROR LOCATION: This second call to getInvoicesQuery ALSO causes the crash for the same reason (missing contact_id).
+      const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
+      const excludeInvoices = (getNotInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
 
-  const mergedContacts = [...new Set([...arrayContactIds, ...contacts])];
-  console.log("Final merged contacts:", mergedContacts);
+      console.log("Exclude - Invoice IDs:", excludeInvoices);
 
-  if (mergedContacts.length > 0) {
-    searchJson.push({
-      field: "contact_id",
-      value: mergedContacts,
-      criteria: "in"
-    });
-  }
+      if (excludeInvoices.length > 0) {
+        searchJson.push({
+          field: "id",
+          value: excludeInvoices,
+          criteria: "not_in"
+        });
+      }
 
-  const excludeResult = await getInvoicesQuery(channel, netcomId, false);
-  const excludeInvoices = excludeResult?.[0]?.invoices || [];
-
-  console.log("Exclude - Invoice IDs:", excludeInvoices);
-
-  if (excludeInvoices.length > 0) {
-    searchJson.push({
-      field: "id",
-      value: excludeInvoices,
-      criteria: "not_in"
-    });
-  }
-
-  console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
-}
+      console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
+    }
 
       let resData: any[] = [];
       console.log('searchJson 2:::',searchJson);
