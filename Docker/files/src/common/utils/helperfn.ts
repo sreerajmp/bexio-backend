@@ -5821,12 +5821,11 @@ export const getInvoicesQuery = async (
       : [channel.toUpperCase()];
 
   return await connectBexio.$queryRaw<
-    { invoices: number[]; contacts: number[] }[]
+    { invoices: number[] }[]
   >(
     Prisma.sql`
       SELECT 
-        array_agg(ds.rk_invoice::int) AS invoices,
-        array_agg(ds.contact_id::int) AS contacts
+        array_agg(ds.rk_invoice::int) AS invoices
       FROM documents_invoice_send ds
       INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
       WHERE c.netcomid = ${netcomId}
