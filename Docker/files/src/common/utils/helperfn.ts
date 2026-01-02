@@ -5813,28 +5813,25 @@ export const getInvoicesQuery = async (
   netcomId: number,
   include: boolean
 ) => {
-  const operator = include ? "=" : "!=";
-
   const normalizedChannel =
-    channel.toLowerCase() === "print"
-      ? ["PRINT", "POST"]
-      : [channel.toUpperCase()];
+  channel.toLowerCase() === "print"
+    ? ["PRINT", "POST"]
+    : [channel.toUpperCase()];
 
-  return await connectBexio.$queryRaw<
-    { invoices: number[] }[]
-  >(
-    Prisma.sql`
-      SELECT 
-        array_agg(ds.rk_invoice::int) AS invoices
-      FROM documents_invoice_send ds
-      INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-      WHERE c.netcomid = ${netcomId}
-        AND (
-          UPPER(ds.invoice_type) ${Prisma.raw(operator)}
-          ANY(ARRAY[${Prisma.join(normalizedChannel)}])
-        )
+return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+  Prisma.sql`
+    SELECT array_agg(ds.rk_invoice::int) AS invoices
+    FROM documents_invoice_send ds
+    INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+    WHERE c.netcomid = ${netcomId}
+      AND ${
+        include
+          ? Prisma.sql`UPPER(ds.invoice_type) IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
+          : Prisma.sql`UPPER(ds.invoice_type) NOT IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
+      }
   `
-  );
+);
+
 };
      
 
