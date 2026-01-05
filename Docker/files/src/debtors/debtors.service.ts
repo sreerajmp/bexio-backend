@@ -372,7 +372,7 @@ export class DebtorsService {
 
       }
       let resData: any[] = [];
-      console.log('searchJson:::',searchJson);
+      console.log('final searchJson:::',searchJson);
       if (searchJson.length > 0) {
       console.log('searchJson 2:::',searchJson);
 
@@ -386,7 +386,7 @@ export class DebtorsService {
             },
             body: JSON.stringify(searchJson)
           };
-          console.log("optionsoptions",options);
+          console.log("invoice filter endpoint options",options);
           
         const response = await new Promise<any>((resolve, reject) => {
           request(options, (error, response) => {
@@ -900,9 +900,7 @@ export class DebtorsService {
       if("channel" in data) {
          
          const channel = String(data.channel).toLowerCase();
-         // ERROR LOCATION: The helper 'getInvoicesQuery' executes a SQL query that selects 'ds.contact_id'.
-         // However, the column 'contact_id' does NOT exist on the 'documents_invoice_send' table, causing the crash "column ds.contact_id does not exist".
-         const getInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, true);
+         const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
          
          console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
@@ -932,7 +930,10 @@ export class DebtorsService {
          // We rely on invoiceContactListIds.
          arrayContactIds = []; 
       } else if (channel === "print") {
-        arrayContactIds = await getContactIdsByChannel(accessToken, "print");
+       let printContactIds = await getContactIdsByChannel(accessToken, "print");
+        let postContactIds = await getContactIdsByChannel(accessToken, "post");
+        arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+
       } else if (channel === "email") {
         arrayContactIds = await getContactIdsByChannel(accessToken, "email");
       } else if (channel === "ebill") {
@@ -952,9 +953,10 @@ export class DebtorsService {
         });
       }
 
-      // 5. Exclude Invoices (Inline SQL)
-      // ERROR LOCATION: This second call to getInvoicesQuery ALSO causes the crash for the same reason (missing contact_id).
       const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
+
+      console.log("getNotInvoiceIdRslt invoices:", getNotInvoiceIdRslt?.[0]?.['invoices']);
+      
       const excludeInvoices = (getNotInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
 
       console.log("Exclude - Invoice IDs:", excludeInvoices);
@@ -985,7 +987,7 @@ export class DebtorsService {
               'Authorization': 'Bearer ' + accessToken
             },
           };
-
+          console.log("invoice filter test endpoint options ",options);
       if (isSearch) {
        options.body = JSON.stringify(searchJson);
       }
