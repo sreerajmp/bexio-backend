@@ -2851,12 +2851,12 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           });
         }else{
           console.log('errorr','error_refDataQueryResult');
-          return res.status(500).json({
-              status_code: 500,
-              message: 'something_went_wrong',
-              status: false,
-              error:'no_data_found'
-            }); 
+          
+          return res.status(200).json({
+            status_code: 200,
+            message: 'something_went_wrong',
+            status: false
+          });
         }
         
     } catch (error) {
