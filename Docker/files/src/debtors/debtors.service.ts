@@ -250,7 +250,9 @@ export class DebtorsService {
           WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
           `
           );
-          console.log("getInvoiceIdRslt",getInvoiceIdRslt[0]['invoices']);
+          console.log("getInvoiceIdRslt",getInvoiceIdRslt);
+          
+          console.log("getInvoiceIdRslt-invoices",getInvoiceIdRslt[0]['invoices']);
 
           if(getInvoiceIdRslt[0]['invoices']){
             console.log('22222222222222222222222');
@@ -942,7 +944,7 @@ export class DebtorsService {
       console.log("Implicit/Group contacts:", arrayContactIds);
 
       // 4. Merge Contacts
-      const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
+      const mergedContacts = [...(arrayContactIds || []), ...(invoiceContactListIds || [])]
       console.log("Final merged contacts:", mergedContacts);
 
       if (mergedContacts.length > 0) {
@@ -951,6 +953,13 @@ export class DebtorsService {
           value: mergedContacts,
           criteria: "in"
         });
+      } else {
+         console.log("No contacts found for channel. Forcing empty result.");
+         searchJson.push({
+            "field": "id",
+            "value": -1,
+            "criteria": "equal"
+         });
       }
 
       const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
@@ -969,7 +978,7 @@ export class DebtorsService {
         });
       }
 
-      console.log("Final searchJson:", JSON.stringify(searchJson, null, 2));
+      console.log("Final searchJson invoice filter test endpoint", JSON.stringify(searchJson, null, 2));
     }
 
       let resData: any[] = [];
@@ -997,6 +1006,9 @@ export class DebtorsService {
             else resolve(response);
           });
         });
+
+        console.log("response invoice filter test endpoint",response);
+        
       
       if(response.statusCode==401){
         return res.status(401).json({
