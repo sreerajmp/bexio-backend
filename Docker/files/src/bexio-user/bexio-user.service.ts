@@ -2269,7 +2269,7 @@ VALUES (
           path: '/'
         });
 
-        res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
+       // res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
         
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
