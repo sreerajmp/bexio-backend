@@ -2851,12 +2851,12 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           });
         }else{
           console.log('errorr','error_refDataQueryResult');
-          
-          return res.status(200).json({
-            status_code: 200,
-            message: 'something_went_wrong',
-            status: false
-          });
+          return res.status(500).json({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+              error:'no_data_found'
+            }); 
         }
         
     } catch (error) {
@@ -2866,10 +2866,12 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+responseValue;
         warningMessage(commonErrors,error);
-        return res.status(500).json({
-            message: 'something_went_wrong',
-            status: false
-        });
+         return res.status(500).json({
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+              error:error.toString()
+            }); 
     }
   }
   // async markAsIssued(req: Request, res: Response,): Promise<any> {
