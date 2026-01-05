@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, setEbillInvoiceSendStatus, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, setEbillInvoiceSendStatus, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued, markAsSent } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -2992,7 +2992,8 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     const bexioClient = await bexioInterfaceClient();
     const tokenSet = await bexioClient.refresh(refresh_token);
     // STEP 1: Mark as sent
-    await markAsIssued(tokenSet.access_token, rk_invoice);
+    // await markAsIssued(tokenSet.access_token, rk_invoice);
+    await markAsSent(tokenSet.access_token, rk_invoice);
     // STEP 2: Mark as pending
     // await markAsPending(tokenSet.access_token, invoice);
   } catch (error: any) {
