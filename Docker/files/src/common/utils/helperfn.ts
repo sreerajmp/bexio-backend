@@ -5787,11 +5787,15 @@ export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
   if(!targetChannel) return []
 
    let contactGroupList: any = await getContactGroupList(accessToken);
-
+   console.log("channel",channel);
+   console.log("targetChannel",targetChannel);
+   console.log("contactGroupList",contactGroupList);
+  
    const ids = contactGroupList
               ?.filter(group => targetChannel.includes(group.name))
               .map(group => group.id);
-
+  console.log("contactGroupList ids ::",ids);
+  
     let searchContactgrp: any[] = [{
     field: "contact_group_ids",
     value: ids,
