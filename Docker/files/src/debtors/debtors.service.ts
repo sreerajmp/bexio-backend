@@ -930,6 +930,10 @@ export class DebtorsService {
        let printContactIds = await getContactIdsByChannel(accessToken, "print");
         let postContactIds = await getContactIdsByChannel(accessToken, "post");
         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+        console.log("printContactIds", printContactIds);
+        console.log("postContactIds", postContactIds);
+        console.log("arrayContactIds :::",arrayContactIds);
+        
 
       } else if (channel === "email") {
         arrayContactIds = await getContactIdsByChannel(accessToken, "email");

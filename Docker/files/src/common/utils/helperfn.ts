@@ -5799,6 +5799,8 @@ export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
   }];
 
   let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
+  console.log("contactIds ::",contactIds);
+  
   return contactIds?.map(contact => contact.id) || []
 }
 
