@@ -939,7 +939,7 @@ export class DebtorsService {
       console.log("Implicit/Group contacts:", arrayContactIds);
 
       // 4. Merge Contacts
-      const mergedContacts = [...(arrayContactIds || []), ...(invoiceContactListIds || [])]
+      const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
       console.log("Final merged contacts:", mergedContacts);
 
       if (mergedContacts.length > 0) {
@@ -947,6 +947,11 @@ export class DebtorsService {
           field: "contact_id",
           value: mergedContacts,
           criteria: "in"
+        });
+        searchJson.push({
+          "field": "kb_item_status_id",
+          "value": 7,
+          "criteria": "equal"
         });
       } else {
          console.log("No contacts found for channel. Forcing empty result.");
