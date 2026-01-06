@@ -5792,7 +5792,7 @@ export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
    console.log("contactGroupList",contactGroupList);
   
    const ids = contactGroupList
-              ?.filter(group => targetChannel.includes(group.name))
+              ?.filter(group => targetChannel.includes(group.name.toLowerCase()))
               .map(group => group.id);
   console.log("contactGroupList ids ::",ids);
   

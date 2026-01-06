@@ -933,8 +933,6 @@ export class DebtorsService {
         console.log("printContactIds", printContactIds);
         console.log("postContactIds", postContactIds);
         console.log("arrayContactIds :::",arrayContactIds);
-        
-
       } else if (channel === "email") {
         arrayContactIds = await getContactIdsByChannel(accessToken, "email");
       } else if (channel === "ebill") {
