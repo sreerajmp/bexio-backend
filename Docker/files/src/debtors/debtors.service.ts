@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, invoiceCountSearch, invoiceListCountSearch, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList,getUnitList,getActiveAccounts,getActiveArticle, setEbillInvoiceSendStatus, markAsPending, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, setEbillInvoiceSendStatus, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued, markAsSent } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -2128,7 +2128,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
           'email_id_not_found',
           'EBILL'
         );
-
+         inv.tag="EBILL"
         combinedResponse.otherInvoiceResults.push(inv);
       }
 
@@ -2728,15 +2728,15 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     let formData 
     formData = req.body;
     try {
-       const referenceId = formData.referenceId;
-const transactionId = formData.transactionId;
-let status, response;
+       const referenceId = formData?.referenceId;
+      const transactionId = formData?.transactionId;
+      let status, response;
 
-// Set default service as 'ebill' if not provided
-const service = (formData.service || 'ebill').toLowerCase();
+      // Set default service as 'ebill' if not provided
+      const service = (formData.service || 'ebill').toLowerCase();
 
-console.log('formData', formData);
-console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}'));
+      console.log('formData', formData);
+      console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}'));
 
           if (service === 'ebill') {
             switch (formData.status.trim()) {
@@ -2828,7 +2828,18 @@ console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}')
           const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
 
             console.log('rkInvoice',rkInvoice);
-            
+        
+          if (
+          (service === 'edi' && formData.status?.trim() === 'COMPLETED')||
+          (service === 'ebill' && formData.status?.trim() === 'COMPLETED') ||
+          (service === 'print' && formData.status?.trim() === 'SENT') ||
+          (service === 'email' && formData.status?.trim() === 'SENT')
+        ) {
+          await markAsSentToken(
+            refDataQueryResult[0].companyregistered?.refresh_token,
+            rkInvoice
+          );
+        }
           await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
 
           return res.status(200).json({
@@ -2853,124 +2864,142 @@ console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}')
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+responseValue;
         warningMessage(commonErrors,error);
-        return res.status(500).json({
-            message: 'something_went_wrong',
-            status: false
-        });
-    }
-  }
-  async markAsIssued(req: Request, res: Response,): Promise<any> {
-    console.log('markAsIssued',req.body)
-    try {
-      let invoiceId = req.body.id,tokenSet,invoice;
-      const bexioClient = await bexioInterfaceClient();
-
-      const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-        Prisma.sql`
-        SELECT * FROM documents_invoice_send ds 
-        INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-        WHERE ds.cid = ${invoiceId}::bigint
-        `
-        );
-         console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
-        if(getInvoiceIdRslt.length != 0){
-
-        console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
-
-        console.log(getInvoiceIdRslt);
-          try {
-          tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
-          invoice = getInvoiceIdRslt[0]['rk_invoice'];
-          console.log('invoice',invoice);
-          
-          } catch (error) {
-            console.log('error',error);
-            
-            commonErrors['errorTitle'] = 'markAsIssues_token_issue';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
-            warningMessage(commonErrors,error);
-
-            return res.status(500).json({
+         return res.status(500).json({
               status_code: 500,
               message: 'something_went_wrong',
               status: false,
-              error:'token_issue'
+              error:error.toString()
             }); 
-          }
-          
-          return new Promise(async(resolve, reject) => {
-            var options = {
-              'method': 'POST',
-              'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
-              'headers': {
-                'Accept': 'application/json',
-                'Authorization': 'Bearer '+tokenSet.access_token
-              }
-            };
-            request(options, async function (error, response) {
-              if (error) {  
-                commonErrors['errorTitle'] = 'markAsIssues';
-                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
-                warningMessage(commonErrors,error);
-                return res.status(500).json({
-                  status_code: 500,
-                  message: 'something_went_wrong',
-                  status: false,
-                  error:error.toString()
-                });
-              }
-              // res.send(response.body)
-              //console.log(response.body);
-              if(response.statusCode==200)
-              {
-                await markAsPending(tokenSet.access_token,invoice)
-                return res.status(200).json({
-                  status_code: 200,
-                  status: true
-                });
-              }
-              else
-              {
-                commonErrors['errorTitle'] = 'markAsIssues';
-                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'server error'+'-bexio param,'+invoiceId;;
-                warningMessage(commonErrors,error);
-                return res.status(500).json({
-                  status_code: 500,
-                  message: 'something_went_wrong',
-                  status: false,
-                  error:'server error'
-                });
-              }
-            });
-          });
-        }else{
-          let error = 'id missing'
-          commonErrors['errorTitle'] = 'markAsIssues';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'-bexio param,'+req.body.id;;
-          warningMessage(commonErrors,error);
-          return res.status(500).json({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-            error:error
-          });
-        }  
-    } catch (error) {
-      console.log('error',error);
-      commonErrors['errorTitle'] = 'markAsIssues';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+req.body.id;;
-      warningMessage(commonErrors,error);
-      return res.status(500).json({
-        status_code: 500,
-        message: 'something_went_wrong',
-        status: false,
-        error:error.toString()
-
-      });
     }
   }
-  
+  // async markAsIssued(req: Request, res: Response,): Promise<any> {
+  //   console.log('markAsIssued',req.body)
+  //   try {
+  //     let invoiceId = req.body.id,tokenSet,invoice;
+  //     const bexioClient = await bexioInterfaceClient();
+
+  //     const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
+  //       Prisma.sql`
+  //       SELECT * FROM documents_invoice_send ds 
+  //       INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
+  //       WHERE ds.cid = ${invoiceId}::bigint
+  //       `
+  //       );
+  //        console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
+  //       if(getInvoiceIdRslt.length != 0){
+
+  //       console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
+
+  //       console.log(getInvoiceIdRslt);
+  //         try {
+  //         tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
+  //         invoice = getInvoiceIdRslt[0]['rk_invoice'];
+  //         console.log('invoice',invoice);
+          
+  //         } catch (error) {
+  //           console.log('error',error);
+            
+  //           commonErrors['errorTitle'] = 'markAsIssues_token_issue';
+  //           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
+  //           warningMessage(commonErrors,error);
+
+  //           return res.status(500).json({
+  //             status_code: 500,
+  //             message: 'something_went_wrong',
+  //             status: false,
+  //             error:'token_issue'
+  //           }); 
+  //         }
+          
+  //         return new Promise(async(resolve, reject) => {
+  //           var options = {
+  //             'method': 'POST',
+  //             'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
+  //             'headers': {
+  //               'Accept': 'application/json',
+  //               'Authorization': 'Bearer '+tokenSet.access_token
+  //             }
+  //           };
+  //           request(options, async function (error, response) {
+  //             if (error) {  
+  //               commonErrors['errorTitle'] = 'markAsIssues';
+  //               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
+  //               warningMessage(commonErrors,error);
+  //               return res.status(500).json({
+  //                 status_code: 500,
+  //                 message: 'something_went_wrong',
+  //                 status: false,
+  //                 error:error.toString()
+  //               });
+  //             }
+  //             // res.send(response.body)
+  //             //console.log(response.body);
+  //             if(response.statusCode==200)
+  //             {
+  //               await markAsPending(tokenSet.access_token,invoice)
+  //               return res.status(200).json({
+  //                 status_code: 200,
+  //                 status: true
+  //               });
+  //             }
+  //             else
+  //             {
+  //               commonErrors['errorTitle'] = 'markAsIssues';
+  //               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'server error'+'-bexio param,'+invoiceId;;
+  //               warningMessage(commonErrors,error);
+  //               return res.status(500).json({
+  //                 status_code: 500,
+  //                 message: 'something_went_wrong',
+  //                 status: false,
+  //                 error:'server error'
+  //               });
+  //             }
+  //           });
+  //         });
+  //       }else{
+  //         let error = 'id missing'
+  //         commonErrors['errorTitle'] = 'markAsIssues';
+  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'-bexio param,'+req.body.id;;
+  //         warningMessage(commonErrors,error);
+  //         return res.status(500).json({
+  //           status_code: 500,
+  //           message: 'something_went_wrong',
+  //           status: false,
+  //           error:error
+  //         });
+  //       }  
+  //   } catch (error) {
+  //     console.log('error',error);
+  //     commonErrors['errorTitle'] = 'markAsIssues';
+  //     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+req.body.id;;
+  //     warningMessage(commonErrors,error);
+  //     return res.status(500).json({
+  //       status_code: 500,
+  //       message: 'something_went_wrong',
+  //       status: false,
+  //       error:error.toString()
+
+  //     });
+  //   }
+  // }
+
 }
+  const markAsSentToken = async (refresh_token,rk_invoice)=>{
+
+  try {
+    const bexioClient = await bexioInterfaceClient();
+    const tokenSet = await bexioClient.refresh(refresh_token);
+    // STEP 1: Mark as sent
+    // await markAsIssued(tokenSet.access_token, rk_invoice);
+    await markAsSent(tokenSet.access_token, rk_invoice);
+    // STEP 2: Mark as pending
+    // await markAsPending(tokenSet.access_token, invoice);
+  } catch (error: any) {
+    warningMessage(commonErrors, error);
+    
+  }
+}
+
 const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount?, bankId?) => {
   console.log('notifiBexio:::', id, status, message, netcomId, amount, bankId);
 

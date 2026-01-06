@@ -157,7 +157,8 @@ export class BexioUserService {
             let billingCookie = {
               bexio: true,
               objectid: insertData[0]?.objectid,
-              isNew:true
+              isNew:true,
+              isnewUser:true,
             }
 
             console.log('4. Billing Cookie Data:', billingCookie);
@@ -187,7 +188,6 @@ export class BexioUserService {
               httpOnly: false,
               signed: true,
             };
-            
             //console.log('8. Billing Cookie Options:', billingCookieOptions);
             //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
             
@@ -839,6 +839,19 @@ export class BexioUserService {
       let userId = await userCheck(userDetails);
       if (!userId) {
         userId = await saveUser(userDetails);
+             console.log('first user');
+          let billingCookie = {
+              isnewUser:true,
+            }
+            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+          const billingCookieOptions = {
+              domain: config.SESSION_DOMAIN,
+              maxAge: config.SESSION_EXPIRY,
+              httpOnly: false,
+              signed: false,
+              secure: false,
+            };
+         res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
       }
       let userAccountStatus = await checkUserAccount(userId)
 
@@ -1583,13 +1596,9 @@ export class BexioUserService {
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
-
+     
       return userCid
-
-
     }
-
-
     async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
 
       const valuesaccount = [
@@ -1673,7 +1682,7 @@ export class BexioUserService {
         resultdata // this is fk_user
       ];
 
-      const personalAddressResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      const personalAddressResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
         INSERT INTO address 
           (fk_party, _type, number, line1, line2, line3, street, streetno, zip, city, state, country_code, fk_user)
         VALUES (
@@ -2253,9 +2262,15 @@ VALUES (
             Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
         );
         // Clear existing cookies
-        res.clearCookie(config.BILLING_COOKIE_NAME);
-        res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
+       res.clearCookie(config.BILLING_COOKIE_NAME, {
+          domain: config.SESSION_DOMAIN,
+          httpOnly: false,
+          secure: false,
+          path: '/'
+        });
 
+       // res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
+        
         // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
         
         // Set cookie with proper options for local development
@@ -2373,16 +2388,20 @@ async getAccessToken(req: any, res: Response): Promise<any>{
     //console.log('INSERT end');
 
     } else {
-        await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
-        const deleteOldTokens50thFromGeneratedNow = `
-            DELETE FROM public.authtable
-            WHERE mail = $1
-            AND  "id" NOT IN (
-            SELECT "id" FROM public.authtable
-            WHERE mail = $1
-            ORDER BY timestamp DESC
-            LIMIT 50)`;
-        await connectLibrary.$executeRaw(Prisma.sql`${deleteOldTokens50thFromGeneratedNow}`, [email]);
+      await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
+      const deleteOldTokens50thFromGeneratedNow = await connectLibrary.$executeRaw(
+        Prisma.sql`
+    DELETE FROM public.authtable
+    WHERE mail = ${email}
+    AND "id" NOT IN (
+      SELECT "id" FROM public.authtable
+      WHERE mail = ${email}
+      ORDER BY timestamp DESC
+      LIMIT 50
+    )
+  `
+      );
+      console.log("deleteOldTokens50thFromGeneratedNow", deleteOldTokens50thFromGeneratedNow);
 
   }
   if(isNewCompany === "true"){
@@ -2422,10 +2441,7 @@ async getAccessToken(req: any, res: Response): Promise<any>{
   });
 
   } catch (error) { 
-    // commonErrors['errorTitle'] = req.originalUrl;
-    // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-    // warningMessage(commonErrors,error);
-    //console.log(error);
+    console.log("getAccesstoken error:",error);
     res.status(500).send({
       status_code: 500,
       message: JSON.stringify(error),
