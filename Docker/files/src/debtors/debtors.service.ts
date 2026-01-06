@@ -932,6 +932,7 @@ export class DebtorsService {
         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
         console.log("printContactIds", printContactIds);
         console.log("postContactIds", postContactIds);
+        console.log("arrayContactIds :::",arrayContactIds);
         
 
       } else if (channel === "email") {
