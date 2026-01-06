@@ -5777,7 +5777,7 @@ export const parseResponse = (response: any) => {
         };
 
 const CHANNEL_GROUP={
-  print: ["Print", "Post"],
+  print: ["print", "post"],
   email: ["email"],
   ebill: ["ebill"]
 }
