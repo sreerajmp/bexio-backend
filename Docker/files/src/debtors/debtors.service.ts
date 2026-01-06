@@ -3129,7 +3129,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
         } else {
           return resolve(false)
         }
-      } else if (status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL') {
+      } else if (status == 'ERROR' || status == 'INCORRECT'|| status == 'ERROR-INTERNAL') {
         options = {
           'method': 'POST',
           'url': `https://office.bexio.com/api.php/kb_invoice/${id}/mark_as_ebill_failed`,
