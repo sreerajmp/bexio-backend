@@ -951,10 +951,10 @@ export class DebtorsService {
           criteria: "in"
         });
         searchJson.push({
-          "field": "kb_item_status_id",
-          "value": 7,
-          "criteria": "equal"
-        });
+              "field": "kb_item_status_id",
+              "value": [7,8,9,16,31],
+              "criteria": "in"
+            });
       } else {
          console.log("No contacts found for channel. Forcing empty result.");
          searchJson.push({
