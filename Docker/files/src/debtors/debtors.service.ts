@@ -925,7 +925,9 @@ export class DebtorsService {
       if (channel === "edi") {
          // EDI relies on Explicit Contacts (resolved above) or previously 'contacts' from DB which is broken.
          // We rely on invoiceContactListIds.
-         arrayContactIds = []; 
+         arrayContactIds = [...(resultArray || [])]; 
+         console.log("arrayContactIds :::",arrayContactIds);
+         console.log("resultArray :::",resultArray);
       } else if (channel === "print") {
        let printContactIds = await getContactIdsByChannel(accessToken, "print");
         let postContactIds = await getContactIdsByChannel(accessToken, "post");
