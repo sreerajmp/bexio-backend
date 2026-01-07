@@ -692,13 +692,19 @@ export class DebtorsService {
     }
   }
 
-  async getInvoiceTest(req: Request, res: Response): Promise<any> {
+  async getInvoiceV2(req: Request, res: Response): Promise<any> {
     let data = req.body;
     let partyId = data.partyId;
     let netcomId = data.netcomId;
     let arrayContactIds:number[] = [],invoiceContactListIds: any[] = [],tempContact: any[] = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
     let invoiceListTemp;
+
     try {
+      // -----------------------------------------------------------------------------------------
+      // 1. AUTHENTICATION & CONFIGURATION
+      // -----------------------------------------------------------------------------------------
+      
+      // Step 1.1: Retrieve the signed cookie containing the user's session token.
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
       if (!cookieData) {
         return res.status(500).send({
@@ -707,12 +713,21 @@ export class DebtorsService {
           status: false,
         });
       }
+
+      // Step 1.2: Fetch Tenant Configuration
+      // Helper Function: getOctConfig(netcomId)
+      // Purpose: Retrieves configuration settings specific to the 'netcomId' (Tenant).
+      // We check 'serviceStatus' to see if the service is active or has specific flags.
       let configDetails:any = await getOctConfig(netcomId);
       console.log("configdetails:",configDetails);
       
       if(configDetails.status && configDetails.records.length > 0){
         configData =  configDetails.records[0].config.serviceStatus
       }
+
+      // Step 1.3: Decrypt Cookie
+      // Helper Function: encryptionControl.decryptCookie()
+      // Purpose: Decrypts the cookie data to safely access the 'access_Token'.
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       console.log('cookie.access_Token', cookie.access_Token);
 
@@ -726,8 +741,14 @@ export class DebtorsService {
         });
       }
 
+      // -----------------------------------------------------------------------------------------
+      // 2. INITIALIZATION
+      // -----------------------------------------------------------------------------------------
       let resultData: any[] = [];
       let totalCount;
+      // 'searchJson' will hold the criteria objects we send to the Bexio API /kb_invoice/search endpoint.
+      let searchJson: any[] = [];
+      let options: any;
       let sortColumn = data.sortColumn || 'updated_at';
       let sortType = data.sort || 'asc';
 
@@ -737,6 +758,11 @@ export class DebtorsService {
       console.log('showTo', showTo);
       let resultArray: any[] = [];
 
+      // -----------------------------------------------------------------------------------------
+      // 3. FETCH INTERNAL INVOICE DATA (Local DB)
+      // -----------------------------------------------------------------------------------------
+      // We maintain a local table 'documents_invoice_send' that tracks the sending status of invoices
+      // (e.g. if we processed them via our portal). We fetch this to merge with Bexio data later.
       const invoiceList = await connectBexio.documents_invoice_send.findMany({
         where: {
           companyregistered: {
@@ -748,6 +774,13 @@ export class DebtorsService {
         }
       });
 
+      // -----------------------------------------------------------------------------------------
+      // 4. RESOLVE BUSINESS CONNECTIONS (EDI)
+      // -----------------------------------------------------------------------------------------
+      // Goal: Identify which contacts are capable of receiving 'EDI' (Electronic Data Interchange) invoices.
+      // This is a complex relationship involving 'Party Accounts', 'Business Connections' (BC), and 'Connection Types'.
+
+        // Step 4.1: Get Company IDs (cid) linked to this party.
         const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
           Prisma.sql`
                     SELECT array_agg(pa.cid) AS cid 
@@ -758,6 +791,7 @@ export class DebtorsService {
         console.log('getInviteCompanyId',getInviteCompanyId,);
         console.log('getInviteCompanyId',netcomId);
 
+        // Step 4.2: Find connections in 'contact_bc' that are of type 'EDI'.
         const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
           Prisma.sql`
                   SELECT array_agg(rk_businessconnection) AS "bcConnection"
@@ -770,39 +804,66 @@ export class DebtorsService {
 
         const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
         let bcDetails;
+
+        // Step 4.3: Fetch details for these Business Connections.
+        // Helper Function: getBcDetails(bcConnectionIds, netcomId)
+        // Purpose: Calls an external service (or internal module) to get full metadata for the BC IDs.
         bcDetails = await getBcDetails(bcConnectionIds, netcomId);
 
         let tempBc = [0];
         if (bcDetails?.data?.length) {
           for (const element of bcDetails.data) {
+            // Filter only those that support 'Invoice' document type.
             if (element?.company_details?.doc_type?.data === 'Invoice') {
               tempBc.push(element.bc_id);
             }
           }
         }
+        // Explanation:
+        // We need to resolve "EDI" connections. EDI (Electronic Data Interchange) is a special channel.
+        // It relies on "Business Connections" (BC) established between companies.
+        // 1. We find all Company IDs (cid) linked to this party account.
+        // 2. We query 'contact_bc' table to see if any of these companies have an 'EDI' connection type.
+        // 3. We filter these connections to ensure they support 'Invoice' document type.
+        // 4. Ideally, 'resultArray' will contain the Contact IDs that are valid for EDI.
+        
+        // Helper Function: getConnectionBc(cids, tempBc)
+        // Purpose: Final DB query to get the Contact IDs associated with the valid BCs.
         const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
         resultArray = getConnectionBcResult[0]?.array_agg;
      
 
-      let options;
-      let searchJson: any[] = [];
+      // -----------------------------------------------------------------------------------------
+      // 5. FILTER BY INVOICE STATUS (Sent/Failed/Draft)
+      // -----------------------------------------------------------------------------------------
+      // If the user selected a status filter (e.g. "Sent"), we need to sync with our local DB 
+      // because Bexio doesn't strictly track "Sent via our portal".
+
       let getSendInvoiceListResult;
 
       if (data['invoiceStatus']) {
+        // Helper Function: getSendInvoiceList(partyId, status)
+        // Purpose: returns lists of invoice IDs from our local DB that match 'success', 'pending', or 'failed' states.
         getSendInvoiceListResult = await getSendInvoiceList(Number(partyId),data['invoiceStatus']);
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
         
         if(getSendInvoiceListResult.length > 0) {
+          
+          // Case: Status = 'sent'
+          // We want invoices that are marked 'Sent' (kb_item_status_id 8 or 9) in Bexio DO we?
+          // OR invoices that we locally tracked as sent.
           if (data['invoiceStatus'] == 'sent') {
            // console.log("invoiceStatus", data['invoiceStatus']);
             const sentJson = [
               {
                 field: 'kb_item_status_id',
-                value: [8, 9],
+                value: [8, 9], // 8=Pending, 9=Paid/Sent? (Bexio Status IDs)
                 criteria: 'in',
               },
             ];
 
+            // Helper Function: getInvoiceSearch(accessToken, sentJson)
+            // Purpose: Queries Bexio API to find invoices matching the above status IDs.
             const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
             const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
             console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
@@ -811,6 +872,7 @@ export class DebtorsService {
                 getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
               }
 
+              // Merge Bexio 'Sent' invoices with our Local 'Success/Pending' invoices.
               getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
 
 
@@ -827,6 +889,8 @@ export class DebtorsService {
               },
             );
           }
+          // Case: Status = 'failed'
+          // We only look at our local DB for failed attempts.
           if (data['invoiceStatus'] == 'failed') {
             searchJson.push(
             {
@@ -835,23 +899,21 @@ export class DebtorsService {
               "criteria": "in"
             });
           }
+          // Case: Status = 'draft'
+          // Draft implies kb_item_status_id = 7 (Concept/Draft).
+          // We also exclude invoices we know are already sent/processing.
           if (data['invoiceStatus'] == 'draft') {
             console.log("invoiceStatus no", data['invoiceStatus']);
     
             searchJson.push(
-            //   {
-            //   "field": "contact_id",
-            //   "value": resultArray == null ? "" : resultArray,
-            //   "criteria": "in"
-            // },
             {
               "field": "id",
-              "value": getSendInvoiceListResult?.[0]?.invoiceId ||"",
+              "value": getSendInvoiceListResult?.[0]?.invoiceId ||"", // Exclude Sent/Pending
               "criteria": "not_in"
             },
             {
               "field": "kb_item_status_id",
-              "value": 7,
+              "value": 7, // 7 = Draft in Bexio
               "criteria": "equal"
             },
           );
@@ -862,6 +924,10 @@ export class DebtorsService {
 
       console.log("Query Datas",data);
       
+      // -----------------------------------------------------------------------------------------
+      // 6. GENERIC FILTERS (Document No, Title, Date, Customer)
+      // -----------------------------------------------------------------------------------------
+      // Standard search filters provided by the UI.
 
       if (data.documentNo) {
         searchJson.push({
@@ -900,20 +966,35 @@ export class DebtorsService {
       }
     console.log('channel',data);
     
+       // -----------------------------------------------------------------------------------------
+       // 7. CHANNEL FILTER LOGIC (THE CORE LOGIC)
+       // -----------------------------------------------------------------------------------------
+       // Goal: Find all invoices that belong to the selected channel (Print, Email, EDI, eBill).
+       // Problem: A contact might be in the 'Print' group (Implicit), but a specific invoice 
+       // might be overridden to 'Email' (Explicit). We must handle both.
+
       if("channel" in data) {
          
          const channel = String(data.channel).toLowerCase();
+         // Helper Function: getInvoicesQuery(channel, netcomId, true)
+         // Purpose: Queries 'documents_invoice_send' (Local DB) to find invoices explicitly marked with 'channel'.
+         // Returns: List of invoice IDs.
          const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
          
          console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
-      const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
-      console.log("Include - Invoices for channel:", invoices);
+       // STEP A: Explicit Invoices
+       // Query our local DB (documents_invoice_send) to find invoices explicitly tagged with this channel.
+       // E.g., If Channel is 'Print', find all invoices where invoice_type = 'PRINT'.
+       const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
+       console.log("Include - Invoices for channel:", invoices);
 
-      // 2. Resolve Contacts for these invoices (Explicit Contacts)
+      // STEP B: Resolve Contacts for Explicit Invoices
+      // Even if we have the invoice ID, we need the Contact IDs for merging later.
       let invoiceContactListIds: number[] = [];
       if (invoices.length > 0) {
-        // Fetch contacts for these invoices from Bexio
+        // Helper Function: getInvoiceSearch(accessToken, filters)
+        // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
         const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
         invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
             .map((inv: any) => inv?.contact_id)
@@ -921,16 +1002,20 @@ export class DebtorsService {
         console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
       }
 
-      // 3. Resolve Implicit Contacts (Group-based)
+      // STEP C: Resolve Implicit Contacts (Group-based)
+      // Logic: A contact belongs to a channel primarily if they are in the corresponding Bexio Contact Group (e.g. "Invoice via Mail").
+      // Helper Function: getContactIdsByChannel(accessToken, channel)
+      // Purpose: Fetches the 'Contact Group List' from Bexio, filters for the target channel's group ID, 
+      //          and then searches all contacts that are members of that group.
       if (channel === "edi") {
-         // EDI relies on Explicit Contacts (resolved above) or previously 'contacts' from DB which is broken.
-         // We rely on invoiceContactListIds.
+         // EDI is special; we rely on the 'resultArray' we calculated in Step 4 (EDI Resolution).
          arrayContactIds = [...(resultArray || [])]; 
          console.log("arrayContactIds :::",arrayContactIds);
          console.log("resultArray :::",resultArray);
       } else if (channel === "print") {
        let printContactIds = await getContactIdsByChannel(accessToken, "print");
         let postContactIds = await getContactIdsByChannel(accessToken, "post");
+        // Print often includes both 'Print' and 'Post' groups.
         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
         console.log("printContactIds", printContactIds);
         console.log("postContactIds", postContactIds);
@@ -942,16 +1027,23 @@ export class DebtorsService {
       }
       console.log("Implicit/Group contacts:", arrayContactIds);
 
-      // 4. Merge Contacts
+      // STEP D: Merge Contacts
+      // Combine Explicit Contact IDs (from specific invoice overrides) and Implicit Contact IDs (from Groups).
       const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
       console.log("Final merged contacts:", mergedContacts);
 
+      // STEP E: Apply Filter to Search
+      // Now we have a master list of "Contacts who should receive invoices via this channel".
+      // We explicitly check: Does the invoice belong to one of these contacts?
       if (mergedContacts.length > 0) {
         searchJson.push({
           field: "contact_id",
           value: mergedContacts,
           criteria: "in"
         });
+        
+        // Specially for this view, we might also filter by 'kb_item_status_id' (e.g. Draft) 
+        // if that's a hard requirement for this specific view (implied by previous user request).
         searchJson.push({
           "field": "kb_item_status_id",
           "value": 7,
@@ -966,6 +1058,13 @@ export class DebtorsService {
          });
       }
 
+      // STEP F: Exclude Explicit Overrides
+      // Problem: We found all invoices for "Print Contacts". 
+      // But some of those invoices might have been manually changed to "Email" (Explicit override).
+      // Solution: Find invoices explicitly tagged with OTHER channels (via getInvoicesQuery again, but for exclusion) and exclude them.
+      
+      // Helper Function: getInvoicesQuery(data.channel, netcomId, false)
+      // Purpose: returns invoices that match OTHER channels (NOT the current one).
       const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
 
       console.log("getNotInvoiceIdRslt invoices:", getNotInvoiceIdRslt?.[0]?.['invoices']);
@@ -988,6 +1087,11 @@ export class DebtorsService {
       let resData: any[] = [];
       console.log('searchJson 2:::',searchJson);
       const isSearch=searchJson.length > 0
+      
+      // -----------------------------------------------------------------------------------------
+      // 8. FETCH INVOICES FROM BEXIO API
+      // -----------------------------------------------------------------------------------------
+      // Determine if we need to use the 'search' endpoint (if we have filters) or the standard 'list' endpoint.
       let url = isSearch
                 ? `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`
                 : `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`;
@@ -1001,9 +1105,13 @@ export class DebtorsService {
             },
           };
           console.log("invoice filter test endpoint options ",options);
+
+      // If searching, attach the filter payload
       if (isSearch) {
        options.body = JSON.stringify(searchJson);
       }
+      
+      // Execute the request to Bexio
       const response = await new Promise<any>((resolve, reject) => {
           request(options, (error, response) => {
             if (error) reject(error);
@@ -1026,9 +1134,12 @@ export class DebtorsService {
           console.log('parsed------', parsed);
         console.log('perPage========', perPage);
 
+        // Handle Pagination logic (totalCount)
         if(Array.isArray(parsed) && parsed.length>perPage){
           console.log('entered in if',totalCount);
           totalCount = parsed.length;
+          // Helper Function: parseResponse(data)
+          // Purpose: Basic validation of the response data structure.
           resData = parseResponse(parsed.slice(0, perPage));
         }else {
           console.log('entered in else',totalCount);
@@ -1040,6 +1151,7 @@ export class DebtorsService {
         }
       
       } else {
+          // Pass through errors from Bexo
           console.log('getResponse', response);
           console.log('response body', response.body);
           console.log('response status', response.statusCode);
@@ -1051,6 +1163,17 @@ export class DebtorsService {
 
       }
 
+
+      // -----------------------------------------------------------------------------------------
+      // 9. DATA MERGING & ENRICHMENT
+      // -----------------------------------------------------------------------------------------
+      // The Bexio API returns raw invoice data.
+      // We need to "Enrich" this data with:
+      // - Status labels (e.g. "Draft", "Sent").
+      // - Contact names and details (fetched separately).
+      // - "Invoice Type" (which channel is it?).
+      // - Validation flags (address_exist, allowSend, etc.).
+
       if (resData && resData.length > 0) {
           let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
           let contact_idList: any = [];
@@ -1058,14 +1181,17 @@ export class DebtorsService {
         
           for (let invoice in resData) {
           resData[invoice]['allowSend'] =  true;
-          // resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray?.map(Number).includes(Number(resData[invoice].contact_id)) ? true : true;
+          
             contact_idList.push((resData[invoice].contact_id));
             resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
             resData[invoice]['timestamp'] = '';
             resData[invoice]['rk_globaltransaction'] = '';
             resData[invoice]['status'] = '';
             resData[invoice]['statusLabelInvoice'] = '';
+            // Default EDI check based on resolution map
             resData[invoice]['invoice_type'] = resultArray?.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
+            
+            // Merge with local 'documents_invoice_send' data to check for previous sending attempts
             for (let qryInvoice in invoiceList) {
               if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
                 resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
@@ -1087,7 +1213,10 @@ export class DebtorsService {
           
           console.log("resData id ", resData.map(item=>item.id));
           
-
+        
+        // Step 9.1: Fetch Contact Details (Batch)
+        // Helper Function: getContactById(accessToken, contact_idList)
+        // Purpose: Retrieves full contact details (Name, Address, Email) for display.
         let contactList :any = await getContactById(accessToken, contact_idList);
         
         if (!contactList) {
@@ -1097,20 +1226,24 @@ export class DebtorsService {
           });
         }
         
-        // Fetch the contact group list using the provided access token
+        // Step 9.2: Fetch Contact Groups
+        // Helper Function: getContactGroupList(accessToken)
+        // Purpose: Needed to determine the "Implicit" channel/type of the contact (e.g. are they in 'E-Bill' group?).
         let contactGroupList: any = await getContactGroupList(accessToken);
 
-        // If contact group list could not be retrieved, return 500 error response
         if (!contactGroupList) {
           return res.status(500).send({
               status: 500,
               data: []
           });
         }
-                // Build lookup maps for fast enrichment
+                // Build lookup maps for fast enrichment O(1)
                 const contactNameMap = new Map(contactList.map(e => [e.id, `${e.name_1 || ''}${e.name_2 ? ' ' + e.name_2 : ''}`]));
                 const contactEmailMap = new Map(contactList.map(e => [e.id, e.mail || '']));
+                // Check if address fields are complete
                 const contactAddressExistMap = new Map(contactList.map(e => [e.id, !!(e?.name_1 && e?.street_name && e?.city && e?.country_id && e?.postcode)]));
+                
+                // Map contact to its groups
                 const contactGroupMap = new Map(
                   contactList.map(e => [
                     e.id,
@@ -1119,12 +1252,16 @@ export class DebtorsService {
                       : []
                   ])
                 );
+          
+          // Helper Function: getAllCurrency(accessToken)
           const currencyArr: any[] = await getAllCurrency(accessToken) as any[];
           const currencyMap = new Map(currencyArr.map(e => [e.id, e.name]));
+          
+          // Helper Function: getRecipientList(...)
           const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
           const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
 
-                // Enrich resultData efficiently
+                // Step 9.3: Final Enrichment Loop
                 resultData = resultData.map(second => {
                   const contactId = second["contact_id"];
                   const currencyId = second["currency_id"];
@@ -1133,7 +1270,7 @@ export class DebtorsService {
                   let invoiceType = second.invoice_type;
                   let autoTag = second.auto_tag;
 
-                  // Auto-tag logic
+                  // Auto-tag logic: If no specific type is set, deduce it from the Contact's Group
                   if (!invoiceType && groupNames.length) {
                     if (groupNames.includes('ebill')) invoiceType = 'ebill';
                     else if (groupNames.includes('email')) invoiceType = 'email';
@@ -1153,6 +1290,10 @@ export class DebtorsService {
                   };
                 });
 
+        // -----------------------------------------------------------------------------------------
+        // 10. REDIS CACHING
+        // -----------------------------------------------------------------------------------------
+        // Cache the final enriched result to speed up subsequent requests.
         let redisKey = req.body.partyId + "_" + req.url + "_";
         let keys = Object.keys(req.body);
           keys.forEach(element => {
