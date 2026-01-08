@@ -1530,7 +1530,6 @@ console.log('req.body',req.body);
           "name_1": tempName,
           "name_2": (data.contact_type_id == 2 && data.name_2) ? data.name_2 : '',
           "contact_type_id": data.contact_type_id ? data.contact_type_id : '1',
-          "address": data.address ? data.address : '',
           "postcode": data.postcode ? data.postcode : '',
           "city": data.city ? data.city : '',
           "country_id": countryId.length > 0 ? countryId[0].id : '',
