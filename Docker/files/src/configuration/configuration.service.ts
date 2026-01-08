@@ -1542,32 +1542,37 @@ console.log('req.body',req.body);
      
       request(options, function (error, response) {
         if (error) {  
+          console.log("error in create contact",error);
+          
           commonErrors['errorTitle'] = 'bexio_contact';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param'+access_token;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+JSON.stringify(error)+'-bexio param'+access_token;
           warningMessage(commonErrors,error);
           
-          return res.status(200).json({
+          return res.status(500).json({
             status: false,
-            message: '',
+            message: JSON.stringify(error) || "something_went_wrong",
           })
         }
       
-        console.log(response.body);
+        console.log("create contact response ", response);
+        console.log("create contact response body", response.body);
         
+          if (response.statusCode == 401) {
+            return res.status(401).json({
+              status: 'fail',
+              message: 'unauthorized',
+            });
+          }
   
-          if(response.statusCode != 201)
-          {
+          if(response.statusCode != 201) {
             commonErrors['errorTitle'] = 'bexio_contact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_contact_not_found -req param,',JSON.stringify(req.body);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_contact_not_found -req param,'+JSON.stringify(req.body);
             warningMessage(commonErrors,'bexio_contact_not_found');
          
             return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
-          }
-          )
-          return
-  
+          })
         }else{
         
           res.send({
@@ -1579,7 +1584,8 @@ console.log('req.body',req.body);
        
       });
     } catch (error) {
-      
+          console.log("create contact error",error);
+          
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
           warningMessage(commonErrors,error);
