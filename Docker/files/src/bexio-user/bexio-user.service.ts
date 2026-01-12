@@ -2743,13 +2743,15 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
         },
       });
       console.log('refresTokenResult',refresTokenResult);
+      const partyIdNum = BigInt(partyId);
+      const accountIdNum = BigInt(accountId);
       const getPartyAccoutDetailsResult = await connectLibrary.$queryRaw<any[]>(
         Prisma.sql`
           SELECT * 
           FROM party_account pa
           INNER JOIN status s ON s.cid = pa.fk_status
-          WHERE pa.fk_party = ${partyId}
-            AND pa.fk_account = ${accountId}
+          WHERE pa.fk_party = ${partyIdNum}
+            AND pa.fk_account = ${accountIdNum}
             AND s."statusLabel" = 'active'
         `
       );
