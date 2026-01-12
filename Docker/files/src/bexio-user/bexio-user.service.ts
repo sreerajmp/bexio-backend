@@ -2733,13 +2733,16 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       const bexioClient = await bexioInterfaceClient();
       let partyId = data.partyId;
       let accountId = data.accountId;
-
+      console.log('partyId',partyId);
+      console.log('accountId',accountId);
       await getUserPermissions(partyId, accountId);
+      console.log('getUserPermissions');
       const refresTokenResult = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: partyId,
         },
       });
+      console.log('refresTokenResult',refresTokenResult);
       const getPartyAccoutDetailsResult = await connectLibrary.$queryRaw<any[]>(
         Prisma.sql`
           SELECT * 
@@ -2750,6 +2753,8 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
             AND s."statusLabel" = 'active'
         `
       );
+       console.log('getPartyAccoutDetailsResult',getPartyAccoutDetailsResult);
+         console.log('getPartyAccoutDetailsResultlength',getPartyAccoutDetailsResult.length);
       if (!getPartyAccoutDetailsResult.length) {
         return res.status(200).json({
           status_code: 500,
@@ -2767,6 +2772,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       try {
 
         tokenSet = await bexioClient.refresh(refresTokenResult[0].refresh_token);
+         console.log('tokenSet',tokenSet);
       } catch (error) {
         return res.status(200).json({
           status_code: 500,
@@ -2787,6 +2793,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           refresh_token: tokenSet.refresh_token,
         },
       });
+         console.log('updated');
       res.cookie(
         config.TOKEN_COOKIE_BEXIO_NAME,
         encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)),
@@ -2798,6 +2805,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           secure: false,
         }
       );
+        console.log('cookie created');
       return res.status(200).json({
         status_code: 200,
         message: 'success_switch_company',
@@ -2806,7 +2814,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       });
 
     } catch (error) {
-      console.log(error);
+      console.log('error',error);
       return res.status(200).json({
         status_code: 500,
         message: 'something_went_wrong',
