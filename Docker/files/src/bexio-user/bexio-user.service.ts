@@ -2723,6 +2723,97 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       
     }
   };
+  async switchCompany(req: any, res: Response,): Promise<any> {
+    console.log('11111111111111');
+    const data = req.body;
+    let cookie = null, tokenSet;
+
+    try {
+      cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_NAME]));
+      const bexioClient = await bexioInterfaceClient();
+      let partyId = data.partyId;
+      let accountId = data.accountId;
+
+      await getUserPermissions(partyId, accountId);
+      const refresTokenResult = await connectBexio.companyregistered.findMany({
+        where: {
+          rk_party: partyId,
+        },
+      });
+      const getPartyAccoutDetailsResult = await connectLibrary.$queryRaw<any[]>(
+        Prisma.sql`
+          SELECT * 
+          FROM party_account pa
+          INNER JOIN status s ON s.cid = pa.fk_status
+          WHERE pa.fk_party = ${partyId}
+            AND pa.fk_account = ${accountId}
+            AND s."statusLabel" = 'active'
+        `
+      );
+      if (!getPartyAccoutDetailsResult.length) {
+        return res.status(200).json({
+          status_code: 500,
+          message: 'permission_missing',
+          status: false,
+        });
+      }
+      if (!refresTokenResult.length || !refresTokenResult[0].refresh_token) {
+        return res.status(200).json({
+          status_code: 500,
+          message: 'token_missing',
+          status: false,
+        });
+      }
+      try {
+
+        tokenSet = await bexioClient.refresh(refresTokenResult[0].refresh_token);
+      } catch (error) {
+        return res.status(200).json({
+          status_code: 500,
+          message: 'token_missing',
+          status: false,
+        });
+      }
+      const bexioTokenCookie = {
+        access_Token: tokenSet.access_token,
+        refresh_Token: tokenSet.refresh_token,
+        isBexioUser: true,
+      };
+      await connectBexio.companyregistered.updateMany({
+        where: {
+          rk_party: partyId,
+        },
+        data: {
+          refresh_token: tokenSet.refresh_token,
+        },
+      });
+      res.cookie(
+        config.TOKEN_COOKIE_BEXIO_NAME,
+        encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)),
+        {
+          domain: config.SESSION_DOMAIN,
+          maxAge: config.SESSION_EXPIRY,
+          httpOnly: false,
+          signed: true,
+          secure: false,
+        }
+      );
+      return res.status(200).json({
+        status_code: 200,
+        message: 'success_switch_company',
+        status: true,
+        showEbill: config.IS_EBILL_DISABLED,
+      });
+
+    } catch (error) {
+      console.log(error);
+      return res.status(200).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+  }
 }
 
 const companyConfirmation = async(companyname, zip, city, street, state)=> {
