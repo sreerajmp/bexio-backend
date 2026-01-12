@@ -2990,7 +2990,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
             rkInvoice
           );
         }
-          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId);
+          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId, service);
 
           return res.status(200).json({
             status_code: 200,
@@ -3150,7 +3150,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
   }
 }
 
-const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount?, bankId?) => {
+const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount?, bankId?,service?) => {
   console.log('notifiBexio:::', id, status, message, netcomId, amount, bankId);
 
   const bexioClient = await bexioInterfaceClient();
@@ -3202,7 +3202,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
     try {
       console.log('bankId', bankId);
       let isNotifyBexio = true;
-      if (status == 'COMPLETED') {
+      if (service == 'ebill' && status == 'COMPLETED') {
         const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
           where: {
             netcomid: netcomId,
@@ -3270,7 +3270,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
         } else {
           return resolve(false)
         }
-      } else if (status == 'ERROR' || status == 'INCORRECT'|| status == 'ERROR-INTERNAL') {
+      } else if (service=='ebill' && (status == 'ERROR' || status == 'INCORRECT'|| status == 'ERROR-INTERNAL')) {
         options = {
           'method': 'POST',
           'url': `https://office.bexio.com/api.php/kb_invoice/${id}/mark_as_ebill_failed`,
