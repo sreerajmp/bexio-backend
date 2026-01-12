@@ -2739,7 +2739,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       console.log('getUserPermissions');
       const refresTokenResult = await connectBexio.companyregistered.findMany({
         where: {
-          rk_party: partyId,
+          rk_party: Number(partyId),
         },
       });
       console.log('refresTokenResult',refresTokenResult);
@@ -2787,7 +2787,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       };
       await connectBexio.companyregistered.updateMany({
         where: {
-          rk_party: partyId,
+          rk_party: Number(partyId),
         },
         data: {
           refresh_token: tokenSet.refresh_token,
