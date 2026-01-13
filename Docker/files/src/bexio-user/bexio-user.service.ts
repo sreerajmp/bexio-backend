@@ -2782,11 +2782,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           status: false,
         });
       }
-      const bexioTokenCookie = {
-        access_Token: tokenSet.access_token,
-        refresh_Token: tokenSet.refresh_token,
-        isBexioUser: true,
-      };
+      
       await connectBexio.companyregistered.updateMany({
         where: {
           rk_party: Number(partyId),
@@ -2795,25 +2791,17 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           refresh_token: tokenSet.refresh_token,
         },
       });
-         console.log('updated');
-      res.cookie(
-        config.TOKEN_COOKIE_BEXIO_NAME,
-        encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)),
-        {
-          domain: config.SESSION_DOMAIN,
-          maxAge: config.SESSION_EXPIRY,
-          httpOnly: false,
-          signed: true,
-          secure: false,
-        }
-      );
-        console.log('cookie created');
-      return res.status(200).json({
-        status_code: 200,
-        message: 'success_switch_company',
-        status: true,
-        showEbill: config.IS_EBILL_DISABLED,
-      });
+        const partyAccountResult = await connectLibrary.$queryRaw<
+          { cid: any; fk_status: any }[]
+        >(Prisma.sql`
+                  SELECT pa.cid, pa.fk_status
+                  FROM party_account pa
+                  INNER JOIN status s ON s.cid = pa.fk_status
+                  WHERE pa.fk_party = ${partyId} AND pa.fk_account = ${accountId} AND s."statusLabel" = 'active'
+                `);
+                let isNewCompany = false
+       return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`);
+     
 
     } catch (error) {
       console.log('error',error);
@@ -2824,6 +2812,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       });
     }
   }
+ 
 }
 
 const companyConfirmation = async(companyname, zip, city, street, state)=> {
