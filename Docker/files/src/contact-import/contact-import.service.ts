@@ -12,7 +12,10 @@ import { schedulerContactimportWorkerHost } from '../common/utils/schedulerconta
 import commonErrors from 'src/common/utils/commonError';
 const path = require('path');
 import warningMessage from 'src/common/utils/warningMessage';
-import { getCountryLists } from 'src/common/utils/helperfn';
+import {
+  getContactGroupList,
+  getCountryLists,
+} from 'src/common/utils/helperfn';
 @Injectable()
 export class ContactImportService {
   constructor(
@@ -85,6 +88,12 @@ export class ContactImportService {
 
       const contactList = await searchContact(accessToken, nameArray);
 
+      console.log('contactList', contactList);
+
+      const contactGroupId = await getContactGroupList(accessToken);
+
+      console.log('contactGroupId', contactGroupId);
+
       if (countryList && typeof countryList === 'string') {
         const parsedCountryList = JSON.parse(countryList);
 
@@ -100,6 +109,20 @@ export class ContactImportService {
               }
             }
           });
+        }
+      }
+
+      if(contactGroupId && Array.isArray(contactGroupId)){
+        if(contactList && Array.isArray(contactList)){
+          contactList.forEach((contact)=>{
+            if(contact.contact_group_ids){
+              const groupIds=contact.contact_group_ids.split(',')
+             const groupNames = groupIds
+              .map((id) => contactGroupId.find(g => g.id == id))
+              .filter(Boolean);
+              contact["contact_group_list"]=groupNames || []
+            }
+          })
         }
       }
 
