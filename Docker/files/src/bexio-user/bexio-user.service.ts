@@ -2797,7 +2797,7 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                   SELECT pa.cid, pa.fk_status
                   FROM party_account pa
                   INNER JOIN status s ON s.cid = pa.fk_status
-                  WHERE pa.fk_party = ${partyId} AND pa.fk_account = ${accountId} AND s."statusLabel" = 'active'
+                  WHERE pa.fk_party =${partyIdNum} AND pa.fk_account =  ${accountIdNum} AND s."statusLabel" = 'active'
                 `);
                 let isNewCompany = false
        return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`);
