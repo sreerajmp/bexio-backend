@@ -96,7 +96,6 @@ export class ContactImportService {
 
       if (countryList && typeof countryList === 'string') {
         const parsedCountryList = JSON.parse(countryList);
-
         if (contactList && Array.isArray(contactList)) {
           contactList.forEach((contact) => {
             if (contact.country_id) {
@@ -118,8 +117,7 @@ export class ContactImportService {
             if(contact.contact_group_ids){
               const groupIds=contact.contact_group_ids.split(',')
              const groupNames = groupIds
-              .map((id) => contactGroupId.find(g => g.id == id))
-              .filter(Boolean);
+              .map((id) => contactGroupId.find(g => g.id == id))          
               contact["contact_group_list"]=groupNames || []
             }
           })
@@ -189,7 +187,8 @@ const searchContact = async (accessToken: string, name?: string[]) => {
         warningMessage(commonErrors, error);
         return resolve(false);
       }
-
+      console.log("optionsContact",optionsContact);
+      console.log("Contact response",response);
       if (response?.statusCode === 200) {
         try {
           console.log('contact data', JSON.parse(response.body));
