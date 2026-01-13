@@ -57,4 +57,9 @@ export class ContactImportController {
   async schedulercontact(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.contactImportService.schedulercontact(req, res);
   }
+   @Post('contactImportSearch')
+  @UseInterceptors(AnyFilesInterceptor())
+  async contactImportSearch(@Req() req: Request, @Res() res: Response): Promise<any> {
+    return this.contactImportService.contactImportSearch(req, res);
+  }
 }

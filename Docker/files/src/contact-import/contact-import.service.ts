@@ -7,7 +7,11 @@ const encryptionControl = require("../common/utils/jwt-decode");
 import connectMssql from '../db/mssql-client'
 import { Request, Response } from 'express';
 import config from '../common/config/index';
+import * as request from 'request';
 import {schedulerContactimportWorkerHost} from'../common/utils/schedulercontactimport.worker.host'
+import commonErrors from 'src/common/utils/commonError';
+const path = require('path')
+import warningMessage from 'src/common/utils/warningMessage'
 @Injectable()
 export class ContactImportService {
   constructor(
@@ -41,4 +45,104 @@ export class ContactImportService {
       return res.status(500).json({ success: false, message: 'Failed to start worker', error: err?.message || err });
     }
   }
+  async contactImportSearch(req: Request, res: Response): Promise<any> {
+  try {
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+
+    if (!cookieData) {
+      return res.status(401).send({
+        status_code: 401,
+        message: 'Missing_cookie',
+        status: false
+      });
+    }
+    const cookie = JSON.parse(
+      encryptionControl.decryptCookie(JSON.stringify(cookieData))
+    );
+
+    const accessToken = cookie.access_Token;
+    const name = req.body?.name;
+
+    // Prepare search array only if name exists
+    const nameArray = name ? [name] : undefined;
+       console.log('nameArray',nameArray)
+       console.log('accessToken',accessToken)
+
+    const contactList = await searchContact(accessToken, nameArray);
+  console.log('contactList',contactList)
+    return res.status(200).send({
+      status_code: 200,
+      data: contactList,
+      status: true
+    });
+  } catch (err: any) {
+        commonErrors['errorTitle'] = 'getContactById';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,';
+        warningMessage(commonErrors,err);
+        return res.status(500).send({
+        status_code: 500,
+        message: 'failed',
+        status: false
+      });
+  }
 }
+
+
+
+}
+const searchContact = async (accessToken: string, name?: string[]) => {
+  return new Promise((resolve) => {
+    let optionsContact: any;
+
+    if (name && name.length > 0) {
+      const searchJson = [
+        {
+          field: 'name_1',
+          value: name,       // MUST be array
+          criteria: 'in'
+        }
+      ];
+     console.log('contact search')
+      optionsContact = {
+        method: 'POST',
+        url: `${config.BEXIO_API}2.0/contact/search`,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(searchJson)
+      };
+    } else {
+      console.log('contact List')
+ 
+      optionsContact = {
+        method: 'GET',
+        url: `${config.BEXIO_API}2.0/contact`,
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        }
+      };
+    }
+
+    request(optionsContact, (error, response) => {
+      if (error) {
+        commonErrors['errorTitle'] = 'searchContact';
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,';
+        warningMessage(commonErrors,error);
+        return resolve(false);
+      }
+
+      if (response?.statusCode === 200) {
+        try {
+          console.log('contact data',JSON.parse(response.body))
+          return resolve(JSON.parse(response.body));
+        } catch {
+          return resolve(false);
+        }
+      }
+      return resolve(false);
+    });
+  });
+};
