@@ -1885,7 +1885,7 @@ const fileUpload = async (transaction_id, file, access_token) => {
     };
     request(options, function (error, response) {
       if (error) {
-        commonErrors['errorTitle'] = 'getCountryLists';
+        commonErrors['errorTitle'] = 'fileUpload';
         commonErrors['errorDescription'] =
           'From:' +
           path.basename(__filename) +
