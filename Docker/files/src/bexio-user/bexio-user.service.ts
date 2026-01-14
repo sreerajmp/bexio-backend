@@ -2726,17 +2726,13 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
   async switchCompany(req: any, res: Response,): Promise<any> {
     console.log('11111111111111');
     const data = req.body;
-    let cookie = null, tokenSet;
-
+    let tokenSet
     try {
-      cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_NAME]));
       const bexioClient = await bexioInterfaceClient();
       let partyId = data.partyId;
       let accountId = data.accountId;
       console.log('partyId',partyId);
       console.log('accountId',accountId);
-      await getUserPermissions(partyId, accountId);
-      console.log('getUserPermissions');
       const refresTokenResult = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(partyId),
@@ -2800,8 +2796,14 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
                   WHERE pa.fk_party =${partyIdNum} AND pa.fk_account =  ${accountIdNum} AND s."statusLabel" = 'active'
                 `);
                 let isNewCompany = false
-       return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`);
-     
+    const redirectUrl = `${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`;
+
+      return res.status(200).json({
+        status: true,
+        data: redirectUrl,
+         status_code: 200,
+      });
+          
 
     } catch (error) {
       console.log('error',error);
