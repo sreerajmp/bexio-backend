@@ -2800,8 +2800,8 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
 
       return res.status(200).json({
         status: true,
-        data: redirectUrl,
-         status_code: 200,
+        redirectUrl: redirectUrl,
+        status_code: 200,
       });
           
 
