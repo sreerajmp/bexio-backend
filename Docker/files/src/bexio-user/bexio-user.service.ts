@@ -2772,9 +2772,10 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
         tokenSet = await bexioClient.refresh(refresTokenResult[0].refresh_token);
          console.log('tokenSet',tokenSet);
       } catch (error) {
+        console.log('error in token',error)
         return res.status(200).json({
           status_code: 500,
-          message: 'token_missing',
+          message: 'token_missing'+error,
           status: false,
         });
       }
