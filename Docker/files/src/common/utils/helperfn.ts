@@ -5826,6 +5826,7 @@ export const getInvoicesQuery = async (
   channel.toLowerCase() === "print"
     ? ["PRINT", "POST"]
     : [channel.toUpperCase()];
+
 return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
   Prisma.sql`
     SELECT array_agg(ds.rk_invoice::int) AS invoices
