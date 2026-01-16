@@ -62,6 +62,7 @@ export class ContactImportService {
 
   async contactImportSearch(req: Request, res: Response): Promise<any> {
     try {
+      console.log('contactImportSearch initiated. Body:', JSON.stringify(req.body));
       const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
       if (!cookieData) {
@@ -88,8 +89,11 @@ export class ContactImportService {
       console.log('countryList', countryList);
 
       const contactList: any = await searchContact(accessToken, {name,channel,email});
+      
+      console.log('searchContact result:', JSON.stringify(contactList));
 
       if (contactList?.statusCode === 401) {
+         console.log('contactImportSearch: unauthorized (401) from bexio');
          return res.status(401).send({
           status_code: 401,
           message: 'Unauthorized',
@@ -155,6 +159,7 @@ export class ContactImportService {
 
 
 const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string} ) => {
+  console.log('searchContact called with:', { name, channel, email });
   let optionsContact: any;
   let searchJson:any[]=[]
   let arrayContactIds:any[]=[]
@@ -184,18 +189,24 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         console.log("printContactIds", printContactIds);
         console.log("postContactIds", postContactIds);
         console.log("arrayContactIds :::",arrayContactIds);
-
-        if (arrayContactIds.length > 0) {
-          searchJson.push({
-            field: 'id',
-            value: arrayContactIds,
-            criteria: 'in'
-          });
-        }
+      }else if (channel === "email") {
+        arrayContactIds = await getContactIdsByChannel(accessToken, "email");
+      } else if (channel === "ebill") {
+        arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
+      }
     }
-  }
+
+    console.log("arrayContactIds :::",arrayContactIds);
+    if (arrayContactIds.length > 0) {
+      searchJson.push({
+        field: 'id',
+        value: arrayContactIds,
+        criteria: 'in'
+      });
+    }
 
   // 2. Configure Options based on whether we have search criteria
+  console.log('Constructed searchJson:', JSON.stringify(searchJson));
   if(searchJson.length > 0){
       console.log('contact search using criteria');
       optionsContact = {
@@ -243,6 +254,7 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         }
       }
        // Return error object with status code
+      console.log('API Error Body:', response?.body); 
       return resolve({ error: true, statusCode: response?.statusCode || 500, message: 'API Error' });
     });
   });
