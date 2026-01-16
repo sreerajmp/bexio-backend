@@ -78,6 +78,7 @@ export class ContactImportService {
       const accessToken = cookie.access_Token;
       const name = req.body?.name;
       const channel=req.body?.channel
+      const email=req.body?.email
 
       // Prepare search array only if name exists
       console.log('accessToken', accessToken);
@@ -86,7 +87,15 @@ export class ContactImportService {
 
       console.log('countryList', countryList);
 
-      const contactList = await searchContact(accessToken, {name,channel});
+      const contactList: any = await searchContact(accessToken, {name,channel,email});
+
+      if (contactList?.statusCode === 401) {
+         return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
 
       console.log('contactList', contactList);
 
@@ -143,18 +152,30 @@ export class ContactImportService {
     }
   }
 }
-const searchContact = async (accessToken: string, {name,channel}:{name?:string,channel?:string} ) => {
-  let searchJson:any=[]
-  let arrayContactIds:any=[]
 
+
+const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string} ) => {
+  let optionsContact: any;
+  let searchJson:any[]=[]
+  let arrayContactIds:any[]=[]
+
+  // 1. Prepare Filter Data (Async operations MUST happen here, before the Promise)
   if (name && name.length > 0) {
      searchJson.push({
         field: 'name_1',
         value: name,
         criteria: 'like',
       })
-    }
-  
+  }
+
+ if (email && email.length > 0) {
+     searchJson.push({
+        field: 'mail',
+        value: email,
+        criteria: 'like',
+      })
+  }
+
   if(channel && channel.length>0){
        if (channel === "print") {
         let printContactIds = await getContactIdsByChannel(accessToken, "print");
@@ -163,21 +184,43 @@ const searchContact = async (accessToken: string, {name,channel}:{name?:string,c
         console.log("printContactIds", printContactIds);
         console.log("postContactIds", postContactIds);
         console.log("arrayContactIds :::",arrayContactIds);
+
+        if (arrayContactIds.length > 0) {
+          searchJson.push({
+            field: 'id',
+            value: arrayContactIds,
+            criteria: 'in'
+          });
+        }
     }
   }
 
-  console.log('contact search');
-  const optionsContact = {
-    method: 'POST',
-    url: `${config.BEXIO_API}2.0/contact/search`,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(searchJson),
-  };
+  // 2. Configure Options based on whether we have search criteria
+  if(searchJson.length > 0){
+      console.log('contact search using criteria');
+      optionsContact = {
+        method: 'POST',
+        url: `${config.BEXIO_API}2.0/contact/search`,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(searchJson),
+      };
+  } else {
+      console.log('contact List (no criteria)');
+      optionsContact = {
+        method: 'GET',
+        url: `${config.BEXIO_API}2.0/contact`,
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      };
+  }
 
+  // 3. Execute Request (Wrapped in Promise)
   return new Promise((resolve) => {
     request(optionsContact, (error, response) => {
       if (error) {
@@ -185,7 +228,8 @@ const searchContact = async (accessToken: string, {name,channel}:{name?:string,c
         commonErrors['errorDescription'] =
           'From:' + path.basename(__filename) + '-bexio param,';
         warningMessage(commonErrors, error);
-        return resolve(false);
+            // Return error object instead of false
+        return resolve({ error: true, message: error.message, statusCode: 500 });
       }
       console.log("optionsContact",optionsContact);
       console.log("Contact response",response);
@@ -194,10 +238,84 @@ const searchContact = async (accessToken: string, {name,channel}:{name?:string,c
           console.log('contact data', JSON.parse(response.body));
           return resolve(JSON.parse(response.body));
         } catch {
-          return resolve(false);
+             // Return error on parse failure
+          return resolve({ error: true, message: 'JSON Parse Error', statusCode: 500 });
         }
       }
-      return resolve(false);
+       // Return error object with status code
+      return resolve({ error: true, statusCode: response?.statusCode || 500, message: 'API Error' });
     });
   });
 };
+  
+
+
+// const searchContact = async (
+//   accessToken: string,
+//   { name, channel }: { name?: string; channel?: string }
+// ) => {
+//   let optionsContact: any;
+//   let searchJson: any[] = [];
+//   let arrayContactIds: any[] = [];
+
+//   if (name && name.length > 0) {
+//     searchJson.push({
+//       field: 'name_1',
+//       value: name,
+//       criteria: 'like',
+//     });
+//   }
+
+//   if (channel && channel.length > 0) {
+//     if (channel === 'print') {
+//       const printContactIds = await getContactIdsByChannel(accessToken, 'print');
+//       const postContactIds = await getContactIdsByChannel(accessToken, 'post');
+
+//       arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+
+//       console.log('printContactIds', printContactIds);
+//       console.log('postContactIds', postContactIds);
+//       console.log('arrayContactIds :::', arrayContactIds);
+//     }
+//   }
+
+//   if (searchJson.length > 0) {
+//     optionsContact = {
+//       method: 'POST',
+//       url: `${config.BEXIO_API}2.0/contact/search`,
+//       headers: {
+//         Accept: 'application/json',
+//         'Content-Type': 'application/json',
+//         Authorization: `Bearer ${accessToken}`,
+//       },
+//       body: JSON.stringify(searchJson),
+//     };
+//   } else {
+//     optionsContact = {
+//       method: 'GET',
+//       url: `${config.BEXIO_API}2.0/contact`,
+//       headers: {
+//         Accept: 'application/json',
+//         Authorization: `Bearer ${accessToken}`,
+//       },
+//     };
+//   }
+
+//   return new Promise((resolve) => {
+//     request(optionsContact, (error, response) => {
+//       if (error) {
+//         return resolve(false);
+//       }
+
+//       if (response?.statusCode === 200) {
+//         try {
+//           return resolve(JSON.parse(response.body));
+//         } catch {
+//           return resolve(false);
+//         }
+//       }
+
+//       return resolve(false);
+//     });
+//   });
+// };
