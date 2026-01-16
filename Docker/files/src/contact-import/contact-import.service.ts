@@ -14,6 +14,7 @@ const path = require('path');
 import warningMessage from 'src/common/utils/warningMessage';
 import {
   getContactGroupList,
+  getContactIdsByChannel,
   getCountryLists,
 } from 'src/common/utils/helperfn';
 @Injectable()
@@ -76,17 +77,16 @@ export class ContactImportService {
 
       const accessToken = cookie.access_Token;
       const name = req.body?.name;
+      const channel=req.body?.channel
 
       // Prepare search array only if name exists
-      const nameArray = name ? [name] : undefined;
-      console.log('nameArray', nameArray);
       console.log('accessToken', accessToken);
 
       const countryList = await getCountryLists(accessToken);
 
       console.log('countryList', countryList);
 
-      const contactList = await searchContact(accessToken, nameArray);
+      const contactList = await searchContact(accessToken, {name,channel});
 
       console.log('contactList', contactList);
 
@@ -143,42 +143,42 @@ export class ContactImportService {
     }
   }
 }
-const searchContact = async (accessToken: string, name?: string[]) => {
-  return new Promise((resolve) => {
-    let optionsContact: any;
+const searchContact = async (accessToken: string, {name,channel}:{name?:string,channel?:string} ) => {
+  let searchJson:any=[]
+  let arrayContactIds:any=[]
 
-    if (name && name.length > 0) {
-      const searchJson = [
-        {
-          field: 'name_1',
-          value: name, // MUST be array
-          criteria: 'in',
-        },
-      ];
-      console.log('contact search');
-      optionsContact = {
-        method: 'POST',
-        url: `${config.BEXIO_API}2.0/contact/search`,
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(searchJson),
-      };
-    } else {
-      console.log('contact List');
-
-      optionsContact = {
-        method: 'GET',
-        url: `${config.BEXIO_API}2.0/contact`,
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-      };
+  if (name && name.length > 0) {
+     searchJson.push({
+        field: 'name_1',
+        value: name,
+        criteria: 'like',
+      })
     }
+  
+  if(channel && channel.length>0){
+       if (channel === "print") {
+        let printContactIds = await getContactIdsByChannel(accessToken, "print");
+        let postContactIds = await getContactIdsByChannel(accessToken, "post")
+        arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+        console.log("printContactIds", printContactIds);
+        console.log("postContactIds", postContactIds);
+        console.log("arrayContactIds :::",arrayContactIds);
+    }
+  }
 
+  console.log('contact search');
+  const optionsContact = {
+    method: 'POST',
+    url: `${config.BEXIO_API}2.0/contact/search`,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(searchJson),
+  };
+
+  return new Promise((resolve) => {
     request(optionsContact, (error, response) => {
       if (error) {
         commonErrors['errorTitle'] = 'searchContact';

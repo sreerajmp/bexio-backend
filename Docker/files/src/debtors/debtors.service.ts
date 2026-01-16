@@ -1248,7 +1248,7 @@ export class DebtorsService {
                   contactList.map(e => [
                     e.id,
                     e.contact_group_ids
-                      ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name).filter(Boolean)
+                      ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(Boolean)
                       : []
                   ])
                 );
