@@ -5822,11 +5822,14 @@ export const getInvoicesQuery = async (
   netcomId: number,
   include: boolean
 ) => {
-  const normalizedChannel =
+ const normalizedChannel =
   channel.toLowerCase() === "print"
     ? ["PRINT", "POST"]
+    : channel.toLowerCase() === "email"
+    ? ["EMAIL"]
+    : channel.toLowerCase() === "ebill"
+    ? ["EBILL"]
     : [channel.toUpperCase()];
-
 return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
   Prisma.sql`
     SELECT array_agg(ds.rk_invoice::int) AS invoices
