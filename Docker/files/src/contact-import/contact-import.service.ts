@@ -234,7 +234,7 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
       console.log('contact List (no criteria)');
       optionsContact = {
         method: 'GET',
-        url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limitTo}`,
+        url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limitTo}&order_by=updated_at_desc`,
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${accessToken}`,
