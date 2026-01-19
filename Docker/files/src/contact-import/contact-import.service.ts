@@ -89,8 +89,6 @@ export class ContactImportService {
 
       const countryList = await getCountryLists(accessToken);
 
-      console.log('countryList', countryList);
-
       const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit);
       
       console.log('searchContact result:', JSON.stringify(contactList));
@@ -143,9 +141,11 @@ export class ContactImportService {
       const slicedContactList=contactList.slice((page-1)*limit,page*limit)
 
       console.log('contactList', contactList);
+      console.log("slicedContactList",slicedContactList);
+      
       return res.status(200).send({
         status_code: 200,
-        data: slicedContactList,
+        data:page===1 ?slicedContactList:contactList,
         status: true,
         total_count: page!=1 ? total_count : contactList.length,
       });
