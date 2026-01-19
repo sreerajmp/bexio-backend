@@ -82,6 +82,7 @@ export class ContactImportService {
       const email=req.body?.email
       const page=parseInt(req.body?.page)
       const limit=parseInt(req.body?.limit)
+      const total_count=parseInt(req.body?.total_count)
 
       // Prepare search array only if name exists
       console.log('accessToken', accessToken);
@@ -139,11 +140,14 @@ export class ContactImportService {
         }
       }
 
+      const slicedContactList=contactList.slice((page-1)*limit,page*limit)
+
       console.log('contactList', contactList);
       return res.status(200).send({
         status_code: 200,
-        data: contactList,
+        data: slicedContactList,
         status: true,
+        total_count: page!=1 ? total_count : contactList.length,
       });
     } catch (err: any) {
       commonErrors['errorTitle'] = 'getContactById';
@@ -205,38 +209,11 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         criteria: 'in'
       });
     }
-    //    if (channel === "ebill") {
-    //     let printContactIds = await getContactIdsByChannel(accessToken, "ebill");
-    //     arrayContactIds = [...new Set([...printContactIds])];
-    //     console.log("printContactIds", printContactIds);
-    //     console.log("arrayContactIds :::",arrayContactIds);
-
-    //     if (arrayContactIds.length > 0) {
-    //       searchJson.push({
-    //         field: 'id',
-    //         value: arrayContactIds,
-    //         criteria: 'in'
-    //       });
-    //     }
-    // }
-    //   if (channel === "email") {
-    //     let printContactIds = await getContactIdsByChannel(accessToken, "email");
-    //     arrayContactIds = [...new Set([...printContactIds])];
-    //     console.log("printContactIds", printContactIds);
-    //     console.log("arrayContactIds :::",arrayContactIds);
-
-    //     if (arrayContactIds.length > 0) {
-    //       searchJson.push({
-    //         field: 'id',
-    //         value: arrayContactIds,
-    //         criteria: 'in'
-    //       });
-    //     }
-    // }
 
   // 2. Configure Options based on whether we have search criteria
   console.log('Constructed searchJson:', JSON.stringify(searchJson));
   const offset=(page-1)*limit
+  const limitTo=page===1 ? 2000: limit
   console.log("contact search offset",offset);
   console.log("contact search limit",limit);
   
@@ -245,7 +222,7 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
       console.log('contact search using criteria');
       optionsContact = {
         method: 'POST',
-        url: `${config.BEXIO_API}2.0/contact/search?offset=${offset}&limit=${limit}`,
+        url: `${config.BEXIO_API}2.0/contact/search?offset=${offset}&limit=${limitTo}`,
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -257,7 +234,7 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
       console.log('contact List (no criteria)');
       optionsContact = {
         method: 'GET',
-        url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limit}`,
+        url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limitTo}`,
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${accessToken}`,
@@ -293,76 +270,3 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
     });
   });
 };
-
-  
-
-
-// const searchContact = async (
-//   accessToken: string,
-//   { name, channel }: { name?: string; channel?: string }
-// ) => {
-//   let optionsContact: any;
-//   let searchJson: any[] = [];
-//   let arrayContactIds: any[] = [];
-
-//   if (name && name.length > 0) {
-//     searchJson.push({
-//       field: 'name_1',
-//       value: name,
-//       criteria: 'like',
-//     });
-//   }
-
-//   if (channel && channel.length > 0) {
-//     if (channel === 'print') {
-//       const printContactIds = await getContactIdsByChannel(accessToken, 'print');
-//       const postContactIds = await getContactIdsByChannel(accessToken, 'post');
-
-//       arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
-
-//       console.log('printContactIds', printContactIds);
-//       console.log('postContactIds', postContactIds);
-//       console.log('arrayContactIds :::', arrayContactIds);
-//     }
-//   }
-
-//   if (searchJson.length > 0) {
-//     optionsContact = {
-//       method: 'POST',
-//       url: `${config.BEXIO_API}2.0/contact/search`,
-//       headers: {
-//         Accept: 'application/json',
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${accessToken}`,
-//       },
-//       body: JSON.stringify(searchJson),
-//     };
-//   } else {
-//     optionsContact = {
-//       method: 'GET',
-//       url: `${config.BEXIO_API}2.0/contact`,
-//       headers: {
-//         Accept: 'application/json',
-//         Authorization: `Bearer ${accessToken}`,
-//       },
-//     };
-//   }
-
-//   return new Promise((resolve) => {
-//     request(optionsContact, (error, response) => {
-//       if (error) {
-//         return resolve(false);
-//       }
-
-//       if (response?.statusCode === 200) {
-//         try {
-//           return resolve(JSON.parse(response.body));
-//         } catch {
-//           return resolve(false);
-//         }
-//       }
-
-//       return resolve(false);
-//     });
-//   });
-// };
