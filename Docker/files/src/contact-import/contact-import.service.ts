@@ -199,16 +199,14 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         arrayContactIds = await getContactIdsByChannel(accessToken, channel);
         console.log(`arrayContactIds ${channel} :`, arrayContactIds);
     }
-  }
-
+    
     console.log("arrayContactIds :::",arrayContactIds);
-    if (arrayContactIds.length) {
       searchJson.push({
         field: 'id',
         value: arrayContactIds,
         criteria: 'in'
       });
-    }
+  }
 
   // 2. Configure Options based on whether we have search criteria
   console.log('Constructed searchJson:', JSON.stringify(searchJson));
