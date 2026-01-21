@@ -199,44 +199,14 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         arrayContactIds = await getContactIdsByChannel(accessToken, channel);
         console.log(`arrayContactIds ${channel} :`, arrayContactIds);
     }
-       if (channel === "ebill") {
-        let printContactIds = await getContactIdsByChannel(accessToken, "ebill");
-        arrayContactIds = [...new Set([...printContactIds])];
-        console.log("printContactIds", printContactIds);
-        console.log("arrayContactIds :::",arrayContactIds);
-
-        if (arrayContactIds.length > 0) {
-          searchJson.push({
-            field: 'id',
-            value: arrayContactIds,
-            criteria: 'in'
-          });
-        }
-    }
-      if (channel === "email") {
-        let printContactIds = await getContactIdsByChannel(accessToken, "email");
-        arrayContactIds = [...new Set([...printContactIds])];
-        console.log("printContactIds", printContactIds);
-        console.log("arrayContactIds :::",arrayContactIds);
-
-        if (arrayContactIds.length > 0) {
-          searchJson.push({
-            field: 'id',
-            value: arrayContactIds,
-            criteria: 'in'
-          });
-        }
-    }
-  }
-
+    
     console.log("arrayContactIds :::",arrayContactIds);
-    if (arrayContactIds.length) {
       searchJson.push({
         field: 'id',
         value: arrayContactIds,
         criteria: 'in'
       });
-    }
+  }
 
   // 2. Configure Options based on whether we have search criteria
   console.log('Constructed searchJson:', JSON.stringify(searchJson));
