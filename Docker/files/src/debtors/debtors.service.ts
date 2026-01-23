@@ -23,7 +23,7 @@ import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
 import {getInvoiceOT,getUser,getDefaultUser} from 'src/common/utils/helperfn';
 import status_code from 'src/common/utils/statusCodes';
-
+// const { logMessage } = require('./logger');
 
 @Injectable()
 export class DebtorsService {
@@ -1205,6 +1205,9 @@ export class DebtorsService {
                 if (invoiceList[qryInvoice]?.status === 2) {
                   resData[invoice]['allowSend'] = false;
                 }
+                 if (invoiceList[qryInvoice]?.status === 0) {
+                  resData[invoice]['failed_invoice_type'] = invoiceList[qryInvoice]['invoice_type'];
+                }
                 break;
               }
           }
@@ -1271,7 +1274,7 @@ export class DebtorsService {
                   let autoTag = second.auto_tag;
 
                   // Auto-tag logic: If no specific type is set, deduce it from the Contact's Group
-                  if (!invoiceType && groupNames.length) {
+                  if ((!invoiceType && groupNames.length)||(second.status === 0 && groupNames.length)) {
                     if (groupNames.includes('ebill')) invoiceType = 'ebill';
                     else if (groupNames.includes('email')) invoiceType = 'email';
                     else if (groupNames.includes('print') || groupNames.includes('post')) invoiceType = 'print';
@@ -2128,6 +2131,16 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         console.log('print auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
         this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
       });
+//       logMessage({
+//   messagetype: 200,
+//   tenant: COMPANY_NAME,
+//   message: 'OK',
+//   service: DOCKER_NAME,
+//   process: PROCESS_NAME,
+//   filename: FILE_NAME,
+//   uniqueid: uniqueId,
+//   guid: parentTransactionId
+// });
     }
 
     // ------------------------------
