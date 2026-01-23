@@ -3,12 +3,9 @@ import { DebtorsService } from './debtors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
-import { PushWorkerHost } from 'src/common/utils/push.worker.host';
-
 @Controller('debtors')
 export class DebtorsController {
   constructor(private readonly debtorsService: DebtorsService,
-    private readonly pushWorkerHost: PushWorkerHost
   ) {
     
   }
@@ -17,9 +14,18 @@ export class DebtorsController {
   @UseInterceptors(AnyFilesInterceptor()) 
   async getInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
     console.log('controller getInvoice');
-    return this.debtorsService.getInvoice(req, res);
+    return this.debtorsService.getInvoiceV2(req, res);
   }
 
+
+// for testing purposes
+  //   @UseInterceptors(RedisCacheInterceptor)
+  // @Post('getInvoiceV2')
+  // @UseInterceptors(AnyFilesInterceptor()) 
+  // async getInvoiceV2(@Req() req: Request, @Res() res: Response): Promise<any> {
+  //   console.log('controller getInvoiceTest');
+  //   return this.debtorsService.getInvoiceV2(req, res);
+  // }
   @UseInterceptors(RedisCacheInterceptor)
   @Post('getOrderList')
   @UseInterceptors(AnyFilesInterceptor()) 
@@ -41,6 +47,11 @@ export class DebtorsController {
   async sendInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.sendInvoice(req,res);
   }
+  //  @Post('sendInvoices')
+  // @UseInterceptors(AnyFilesInterceptor()) 
+  // async sendInvoices(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // return this.debtorsService.sendInvoices(req,res);
+  // }
   @Post('sendOrder')
   @UseInterceptors(AnyFilesInterceptor()) 
   async sendOrder(@Req() req: Request, @Res() res: Response): Promise<any> {
@@ -61,9 +72,9 @@ export class DebtorsController {
   async changeInvoiceSendStatus(@Req() req: Request, @Res() res: Response): Promise<any> {
   return this.debtorsService.changeInvoiceSendStatus(req,res);
   }
-  @Post('markAsIssued')
-  @UseInterceptors(AnyFilesInterceptor()) 
-  async markAsIssued(@Req() req: Request, @Res() res: Response): Promise<any> {
-  return this.debtorsService.markAsIssued(req,res);
-  }
+  // @Post('markAsIssued')
+  // @UseInterceptors(AnyFilesInterceptor()) 
+  // async markAsIssued(@Req() req: Request, @Res() res: Response): Promise<any> {
+  // return this.debtorsService.markAsIssued(req,res);
+  // }
 }

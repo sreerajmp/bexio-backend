@@ -76,4 +76,10 @@ async bexioCompanyCreate(@Req() req: Request, @Res() res: Response): Promise<any
 
 return this.bexioUserService.bexioCompanyCreate(req,res);
 }
+@Post('switchCompany')
+@UseInterceptors(AnyFilesInterceptor())
+async switchCompany(@Req() req: Request, @Res() res: Response): Promise<any> {
+
+return this.bexioUserService.switchCompany(req,res);
+}
 }

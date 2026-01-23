@@ -19,8 +19,7 @@ import { resolve } from 'path';
 // const fetchEmailContent = require('../common/utils/fetchEmailData');
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
-import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio } from 'src/common/utils/helperfn';
-import { File as MulterFile } from 'multer';
+import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -66,8 +65,13 @@ export class ConfigurationService {
 
               })
             }
-            catch {
-              return resolve(responseData)
+            catch(error) {
+              // return resolve(responseData)
+              return res.send({
+                status: 500,
+                message:"Something went wrong in SetConfiguration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -131,7 +135,12 @@ export class ConfigurationService {
               })
             }
             catch {
-              return resolve(responseData)
+              // return resolve(responseData)
+               return res.send({
+                status: 500,
+                message:"Something went wrong in Update Configuration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -189,7 +198,13 @@ export class ConfigurationService {
               })
             }
             catch {
-              return resolve(responseData)
+              // return resolve(responseData)
+
+               return res.send({
+                status: 500,
+                message:"Something went wrong in Get Configuration function",
+                error:error.toString()
+              })
             }
           }
         })
@@ -304,7 +319,7 @@ export class ConfigurationService {
       resultBc.forEach(async element => {
         beStruct[element.bc_id] = element;
       });
-
+       
       let totalCount;
       if (isBexioUser) {
 
@@ -524,6 +539,7 @@ export class ConfigurationService {
   async getPayementComments(req: Request, res: Response,): Promise<any> {
     let encrToken = req.body;
     try {
+      console.log('getPayementComments starts.......');
       const getStatusQryRslt:any = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
@@ -533,15 +549,15 @@ export class ConfigurationService {
         },
       });
 
-
+      console.log('getStatusQryRslt : ',getStatusQryRslt);
       // Ensure settings is treated as an object
-      const settings = (getStatusQryRslt?.settings as Record<string, any>) || {};
-      //console.log('getStatusQryRslt',settings);
+      const settings = getStatusQryRslt[0]?.settings;
+      console.log('getStatusQryRslt',settings);
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
-          notifyPayment: settings.notifyPayment ?? "true",
-          notifyComments: settings.notifyComments ?? "true",
+          notifyPayment: settings?.notifyPayment ?? "false",
+          notifyComments: settings?.notifyComments ?? "false",
         },
         status: true,
       });
@@ -560,98 +576,88 @@ export class ConfigurationService {
 
   }
   async changePayementComments(req: Request, res: Response): Promise<any> {
-    let encrToken = req.body;
-  
+    const encrToken = req.body;
+
     try {
       // Fetch settings for the given party ID
       const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
-        where: {
-          rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
-        },
-        select: {
-          settings: true, // Fetch only the settings JSON field
-        },
+        where: { rk_party: Number(encrToken.partyId) },
+        select: { settings: true },
       });
-  
-      // Check if settings exist
-      if (getStatusQryRslt?.length > 0) {
-        const settingsRow = getStatusQryRslt[0];
-        const existingSettings =
-          typeof settingsRow?.settings === 'string'
-            ? JSON.parse(settingsRow.settings)
-            : settingsRow?.settings || {};
-  
-        // Update `notifyPayment` and `notifyComments` if valid
-        const updates: any = {};
-  
-        // Handle `payementStatus`
-        if (encrToken.payementStatus === 'true' || encrToken.payementStatus === 'false') {
-          updates.notifyPayment = encrToken.payementStatus === 'true';
+
+      const existingSettingsRaw = getStatusQryRslt[0]?.settings;
+
+      // Keep incoming values as strings "true"/"false" (or undefined if not provided)
+      const payValRaw = encrToken.payementStatus;
+      const commentValRaw = encrToken.commentStatus;
+      const payVal = payValRaw === 'true' ? 'true' : payValRaw === 'false' ? 'false' : undefined;
+      const commentVal = commentValRaw === 'true' ? 'true' : commentValRaw === 'false' ? 'false' : undefined;
+      const partyIdNum = Number(encrToken.partyId);
+
+      // Ensure we have an object to merge updates into
+      let settingsObj: any = {};
+      try {
+        if (existingSettingsRaw == null) {
+          settingsObj = {};
+        } else if (typeof existingSettingsRaw === 'string') {
+          settingsObj = existingSettingsRaw ? JSON.parse(existingSettingsRaw) : {};
+        } else if (typeof existingSettingsRaw === 'object') {
+          settingsObj = { ...existingSettingsRaw };
+        } else {
+          settingsObj = {};
         }
-  
-        // Handle `commentStatus`
-        if (encrToken.commentStatus === 'true' || encrToken.commentStatus === 'false') {
-          updates.notifyComments = encrToken.commentStatus === 'true';
-        }
-  
-        // Only update if there are changes
-        if (Object.keys(updates).length > 0) {
-          await connectBexio.companyregistered.updateMany({
-            where: { rk_party: Number(encrToken.partyId)},
-            data: {
-              settings: {
-                set: {
-                  ...existingSettings,
-                  ...updates,
-                },
-              },
-            },
-          });
-        }
-      } else {
-        // Handle case when settings are not found
-        const notifyPayment = encrToken.payementStatus || true;
-        const notifyComments = encrToken.commentStatus || true;
-  
-        await connectBexio.companyregistered.updateMany({
-          where: { rk_party:Number(encrToken.partyId)},
-          data: {
-            settings: {
-              set: {
-                notifyPayment,
-                notifyComments,
-              },
-            },
-          },
-        });
+      } catch (parseErr) {
+        settingsObj = {};
       }
-  
-      return res.status(status_code.OK).json({
+
+      // Apply only provided updates (store as strings)
+      let shouldUpdate = false;
+      if (payVal !== undefined) {
+        settingsObj.notifyPayment = payVal;
+        shouldUpdate = true;
+      }
+      if (commentVal !== undefined) {
+        settingsObj.notifyComments = commentVal;
+        shouldUpdate = true;
+      }
+
+      if (shouldUpdate) {
+        // Normalize existing values to string form as well to ensure stored values are strings
+        if ('notifyPayment' in settingsObj) {
+          settingsObj.notifyPayment = String(settingsObj.notifyPayment);
+        }
+        if ('notifyComments' in settingsObj) {
+          settingsObj.notifyComments = String(settingsObj.notifyComments);
+        }
+
+        await connectBexio.$executeRaw`
+          UPDATE companyregistered
+          SET settings = ${JSON.stringify(settingsObj)}::jsonb
+          WHERE rk_party = ${partyIdNum}
+        `;
+      }
+
+      res.send({
         status_code: 200,
         status: true,
       });
     } catch (error) {
+      console.log('error', error);
       commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = `From:${path.basename(__filename)} ${error.toString()} -req param, ${JSON.stringify(encrToken)}`;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + encrToken;
       warningMessage(commonErrors, error);
-  
-      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+      res.send({
         status_code: 500,
         status: false,
       });
     }
   }
-  
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
       let encrToken 
       try {
        const pool = await connectMssql;
-      //   const ioDb = await connectPostgres;
-      //   ////console.log.log('req.body.encrToken',req.body.encrToken);
         encrToken = encryptionControl.decrypt(req.body.encrToken);
-    //console.log('encrToken',encrToken);
-
-    //console.log("Biller fetch");
+        console.log('encrToken',encrToken);
 
         if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
@@ -668,12 +674,12 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-      //console.log('getUserPermissionsResult',getUserPermissionsResult);
+      console.log('getUserPermissionsResult',getUserPermissionsResult,encrToken.roleAccId,encrToken.rolePartyId);
 
           if(getUserPermissionsResult.length == 0){
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 200,
-              message: 'no_data_found',
+              message: 'no_data_found_getUserPermissionsResult',
               status: false,
             });
           }
@@ -681,10 +687,6 @@ export class ConfigurationService {
 
         const netcomId = encrToken?.netcomId;
 
-//console.log('****************************');
-
-
-        
         const getBasicDetails = `SELECT
         eb.legalname,
         eb.legalname as legalName,
@@ -701,10 +703,10 @@ export class ConfigurationService {
       WHERE
         netcomid = '${netcomId}'`;
 
-       // //console.log('getBasicDetails',getBasicDetails);
+       console.log('getBasicDetails',getBasicDetails);
         
         const getData = await pool.query(getBasicDetails);
-       //console.log('getData',getData.recordset.length);
+       console.log('getData',getData.recordset.length);
 
         if (getData.recordset.length) {
           if (getData.recordset[0].companyJSON) {
@@ -712,7 +714,7 @@ export class ConfigurationService {
             getData.recordset[0]['enterpriseIdentificationNumber'] = jsonExtract.enterpriseIdentificationNumber
           }
          let pythonData = await getPythonData(netcomId);
-         //console.log('pythonData',pythonData);
+         console.log('pythonData',pythonData);
          
          let connectionData:any = null   
          if(pythonData != null && pythonData["count"] != 0){
@@ -752,7 +754,7 @@ export class ConfigurationService {
           getData.recordset["fk_netcomid_doc_interface"] = ''
           getData.recordset["include_pdf"] = '' 
          }   
-         //console.log('getdata',getData);
+         console.log('getdata',getData);
            
          return res.status(status_code.OK).json({
             data: getData.recordset,
@@ -765,14 +767,14 @@ export class ConfigurationService {
         else {
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 200,
-            message: 'no_data_found',
+            message: 'no_data_found_getBasicDetails',
             status: false,
           });
         }
 
       }
       catch (error) {
-        //console.log("Error:: ",error)
+        console.log("Error:: ",error)
         let responseValue = JSON.stringify(encrToken)
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -818,7 +820,7 @@ export class ConfigurationService {
           if (error) {
             commonErrors['errorTitle'] = 'getInvitionCodeDetails';
             warningMessage(commonErrors, error);
-            resolve(false)
+            return resolve(false)
           }
           //console.log('body', body);
           return res.status(status_code.OK).json({
@@ -1302,7 +1304,7 @@ console.log('req.body',req.body);
           console.log("response.body:::::::",companyId);
           
           if (data.id) {
-            const responseData = [
+           const responseData = [
               data.status,
               data.legalName,
               data.accounts[0]['iid'],
@@ -1317,8 +1319,8 @@ console.log('req.body',req.body);
                                     uid ='${data.accounts[0]['iid']}',subscriptionstatus='${data.billRecipientSubscriptionStatus}',defaultlanguage='${data.localizedData.defaultLanguage}'
                                     ,companyJSON = '${jsonReq}'
                                     WHERE billerid='${data.id}'`
-  
-            await pool.query(updateBillerData, responseData)
+
+                await pool.query(updateBillerData, responseData);
               const companyIdNumber = Number(companyId);            
                 const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
@@ -1501,6 +1503,9 @@ console.log('req.body',req.body);
       let userId = jwt.decode(access_token)['company_user_id'];
       let coutryList;
       coutryList = await getCountryLists(access_token);
+      if(!coutryList){
+        coutryList = '[]';
+      }
          
       let countryId = JSON.parse(coutryList).filter( c => c.iso_3166_alpha2 == data.country_id);
       console.log(countryId);
@@ -1525,7 +1530,6 @@ console.log('req.body',req.body);
           "name_1": tempName,
           "name_2": (data.contact_type_id == 2 && data.name_2) ? data.name_2 : '',
           "contact_type_id": data.contact_type_id ? data.contact_type_id : '1',
-          "address": data.address ? data.address : '',
           "postcode": data.postcode ? data.postcode : '',
           "city": data.city ? data.city : '',
           "country_id": countryId.length > 0 ? countryId[0].id : '',
@@ -1535,34 +1539,39 @@ console.log('req.body',req.body);
         })
       }
      
-      request(options, async function (error, response) {
+      request(options, function (error, response) {
         if (error) {  
+          console.log("error in create contact",error);
+          
           commonErrors['errorTitle'] = 'bexio_contact';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param'+access_token;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+JSON.stringify(error)+'-bexio param'+access_token;
           warningMessage(commonErrors,error);
           
-          return res.status(200).json({
+          return res.status(500).json({
             status: false,
-            message: '',
+            message: JSON.stringify(error) || "something_went_wrong",
           })
         }
       
-        console.log(response.body);
+        console.log("create contact response ", response);
+        console.log("create contact response body", response.body);
         
+          if (response.statusCode == 401) {
+            return res.status(401).json({
+              status: 'fail',
+              message: 'unauthorized',
+            });
+          }
   
-          if(response.statusCode != 201)
-          {
+          if(response.statusCode != 201) {
             commonErrors['errorTitle'] = 'bexio_contact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_contact_not_found -req param,',JSON.stringify(req.body);
+            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_contact_not_found -req param,'+JSON.stringify(req.body);
             warningMessage(commonErrors,'bexio_contact_not_found');
          
             return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
-          }
-          )
-          return
-  
+          })
         }else{
         
           res.send({
@@ -1574,7 +1583,8 @@ console.log('req.body',req.body);
        
       });
     } catch (error) {
-      
+          console.log("create contact error",error);
+          
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
           warningMessage(commonErrors,error);
@@ -1808,7 +1818,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         console.log('data',data);
         
         if (data.id) {
-          let netcomId = encrToken.netcomId;
+          let netcomId = encrToken.netcomId;       
           let companyName = encrToken.companyName;
           let companyId = encrToken.companyId;
           let bexioCompanyName = null;
@@ -1831,7 +1841,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
              console.log('bexioCompanyName',bexioCompanyName);
           }
            console.log('checkBexioCompanyResult.rows',checkBexioCompanyResult);
-          let jsonReq = JSON.stringify(data);
+     let jsonReq = JSON.stringify(data);
           const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
                   Prisma.sql`
                   SELECT cid
@@ -1839,7 +1849,31 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                   WHERE fk_party =  ${Number(companyId)}
                   `
                 );
-          
+          console.log('getPartyEbillResult.rows',getPartyEbillResult);
+          console.log("req.body.partyIdLog:",req.body.partyIdLog);
+          //    const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+          //       SELECT 
+          //         pa.isuser,
+          //         pa.cid AS "partyAccountId",
+          //         u.email,
+          //         u.cid AS "userId",
+          //         pa.fk_party AS "partyId",
+          //         a.cid AS "accountId",
+          //         u.language AS "userlanguage"
+          //       FROM party_account pa
+          //       INNER JOIN account a ON a.cid = pa.fk_account
+          //       INNER JOIN public.user u ON u.cid = a.fk_user
+          //       INNER JOIN status s ON s.cid = pa.fk_status
+          //       WHERE pa.fk_party = ${parseInt(req.body.partyIdLog)}
+          //         AND pa.fk_account = ${parseInt(req.body.accId)}
+          //         AND s."statusLabel" = 'active'`);
+                  
+          //     console.log('userDetails',userDetails);
+              
+          // const setebill =  await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, 'EBILL');
+          const setPartyService = await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
+          console.log('setPartyService',setPartyService);
+          // console.log('setebill',setebill);
            console.log('getPartyEbillResult.rows',getPartyEbillResult);
           if (getPartyEbillResult.length <= 0) {
             const partyEbill = await connectLibrary.$queryRaw<any>(
@@ -1926,13 +1960,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           let language = getCompanyDetails[0]?.language || 'de';
           let ComapnyEmail = getCompanyDetails[0]?.email;
           let companyname = getCompanyDetails[0]?.companyname;
-          //let message, subject,defaultConfig,domainName;
-         
-          // let commissionagentData = await getConfigData(companyId);
-          // if( commissionagentData ){
-          //     defaultConfig = commissionagentData;
-          // }
-         // domainName = defaultConfig['domain'];
           let keyDatas = {
             id: data.id,
             companyName: companyname
@@ -1969,8 +1996,6 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           const checkDataExistRow = await pool.query(checkDataExist);
 
           let newJSON = JSON.parse(encrToken.data);
-          var errorType = data.type.replace('/problems/','');
-          // data.technicalReason = data.technicalReason.replace(/'/g," ");
           newJSON.error = response.body.replace(/'/g," ");
           newJSON = decodeURIComponent(JSON.stringify(newJSON));
           if( checkDataExistRow.recordset.length > 0){
@@ -2021,105 +2046,179 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   }
 }
 
-  async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const taxList: any = await getActiveSalesTaxBexio(accessToken);
-      //console.log("taxList :: ",taxList);
-      if( taxList?.status === false ){
-        return res.status(taxList.statuscode).send({
-          status_code: taxList.statuscode,
-          message: taxList.message,
-          status: false,
-        })
-      }
-      //console.log("taxList ",taxList);
-      return res.status(200).send({
-        status: 200,
-        data: taxList,
-      });
-    } catch (error) {
-      //console.log("Error getActiveSalesTaxList :: ",error);
-    }
-  }
+  //     let accessToken = cookie.access_Token;
+  //     const taxList: any = await getActiveSalesTaxBexio(accessToken);
+  //     //console.log("taxList :: ",taxList);
+  //     if( taxList?.status === false ){
+  //       return res.status(taxList.statuscode).send({
+  //         status_code: taxList.statuscode,
+  //         message: taxList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("taxList ",taxList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: taxList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getActiveSalesTaxList :: ",error);
+  //   }
+  // }
 
-  async getUnitList(req: Request, res: Response): Promise<any> {
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  // async getUnitList(req: Request, res: Response): Promise<any> {
+  //   try {
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      const unitList: any = await getUnitList(accessToken);
-      if( unitList?.status == false ){
-        return res.status(unitList.statuscode).send({
-          status_code: unitList.statuscode,
-          message: unitList.message,
-          status: false,
-        })
-      }
-      //console.log("unitList ",unitList);
-      return res.status(200).send({
-        status: 200,
-        data: unitList,
-      });
-    } catch (error) {
-      //console.log("Error getUnitList :: ",error);
-    }
-  }
-  async getActiveAccounts(req: Request, res: Response): Promise<any> {
-    //console.log("getActiveAccounts")
-    try {
-      let reqTaxId = req.body.tax_id;
-      //console.log(reqTaxId)
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      if (!cookieData) {
-        return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
-      }
+  //     let accessToken = cookie.access_Token;
+  //     const unitList: any = await getUnitList(accessToken);
+  //     if( unitList?.status == false ){
+  //       return res.status(unitList.statuscode).send({
+  //         status_code: unitList.statuscode,
+  //         message: unitList.message,
+  //         status: false,
+  //       })
+  //     }
+  //     //console.log("unitList ",unitList);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: unitList,
+  //     });
+  //   } catch (error) {
+  //     //console.log("Error getUnitList :: ",error);
+  //   }
+  // }
+  // async getActiveAccounts(req: Request, res: Response): Promise<any> {
+  //   //console.log("getActiveAccounts")
+  //   try {
+  //     let reqTaxId = req.body.tax_id;
+  //     //console.log(reqTaxId)
+  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+  //     if (!cookieData) {
+  //       return res.status(500).send({
+  //           status_code: 500,
+  //           message: 'Missing_cookie',
+  //           status: false,
+  //         })
+  //     }
       
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-      const activeAccounts: any = await getActiveAccounts(accessToken);
-      if( activeAccounts?.status == false ){
-        return res.status(activeAccounts.statuscode).send({
-          status_code: activeAccounts.statuscode,
-          message: activeAccounts.message,
-          status: false,
-        })
-      }
-      let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
-      //console.log("newAccountList :: ",newAccountList.length);
-      //console.log("activeAccounts ",activeAccounts.length);
-      return res.status(200).send({
-        status: 200,
-        data: newAccountList,
-      });
-    } catch (error) {
+  //     let accessToken = cookie.access_Token;
+  //     let isBexioUser = cookie.isBexioUser;
+  //     const activeAccounts: any = await getActiveAccounts(accessToken);
+  //     if( activeAccounts?.status == false ){
+  //       return res.status(activeAccounts.statuscode).send({
+  //         status_code: activeAccounts.statuscode,
+  //         message: activeAccounts.message,
+  //         status: false,
+  //       })
+  //     }
+  //     let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
+  //     //console.log("newAccountList :: ",newAccountList.length);
+  //     //console.log("activeAccounts ",activeAccounts.length);
+  //     return res.status(200).send({
+  //       status: 200,
+  //       data: newAccountList,
+  //     });
+  //   } catch (error) {
 
-      //console.log("Error getActiveAccounts :: ",error);
+  //     //console.log("Error getActiveAccounts :: ",error);
+  //   }
+  // }
+
+ async getArticleDetails(req: Request, res: Response): Promise<any> {
+  try {
+    const { taxId, unitId, accountId,articleId } = req.body;
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+    if (!cookieData) {
+      return res.status(500).send({
+        status_code: 500,
+        message: 'Missing_cookie',
+        status: false,
+      });
     }
+
+    const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+    const accessToken = cookie.access_Token;
+    let accountList: any[] = [];
+    let unit: any ;
+    let tax: any ;
+     let article: any ;
+    let activeAccounts: any
+    // Fetch account
+    if (accountId && accountId!='null') {
+      activeAccounts = await getActiveAccounts(accessToken);
+      console.log('activeAccounts',activeAccounts.status );
+      if(activeAccounts?.status === true)
+      accountList = activeAccounts?.data?.filter(item => item.id == accountId);
+    console.log('activeAccounts',activeAccounts?.data?.filter(item => item.id == accountId));
+    }
+
+    // Fetch unit
+    if (unitId && unitId!='null') {
+        console.log('Filtered Account:', unitId);
+      unit = await getUnitList(accessToken, unitId);
+      console.log('Unit:', unit);
+    }
+
+    // Fetch tax
+    if (taxId && taxId!='null') {
+      tax = await getActiveSalesTaxBexio(accessToken, taxId);
+      console.log('Tax:', tax);
+    }
+
+      if (articleId && articleId!='null') {
+      article = await getActiveItem(accessToken,articleId);
+      console.log('article',article);
+  
+    
+    }
+    
+    const result = {
+      account:activeAccounts?.status === false?null: accountList.length > 0 ? accountList[0] : null,
+      unit: unit?.status === false?null: unit|| null,
+      tax: tax?.status === false?null:tax || null,
+      article:article?.status === false?null:article || null
+    };
+
+    return res.status(200).send({
+      status: 200,
+      data: result,
+    });
+  } catch (error) {
+    const responseValue = JSON.stringify(req.body);
+    commonErrors['errorTitle'] = req.originalUrl;
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param: ${responseValue}`;
+    warningMessage(commonErrors, error);
+
+    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+      status_code: 500,
+      message: 'something_went_wrong',
+      status: false,
+    });
   }
+}
+
   async getActiveArticle(req: Request, res: Response): Promise<any> {
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -2135,9 +2234,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       let accessToken = cookie.access_Token;
       const articleList: any = await getActiveArticle(accessToken);
       if( articleList?.status == false ){
-        return res.status(articleList.statuscode).send({
-          status_code: articleList.statuscode,
-          message: articleList.message,
+        return res.status(articleList?.statuscode).send({
+          status_code: articleList?.statuscode,
+          message: articleList?.message,
           status: false,
         })
       }
@@ -2158,7 +2257,14 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
       let data = [];
       let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
-
+      if (totalCount === "Unauthorized") {
+        return res.status(401).send({
+          status_code: 401,
+          message: 'Unauthorized',
+          status: false,
+        });
+      }
+      else{
       ////console.log("totalCount", totalCount);
       let result = totalCount.map((contact) => ({
         id: contact.id,
@@ -2168,7 +2274,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         status: 200,
         data: result,
       });
-
+      }
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
         return res.status(401).send({
@@ -2377,12 +2483,12 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     const connectData = await new Promise<any>((resolve, reject) => {
       request(options, (error, response, body) => {
         if (error) {
-          commonErrors['errorTitle'] = 'getBcDetails';
+          commonErrors['errorTitle'] = 'getConnectionList';
           warningMessage(commonErrors, error);
           return reject(error);
         }
         try {
-          resolve(JSON.parse(body));
+          return resolve(JSON.parse(body));
         } catch (parseError) {
           reject(parseError);
         }
@@ -2420,8 +2526,8 @@ async createBiller(req: Request, res: Response,): Promise<any> {
 
     } else {
       contacts = await getAllcontacts(accessToken, 0, 2000, '');
-      const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
-      const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
+      const resultCustomer = new Map(contacts?.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+      const resultMail = new Map(contacts?.map(c => [c.id, c.mail]));
 
       const updatedConnectData = connectData.data.map(item => {
         const id = Number(item.partner_company_details.customer_id);
@@ -2443,95 +2549,16 @@ async createBiller(req: Request, res: Response,): Promise<any> {
     }
 
   } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param, access_token`;
+    commonErrors['errorTitle'] = 'getConnectionList';
+    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param`;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), () => {});
     return res.status(500).json({ status: false, message: 'Internal server error' });
   }
 }
 
 }
-const getBcDetails = async (bc_id, netcomId) => {
-  try {
-    return new Promise(async (resolve, reject) => {
-      if (bc_id) {
-        let formData = {
-          bc: bc_id.toString(),
-          netcom_id: netcomId
-        }
-        let options = {
-          'method': 'POST',
-          'url': config.PYTHON_API + 'get-contact-bc',
-          formData: formData
-        };
 
-        request(options, async function (error, response, body) {
-          if (error) {
-            commonErrors['errorTitle'] = 'getBcDetails';
-            warningMessage(commonErrors, error);
-            resolve(false)
-          } else {
-            //console.log('output',config.PYTHON_API + 'get-contact-bc');
-            
-            resolve(JSON.parse(response.body));
-          }
-        });
-      } else {
-        resolve(false)
-      }
 
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getBcDetails';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + 'access_token';
-    warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
-  }
-}
-const getCountryLists = async (access_token) => {
-  try {
-    //console.log('acce',access_token);
-    
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        'method': 'GET',
-        'url': `${config.BEXIO_API}2.0/country`,
-        'headers': {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + access_token
-        }
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getCountryLists';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
-          warningMessage(commonErrors, error);
-          resolve(false)
-        }
-        if (response.statusCode == 200)
-          resolve(response.body);
-        else if(response.statusCode == 401){
-          resolve(response.statusCode);
-        }
-        else{
-        
-          resolve(false)
-        }
-
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getCountryLists';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
-    warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
-  }
-}
 const contactListCountSearch = async (token, search, offset, limit?) => {
   return new Promise(async (resolve, reject) => {
     var options = {
@@ -2548,7 +2575,7 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode == 200) {
         let parsedBody;
@@ -2556,18 +2583,18 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
           parsedBody = JSON.parse(response.body);
         } catch (e) {
           warningMessage(commonErrors, 'Invalid JSON in response.body: ' + response.body);
-          resolve(false);
+           resolve(false);
           return;
         }
         if (Array.isArray(parsedBody) && parsedBody.length == limit) {
           let temp = contactListCountSearch(token, offset + 2000, 2000)
         } else {
           offset = offset + (Array.isArray(parsedBody) ? parsedBody.length : 0);
-          resolve(offset)
+          return resolve(offset)
         }
       }
       else
-        resolve(false)
+        return resolve(false)
     });
   });
 }
@@ -2587,12 +2614,12 @@ const contactListCount = async (token, offset, limit?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode == 200) {
         if (JSON.parse(response.body).length == limit) {
           let temp = await contactListCount(token, offset + 200, 200);
-          resolve(temp)
+          return resolve(temp)
         } else {
           offset = offset + JSON.parse(response.body).length;
           resolve(offset)
@@ -2601,48 +2628,11 @@ const contactListCount = async (token, offset, limit?) => {
       }
       else
         resolve(false)
+        return 
     });
   });
 }
-const getContactDetails = async (access_token, id) => {
-  //console.log('access_token:',access_token,id);
 
-  try {
-    return new Promise(async (resolve, reject) => {
-      var options = {
-        'method': 'GET',
-        'url': `${config.BEXIO_API}2.0/contact/${id}`,
-        'headers': {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + access_token
-        }
-      };
-      request(options, function (error, response) {
-        if (error) {
-          commonErrors['errorTitle'] = 'getContactDetails';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
-          warningMessage(commonErrors, error);
-          resolve(false)
-        }
-        if (response.statusCode == 200){
-          resolve(JSON.parse(response.body));
-        }
-        else if(response.statusCode == 401){
-          resolve(JSON.parse(response.body));
-
-        }
-
-      });
-    });
-  } catch (error) {
-    commonErrors['errorTitle'] = getContactDetails.name;
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
-    warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
-  }
-}
 const createConnector = async (params) => {
   try {
     let config_key = 'BEXIO_CONNECTION_CONFIG_ORDER_' + params.direction;
@@ -2664,7 +2654,7 @@ const createConnector = async (params) => {
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
         if (!error && response.statusCode == 200) {
-          resolve(body);
+          return resolve(body);
           //console.log('body', body);
 
         } else {
@@ -2678,9 +2668,7 @@ const createConnector = async (params) => {
     commonErrors['errorTitle'] = createConnector.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + params;
     warningMessage(commonErrors, error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      resolve('')
-    });
+   return resolve('');
   }
 }
 const inviteCompanySend = async (params) => {
@@ -2705,7 +2693,7 @@ const inviteCompanySend = async (params) => {
         //console.log('response*', response);
 
         if (!error && response.statusCode == 200) {
-          resolve(body);
+          return resolve(body);
           //console.log('body', body);
 
         } else {
@@ -2764,19 +2752,21 @@ const getInvitationDetails = async (code): Promise<any | false> => {
         commonErrors['errorTitle'] = 'getInvitationDetails';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + code;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
 
       // res.send(response.body)
       ////console.log(response.body);
       //console.log(response.body);
 
-      if (response.statusCode == 200)
+      if (response.statusCode == 200){
 
-       // console.log('JSON.parse(response.body', JSON.parse(response.body))
-       resolve(JSON.parse(response.body));
-      else
-      reject(false)
+        
+        // console.log('JSON.parse(response.body', JSON.parse(response.body))
+        return resolve(JSON.parse(response.body));
+      }else{
+        reject(false)
+      }
 
     });
   });
@@ -2806,7 +2796,7 @@ const getPythonData = async (netcomId) => {
       'url': config.PYTHON_API + 'post-list/connections',
         formData: formData
       };
-      //console.log('options',options);
+      console.log('getPythonData options',options);
       
       await request(options, async function (error, response) {
        
@@ -2926,31 +2916,7 @@ const createBexiobiller = async(data)=>{
       }
     })
 }
-const getContact = async (access_token,id)=>{
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}2.0/contact/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getContact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            resolve(false)
-          }
-          if(response.statusCode==200)
-          resolve(JSON.parse(response.body));
-          else
-          resolve(false)
-        });
-      });
-}
 const getInvitations = async (code)=>{
   try {
     let formData = {
@@ -2968,10 +2934,10 @@ const getInvitations = async (code)=>{
           commonErrors['errorTitle'] = 'getInvitations';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+code;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
        
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -2999,12 +2965,12 @@ const getStatus = async (code)=>{
           commonErrors['errorTitle'] = 'getStatus';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio params,'+formData;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
         // res.send(response.body)
         //console.log(response.body);
         
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3012,10 +2978,7 @@ const getStatus = async (code)=>{
       commonErrors['errorTitle'] = getStatus.name;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
       warningMessage(commonErrors,error);
-    fs.writeFile('assets/errorLog.txt', JSON.stringify(error), function () {
-      // res.send();
-      resolve('');
-    });
+    return resolve('');
   }
 }
 const getConnections = async (netcomId,docType)=>{
@@ -3028,9 +2991,10 @@ const getConnections = async (netcomId,docType)=>{
       active_only:'true',
       doc_type: doc_type[0]['id'],
       //doc_format:config.DOC_FORMAT,
-      show_all: 'true'
+      show_all: 'true',
+      module:'BEX'
     }
-    //console.log('formData',formData);
+    console.log('formData post-list/connections',formData);
     
     return new Promise(async(resolve, reject) => {
       var options = {
@@ -3044,10 +3008,10 @@ const getConnections = async (netcomId,docType)=>{
           commonErrors['errorTitle'] = 'post-list/connections';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
-          resolve(false)
+          return resolve(false)
         }
        
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3065,8 +3029,7 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
 
     formData = {
       invite_code:code,
-      logged_in_netcom_id:netComId
-    
+      logged_in_netcom_id:netComId,
     }
     console.log('invite_code',formData);
     
@@ -3082,10 +3045,10 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
           commonErrors['errorTitle'] = 'getLoginUserInfo';
           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
           warningMessage(commonErrors,error);
-          resolve(response.body);
+          return resolve(response.body);
         }
         // res.send(response.body)
-        resolve(response.body);
+        return resolve(response.body);
 
       });
     });
@@ -3187,16 +3150,16 @@ const bexioUpdateBiller = async (req, billerId) => {
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie.access_Token;
         commonErrors['errorCode'] = config.ERROR_BEXIO_BILLER
         warningMessage(commonErrors, error);
-        resolve(false);
+        return resolve(false);
       }
       else {
         //console.log("response from bexio update biller----",response.body);
-        resolve(true);
+        return resolve(true);
       }
     })
   }
   catch {
-    resolve(false);
+    return resolve(false);
   }
 })
 }
@@ -3216,7 +3179,7 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
         commonErrors['errorTitle'] = 'contactListCount';
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
         warningMessage(commonErrors, error);
-        resolve(false)
+        return resolve(false)
       }
       if (response.statusCode === 200) {
         const currentData = JSON.parse(response.body);
@@ -3233,8 +3196,9 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
 
       if (response.statusCode === 401) {
         console.log("Unauthorized access, please check your token.");
-
-        return reject(new Error('Unauthorized'));
+        return resolve("Unauthorized");
+        // return reject(new Error('Unauthorized'));
+        
       } else {
         return resolve(false);
       }

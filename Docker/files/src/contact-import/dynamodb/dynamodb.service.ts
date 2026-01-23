@@ -37,16 +37,36 @@ export class DynamoDBService {
     const result = await dynamoDb.query(params).promise();
     return result.Items && result.Items.length > 0 ? result.Items[0] : null;
   }
-  async markJobComplete(cid: string): Promise<void> {
-    await this.updateJobStatus(cid, 'done');
-  }
 
   async createJob(netcomid: string, requestDto: any): Promise<any> {
-    // Check for existing pending job for this netcomid
-    const existing = await this.getFirstPendingJobForNetcomid(netcomid);
-    if (existing) {
-      return { message: 'A job is already pending for this company', jobId: existing.cid, status: existing.status };
+    // Clear all existing records for this netcomid by deleting each item using DynamoDB Delete (other method).
+    const itemsToDelete: string[] = [];
+    let ExclusiveStartKey: AWS.DynamoDB.DocumentClient.Key | undefined = undefined;
+
+    do {
+      const queryParams: AWS.DynamoDB.DocumentClient.QueryInput = {
+        TableName: TABLE_NAME,
+        IndexName: 'netcomid-status-index',
+        KeyConditionExpression: '#netcomid = :netcomid',
+        ExpressionAttributeNames: { '#netcomid': 'netcomid' },
+        ExpressionAttributeValues: { ':netcomid': netcomid },
+        ExclusiveStartKey,
+      };
+      const res = await dynamoDb.query(queryParams).promise();
+      if (res.Items && res.Items.length) {
+        for (const it of res.Items) {
+          if (it.cid) itemsToDelete.push(it.cid);
+        }
+      }
+      ExclusiveStartKey = res.LastEvaluatedKey as AWS.DynamoDB.DocumentClient.Key | undefined;
+    } while (ExclusiveStartKey);
+
+    // Delete each item using the Delete API (parallel, but safe with Promise.allSettled)
+    if (itemsToDelete.length > 0) {
+      await Promise.allSettled(itemsToDelete.map(cid => this.deleteJob(cid)));
     }
+
+    // Create new pending job
     const cid = `${netcomid}-${Date.now()}`;
     const item = {
       cid,
@@ -57,18 +77,26 @@ export class DynamoDBService {
       lastUpdated: new Date().toISOString(),
       // requestDto,
     };
-    const params = {
+    const putParams = {
       TableName: TABLE_NAME,
       Item: item,
     };
-    await dynamoDb.put(params).promise();
+    await dynamoDb.put(putParams).promise();
     return item;
+  }
+
+  // Delete a single job by cid using DynamoDB Delete API
+  async deleteJob(cid: string): Promise<void> {
+    const params: AWS.DynamoDB.DocumentClient.DeleteItemInput = {
+      TableName: TABLE_NAME,
+      Key: { cid },
+    };
+    await dynamoDb.delete(params).promise();
   }
 
 
 
   async getFirstPendingJobForNetcomid(netcomid: string): Promise<any> {
-    // DynamoDB does not allow FilterExpression on primary key attributes in a GSI query.
     // Instead, query for 'pending' first, then 'in_progress' if not found.
     const pendingParams = {
       TableName: TABLE_NAME,

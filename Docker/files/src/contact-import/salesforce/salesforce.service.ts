@@ -3,7 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { ImportContactDto } from '../dto/import-contact.dto';
 import * as request from 'request';
 import config from '../../common/config';
-
+const path = require('path')
+import commonErrors from '../../common/utils/commonError'
+import warningMessage from '../../common/utils/warningMessage'
 @Injectable()
 export class SalesforceService {
   async fetchContacts(dto: ImportContactDto): Promise<any[]> {
@@ -21,17 +23,41 @@ export class SalesforceService {
         grant_type: 'password',
       },
     };
-    const accessToken: string = await new Promise((resolve, reject) => {
-      request(tokenOptions, (error, response, body) => {
-        if (error) return reject(error);
-        console.log(`Salesforce token response: ${body}`);
-        console.log(`Salesforce token response status: ${response.statusCode}`);
-        
-        const data = JSON.parse(body);
-        if (data.access_token) return resolve(data.access_token);
-        reject(data);
+    let accessToken: string;
+    try {
+      accessToken = await new Promise((resolve, reject) => {
+        request(tokenOptions, (error, response, body) => {
+          if (error) {
+            commonErrors['errorTitle'] = 'Salesforce Token Request';
+            commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - tokenOptions: ${JSON.stringify(tokenOptions)}`;
+            warningMessage(commonErrors, error);
+            return reject(error);
+          }
+          console.log(`Salesforce token response: ${body}`);
+          console.log(`Salesforce token response status: ${response.statusCode}`);
+          const data = JSON.parse(body);
+          if (data.access_token) return resolve(data.access_token);
+          commonErrors['errorTitle'] = 'Salesforce Token Response';
+          commonErrors['errorDescription'] = `From: ${path.basename(__filename)} No access_token - response: ${body}`;
+          warningMessage(commonErrors, data);
+          reject(data);
+        });
       });
-    });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'Salesforce Token Fetch Error';
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - dto: ${JSON.stringify(dto)}`;
+      warningMessage(commonErrors, error);
+      console.error('Failed to fetch Salesforce access token:', error);
+      return [];
+    }
+
+    if (!accessToken) {
+      // Optionally log a warning here
+      commonErrors['errorTitle'] = 'Salesforce Token Missing';
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} No access token available for contact query - dto: ${JSON.stringify(dto)}`;
+      warningMessage(commonErrors, 'No access token');
+      return [];
+    }
 
 
     // 2. Query contacts by company name (Parent.Name)
@@ -44,22 +70,42 @@ export class SalesforceService {
         Authorization: `Bearer ${accessToken}`,
       },
     };
-    return await new Promise((resolve, reject) => {
-      request(contactOptions, (error, response, body) => {
-        if (response && response.statusCode !== 200) {
-          console.error(`Salesforce query failed: ${body}`);
-          return reject(new Error(`Salesforce query failed with status ${response.statusCode}`));
-        }
-        // console.log(`Salesforce query response: ${body}`);
-        console.log(`Salesforce query response status: ${response.statusCode}`);
-        // console.log(`Salesforce query response: ${JSON.stringify(response.body )}`);
-        
-        
-        
-        if (error) return reject(error);
-        const data = JSON.parse(body);
-        resolve(data.records || []);
+    try {
+      return await new Promise((resolve, reject) => {
+        request(contactOptions, (error, response, body) => {
+          if (error) {
+            commonErrors['errorTitle'] = 'Salesforce Contact Query';
+            commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - contactOptions: ${JSON.stringify(contactOptions)}`;
+            warningMessage(commonErrors, error);
+            console.error('Error during Salesforce contact query:', error);
+            return reject(error);
+          }
+          if (response && response.statusCode !== 200) {
+            commonErrors['errorTitle'] = 'Salesforce Query Failed';
+            commonErrors['errorDescription'] = `From: ${path.basename(__filename)} Status: ${response.statusCode} - Body: ${body}`;
+            warningMessage(commonErrors, body);
+            console.error(`Salesforce query failed: ${body}`);
+            return reject(new Error(`Salesforce query failed with status ${response.statusCode}`));
+          }
+          console.log(`Salesforce query response status: ${response.statusCode}`);
+          try {
+            const data = JSON.parse(body);
+            return resolve(data.records || []);
+          } catch (parseError) {
+            commonErrors['errorTitle'] = 'Salesforce Response Parse Error';
+            commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${parseError.toString()} - Body: ${body}`;
+            warningMessage(commonErrors, parseError);
+            console.error('Failed to parse Salesforce response:', parseError);
+            reject(parseError);
+          }
+        });
       });
-    });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'Salesforce Contact Fetch Error';
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - dto: ${JSON.stringify(dto)}`;
+      warningMessage(commonErrors, error);
+      console.error('Failed to fetch contacts from Salesforce:', error);
+      return [];
+    }
   }
 }
