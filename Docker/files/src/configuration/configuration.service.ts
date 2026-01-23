@@ -19,7 +19,7 @@ import { resolve } from 'path';
 // const fetchEmailContent = require('../common/utils/fetchEmailData');
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
-import {setEbillRole,partyServiceUpdate,getUnitList,getActiveAccounts,getActiveArticle,getActiveSalesTaxBexio,getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
+import { setEbillRole, partyServiceUpdate, getUnitList, getActiveAccounts, getActiveArticle, getActiveSalesTaxBexio, getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
 @Injectable()
 export class ConfigurationService {
 
@@ -41,7 +41,7 @@ export class ConfigurationService {
         formData: fomdata
       };
 
-      //console.log.log('options',options);
+      console.log('setConfiguration options', options);
 
       return new Promise(function (resolve, reject) {
         request(options, async function (error, response, body) {
@@ -55,7 +55,7 @@ export class ConfigurationService {
           else {
             try {
 
-              //console.log.log(response.body);
+              console.log('setConfiguration response.body', response.body);
               responseData = JSON.parse(response.body)
 
 
@@ -65,12 +65,12 @@ export class ConfigurationService {
 
               })
             }
-            catch(error) {
+            catch (error) {
               // return resolve(responseData)
               return res.send({
                 status: 500,
-                message:"Something went wrong in SetConfiguration function",
-                error:error.toString()
+                message: "Something went wrong in SetConfiguration function",
+                error: error.toString()
               })
             }
           }
@@ -136,10 +136,10 @@ export class ConfigurationService {
             }
             catch {
               // return resolve(responseData)
-               return res.send({
+              return res.send({
                 status: 500,
-                message:"Something went wrong in Update Configuration function",
-                error:error.toString()
+                message: "Something went wrong in Update Configuration function",
+                error: error.toString()
               })
             }
           }
@@ -197,13 +197,13 @@ export class ConfigurationService {
 
               })
             }
-            catch {
+            catch (error) {
               // return resolve(responseData)
 
-               return res.send({
+              return res.send({
                 status: 500,
-                message:"Something went wrong in Get Configuration function",
-                error:error.toString()
+                message: "Something went wrong in Get Configuration function",
+                error: error.toString()
               })
             }
           }
@@ -247,14 +247,14 @@ export class ConfigurationService {
     try {
 
       // console.log('***********************',data);
-      
+
       let docType = data.docType || 'Invoice';
       let direction = data.direction || 'Receive';
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
 
       let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
       // console.log('***********************',dataCookie);
-      
+
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
       const partyAccountCheckRaw = await connectBexio.contact_bc.findMany({
@@ -311,7 +311,7 @@ export class ConfigurationService {
         //console.log('businessConnectionIds', businessConnectionIds);
         let bcResult: any = await getBcDetails(businessConnectionIds, dataCookie.netcomId);
         //console.log('bcResult', bcResult);
-        
+
         resultBc = bcResult['data'];
       }
 
@@ -319,7 +319,7 @@ export class ConfigurationService {
       resultBc.forEach(async element => {
         beStruct[element.bc_id] = element;
       });
-       
+
       let totalCount;
       if (isBexioUser) {
 
@@ -341,7 +341,7 @@ export class ConfigurationService {
             status: false,
 
           });
-        
+
         }
         if (resData == 401) {
           return res.status(401).json({
@@ -427,7 +427,7 @@ export class ConfigurationService {
           }
 
           if (response.statusCode != 200)
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status: false,
               message: [response],
 
@@ -540,7 +540,7 @@ export class ConfigurationService {
     let encrToken = req.body;
     try {
       console.log('getPayementComments starts.......');
-      const getStatusQryRslt:any = await connectBexio.companyregistered.findMany({
+      const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(encrToken.partyId), // Ensure rk_party is a unique field or indexed
         },
@@ -549,10 +549,10 @@ export class ConfigurationService {
         },
       });
 
-      console.log('getStatusQryRslt : ',getStatusQryRslt);
+      console.log('getStatusQryRslt : ', getStatusQryRslt);
       // Ensure settings is treated as an object
       const settings = getStatusQryRslt[0]?.settings;
-      console.log('getStatusQryRslt',settings);
+      console.log('getStatusQryRslt', settings);
       return res.status(status_code.OK).json({
         status_code: 200,
         data: {
@@ -653,16 +653,16 @@ export class ConfigurationService {
     }
   }
   async getBillerDetails(req: Request, res: Response,): Promise<any> {
-      let encrToken 
-      try {
-       const pool = await connectMssql;
-        encrToken = encryptionControl.decrypt(req.body.encrToken);
-        console.log('encrToken',encrToken);
+    let encrToken
+    try {
+      const pool = await connectMssql;
+      encrToken = encryptionControl.decrypt(req.body.encrToken);
+      console.log('encrToken', encrToken);
 
-        if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
+      if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
 
-          const getUserPermissionsResult = await connectLibrary.$queryRaw<any>`
+        const getUserPermissionsResult = await connectLibrary.$queryRaw<any>`
           SELECT po.policy, par.cid 
           FROM partyapplication_account_role par
           INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
@@ -674,20 +674,20 @@ export class ConfigurationService {
           AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
           AND r.name LIKE '%EBILL%'
       `;
-      console.log('getUserPermissionsResult',getUserPermissionsResult,encrToken.roleAccId,encrToken.rolePartyId);
+        console.log('getUserPermissionsResult', getUserPermissionsResult, encrToken.roleAccId, encrToken.rolePartyId);
 
-          if(getUserPermissionsResult.length == 0){
-            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-              status_code: 200,
-              message: 'no_data_found_getUserPermissionsResult',
-              status: false,
-            });
-          }
+        if (getUserPermissionsResult.length == 0) {
+          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+            status_code: 200,
+            message: 'no_data_found_getUserPermissionsResult',
+            status: false,
+          });
         }
+      }
 
-        const netcomId = encrToken?.netcomId;
+      const netcomId = encrToken?.netcomId;
 
-        const getBasicDetails = `SELECT
+      const getBasicDetails = `SELECT
         eb.legalname,
         eb.legalname as legalName,
         eb.status,
@@ -703,21 +703,21 @@ export class ConfigurationService {
       WHERE
         netcomid = '${netcomId}'`;
 
-       console.log('getBasicDetails',getBasicDetails);
-        
-        const getData = await pool.query(getBasicDetails);
-       console.log('getData',getData.recordset.length);
+      console.log('getBasicDetails', getBasicDetails);
 
-        if (getData.recordset.length) {
-          if (getData.recordset[0].companyJSON) {
-            let jsonExtract = JSON.parse(getData.recordset[0].companyJSON)
-            getData.recordset[0]['enterpriseIdentificationNumber'] = jsonExtract.enterpriseIdentificationNumber
-          }
-         let pythonData = await getPythonData(netcomId);
-         console.log('pythonData',pythonData);
-         
-         let connectionData:any = null   
-         if(pythonData != null && pythonData["count"] != 0){
+      const getData = await pool.query(getBasicDetails);
+      console.log('getData', getData.recordset.length);
+
+      if (getData.recordset.length) {
+        if (getData.recordset[0].companyJSON) {
+          let jsonExtract = JSON.parse(getData.recordset[0].companyJSON)
+          getData.recordset[0]['enterpriseIdentificationNumber'] = jsonExtract.enterpriseIdentificationNumber
+        }
+        let pythonData = await getPythonData(netcomId);
+        console.log('pythonData', pythonData);
+
+        let connectionData: any = null
+        if (pythonData != null && pythonData["count"] != 0) {
           getData.recordset[0]["fk_doc_type"] = pythonData["results"][0].fk_doc_type.id.toString()
           getData.recordset[0]["fk_doc_format"] = pythonData["results"][0].fk_doc_format.id.toString()
           getData.recordset[0]["fk_netcomid_doc_interface"] = pythonData["results"][0].fk_netcomid_doc_interface.id.toString()
@@ -735,57 +735,57 @@ export class ConfigurationService {
             "file_export_filename": pythonData["results"][0].file_export_filename,
             "create-pdf": pythonData["results"][0].config.service["create-pdf"]["create-pdf"],
             "create-signed-doc": pythonData["results"][0].config.service["create-signed-doc"]["create-signed-doc"],
-            "export-doc-ref":pythonData["results"][0].config.service["export-doc-ref"]["export-doc-ref"],
+            "export-doc-ref": pythonData["results"][0].config.service["export-doc-ref"]["export-doc-ref"],
             "validate-sign": pythonData["results"][0].config.service["validate-sign"]["validate-sign"],
-            "netcom_id":pythonData["results"][0].netcom_id,
+            "netcom_id": pythonData["results"][0].netcom_id,
             "con_id": pythonData["results"][0].id,
             "process_name": pythonData["results"][0].fk_process_name,
-            "ebill":"true",
+            "ebill": "true",
             "signed-document": pythonData["results"][0].config.service["create-signed-doc"]["signed-document"],
             "signed-file-name": pythonData["results"][0].config.service["create-signed-doc"]["signed-file-name"],
             "attach-validation-report": pythonData["results"][0].config.service["create-signed-doc"]["attach-validation-report"],
             "export-validation-report": pythonData["results"][0].config.service["create-signed-doc"]["export-validation-report"],
             "validation-file-name": pythonData["results"][0].config.service["create-signed-doc"]["validation-file-name"]
-         }
-         }
-         else{
+          }
+        }
+        else {
           getData.recordset["fk_doc_type"] = ''
           getData.recordset["fk_doc_format"] = ''
           getData.recordset["fk_netcomid_doc_interface"] = ''
-          getData.recordset["include_pdf"] = '' 
-         }   
-         console.log('getdata',getData);
-           
-         return res.status(status_code.OK).json({
-            data: getData.recordset,
-            pythonData:connectionData,
-            status_code: 200,
-            message: 'basic_informations',
-            status: true,
-          });
+          getData.recordset["include_pdf"] = ''
         }
-        else {
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            status_code: 200,
-            message: 'no_data_found_getBasicDetails',
-            status: false,
-          });
-        }
+        console.log('getdata', getData);
 
+        return res.status(status_code.OK).json({
+          data: getData.recordset,
+          pythonData: connectionData,
+          status_code: 200,
+          message: 'basic_informations',
+          status: true,
+        });
       }
-      catch (error) {
-        console.log("Error:: ",error)
-        let responseValue = JSON.stringify(encrToken)
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-        warningMessage(commonErrors, error);
+      else {
         return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-          status_code: 500,
-          message: 'something_went_wrong',
+          status_code: 200,
+          message: 'no_data_found_getBasicDetails',
           status: false,
         });
       }
+
     }
+    catch (error) {
+      console.log("Error:: ", error)
+      let responseValue = JSON.stringify(encrToken)
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+  }
   async getInvitionCodeDetails(req: Request, res: Response,): Promise<any> {
 
     let data = req.body;
@@ -868,8 +868,8 @@ export class ConfigurationService {
 
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
-      let senderNr:any = await getContactDetails(accessToken, data.contactsId);
-      if(senderNr.message=='Unauthorized'){
+      let senderNr: any = await getContactDetails(accessToken, data.contactsId);
+      if (senderNr.message == 'Unauthorized') {
         return res.status(401).send({
           message: senderNr.message,
           status: false,
@@ -885,8 +885,8 @@ export class ConfigurationService {
           message: 'something_went_wrong',
           status: false,
 
-        });       
-       
+        });
+
       }
 
       if (senderNr['id']) {
@@ -921,7 +921,7 @@ export class ConfigurationService {
         });
         //console.log("getCompanyCodeResult.rows ", getCompanyCodeResult);
 
-     
+
         const partyAccountCheck = await connectBexio.$queryRaw<any[]>`
                   SELECT * FROM contact_bc
                   WHERE fk_companyregistered = ${getCompanyCodeResult[0].cid}
@@ -1027,7 +1027,7 @@ export class ConfigurationService {
                 out_cust_id: senderNr['id'],
                 in_customer_id: "",
                 out_customer_id: "",
-                bex_version:"ver1" 
+                bex_version: "ver1"
               },
               partner_email: data.email,
               third_party: "BEX",
@@ -1135,25 +1135,25 @@ export class ConfigurationService {
     }
   }
   async getBiller(req: Request, res: Response,): Promise<any> {
-    let encrToken:any = null;
+    let encrToken: any = null;
     encrToken = encryptionControl.decrypt(req.body.encrToken);
-console.log('encrToken',encrToken);
-console.log('req.body',req.body);
+    console.log('encrToken', encrToken);
+    console.log('req.body', req.body);
 
     try {
       const resetToken = crypto.randomBytes(15).toString('hex');
       const billerId = encrToken.billerId
-      console.log("billerId:",billerId);
-      
+      console.log("billerId:", billerId);
+
       const options = {
         method: 'GET',
         url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}`,
         headers: {
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE)
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
       };
       await request(options, async function (error, response) {
         if (error) {
@@ -1161,7 +1161,7 @@ console.log('req.body',req.body);
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param six,' + responseValue;
           warningMessage(commonErrors, error);
-        
+
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 500,
             message: 'something_went_wrong',
@@ -1169,22 +1169,22 @@ console.log('req.body',req.body);
           });
         }
         else {
-          if(response.body){
-          return res.status(status_code.OK).json({
-            data: JSON.parse(response.body),
-            status_code: 200,
-            message: 'get_biller_data',
-            status: true,
-          });
-        }
-        else{
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            data: 'some error in getbiller',
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-         }
+          if (response.body) {
+            return res.status(status_code.OK).json({
+              data: JSON.parse(response.body),
+              status_code: 200,
+              message: 'get_biller_data',
+              status: true,
+            });
+          }
+          else {
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              data: 'some error in getbiller',
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+            });
+          }
         }
       })
     }
@@ -1209,11 +1209,11 @@ console.log('req.body',req.body);
         method: 'GET',
         url: config.SIX_API_CERTIFICATE_BASE + `sectors`,
         headers: {
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE)
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
       };
       await request(options, async function (error, response) {
         if (error) {
@@ -1227,24 +1227,24 @@ console.log('req.body',req.body);
           });
         }
         else {
-          if(response.body){
-            console.log("response.body:",response.body);
-            
-          return res.status(status_code.OK).json({
-            data: JSON.parse(response.body),
-            status_code: 200,
-            message: 'get_sectors',
-            status: true,
-          });
-        }
-        else{
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            data: 'some error in getsectors',
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-        }
+          if (response.body) {
+            console.log("response.body:", response.body);
+
+            return res.status(status_code.OK).json({
+              data: JSON.parse(response.body),
+              status_code: 200,
+              message: 'get_sectors',
+              status: true,
+            });
+          }
+          else {
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              data: 'some error in getsectors',
+              status_code: 500,
+              message: 'something_went_wrong',
+              status: false,
+            });
+          }
         }
       })
     }
@@ -1260,38 +1260,38 @@ console.log('req.body',req.body);
     }
   }
   async updateBiller(req: Request, res: Response,): Promise<any> {
-    let encrToken:any = null;
+    let encrToken: any = null;
     const bodyData = req.body;
     try {
       const pool = await connectMssql;
-    
-      
+
+
       const resetToken = crypto.randomBytes(15).toString('hex');
       encrToken = encryptionControl.decrypt(req.body.encrToken);
       let companyId = encrToken.companyId;
-      console.log('********companyId',companyId);
+      console.log('********companyId', companyId);
       const billerData = encrToken.data
       let billerId = JSON.parse(billerData)
-      console.log('encrToken',encrToken);
-      console.log('billerId',billerId);
-      
+      console.log('encrToken', encrToken);
+      console.log('billerId', billerId);
+
       const options = {
         method: 'PUT',
         url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId.id}`,
         headers: {
           'Content-Type': 'application/json',
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
-        body:billerData,
+        body: billerData,
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
       };
       await request(options, async function (error, response) {
         // console.log('response', response);
         console.log('response.body', response.body);
         console.log('response.statusCode', response.statusCode);
-        
+
         if (error) {
           return res.status(status_code.INTERNAL_SERVER_ERROR).json({
             status_code: 500,
@@ -1301,10 +1301,10 @@ console.log('req.body',req.body);
         }
         else {
           let data = JSON.parse(response.body);
-          console.log("response.body:::::::",companyId);
-          
+          console.log("response.body:::::::", companyId);
+
           if (data.id) {
-           const responseData = [
+            const responseData = [
               data.status,
               data.legalName,
               data.accounts[0]['iid'],
@@ -1320,30 +1320,30 @@ console.log('req.body',req.body);
                                     ,companyJSON = '${jsonReq}'
                                     WHERE billerid='${data.id}'`
 
-                await pool.query(updateBillerData, responseData);
-              const companyIdNumber = Number(companyId);            
-                const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
+            await pool.query(updateBillerData, responseData);
+            const companyIdNumber = Number(companyId);
+            const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
               WHERE fk_party = ${companyIdNumber}`;
-              //console.log('getPartyEbillResult:::',getPartyEbillResult);
-              
-              if (getPartyEbillResult.length <= 0) {
+            //console.log('getPartyEbillResult:::',getPartyEbillResult);
+
+            if (getPartyEbillResult.length <= 0) {
               await connectLibrary.$queryRaw<any>`INSERT INTO "ebillWallet" 
               (fk_party,"lastEntered","billerId") 
               VALUES (${companyId},date_trunc('month', now()::timestamp) + interval '6 hour',${data.id})`
-              }
-           let updateconnection = await updateConnection(encrToken);
-           const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
-            where: {
-              rk_party: Number(encrToken.partyId), // Make sure this is the correct type
-            },
-          });
-           if(checkBexioCompanyResult.length > 0){
-            await createBexiobiller(checkBexioCompanyResult[0].netcomid);
-           }
+            }
+            let updateconnection = await updateConnection(encrToken);
+            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
+              where: {
+                rk_party: Number(encrToken.partyId), // Make sure this is the correct type
+              },
+            });
+            if (checkBexioCompanyResult.length > 0) {
+              await createBexiobiller(checkBexioCompanyResult[0].netcomid);
+            }
             return res.status(status_code.OK).json({
               status_code: 200,
-              data:updateconnection,
+              data: updateconnection,
               message: 'updated_biller_successfully',
               status: true,
             });
@@ -1353,7 +1353,7 @@ console.log('req.body',req.body);
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param,' + responseValue;
             warningMessage(commonErrors, responseValue);
-            var returnData = data.type.replace('/problems/','');
+            var returnData = data.type.replace('/problems/', '');
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 500,
               message: returnData.toLowerCase(),
@@ -1387,11 +1387,11 @@ console.log('req.body',req.body);
     let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
     try {
       let access_token = cookie.access_Token;
-     
+
       let data = req.body.name.trim();
-      console.log('access_tokenaccess_token',access_token);
-      console.log('data',data);
-      
+      console.log('access_tokenaccess_token', access_token);
+      console.log('data', data);
+
       var options = {
         'method': 'POST',
         'url': `${config.BEXIO_API}2.0/contact/search`,
@@ -1400,42 +1400,41 @@ console.log('req.body',req.body);
           'Authorization': 'Bearer ' + access_token
         },
         body: JSON.stringify([{
-          "field":"name_1",
-          "value":data,
-          "criteria":"="
+          "field": "name_1",
+          "value": data,
+          "criteria": "="
         }])
       }
       request(options, async function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getCountryLists';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+cookie;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + cookie;
+          warningMessage(commonErrors, error);
           return res.status(200).json({
             status: false,
             message: '',
-        }
-        )
-        }
-        console.log('response.statusCode',response.statusCode);
-          if(response.statusCode != 200)
-          {
-            return res.status(401).json({
-              status: 'fail',
-              message: 'unauthorized',
           }
           )
-        }else{
+        }
+        console.log('response.statusCode', response.statusCode);
+        if (response.statusCode != 200) {
+          return res.status(401).json({
+            status: 'fail',
+            message: 'unauthorized',
+          }
+          )
+        } else {
           res.send({
             status_code: 200,
             data: JSON.parse(response.body).length,
             status: true,
-        })
+          })
         }
       });
     } catch (error) {
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-        warningMessage(commonErrors,error);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie;
+      warningMessage(commonErrors, error);
       res.send({
         status_code: 500,
         data: '',
@@ -1457,16 +1456,16 @@ console.log('req.body',req.body);
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       formData = req.body;
-      const contactData = await getContact(accessToken,formData.contact_id);
-      console.log('contactData',contactData);
-      
-      if(!contactData){
+      const contactData = await getContact(accessToken, formData.contact_id);
+      console.log('contactData', contactData);
+
+      if (!contactData) {
         res.send({
           status_code: 200,
           message: 'no contact',
           data: [],
           status: false,
-        
+
         });
       }
       res.send({
@@ -1476,46 +1475,44 @@ console.log('req.body',req.body);
         status: true,
       });
     } catch (error) {
-      console.log("tourList ",error);
+      console.log("tourList ", error);
       let responseValue = JSON.stringify(formData)
       commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+responseValue;
-      warningMessage(commonErrors,error);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
       return res.status(500).json({
-          message: 'something_went_wrong',
-          status: false
+        message: 'something_went_wrong',
+        status: false
       });
     }
   }
   async createContact(req: Request, res: Response,): Promise<any> {
     let data = req.body;
     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      if (!cookieData) {
-        return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-          status_code: 500,
-          message: 'Missing_cookie',
-          status: false,
-        })
-      }
-      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+    if (!cookieData) {
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'Missing_cookie',
+        status: false,
+      })
+    }
+    let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
     try {
       let access_token = cookie.access_Token;
       let userId = jwt.decode(access_token)['company_user_id'];
       let coutryList;
       coutryList = await getCountryLists(access_token);
-      if(!coutryList){
+      if (!coutryList) {
         coutryList = '[]';
       }
-         
-      let countryId = JSON.parse(coutryList).filter( c => c.iso_3166_alpha2 == data.country_id);
+
+      let countryId = JSON.parse(coutryList).filter(c => c.iso_3166_alpha2 == data.country_id);
       console.log(countryId);
       let tempName = '';
-      if('name_1' in data)
-      {
+      if ('name_1' in data) {
         tempName = data.name_1;
       }
-      if('name' in data)
-      {
+      if ('name' in data) {
         tempName = data.name;
       }
       var options = {
@@ -1526,7 +1523,7 @@ console.log('req.body',req.body);
           'Authorization': 'Bearer ' + access_token
         },
         body: JSON.stringify({
-  
+
           "name_1": tempName,
           "name_2": (data.contact_type_id == 2 && data.name_2) ? data.name_2 : '',
           "contact_type_id": data.contact_type_id ? data.contact_type_id : '1',
@@ -1538,86 +1535,86 @@ console.log('req.body',req.body);
           "owner_id": userId
         })
       }
-     
+
       request(options, function (error, response) {
-        if (error) {  
-          console.log("error in create contact",error);
-          
+        if (error) {
+          console.log("error in create contact", error);
+
           commonErrors['errorTitle'] = 'bexio_contact';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+JSON.stringify(error)+'-bexio param'+access_token;
-          warningMessage(commonErrors,error);
-          
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(error) + '-bexio param' + access_token;
+          warningMessage(commonErrors, error);
+
           return res.status(500).json({
             status: false,
             message: JSON.stringify(error) || "something_went_wrong",
           })
         }
-      
+
         console.log("create contact response ", response);
         console.log("create contact response body", response.body);
-        
-          if (response.statusCode == 401) {
-            return res.status(401).json({
-              status: 'fail',
-              message: 'unauthorized',
-            });
-          }
-  
-          if(response.statusCode != 201) {
-            commonErrors['errorTitle'] = 'bexio_contact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_contact_not_found -req param,'+JSON.stringify(req.body);
-            warningMessage(commonErrors,'bexio_contact_not_found');
-         
-            return res.status(500).json({
-              status: false,
-              message: 'something_went_wrong',
+
+        if (response.statusCode == 401) {
+          return res.status(401).json({
+            status: 'fail',
+            message: 'unauthorized',
+          });
+        }
+
+        if (response.statusCode != 201) {
+          commonErrors['errorTitle'] = 'bexio_contact';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'bexio_contact_not_found -req param,' + JSON.stringify(req.body);
+          warningMessage(commonErrors, 'bexio_contact_not_found');
+
+          return res.status(500).json({
+            status: false,
+            message: 'something_went_wrong',
           })
-        }else{
-        
+        } else {
+
           res.send({
             status_code: 200,
             data: JSON.parse(response.body),
             status: true,
-        })
+          })
         }
-       
+
       });
     } catch (error) {
-          console.log("create contact error",error);
-          
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-          warningMessage(commonErrors,error);
+      console.log("create contact error", error);
+
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie;
+      warningMessage(commonErrors, error);
       res.send({
         status_code: 500,
         data: '',
         status: false,
-    })
+      })
     }
   }
   async createBusinessConnection(req: Request, res: Response,): Promise<any> {
-   
-    const data = req.body;
-      try {
-        let connectionData,invitationData;
-        let inviteSenderDetails,direction,doc_type;
-        console.log(data);
-        invitationData = await getInvitations(data.code);
-        if(invitationData == false){
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'invitationData_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'invitationData_not_found');
-          res.send({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-          return
-        }
-        direction = data.direction;
-        doc_type = data.docType;
 
-        const getPartyAccountId = await connectLibrary.$queryRaw<any[]>`
+    const data = req.body;
+    try {
+      let connectionData, invitationData;
+      let inviteSenderDetails, direction, doc_type;
+      console.log(data);
+      invitationData = await getInvitations(data.code);
+      if (invitationData == false) {
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'invitationData_not_found -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'invitationData_not_found');
+        res.send({
+          status_code: 500,
+          message: 'something_went_wrong',
+          status: false,
+        });
+        return
+      }
+      direction = data.direction;
+      doc_type = data.docType;
+
+      const getPartyAccountId = await connectLibrary.$queryRaw<any[]>`
         SELECT pa.cid, p.objectid, lp.companyname
         FROM party_account pa
         INNER JOIN party p ON pa.fk_party = p.cid 
@@ -1628,276 +1625,272 @@ console.log('req.body',req.body);
           AND s."statusLabel" = 'active'
       `;
 
-console.log('getPartyAccountId', getPartyAccountId);
+      console.log('getPartyAccountId', getPartyAccountId);
 
-        if( doc_type != 'Invoice'){
-          let params = {'direction': data.direction.toUpperCase(),'netcomId':data.netcomId,'name':getPartyAccountId[0].companyname,'doc_type':doc_type};
-          await createConnector(params);
-        }
-        let inviteData = JSON.parse(invitationData).results[0];
-  
-        console.log('invitationData',inviteData.mode);
-        let statusJson 
-        statusJson = await getStatus(inviteData.id);
-        console.log(statusJson);
-  
-        statusJson = JSON.parse(statusJson)
-        
-        let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
-        connectionData = await getConnections(dataCookie.netcomId,doc_type);
-        console.log('connectionData',connectionData);
-        if(!connectionData)
-        {
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'connectionData_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'connectionData_not_found');
-        
-          res.send({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-          return
-        }
-        inviteSenderDetails = JSON.parse(connectionData).results.length != 0 ?  await getConnectionsDetailsOfInviteSender(data.code,data.netcomId):'';
-        if(!inviteSenderDetails){
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'inviteSenderDetails_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'inviteSenderDetails_not_found');
-         
-          res.send({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-          });
-          return
-        }      
-        console.log('inviteSenderDetails',inviteSenderDetails);
-        if(JSON.parse(connectionData).results.length != 0 && JSON.parse(inviteSenderDetails).results[0].direction['id'] != 0)
-        {
-          let inviteData = JSON.parse(invitationData).results[0];
-          console.log('in_custom_id',inviteData.g2b_connections_customerid['in_custom_id']);
-          const getInviteNetcomId = await connectBexio.companyregistered.findMany({
-            where: {
-              netcomid: dataCookie.netcomId,
-            },
-            select: {
-              cid: true, 
-            }
-          });
+      if (doc_type != 'Invoice') {
+        let params = { 'direction': data.direction.toUpperCase(), 'netcomId': data.netcomId, 'name': getPartyAccountId[0].companyname, 'doc_type': doc_type };
+        await createConnector(params);
+      }
+      let inviteData = JSON.parse(invitationData).results[0];
 
-          let tempConnectionDetails = JSON.parse(inviteSenderDetails);
-          console.log('tempConnectionDetails',tempConnectionDetails);
-          
-          let tempPaye = {"company_payee":tempConnectionDetails.results[0].company_payee,"partner_company_payee":tempConnectionDetails.results[0].partner_company_payee, "company_direction": 0};
-          if(!tempConnectionDetails.results[0].company_payee)
-          {
-            tempPaye.company_payee = "self";
-          }
-         
-          
-          let formData =  {
-            out_id:JSON.parse(connectionData).results[0].id,
-            out_cust_id:inviteData.g2b_connections_customerid['out_cust_id'],
-            out_status:1,
-            in_id:inviteData.connection_id,
-            in_cust_id:inviteData.g2b_connections_customerid['in_cust_id'],
-            in_status:1,
-            merge_status:1,
-            invitation_id:inviteData.id,
-            invitation_code:data.code,
-            platform:JSON.stringify({"type": "ext-party", "code": "BEX", "direction": "OUT"}),
-            fk_companyregistered:getInviteNetcomId[0].cid, 
-            rk_contact:data.id, 
-            rk_partyreceived:data.partyId,
-            ot_updator:JSON.stringify({"in_custom_id": data.id, "out_custom_id": "1","receiver_file_name":''}),
-            payee_details:JSON.stringify(tempPaye),
-            mode:inviteData?.mode
-          };
-          console.log('inviteData',inviteData);
-          console.log(formData);
-   
-          console.log('config.PYTHON_API',config.PYTHON_API+'merge-connections');
-          return new Promise(async(resolve, reject) => {
-            var options = {
-              'method': 'POST',
-              'url': config.PYTHON_API+'merge-connections',
-              formData: formData
-            
-            };
-            request(options, async function (error, response) {
-              if (error) {  
-                commonErrors['errorTitle'] = 'merge-connections';
-                commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-                warningMessage(commonErrors,error);
-              
-                res.send({
-                  status_code: 500,
-                  message: JSON.parse(response.body).message,
-                  status: false,
-                });
-                return
-              }
-            
-              console.log(response.body);
-              
-              if(JSON.parse(response.body).status)
-              {
-                let redisKey = req.body.partyId + "_/";
-                await deleteRedis('createBusinessConnection', redisKey);
-                res.send({
-                  status_code: 200,
-                  message: 'common_success',
-                  status: true,
-                });
-              }else{
-                res.send({
-                  status_code: 500,
-                  message: JSON.parse(response.body).message,
-                  status: false,
-                });
-              }
-          
-            });
-          });
-        }else{
-          let msg = JSON.parse(inviteSenderDetails).results[0].direction['id'] == 0 ? 'sender_Error_msg' : '';
-          res.send({
-            status_code: 500,
-            message: msg,
-            status: false,
-          });
-        }
-      } catch (error) {
-          
-          console.log(error);
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+JSON.stringify(req.body);
-          warningMessage(commonErrors,error);
+      console.log('invitationData', inviteData.mode);
+      let statusJson
+      statusJson = await getStatus(inviteData.id);
+      console.log(statusJson);
+
+      statusJson = JSON.parse(statusJson)
+
+      let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+      connectionData = await getConnections(dataCookie.netcomId, doc_type);
+      console.log('connectionData', connectionData);
+      if (!connectionData) {
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'connectionData_not_found -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'connectionData_not_found');
+
         res.send({
           status_code: 500,
           message: 'something_went_wrong',
           status: false,
         });
+        return
       }
-  }  
-async createBiller(req: Request, res: Response,): Promise<any> {
-  let encrToken;
-  encrToken = encryptionControl.decrypt(req.body.encrToken);
-  try {
-     const pool = await connectMssql;
-    // const postgresPool = await connectPostgres;
-    // const ediParty = await connectGate2b;
-    // const gate2BConnection = await gate2B;
+      inviteSenderDetails = JSON.parse(connectionData).results.length != 0 ? await getConnectionsDetailsOfInviteSender(data.code, data.netcomId) : '';
+      if (!inviteSenderDetails) {
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'inviteSenderDetails_not_found -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'inviteSenderDetails_not_found');
 
-    const correlationId = crypto.randomBytes(15).toString('hex');
-   
-    const options = {
-      method: 'POST',
-      url: config.SIX_API_CERTIFICATE_BASE + `billers`,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-networkpartner-id':config.NETWORK_PARTNER_ID,
-        'X-Correlation-Id': correlationId,
-      },
-      body: encrToken.data,
-      key: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_KEY),
-      cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
-    };
-    await request(options, async function (error, response) {
-      if (error) {        
-        console.log(error);
-        return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        res.send({
           status_code: 500,
           message: 'something_went_wrong',
           status: false,
         });
+        return
       }
-      else {
-        let data = JSON.parse(response.body);
-        console.log('data',data);
-        
-        if (data.id) {
-          let netcomId = encrToken.netcomId;       
-          let companyName = encrToken.companyName;
-          let companyId = encrToken.companyId;
-          let bexioCompanyName = null;
-            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
-        where: {
-          netcomid: netcomId
-        },
-        select: {
-          cid: true
-        }
-      });
-
-          console.log('checkBexioCompanyResult.rows',checkBexioCompanyResult);
-          
-          if (checkBexioCompanyResult.length != 0) {
-                             const getParentData = await connectGate2b.$queryRaw<any[]>`
-                  SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
-                  console.log("getParentData:",getParentData);
-            bexioCompanyName = getParentData[0]?.rk_party;
-             console.log('bexioCompanyName',bexioCompanyName);
+      console.log('inviteSenderDetails', inviteSenderDetails);
+      if (JSON.parse(connectionData).results.length != 0 && JSON.parse(inviteSenderDetails).results[0].direction['id'] != 0) {
+        let inviteData = JSON.parse(invitationData).results[0];
+        console.log('in_custom_id', inviteData.g2b_connections_customerid['in_custom_id']);
+        const getInviteNetcomId = await connectBexio.companyregistered.findMany({
+          where: {
+            netcomid: dataCookie.netcomId,
+          },
+          select: {
+            cid: true,
           }
-           console.log('checkBexioCompanyResult.rows',checkBexioCompanyResult);
-     let jsonReq = JSON.stringify(data);
-          const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-                  Prisma.sql`
+        });
+
+        let tempConnectionDetails = JSON.parse(inviteSenderDetails);
+        console.log('tempConnectionDetails', tempConnectionDetails);
+
+        let tempPaye = { "company_payee": tempConnectionDetails.results[0].company_payee, "partner_company_payee": tempConnectionDetails.results[0].partner_company_payee, "company_direction": 0 };
+        if (!tempConnectionDetails.results[0].company_payee) {
+          tempPaye.company_payee = "self";
+        }
+
+
+        let formData = {
+          out_id: JSON.parse(connectionData).results[0].id,
+          out_cust_id: inviteData.g2b_connections_customerid['out_cust_id'],
+          out_status: 1,
+          in_id: inviteData.connection_id,
+          in_cust_id: inviteData.g2b_connections_customerid['in_cust_id'],
+          in_status: 1,
+          merge_status: 1,
+          invitation_id: inviteData.id,
+          invitation_code: data.code,
+          platform: JSON.stringify({ "type": "ext-party", "code": "BEX", "direction": "OUT" }),
+          fk_companyregistered: getInviteNetcomId[0].cid,
+          rk_contact: data.id,
+          rk_partyreceived: data.partyId,
+          ot_updator: JSON.stringify({ "in_custom_id": data.id, "out_custom_id": "1", "receiver_file_name": '' }),
+          payee_details: JSON.stringify(tempPaye),
+          mode: inviteData?.mode
+        };
+        console.log('inviteData', inviteData);
+        console.log(formData);
+
+        console.log('config.PYTHON_API', config.PYTHON_API + 'merge-connections');
+        return new Promise(async (resolve, reject) => {
+          var options = {
+            'method': 'POST',
+            'url': config.PYTHON_API + 'merge-connections',
+            formData: formData
+
+          };
+          request(options, async function (error, response) {
+            if (error) {
+              commonErrors['errorTitle'] = 'merge-connections';
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+              warningMessage(commonErrors, error);
+
+              res.send({
+                status_code: 500,
+                message: JSON.parse(response.body).message,
+                status: false,
+              });
+              return
+            }
+
+            console.log(response.body);
+
+            if (JSON.parse(response.body).status) {
+              let redisKey = req.body.partyId + "_/";
+              await deleteRedis('createBusinessConnection', redisKey);
+              res.send({
+                status_code: 200,
+                message: 'common_success',
+                status: true,
+              });
+            } else {
+              res.send({
+                status_code: 500,
+                message: JSON.parse(response.body).message,
+                status: false,
+              });
+            }
+
+          });
+        });
+      } else {
+        let msg = JSON.parse(inviteSenderDetails).results[0].direction['id'] == 0 ? 'sender_Error_msg' : '';
+        res.send({
+          status_code: 500,
+          message: msg,
+          status: false,
+        });
+      }
+    } catch (error) {
+
+      console.log(error);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + JSON.stringify(req.body);
+      warningMessage(commonErrors, error);
+      res.send({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+  }
+  async createBiller(req: Request, res: Response,): Promise<any> {
+    let encrToken;
+    encrToken = encryptionControl.decrypt(req.body.encrToken);
+    try {
+      const pool = await connectMssql;
+      // const postgresPool = await connectPostgres;
+      // const ediParty = await connectGate2b;
+      // const gate2BConnection = await gate2B;
+
+      const correlationId = crypto.randomBytes(15).toString('hex');
+
+      const options = {
+        method: 'POST',
+        url: config.SIX_API_CERTIFICATE_BASE + `billers`,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
+          'X-Correlation-Id': correlationId,
+        },
+        body: encrToken.data,
+        key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
+      };
+      await request(options, async function (error, response) {
+        if (error) {
+          console.log(error);
+          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+        }
+        else {
+          let data = JSON.parse(response.body);
+          console.log('data', data);
+
+          if (data.id) {
+            let netcomId = encrToken.netcomId;
+            let companyName = encrToken.companyName;
+            let companyId = encrToken.companyId;
+            let bexioCompanyName = null;
+            const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
+              where: {
+                netcomid: netcomId
+              },
+              select: {
+                cid: true
+              }
+            });
+
+            console.log('checkBexioCompanyResult.rows', checkBexioCompanyResult);
+
+            if (checkBexioCompanyResult.length != 0) {
+              const getParentData = await connectGate2b.$queryRaw<any[]>`
+                  SELECT rk_party  FROM network  WHERE name = ${config.BEXIO_CODE}`;
+              console.log("getParentData:", getParentData);
+              bexioCompanyName = getParentData[0]?.rk_party;
+              console.log('bexioCompanyName', bexioCompanyName);
+            }
+            console.log('checkBexioCompanyResult.rows', checkBexioCompanyResult);
+            let jsonReq = JSON.stringify(data);
+            const getPartyEbillResult = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+              Prisma.sql`
                   SELECT cid
                   FROM "ebillWallet"
                   WHERE fk_party =  ${Number(companyId)}
                   `
-                );
-          console.log('getPartyEbillResult.rows',getPartyEbillResult);
-          console.log("req.body.partyIdLog:",req.body.partyIdLog);
-          //    const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
-          //       SELECT 
-          //         pa.isuser,
-          //         pa.cid AS "partyAccountId",
-          //         u.email,
-          //         u.cid AS "userId",
-          //         pa.fk_party AS "partyId",
-          //         a.cid AS "accountId",
-          //         u.language AS "userlanguage"
-          //       FROM party_account pa
-          //       INNER JOIN account a ON a.cid = pa.fk_account
-          //       INNER JOIN public.user u ON u.cid = a.fk_user
-          //       INNER JOIN status s ON s.cid = pa.fk_status
-          //       WHERE pa.fk_party = ${parseInt(req.body.partyIdLog)}
-          //         AND pa.fk_account = ${parseInt(req.body.accId)}
-          //         AND s."statusLabel" = 'active'`);
-                  
-          //     console.log('userDetails',userDetails);
-              
-          // const setebill =  await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, 'EBILL');
-          const setPartyService = await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
-          console.log('setPartyService',setPartyService);
-          // console.log('setebill',setebill);
-           console.log('getPartyEbillResult.rows',getPartyEbillResult);
-          if (getPartyEbillResult.length <= 0) {
-            const partyEbill = await connectLibrary.$queryRaw<any>(
-              Prisma.sql`
+            );
+            console.log('getPartyEbillResult.rows', getPartyEbillResult);
+            console.log("req.body.partyIdLog:", req.body.partyIdLog);
+            //    const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+            //       SELECT 
+            //         pa.isuser,
+            //         pa.cid AS "partyAccountId",
+            //         u.email,
+            //         u.cid AS "userId",
+            //         pa.fk_party AS "partyId",
+            //         a.cid AS "accountId",
+            //         u.language AS "userlanguage"
+            //       FROM party_account pa
+            //       INNER JOIN account a ON a.cid = pa.fk_account
+            //       INNER JOIN public.user u ON u.cid = a.fk_user
+            //       INNER JOIN status s ON s.cid = pa.fk_status
+            //       WHERE pa.fk_party = ${parseInt(req.body.partyIdLog)}
+            //         AND pa.fk_account = ${parseInt(req.body.accId)}
+            //         AND s."statusLabel" = 'active'`);
+
+            //     console.log('userDetails',userDetails);
+
+            // const setebill =  await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, 'EBILL');
+            const setPartyService = await partyServiceUpdate(req.body.partyIdLog, 'EBILL', 'EDI');
+            console.log('setPartyService', setPartyService);
+            // console.log('setebill',setebill);
+            console.log('getPartyEbillResult.rows', getPartyEbillResult);
+            if (getPartyEbillResult.length <= 0) {
+              const partyEbill = await connectLibrary.$queryRaw<any>(
+                Prisma.sql`
                 INSERT INTO "ebillWallet" 
                   (fk_party, "lastEntered", "billerId") 
                 VALUES (
                   ${Number(companyId)}, date_trunc('month', now()::timestamp) + interval '6 hour',${data.id}
                 )
               `
-            );
+              );
 
-             console.log('partyEbill',partyEbill);
-          }
+              console.log('partyEbill', partyEbill);
+            }
 
-          const checkDataIn = `SELECT b.id, b.netcomId FROM biller b WHERE b.netcomId ='${netcomId}'`;
-          const checkDataInQry = await pool.query(checkDataIn);
-    console.log('checkDataInQry',checkDataInQry);
+            const checkDataIn = `SELECT b.id, b.netcomId FROM biller b WHERE b.netcomId ='${netcomId}'`;
+            const checkDataInQry = await pool.query(checkDataIn);
+            console.log('checkDataInQry', checkDataInQry);
 
-          let updateDataQry;
-          if( checkDataInQry.recordset.length > 0 ){
-                console.log('update');
-            // Update the row
-            const updateData = `UPDATE biller
+            let updateDataQry;
+            if (checkDataInQry.recordset.length > 0) {
+              console.log('update');
+              // Update the row
+              const updateData = `UPDATE biller
                                 SET biller.billerId = '${data.id}'
                                   ,status = '${data.status}'
                                   ,legalName = '${data.legalName.replace(/'/g, "''")}'
@@ -1909,46 +1902,46 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                                   ,statusChangeOn = GETDATE()
                                   OUTPUT INSERTED.id 
                                 WHERE netcomId = '${netcomId}' AND id = '${checkDataInQry.recordset[0].id}'`;
-            console.log('update',updateData);
-             updateDataQry = await pool.query(updateData);
-            console.log('update');
-           
-          }
-          else{
+              console.log('update', updateData);
+              updateDataQry = await pool.query(updateData);
+              console.log('update');
+
+            }
+            else {
               console.log('Insert create');
-            // Insert if no record is found with the netcomId.
-            const addBiller = `INSERT INTO biller 
+              // Insert if no record is found with the netcomId.
+              const addBiller = `INSERT INTO biller 
             (netcomid,billerId,status,legalName,uid,subscriptionStatus,defaultLanguage,companyJSON,party_parent,statusChangeOn) 
             OUTPUT INSERTED.id 
             VALUES('${netcomId}','${data.id}','${data.status}','${data.legalName.replace(/'/g, "''")}',${data.accounts[0].iid},'${data.billRecipientSubscriptionStatus}','${data.localizedData.defaultLanguage}','${jsonReq.replace(/'/g, "''")}',${bexioCompanyName},GETDATE())`;
-            console.log('Insert create',addBiller);
-            updateDataQry = await pool.query(addBiller);
-               console.log('Insert create',updateDataQry);
-        
-          }          
-          let createdPythonResponse = await bexioCreatePythonData(netcomId,companyName,encrToken);
-          console.log("createdPythonResponse---",createdPythonResponse,'createdPythonResponse &&');
-          if (checkBexioCompanyResult.length != 0) {
-          await setConfig(updateDataQry.recordset[0].id)
-           let updateBexio = await bexioUpdateBiller(req,data.id);
-           console.log("updateBexio---",updateBexio);
-           if(updateBexio != true){
-            let dataResponse = {"name":"io_market.ebill_pid", "value":`${data.id}`} 
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-bexioUpdateBiller params---'+dataResponse;
-            console.log("commonErrors--",commonErrors);
-            warningMessage(commonErrors, 'bexioUpdateBiller failed...');
-           }
-          }
-          if (companyId != null) {
-          
-             await connectLibrary.$queryRaw<any>(
-              Prisma.sql`
+              console.log('Insert create', addBiller);
+              updateDataQry = await pool.query(addBiller);
+              console.log('Insert create', updateDataQry);
+
+            }
+            let createdPythonResponse = await bexioCreatePythonData(netcomId, companyName, encrToken);
+            console.log("createdPythonResponse---", createdPythonResponse, 'createdPythonResponse &&');
+            if (checkBexioCompanyResult.length != 0) {
+              await setConfig(updateDataQry.recordset[0].id)
+              let updateBexio = await bexioUpdateBiller(req, data.id);
+              console.log("updateBexio---", updateBexio);
+              if (updateBexio != true) {
+                let dataResponse = { "name": "io_market.ebill_pid", "value": `${data.id}` }
+                commonErrors['errorTitle'] = req.originalUrl;
+                commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-bexioUpdateBiller params---' + dataResponse;
+                console.log("commonErrors--", commonErrors);
+                warningMessage(commonErrors, 'bexioUpdateBiller failed...');
+              }
+            }
+            if (companyId != null) {
+
+              await connectLibrary.$queryRaw<any>(
+                Prisma.sql`
                      UPDATE commissionagent_party SET status = 'biller_created',"module" = 'EBILL' WHERE fk_party = ${Number(companyId)}
                       `
               );
-          }
-           const getCompanyDetails =await connectLibrary.$queryRaw<any>(
+            }
+            const getCompanyDetails = await connectLibrary.$queryRaw<any>(
               Prisma.sql`
                     SELECT u."language",e.email,l.companyname  FROM party p 
                                     INNER JOIN email e ON e.fk_party = p.cid
@@ -1956,95 +1949,95 @@ async createBiller(req: Request, res: Response,): Promise<any> {
                                     INNER JOIN legalparty l ON l.fk_party  = p.cid  
                                     WHERE p.cid = ${Number(companyId)} AND e."_type" = 'company_contact'
                       `
-              );
-          let language = getCompanyDetails[0]?.language || 'de';
-          let ComapnyEmail = getCompanyDetails[0]?.email;
-          let companyname = getCompanyDetails[0]?.companyname;
-          let keyDatas = {
-            id: data.id,
-            companyName: companyname
+            );
+            let language = getCompanyDetails[0]?.language || 'de';
+            let ComapnyEmail = getCompanyDetails[0]?.email;
+            let companyname = getCompanyDetails[0]?.companyname;
+            let keyDatas = {
+              id: data.id,
+              companyName: companyname
+            }
+
+            const mailData = await fetchEmailContent('biller_created_six', language, keyDatas);
+            const message = mailData.message;
+            const subject = mailData.subject;
+            await sendEmail({
+              email: config.DEBUG ? config.DEBUG_MAIL : ComapnyEmail,
+              subject: subject,
+              message,
+            });
+
+            console.log("CreateBiller ", message)
+            await sendEmail({
+              email: config.DEBUG ? config.DEBUG_MAIL : ComapnyEmail,
+              subject: subject,
+              message
+            });
+
+            return res.status(status_code.OK).json({
+              status_code: 200,
+              message: 'created_biller_successfully',
+              status: true,
+            });
           }
-          
-           const mailData = await fetchEmailContent('biller_created_six',language,keyDatas);
-               const message = mailData.message;
-               const subject = mailData.subject;
-                await sendEmail({
-                  email: config.DEBUG ? config.DEBUG_MAIL :ComapnyEmail ,
-                  subject: subject,
-                  message,
-                });
-     
-          console.log("CreateBiller ",message)
-          await sendEmail({
-            email: config.DEBUG ? config.DEBUG_MAIL :ComapnyEmail ,
-            subject: subject,
-            message
-          });
-      
-          return res.status(status_code.OK).json({
-            status_code: 200,
-            message: 'created_biller_successfully',
-            status: true,
-          });
-        }
-        else {
+          else {
 
-          // Insert into biller table if there is any issue in the biller creation at SIX.
-          let formData = JSON.parse(encrToken.data);          
-          // Checks whether the netcomId is already present or not
-          const checkDataExist = `SELECT b.id, b.netcomId FROM biller b WHERE b.netcomId = '${encrToken.netcomId}' AND b.status = 'DRAFT'`;               
-          const checkDataExistRow = await pool.query(checkDataExist);
+            // Insert into biller table if there is any issue in the biller creation at SIX.
+            let formData = JSON.parse(encrToken.data);
+            // Checks whether the netcomId is already present or not
+            const checkDataExist = `SELECT b.id, b.netcomId FROM biller b WHERE b.netcomId = '${encrToken.netcomId}' AND b.status = 'DRAFT'`;
+            const checkDataExistRow = await pool.query(checkDataExist);
 
-          let newJSON = JSON.parse(encrToken.data);
-          newJSON.error = response.body.replace(/'/g," ");
-          newJSON = decodeURIComponent(JSON.stringify(newJSON));
-          if( checkDataExistRow.recordset.length > 0){
-            // update if the netcomID is present.
-            const updateData = `UPDATE biller 
+            let newJSON = JSON.parse(encrToken.data);
+            newJSON.error = response.body.replace(/'/g, " ");
+            newJSON = decodeURIComponent(JSON.stringify(newJSON));
+            if (checkDataExistRow.recordset.length > 0) {
+              // update if the netcomID is present.
+              const updateData = `UPDATE biller 
                                 SET legalName='${formData.legalName.replace(/'/g, "''")}',
                                   uid='${formData.accounts[0].iid}',
                                   subscriptionStatus='${formData.billRecipientSubscriptionStatus}',
                                   defaultLanguage='${formData.localizedData.defaultLanguage}',
                                   companyJSON='${newJSON}'
-                                WHERE netcomId='${encrToken.netcomId}' AND id='${checkDataExistRow.recordset[0].id}'`;            
-            const updateDataQry = await pool.query(updateData);
+                                WHERE netcomId='${encrToken.netcomId}' AND id='${checkDataExistRow.recordset[0].id}'`;
+              const updateDataQry = await pool.query(updateData);
+            }
+            else {
+              // Insert into biller table with status as 'DRAFT'
+              const addBiller = `INSERT INTO biller (netcomid,status,legalName,uid,subscriptionStatus,defaultLanguage,companyJSON)
+            VALUES('${encrToken.netcomId}','DRAFT','${formData.legalName.replace(/'/g, "''")}','${formData.accounts[0].iid}','${formData.billRecipientSubscriptionStatus}','${formData.localizedData.defaultLanguage}','${newJSON}')`;
+              await pool.query(addBiller);
+            }
+            let responseValue = JSON.stringify(encrToken)
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param six,' + responseValue;
+            warningMessage(commonErrors, responseValue);
+            var returnData = data.type.replace('/problems/', '');
+
+            return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+              status_code: 500,
+              message: returnData.toLowerCase(),
+              status: false,
+            });
           }
-          else{
-            // Insert into biller table with status as 'DRAFT'
-            const addBiller = `INSERT INTO biller (netcomid,status,legalName,uid,subscriptionStatus,defaultLanguage,companyJSON)
-            VALUES('${encrToken.netcomId}','DRAFT','${formData.legalName.replace(/'/g, "''")}','${formData.accounts[0].iid}','${formData.billRecipientSubscriptionStatus}','${formData.localizedData.defaultLanguage}','${newJSON}')`;           
-            await pool.query(addBiller);
-          }
-          let responseValue = JSON.stringify(encrToken)
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + JSON.stringify(data) + '-req param six,'+ responseValue;
-          warningMessage(commonErrors, responseValue);
-          var returnData = data.type.replace('/problems/','');
-          
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            status_code: 500,
-            message: returnData.toLowerCase(),
-            status: false,
-          });
         }
-      }
 
-    })
+      })
 
+    }
+    catch (error) {
+
+      let responseValue = JSON.stringify(encrToken);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
   }
-  catch (error) {
- 
-    let responseValue = JSON.stringify(encrToken);
-    commonErrors['errorTitle'] = req.originalUrl;
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'+responseValue;
-    warningMessage(commonErrors, error);
-    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-      status_code: 500,
-      message: 'something_went_wrong',
-      status: false,
-    });
-  }
-}
 
   // async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
   //   try {
@@ -2057,7 +2050,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   //           status: false,
   //         })
   //     }
-      
+
   //     let accessToken = cookie.access_Token;
   //     const taxList: any = await getActiveSalesTaxBexio(accessToken);
   //     //console.log("taxList :: ",taxList);
@@ -2089,7 +2082,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   //           status: false,
   //         })
   //     }
-      
+
   //     let accessToken = cookie.access_Token;
   //     const unitList: any = await getUnitList(accessToken);
   //     if( unitList?.status == false ){
@@ -2122,7 +2115,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   //           status: false,
   //         })
   //     }
-      
+
   //     let accessToken = cookie.access_Token;
   //     let isBexioUser = cookie.isBexioUser;
   //     const activeAccounts: any = await getActiveAccounts(accessToken);
@@ -2146,78 +2139,78 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   //   }
   // }
 
- async getArticleDetails(req: Request, res: Response): Promise<any> {
-  try {
-    const { taxId, unitId, accountId,articleId } = req.body;
-    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-    if (!cookieData) {
-      return res.status(500).send({
+  async getArticleDetails(req: Request, res: Response): Promise<any> {
+    try {
+      const { taxId, unitId, accountId, articleId } = req.body;
+      const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      if (!cookieData) {
+        return res.status(500).send({
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        });
+      }
+
+      const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
+      const accessToken = cookie.access_Token;
+      let accountList: any[] = [];
+      let unit: any;
+      let tax: any;
+      let article: any;
+      let activeAccounts: any
+      // Fetch account
+      if (accountId && accountId != 'null') {
+        activeAccounts = await getActiveAccounts(accessToken);
+        console.log('activeAccounts', activeAccounts.status);
+        if (activeAccounts?.status === true)
+          accountList = activeAccounts?.data?.filter(item => item.id == accountId);
+        console.log('activeAccounts', activeAccounts?.data?.filter(item => item.id == accountId));
+      }
+
+      // Fetch unit
+      if (unitId && unitId != 'null') {
+        console.log('Filtered Account:', unitId);
+        unit = await getUnitList(accessToken, unitId);
+        console.log('Unit:', unit);
+      }
+
+      // Fetch tax
+      if (taxId && taxId != 'null') {
+        tax = await getActiveSalesTaxBexio(accessToken, taxId);
+        console.log('Tax:', tax);
+      }
+
+      if (articleId && articleId != 'null') {
+        article = await getActiveItem(accessToken, articleId);
+        console.log('article', article);
+
+
+      }
+
+      const result = {
+        account: activeAccounts?.status === false ? null : accountList.length > 0 ? accountList[0] : null,
+        unit: unit?.status === false ? null : unit || null,
+        tax: tax?.status === false ? null : tax || null,
+        article: article?.status === false ? null : article || null
+      };
+
+      return res.status(200).send({
+        status: 200,
+        data: result,
+      });
+    } catch (error) {
+      const responseValue = JSON.stringify(req.body);
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param: ${responseValue}`;
+      warningMessage(commonErrors, error);
+
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
         status_code: 500,
-        message: 'Missing_cookie',
+        message: 'something_went_wrong',
         status: false,
       });
     }
-
-    const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-    const accessToken = cookie.access_Token;
-    let accountList: any[] = [];
-    let unit: any ;
-    let tax: any ;
-     let article: any ;
-    let activeAccounts: any
-    // Fetch account
-    if (accountId && accountId!='null') {
-      activeAccounts = await getActiveAccounts(accessToken);
-      console.log('activeAccounts',activeAccounts.status );
-      if(activeAccounts?.status === true)
-      accountList = activeAccounts?.data?.filter(item => item.id == accountId);
-    console.log('activeAccounts',activeAccounts?.data?.filter(item => item.id == accountId));
-    }
-
-    // Fetch unit
-    if (unitId && unitId!='null') {
-        console.log('Filtered Account:', unitId);
-      unit = await getUnitList(accessToken, unitId);
-      console.log('Unit:', unit);
-    }
-
-    // Fetch tax
-    if (taxId && taxId!='null') {
-      tax = await getActiveSalesTaxBexio(accessToken, taxId);
-      console.log('Tax:', tax);
-    }
-
-      if (articleId && articleId!='null') {
-      article = await getActiveItem(accessToken,articleId);
-      console.log('article',article);
-  
-    
-    }
-    
-    const result = {
-      account:activeAccounts?.status === false?null: accountList.length > 0 ? accountList[0] : null,
-      unit: unit?.status === false?null: unit|| null,
-      tax: tax?.status === false?null:tax || null,
-      article:article?.status === false?null:article || null
-    };
-
-    return res.status(200).send({
-      status: 200,
-      data: result,
-    });
-  } catch (error) {
-    const responseValue = JSON.stringify(req.body);
-    commonErrors['errorTitle'] = req.originalUrl;
-    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error.toString()} - req param: ${responseValue}`;
-    warningMessage(commonErrors, error);
-
-    return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-      status_code: 500,
-      message: 'something_went_wrong',
-      status: false,
-    });
   }
-}
 
   async getActiveArticle(req: Request, res: Response): Promise<any> {
     try {
@@ -2225,15 +2218,15 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       if (!cookieData) {
         return res.status(500).send({
-            status_code: 500,
-            message: 'Missing_cookie',
-            status: false,
-          })
+          status_code: 500,
+          message: 'Missing_cookie',
+          status: false,
+        })
       }
-      
+
       let accessToken = cookie.access_Token;
       const articleList: any = await getActiveArticle(accessToken);
-      if( articleList?.status == false ){
+      if (articleList?.status == false) {
         return res.status(articleList?.statuscode).send({
           status_code: articleList?.statuscode,
           message: articleList?.message,
@@ -2264,16 +2257,16 @@ async createBiller(req: Request, res: Response,): Promise<any> {
           status: false,
         });
       }
-      else{
-      ////console.log("totalCount", totalCount);
-      let result = totalCount.map((contact) => ({
-        id: contact.id,
-        name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
-      }))
-      return res.status(200).send({
-        status: 200,
-        data: result,
-      });
+      else {
+        ////console.log("totalCount", totalCount);
+        let result = totalCount.map((contact) => ({
+          id: contact.id,
+          name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
+        }))
+        return res.status(200).send({
+          status: 200,
+          data: result,
+        });
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {
@@ -2297,9 +2290,9 @@ async createBiller(req: Request, res: Response,): Promise<any> {
   }
 
   // API to update assets
-  async updateAsset(req: Request,res: Response): Promise<any> {
+  async updateAsset(req: Request, res: Response): Promise<any> {
     let accessToken
-    let encrToken:any = null;
+    let encrToken: any = null;
     try {
       encrToken = req.body;
       const resetToken = crypto.randomBytes(15).toString('hex');
@@ -2312,12 +2305,12 @@ async createBiller(req: Request, res: Response,): Promise<any> {
         url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerId}/assets/${assetId}`,
         headers: {
           'authorization': `Bearer ${accessToken}`,
-          'x-networkpartner-id':config.NETWORK_PARTNER_ID,
+          'x-networkpartner-id': config.NETWORK_PARTNER_ID,
           'X-Correlation-Id': resetToken,
         },
         body: filedata['buffer'],
         key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-        cert: fs.readFileSync(config.CERTIFICATE_PATH+config.SIX_API_CERTIFICATE) 
+        cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
       };
 
       if (path.extname(filedata.originalname) === ".jpeg") {
@@ -2345,25 +2338,25 @@ async createBiller(req: Request, res: Response,): Promise<any> {
             status: false,
           });
         }
-        else{
-          if(response.statusCode == '204'){
+        else {
+          if (response.statusCode == '204') {
             return res.status(status_code.OK).json({
               status_code: 200,
               message: 'updated_asset_successfully',
               status: true,
             });
           }
-          if(response.statusCode == '500'){
+          if (response.statusCode == '500') {
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 500,
-              data:response,
+              data: response,
               message: "something_went_wrong",
               status: true,
             });
           }
-          else{
+          else {
             let errorResponse = JSON.parse(response.body)
-            var returnData = errorResponse.type.replace('/problems/','');
+            var returnData = errorResponse.type.replace('/problems/', '');
             return res.status(status_code.INTERNAL_SERVER_ERROR).json({
               status_code: 500,
               message: returnData.toLowerCase(),
@@ -2384,7 +2377,7 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       });
     }
   }
-   async getAssets(req: Request, res: Response): Promise<any> {
+  async getAssets(req: Request, res: Response): Promise<any> {
     try {
       const resetToken = crypto.randomBytes(15).toString('hex');
       const billerId = req.body.billerId;
@@ -2456,58 +2449,80 @@ async createBiller(req: Request, res: Response,): Promise<any> {
       });
     }
   }
- async getConnectionList(req: Request, res: Response): Promise<any> {
-  const encrToken = req.body;
+  async getConnectionList(req: Request, res: Response): Promise<any> {
+    const encrToken = req.body;
 
-  try {
-    const cookie = JSON.parse(encryptionControl.decryptCookie(
-      JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
-    ));
-    const accessToken = cookie.access_Token;
-      const page = parseInt(encrToken.page_number  || '1');
-      const limit = parseInt(encrToken.records_per_page  || '5');
+    try {
+      const cookie = JSON.parse(encryptionControl.decryptCookie(
+        JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
+      ));
+      const accessToken = cookie.access_Token;
+      const page = parseInt(encrToken.page_number || '1');
+      const limit = parseInt(encrToken.records_per_page || '5');
       const offset = (page - 1) * limit;
-    const formData = {
-      network: encrToken.network,
-      company_doc_type: encrToken.docType,
-      company_direction_key: encrToken.direction,
-      netcom_id: encrToken.netcomId,
-    };
+      const formData = {
+        network: encrToken.network,
+        company_doc_type: encrToken.docType,
+        company_direction_key: encrToken.direction,
+        netcom_id: encrToken.netcomId,
+      };
 
-    const options = {
-      method: 'POST',
-      url: config.PYTHON_API + 'company-g2b-connections',
-      formData,
-    };
+      const options = {
+        method: 'POST',
+        url: config.PYTHON_API + 'company-g2b-connections',
+        formData,
+      };
 
-    const connectData = await new Promise<any>((resolve, reject) => {
-      request(options, (error, response, body) => {
-        if (error) {
-          commonErrors['errorTitle'] = 'getConnectionList';
-          warningMessage(commonErrors, error);
-          return reject(error);
-        }
-        try {
-          return resolve(JSON.parse(body));
-        } catch (parseError) {
-          reject(parseError);
-        }
+      const connectData = await new Promise<any>((resolve, reject) => {
+        request(options, (error, response, body) => {
+          if (error) {
+            commonErrors['errorTitle'] = 'getConnectionList';
+            warningMessage(commonErrors, error);
+            return reject(error);
+          }
+          try {
+            return resolve(JSON.parse(body));
+          } catch (parseError) {
+            reject(parseError);
+          }
+        });
       });
-    });
 
-    let contacts;
-    if (encrToken.customerId) {
-      const searchData = await getContactDetails(accessToken, encrToken.customerId);
-      contacts = Array.isArray(searchData) ? searchData : [searchData];
+      let contacts;
+      if (encrToken.customerId) {
+        const searchData = await getContactDetails(accessToken, encrToken.customerId);
+        contacts = Array.isArray(searchData) ? searchData : [searchData];
 
-      // Filter and enrich connectData
-      const contactIds = new Set(contacts.map(c => c.id));
-      const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
-      const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
+        // Filter and enrich connectData
+        const contactIds = new Set(contacts.map(c => c.id));
+        const resultCustomer = new Map(contacts.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+        const resultMail = new Map(contacts.map(c => [c.id, c.mail]));
 
-      const updatedConnectData = connectData.data
-        .filter(item => contactIds.has(Number(item.partner_company_details.customer_id)))
-        .map(item => {
+        const updatedConnectData = connectData.data
+          .filter(item => contactIds.has(Number(item.partner_company_details.customer_id)))
+          .map(item => {
+            const id = Number(item.partner_company_details.customer_id);
+            return {
+              ...item,
+              customer_name: resultCustomer.get(id) || '',
+              customer_mail: resultMail.get(id) || '',
+            };
+          });
+        const paginatedData = updatedConnectData.slice(offset, offset + limit);
+        return res.status(200).json({
+          data: paginatedData,
+          totalCount: updatedConnectData.length,
+          status_code: 200,
+          message: 'getConnectionList',
+          status: true,
+        });
+
+      } else {
+        contacts = await getAllcontacts(accessToken, 0, 2000, '');
+        const resultCustomer = new Map(contacts?.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
+        const resultMail = new Map(contacts?.map(c => [c.id, c.mail]));
+
+        const updatedConnectData = connectData.data.map(item => {
           const id = Number(item.partner_company_details.customer_id);
           return {
             ...item,
@@ -2515,46 +2530,24 @@ async createBiller(req: Request, res: Response,): Promise<any> {
             customer_mail: resultMail.get(id) || '',
           };
         });
-     const paginatedData = updatedConnectData.slice(offset, offset + limit);
-      return res.status(200).json({
-        data: paginatedData,
-         totalCount: updatedConnectData.length,
-        status_code: 200,
-        message: 'getConnectionList',
-        status: true,
-      });
 
-    } else {
-      contacts = await getAllcontacts(accessToken, 0, 2000, '');
-      const resultCustomer = new Map(contacts?.map(c => [c.id, `${c.name_1 || ''} ${c.name_2 || ''}`.trim()]));
-      const resultMail = new Map(contacts?.map(c => [c.id, c.mail]));
+        const paginatedData = updatedConnectData.slice(offset, offset + limit);
+        return res.status(200).json({
+          data: paginatedData,
+          totalCount: updatedConnectData.length,
+          status_code: 200,
+          message: 'getConnectionList',
+          status: true,
+        });
+      }
 
-      const updatedConnectData = connectData.data.map(item => {
-        const id = Number(item.partner_company_details.customer_id);
-        return {
-          ...item,
-          customer_name: resultCustomer.get(id) || '',
-          customer_mail: resultMail.get(id) || '',
-        };
-      });
-
-     const paginatedData = updatedConnectData.slice(offset, offset + limit);
-      return res.status(200).json({
-        data: paginatedData,
-         totalCount: updatedConnectData.length,
-        status_code: 200,
-        message: 'getConnectionList',
-        status: true,
-      });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'getConnectionList';
+      commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param`;
+      warningMessage(commonErrors, error);
+      return res.status(500).json({ status: false, message: 'Internal server error' });
     }
-
-  } catch (error) {
-    commonErrors['errorTitle'] = 'getConnectionList';
-    commonErrors['errorDescription'] = `From: ${path.basename(__filename)} ${error} - req param`;
-    warningMessage(commonErrors, error);
-    return res.status(500).json({ status: false, message: 'Internal server error' });
   }
-}
 
 }
 
@@ -2583,7 +2576,7 @@ const contactListCountSearch = async (token, search, offset, limit?) => {
           parsedBody = JSON.parse(response.body);
         } catch (e) {
           warningMessage(commonErrors, 'Invalid JSON in response.body: ' + response.body);
-           resolve(false);
+          resolve(false);
           return;
         }
         if (Array.isArray(parsedBody) && parsedBody.length == limit) {
@@ -2628,7 +2621,7 @@ const contactListCount = async (token, offset, limit?) => {
       }
       else
         resolve(false)
-        return 
+      return
     });
   });
 }
@@ -2644,8 +2637,8 @@ const createConnector = async (params) => {
     let formdata = {
       data: connectorConfig
     }
-    console.log('formdata',formdata);
-    
+    console.log('formdata', formdata);
+
     let options = {
       'method': 'POST',
       'url': config.PYTHON_API + 'third-party-connector',
@@ -2668,7 +2661,7 @@ const createConnector = async (params) => {
     commonErrors['errorTitle'] = createConnector.name;
     commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + params;
     warningMessage(commonErrors, error);
-   return resolve('');
+    return resolve('');
   }
 }
 const inviteCompanySend = async (params) => {
@@ -2759,12 +2752,12 @@ const getInvitationDetails = async (code): Promise<any | false> => {
       ////console.log(response.body);
       //console.log(response.body);
 
-      if (response.statusCode == 200){
+      if (response.statusCode == 200) {
 
-        
+
         // console.log('JSON.parse(response.body', JSON.parse(response.body))
         return resolve(JSON.parse(response.body));
-      }else{
+      } else {
         reject(false)
       }
 
@@ -2784,23 +2777,23 @@ const getPythonData = async (netcomId) => {
       let ebill = "true"
       let formData = {
         search: search,
-         page_number: page_number,
+        page_number: page_number,
         records_per_page: records_per_page,
         limit: limit,
         offset: offset,
-          netcom_id: netcom_id,
-          ebill: ebill
+        netcom_id: netcom_id,
+        ebill: ebill
       }
       const options = {
         'method': 'POST',
-      'url': config.PYTHON_API + 'post-list/connections',
+        'url': config.PYTHON_API + 'post-list/connections',
         formData: formData
       };
-      console.log('getPythonData options',options);
-      
+      console.log('getPythonData options', options);
+
       await request(options, async function (error, response) {
-       
-        
+
+
         if (error) {
           commonErrors['errorTitle'] = 'getPythonData';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
@@ -2808,7 +2801,7 @@ const getPythonData = async (netcomId) => {
           return resolve(error)
         }
         else {
-         
+
           try {
             responseData = JSON.parse(response.body)
             //console.log('response',responseData);
@@ -2828,24 +2821,24 @@ const getPythonData = async (netcomId) => {
     }
   })
 }
-const updateConnection = async(data)=>{
+const updateConnection = async (data) => {
   //console.log('updateConnection');
   // console.log('data',data);
-  
+
   return new Promise(async (resolve, reject) => {
     let responseData = null
     try {
       //console.log('data.form',data.form);
-      
+
       let tempData = JSON.parse(data.form).data;
       let formData = {
-        con_id:tempData.con_id,
-        doc_type:tempData.fk_doc_type,
-        doc_format:tempData.fk_doc_format,
-        doc_interface:tempData.fk_netcomid_doc_interface,
-        include_pdf:tempData.include_pdf
+        con_id: tempData.con_id,
+        doc_type: tempData.fk_doc_type,
+        doc_format: tempData.fk_doc_format,
+        doc_interface: tempData.fk_netcomid_doc_interface,
+        include_pdf: tempData.include_pdf
       }
-       //console.log('formData',formData);
+      //console.log('formData',formData);
       const options = {
         method: 'POST',
         url: `${config.GATE2BURL}update-ebill-connection`,
@@ -2856,36 +2849,36 @@ const updateConnection = async(data)=>{
         formData: formData
       };
       await request(options, async function (error, response) {
-        if(error){
+        if (error) {
           commonErrors['errorTitle'] = 'updateConnection';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
           warningMessage(commonErrors, error);
           return resolve(false)
         }
-        else{
+        else {
           responseData = JSON.parse(response.body)
           return resolve(true)
         }
       })
-     }
-     catch (error) {
+    }
+    catch (error) {
       commonErrors['errorTitle'] = 'getPythonData';
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
       warningMessage(commonErrors, error);
       return resolve(false)
-      }
-    })
+    }
+  })
 }
-const createBexiobiller = async(data)=>{
+const createBexiobiller = async (data) => {
   return new Promise(async (resolve, reject) => {
     let responseData = null
     try {
       // let tempData = JSON.parse(data).data;
       let formData = {
-        netcomid:data
-     
+        netcomid: data
+
       }
-       //console.log('formData-createBexiobiller',formData);
+      //console.log('formData-createBexiobiller',formData);
       const options = {
         method: 'POST',
         url: `${config.GATE2BURL}create-bexio-ebill-connector`,
@@ -2896,155 +2889,155 @@ const createBexiobiller = async(data)=>{
         formData: formData
       };
       await request(options, async function (error, response) {
-        if(error){
+        if (error) {
           commonErrors['errorTitle'] = 'updateConnection';
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
           warningMessage(commonErrors, error);
           return resolve(false)
         }
-        else{
+        else {
           responseData = JSON.parse(response.body)
           return resolve(true)
         }
       })
-     }
-     catch (error) {
+    }
+    catch (error) {
       commonErrors['errorTitle'] = 'getPythonData';
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
       warningMessage(commonErrors, error);
       return resolve(false)
-      }
-    })
+    }
+  })
 }
 
-const getInvitations = async (code)=>{
+const getInvitations = async (code) => {
   try {
     let formData = {
-      invite_code:code
+      invite_code: code
     }
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API+'post-list/invitations',
-       
+        'url': config.PYTHON_API + 'post-list/invitations',
+
         formData: formData
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getInvitations';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+code;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + code;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
-       
+
         return resolve(response.body);
 
       });
     });
   } catch (error) {
     commonErrors['errorTitle'] = getInvitations.name;
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+code;
-    warningMessage(commonErrors,error);
-    return 
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + code;
+    warningMessage(commonErrors, error);
+    return
   }
 }
-const getStatus = async (code)=>{
-  let formData:any =  null
+const getStatus = async (code) => {
+  let formData: any = null
   try {
-     formData = {
-      invite_id:code
+    formData = {
+      invite_id: code
     }
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API+'fetch-field-status',
+        'url': config.PYTHON_API + 'fetch-field-status',
         formData: formData
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getStatus';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio params,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio params,' + formData;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
         // res.send(response.body)
         //console.log(response.body);
-        
+
         return resolve(response.body);
 
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getStatus.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = getStatus.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
+    warningMessage(commonErrors, error);
     return resolve('');
   }
 }
-const getConnections = async (netcomId,docType)=>{
-  let formData:any = null
+const getConnections = async (netcomId, docType) => {
+  let formData: any = null
   try {
-    let doc_type = JSON.parse(config.BEXIO_DOCTYPES).filter( a=> a.key.toLowerCase() == docType.toLowerCase());
+    let doc_type = JSON.parse(config.BEXIO_DOCTYPES).filter(a => a.key.toLowerCase() == docType.toLowerCase());
     formData = {
-      netcom_id:netcomId,
-      direction:'OUTPUT',
-      active_only:'true',
+      netcom_id: netcomId,
+      direction: 'OUTPUT',
+      active_only: 'true',
       doc_type: doc_type[0]['id'],
       //doc_format:config.DOC_FORMAT,
       show_all: 'true',
-      module:'BEX'
+      module: 'BEX'
     }
-    console.log('formData post-list/connections',formData);
-    
-    return new Promise(async(resolve, reject) => {
+    console.log('formData post-list/connections', formData);
+
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API+'post-list/connections',
-         formData: formData
-       
+        'url': config.PYTHON_API + 'post-list/connections',
+        formData: formData
+
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'post-list/connections';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
-       
+
         return resolve(response.body);
 
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getConnections.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = getConnections.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + netcomId;
+    warningMessage(commonErrors, error);
 
-   
+
   }
 }
-const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
-  let formData:any = null
+const getConnectionsDetailsOfInviteSender = async (code, netComId) => {
+  let formData: any = null
   try {
 
     formData = {
-      invite_code:code,
-      logged_in_netcom_id:netComId,
+      invite_code: code,
+      logged_in_netcom_id: netComId,
     }
-    console.log('invite_code',formData);
-    
-    return new Promise(async(resolve, reject) => {
+    console.log('invite_code', formData);
+
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API+'post-list/connections',
-         formData: formData
-       
+        'url': config.PYTHON_API + 'post-list/connections',
+        formData: formData
+
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getLoginUserInfo';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+          warningMessage(commonErrors, error);
           return resolve(response.body);
         }
         // res.send(response.body)
@@ -3053,9 +3046,9 @@ const getConnectionsDetailsOfInviteSender = async (code,netComId)=>{
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getConnectionsDetailsOfInviteSender.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = getConnectionsDetailsOfInviteSender.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
+    warningMessage(commonErrors, error);
   }
 }
 const bexioCreatePythonData = async (
@@ -3124,44 +3117,44 @@ const bexioCreatePythonData = async (
   });
 };
 const bexioUpdateBiller = async (req, billerId) => {
-  return new Promise( async (resolve,reject)=>{
-  let cookie;
-  try {
-    cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME]));
-    let accessToken = cookie.access_Token;
-    let data = {
-      "name":"io_market.ebill_pid",
-      "value":`${billerId}` 
+  return new Promise(async (resolve, reject) => {
+    let cookie;
+    try {
+      cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME]));
+      let accessToken = cookie.access_Token;
+      let data = {
+        "name": "io_market.ebill_pid",
+        "value": `${billerId}`
+      }
+      const options = {
+        method: 'POST',
+        url: `https://office.bexio.com/api.php/external_api_settings`,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(data)
+      };
+      await request(options, async function (error, response) {
+        if (error) {
+          //console.log("response from bexio update biller error----",error);
+          commonErrors['errorTitle'] = req.originalUrl + `' bexioUpdateBiller'+' '+'billerId ----${billerId}'`;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie.access_Token;
+          commonErrors['errorCode'] = config.ERROR_BEXIO_BILLER
+          warningMessage(commonErrors, error);
+          return resolve(false);
+        }
+        else {
+          //console.log("response from bexio update biller----",response.body);
+          return resolve(true);
+        }
+      })
     }
-    const options = {
-      method: 'POST',
-      url: `https://office.bexio.com/api.php/external_api_settings`,
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`
-      },
-      body: JSON.stringify(data)
-    };
-    await request(options, async function (error, response) {
-      if (error) {
-        //console.log("response from bexio update biller error----",error);
-        commonErrors['errorTitle'] = req.originalUrl + `' bexioUpdateBiller'+' '+'billerId ----${billerId}'`;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie.access_Token;
-        commonErrors['errorCode'] = config.ERROR_BEXIO_BILLER
-        warningMessage(commonErrors, error);
-        return resolve(false);
-      }
-      else {
-        //console.log("response from bexio update biller----",response.body);
-        return resolve(true);
-      }
-    })
-  }
-  catch {
-    return resolve(false);
-  }
-})
+    catch {
+      return resolve(false);
+    }
+  })
 }
 const getAllcontacts = async (token, offset, limit?, data?) => {
   return new Promise(async (resolve, reject) => {
@@ -3198,7 +3191,7 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
         console.log("Unauthorized access, please check your token.");
         return resolve("Unauthorized");
         // return reject(new Error('Unauthorized'));
-        
+
       } else {
         return resolve(false);
       }
@@ -3209,10 +3202,10 @@ const getAllcontacts = async (token, offset, limit?, data?) => {
 
 
 const setConfig = async (billerId) => {
-  
+
   return new Promise(async (resolve, reject) => {
     let data = {};
-    try{ 
+    try {
       // data = JSON.parse(config.EBILL_REPORT_CONFIG)
       let response = JSON.parse(config.EBILL_REPORT_CONFIG)
       data['biller_id'] = billerId;
@@ -3231,41 +3224,41 @@ const setConfig = async (billerId) => {
         },
         form: data
       };
-      console.log('options',options);
-      
-    await request(options, async function (error, response) {
-      console.log('error',error);
-      console.log('response',response);
+      console.log('options', options);
 
-      
-      if (error) {
-        let responseValue = JSON.stringify(data)
-        commonErrors['errorTitle'] = ' setConfig';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-        warningMessage(commonErrors, error);
-        return  resolve(false);
-      }
-      else {
-        let dataValue = JSON.parse(response.body)
-        if (dataValue.status) {
-          return resolve(true);
+      await request(options, async function (error, response) {
+        console.log('error', error);
+        console.log('response', response);
+
+
+        if (error) {
+          let responseValue = JSON.stringify(data)
+          commonErrors['errorTitle'] = ' setConfig';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+          warningMessage(commonErrors, error);
+          return resolve(false);
         }
-        else{
-        let responseValue = JSON.stringify(data)
-        commonErrors['errorTitle'] = 'setConfig';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'something wrong'+responseValue;
-        warningMessage(commonErrors,responseValue);
-        return resolve(false);
+        else {
+          let dataValue = JSON.parse(response.body)
+          if (dataValue.status) {
+            return resolve(true);
+          }
+          else {
+            let responseValue = JSON.stringify(data)
+            commonErrors['errorTitle'] = 'setConfig';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'something wrong' + responseValue;
+            warningMessage(commonErrors, responseValue);
+            return resolve(false);
+          }
         }
-      }
-    })
-  }
-  catch(error){
-    let responseValue = JSON.stringify(data)
-    commonErrors['errorTitle'] = 'setConfig';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString()+'req param-'+responseValue;
-    warningMessage(commonErrors, error);
-    return reject(false);
-  }
+      })
+    }
+    catch (error) {
+      let responseValue = JSON.stringify(data)
+      commonErrors['errorTitle'] = 'setConfig';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + 'req param-' + responseValue;
+      warningMessage(commonErrors, error);
+      return reject(false);
+    }
   })
 }

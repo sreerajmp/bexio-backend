@@ -2,7 +2,7 @@ const encryptionControl = require("../utils/jwt-decode");
 import * as request from 'request';
 import config from '../config/index';
 const path = require('path')
-import { connectNewGate2b, connectBexio,connectLibrary } from '../../db/prisma-clients';
+import { connectNewGate2b, connectBexio, connectLibrary } from '../../db/prisma-clients';
 import { Prisma } from '@prisma/client';
 import { bexioInterfaceClient } from './bexioClient';
 const fs = require('fs')
@@ -15,9 +15,9 @@ import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
 const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
 const { SalesforceService } = require('../../contact-import/salesforce/salesforce.service');
-export const getContactById = async (accessToken,contact_idList) => {
+export const getContactById = async (accessToken, contact_idList) => {
 
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     let searchJson: any[] = [];
     searchJson.push({
       "field": "id",
@@ -31,78 +31,78 @@ export const getContactById = async (accessToken,contact_idList) => {
       // url = `${url}`;
       'headers': {
         'Accept': 'application/json',
-        'Authorization': 'Bearer '+accessToken
+        'Authorization': 'Bearer ' + accessToken
       },
       body: JSON.stringify(searchJson)
     };
-   
+
     request(optionsContact, async function (error, response) {
       if (error) {
         commonErrors['errorTitle'] = 'getContactById';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
-        warningMessage(commonErrors,error);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + '-bexio param,' + accessToken;
+        warningMessage(commonErrors, error);
         return resolve(error);
       }
-   
-      
-      if(response.statusCode == 200){
-        return resolve(JSON.parse(response.body));      
-      }else{
+
+
+      if (response.statusCode == 200) {
+        return resolve(JSON.parse(response.body));
+      } else {
         return resolve(false)
       }
-    }); 
+    });
   });
-          
- 
+
+
 }
 export const getAllCurrency = async (access_token) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/currencies`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getAllCurrency';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param';
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          
-          if(response?.statusCode==200)
-            return resolve(JSON.parse(response.body));
-          else
-            return resolve([])
-        });
-      });
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/currencies`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getAllCurrency';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param';
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+
+      if (response?.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve([])
+    });
+  });
 }
-export const getRecipientList = async (netcomId:string,contact_idList: number[]) => {
+export const getRecipientList = async (netcomId: string, contact_idList: number[]) => {
   try {
     // Ensure unique IDs and explicitly cast to number[]
     const uniqueIds: number[] = [...new Set(contact_idList)];
-//console.log('uniqueIds',uniqueIds);
-//console.log('uniqueIds',uniqueIds.length);
+    //console.log('uniqueIds',uniqueIds);
+    //console.log('uniqueIds',uniqueIds.length);
     if (uniqueIds.length === 0) return []; // Return empty array if no valid IDs
 
     const contacts = await connectBexio.contact_bc.findMany({
       where: {
         rk_contact: { in: uniqueIds },
         companyregistered: {
-      is: { netcomid: netcomId }
-    }
-        
+          is: { netcomid: netcomId }
+        }
+
       },
       select: {
-        recipient_id: true, 
-        rk_contact:true        
+        recipient_id: true,
+        rk_contact: true
       },
     });
-    
+
 
     return contacts;
   } catch (error) {
@@ -112,9 +112,9 @@ export const getRecipientList = async (netcomId:string,contact_idList: number[])
 };
 
 
-export const invoiceCountSearch = async (token,search,offset,limit?) => {
+export const invoiceCountSearch = async (token, search, offset, limit?) => {
 
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     var options = {
       'method': 'POST',
       'url': `${config.BEXIO_API}2.0/kb_invoice/search?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
@@ -124,34 +124,34 @@ export const invoiceCountSearch = async (token,search,offset,limit?) => {
       }, body: JSON.stringify(search)
     };
     request(options, function (error, response) {
-      if (error) {  
+      if (error) {
         commonErrors['errorTitle'] = 'contactListCount';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
-        warningMessage(commonErrors,error);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
+        warningMessage(commonErrors, error);
         return resolve(false)
       }
-      if(response?.statusCode == 200){
-        if(JSON.parse(response.body).length == limit){
-         let temp = this.invoiceCountSearch(token,offset+2000,2000)
-        //  //////console.log(('11111111111111111111111111111');
-         
-        }else{
+      if (response?.statusCode == 200) {
+        if (JSON.parse(response.body).length == limit) {
+          let temp = this.invoiceCountSearch(token, offset + 2000, 2000)
+          //  //////console.log(('11111111111111111111111111111');
+
+        } else {
           offset = offset + JSON.parse(response.body).length;
           // //////console.log(('lengthhh',offset);
           return resolve(offset)
         }
         // //////console.log((JSON.parse(response.body).length);
-        
+
         // resolve(JSON.parse(response.body).length)
 
       }
       else
-      return resolve(false)
+        return resolve(false)
     });
   });
 }
-export const invoiceListCountSearch = async (token,offset,limit?) => {
-  return new Promise(async(resolve, reject) => {
+export const invoiceListCountSearch = async (token, offset, limit?) => {
+  return new Promise(async (resolve, reject) => {
     var options = {
       'method': 'GET',
       'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
@@ -160,71 +160,71 @@ export const invoiceListCountSearch = async (token,offset,limit?) => {
         'Authorization': 'Bearer ' + token
       }
     };
-    
-      request(options, async (error, response)=> {
-        if (error) {  
-          commonErrors['errorTitle'] = 'invoiceListCount';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
-          warningMessage(commonErrors,error);
-          return resolve(false);
-        }
-        if( response.statusCode == 401 ){
-          return resolve(false);
-        }
-        if(response.statusCode == 200){
-          if(JSON.parse(response.body).length == limit){
-           let temp = await invoiceListCountSearch(token,offset+2000,2000);
-           return resolve(temp);
-          }else{
-            offset = offset + JSON.parse(response.body).length;
-            return resolve(offset);
-          }  
-        }
-        else
+
+    request(options, async (error, response) => {
+      if (error) {
+        commonErrors['errorTitle'] = 'invoiceListCount';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
+        warningMessage(commonErrors, error);
         return resolve(false);
-      });
+      }
+      if (response.statusCode == 401) {
+        return resolve(false);
+      }
+      if (response.statusCode == 200) {
+        if (JSON.parse(response.body).length == limit) {
+          let temp = await invoiceListCountSearch(token, offset + 2000, 2000);
+          return resolve(temp);
+        } else {
+          offset = offset + JSON.parse(response.body).length;
+          return resolve(offset);
+        }
+      }
+      else
+        return resolve(false);
+    });
   });
 }
 export const getBcDetails = async (bc_id, netcomId) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!bc_id) return resolve(false);
-        let formData = {
-          bc: bc_id.toString(),
-          netcom_id: netcomId
-        }
-        let options = {
-          'method': 'POST',
-          'url': config.PYTHON_API + 'get-contact-bc',
-          formData: formData
-        };
-
-        request(options, function (error, response, body) {
-          if (error) {
-            commonErrors['errorTitle'] = 'getBcDetails';
-            warningMessage(commonErrors, error);
-            return reject(error)
-          } 
-            try{
-
-              //console.log('output',config.PYTHON_API + 'get-contact-bc');
-              const result = JSON.parse(response.body);
-              resolve(result);
-            }catch(err){
-              return reject(err)
-            }
-          
-        });
-      } catch (error) {
-        commonErrors['errorTitle'] = 'getBcDetails';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
-        warningMessage(commonErrors, error);
-        reject(error);
+      let formData = {
+        bc: bc_id.toString(),
+        netcom_id: netcomId
       }
-    });
+      let options = {
+        'method': 'POST',
+        'url': config.PYTHON_API + 'get-contact-bc',
+        formData: formData
+      };
+
+      request(options, function (error, response, body) {
+        if (error) {
+          commonErrors['errorTitle'] = 'getBcDetails';
+          warningMessage(commonErrors, error);
+          return reject(error)
+        }
+        try {
+
+          //console.log('output',config.PYTHON_API + 'get-contact-bc');
+          const result = JSON.parse(response.body);
+          resolve(result);
+        } catch (err) {
+          return reject(err)
+        }
+
+      });
+    } catch (error) {
+      commonErrors['errorTitle'] = 'getBcDetails';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,'
+      warningMessage(commonErrors, error);
+      reject(error);
+    }
+  });
 }
-export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
-  return new Promise(async(resolve, reject) => {
+export const deliveryNotesListCountSearch = async (token, offset, limit?) => {
+  return new Promise(async (resolve, reject) => {
     var options = {
       'method': 'GET',
       'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${limit}&offset=${offset}&order_by=updated_at_desc`,
@@ -232,52 +232,52 @@ export const deliveryNotesListCountSearch = async(token,offset,limit?)=>{
         'Accept': 'application/json',
         'Authorization': 'Bearer ' + token
       }
-    };    
-      request(options, function (error, response) {
-        if (error) {  
-          commonErrors['errorTitle'] = 'deliveryNotesList';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+token;
-          warningMessage(commonErrors,error);
-          return resolve(false);
-        }
-        if(response.statusCode == 200){
-          if(JSON.parse(response.body).length == limit){
-           let temp = invoiceListCountSearch(token,offset+2000,2000);
-           return resolve(temp);
-          }else{
-            offset = offset + JSON.parse(response.body).length;
-            return resolve(offset);            
-          }  
-        }
-        else
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'deliveryNotesList';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + token;
+        warningMessage(commonErrors, error);
         return resolve(false);
-      });
+      }
+      if (response.statusCode == 200) {
+        if (JSON.parse(response.body).length == limit) {
+          let temp = invoiceListCountSearch(token, offset + 2000, 2000);
+          return resolve(temp);
+        } else {
+          offset = offset + JSON.parse(response.body).length;
+          return resolve(offset);
+        }
+      }
+      else
+        return resolve(false);
+    });
   });
 }
 
-export const getTagName = async (netcom_id, details,autoTag) => {
+export const getTagName = async (netcom_id, details, autoTag) => {
 
   try {
-    let  data
-    console.log('autoTag',autoTag);
-    if(autoTag==true){
-       console.log('autoTag is true');
+    let data
+    console.log('autoTag', autoTag);
+    if (autoTag == true) {
+      console.log('autoTag is true');
       data = {
-          channel_preference: {
-                  sequence: ["eBill"],
-                  serviceStatus: { eBill: true }
-                },
-          module: 'BEX',
-          file_list: details
-        };
+        channel_preference: {
+          sequence: ["eBill"],
+          serviceStatus: { eBill: true }
+        },
+        module: 'BEX',
+        file_list: details
+      };
     }
-    else{
-       console.log('autoTag is false');
+    else {
+      console.log('autoTag is false');
       data = {
-          netcom_id: netcom_id,
-          module: 'BEX',
-          file_list: details
-        };
+        netcom_id: netcom_id,
+        module: 'BEX',
+        file_list: details
+      };
     }
     const formData = {
       data: JSON.stringify(data) // Must stringify the entire object
@@ -320,10 +320,10 @@ export const getTagName = async (netcom_id, details,autoTag) => {
   }
 
 }
-export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status,error?,channel?,receiverId?,formData?) => {
-  console.log('channel,invoiceId::::::::::::',channel,invoiceId);
-    console.log('channel,invoiceId,partyId::::::::::::',partyId);
-    console.log('invoicenumber::::::::::::',invoicenumber);
+export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status, error?, channel?, receiverId?, formData?) => {
+  console.log('channel,invoiceId::::::::::::', channel, invoiceId);
+  console.log('channel,invoiceId,partyId::::::::::::', partyId);
+  console.log('invoicenumber::::::::::::', invoicenumber);
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
@@ -331,13 +331,14 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
         where: {
           rk_invoice: invoiceId,
-          invoice_type: channel,
+          // invoice_type: channel,
           companyregistered: {
             rk_party: Number(partyId),
           },
         },
         select: {
           cid: true,
+          object_id: true,
           companyregistered: {
             select: {
               cid: true,
@@ -345,8 +346,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           },
         },
       });
-      console.log("selectQryResult",selectQryResult);
-      
+      console.log("selectQryResult", selectQryResult);
+
       if (selectQryResult.length == 0) {
         console.log('createany');
 
@@ -363,22 +364,24 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             invoice_type: channel,
             invoice_params: formData,
             status: Number(status),
-            receiver_contactid:receiverId,
-            response:errorBody
+            receiver_contactid: receiverId,
+            response: errorBody,
+            ...(channel === 'EBILL' && { is_notifyed: false })
           },
           select: {
             cid: true,
+            object_id: true,
           },
         });
-        console.log("SendInvoice Status result",result);
-        
-        sendInvoiceId = result.cid;
+        console.log("SendInvoice Status result", result);
+
+        sendInvoiceId = channel === 'EBILL' ? result.object_id : result.cid;
       }
       else {
-       console.log('updateMany',selectQryResult[0]?.cid,channel,invoiceId,status);
-        
-        sendInvoiceId = selectQryResult[0]?.cid;
-       await connectBexio.documents_invoice_send.updateMany({
+        console.log('updateMany', selectQryResult[0]?.cid, channel, invoiceId, status);
+
+        sendInvoiceId = channel === 'EBILL' ? selectQryResult[0]?.object_id : selectQryResult[0]?.cid;
+        await connectBexio.documents_invoice_send.updateMany({
           where: {
             fk_companyregistered: selectQryResult[0].companyregistered?.cid,
             rk_invoice: invoiceId,
@@ -387,13 +390,15 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           data: {
             time_stamp: new Date(),
             status: Number(status),
-            response:errorBody,
+            response: errorBody,
             invoice_type: channel,
-            invoice_params: formData
+            invoice_params: formData,
+            ...(channel === 'EBILL' && { is_notifyed: false }),
+            ...(channel === 'EBILL' && { reference_id: null })
           }
         });
         //console.log('updateRes',updateRes);
-        
+
       }
       return resolve(sendInvoiceId);
     } catch (error) {
@@ -410,7 +415,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
 }
 export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channel?) => {
   try {
-    console.log("worker processing invoices...",invoices);
+    console.log("worker processing invoices...", invoices);
 
     let tempIds = invoices;
 
@@ -430,7 +435,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
 
       console.log("start processing invoice", tempParam);
       try {
-        const result = await pushInvoiceBulkTest(tempParam, "",channel);
+        const result = await pushInvoiceBulkTest(tempParam, "", channel);
         console.log("result:", result);
       } catch (error) {
         console.error("Error processing invoice:", element.invoiceId, error);
@@ -443,207 +448,207 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
   }
 };
 
-export const pushInvoiceBulkTest = async (req, res,channel) => {
+export const pushInvoiceBulkTest = async (req, res, channel) => {
   return new Promise(async (resolve, reject) => {
     try {
       let decryptData = req;
-      console.log('decryptData',decryptData);
-      
+      console.log('decryptData', decryptData);
+
       if (!req || !req.signedCookies || !decryptData.body.partyId) {
         return reject('Invalid input data');
       }
 
       let invoiceCid;
       try {
-        let invoice,paymentType
+        let invoice, paymentType
         let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
         let accessToken = cookie.access_Token;
         const partyId = decryptData.body.partyId;
         const accountId = decryptData.body.accountId;
         const invoiceId = decryptData.body.invoiceId;
-        invoice = await getInvoiceOT(accessToken,invoiceId);
+        invoice = await getInvoiceOT(accessToken, invoiceId);
         // //console.log('invoice::::',invoice);
-        if( !invoice || !invoice.positions ){
-          invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,'','0','invoice_invalid',channel);
+        if (!invoice || !invoice.positions) {
+          invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invoice_invalid', channel);
           //console.log('invoice not found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_pushInvoiceBulkTest -req param,',JSON.stringify(decryptData);
-          warningMessage(commonErrors,'error_getInvoiceOT');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_pushInvoiceBulkTest -req param,', JSON.stringify(decryptData);
+          warningMessage(commonErrors, 'error_getInvoiceOT');
           return resolve('invoice_invalid');
         }
 
-        let invitionData:any = await getConnectionDetails(partyId,accountId,invoice.contact_id,req);     
+        let invitionData: any = await getConnectionDetails(partyId, accountId, invoice.contact_id, req);
 
-        if( invitionData.length != 0){    
+        if (invitionData.length != 0) {
 
-            let customerIds = await constGetContactId(invitionData[0].rk_businessconnection);
-            if(!customerIds){
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_custimerIds -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'error_custimerIds ');
-              return resolve('customer_ids_not_found');
-            }
-            //console.log(customerIds);
-            //console.log('invitionData',invitionData);     
-            let pdf,fileName,pdfContent;
-            pdf = await getInvoicePdf(accessToken,invoiceId);
-            if(pdf.response == 401){
-              
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','unauthorized',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'error_getInvoicePdf ');
-              return resolve('unauthorized');
-            }
-            if(!pdf){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','pdf_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'error_getInvoicePdf ');
-              return resolve('pdf_not_found');
-            }
-            let pdf_parsed = JSON.parse(pdf);
-            pdfContent = pdf_parsed.content;
-            fileName = pdf_parsed.name;
-            let coutryList;
-            coutryList = await getCountryLists(accessToken);
-            if(!coutryList){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','countryList_not_found',channel);
-              //console.log('coutryList');
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'countryList_not_found');
-              return resolve('country_not_found');
-            }
-            coutryList = JSON.parse(coutryList);
-            let bank
-            bank = await getBank(accessToken,invoice.bank_account_id);
-            if(!bank){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bank_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'bank_not_found');
-              return resolve('bank_not_found');
-            }
-            // invoice['bank'] = 'iban_nr' in bank ? bank : '';
-            if('iban_nr' in bank){
-              invoice['bank'] = bank;
-            }
-            else{
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_bank_error',channel);
-              return resolve('bexio_bank_error');
-            }
-            //console.log('123');
-            //console.log('invoice.currency_id',invoice.currency_id);
-            
-            let currency = await getCurrency(accessToken,invoice.currency_id);
-            if(!currency){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','currency_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'currency_not_found');
-              return resolve('currency_not_found');
-            }
-            invoice['currency'] = currency;
-            let temp = await getloginUserCompanyDetails(accessToken);
-            //console.log(temp);  
-            if(!temp){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
-              return resolve('getloginUserCompanyDetails_not_found');
-            }
-            invoice['companyProfile'] = temp;
-            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
-            paymentType = await getPaymentType(accessToken,invoice.payment_type_id);
-            if(!paymentType){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','getPaymentType_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getPaymentType_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'getPaymentType_not_found');
-              return resolve('getPaymentType_not_found');
-            
-            }
-            let tempPaymentType = paymentType.filter(e => e.id == invoice.payment_type_id);
-            invoice['paymentType'] = tempPaymentType;
-            let contact = await getContact(accessToken,invoice.contact_id);
-            
-            if(!contact){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','contact_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contact_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'contact_not_found');
-              return resolve('contact_not_found');
-            }
-            invoice['contact'] = contact;
-            // let user = await getUser(accessToken,invoice.user_id);
-            let user = true;
-            if(!user){
-              invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','user_not_found',channel);
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'user_not_found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'user_not_found');
-              return resolve('user_not_found');
-            
-            }
-            invoice['user'] = user;
-            // companyDetails = await getloginUserCompanyDetails(accessToken)
-        
-            await Promise.all(invoice.positions.map(async (items) => {
-              //console.log('items.tax_id',items.tax_id);
-              if(items.tax_id){
-                let tempTax = await getTaxs(accessToken,items.tax_id);
-                if(!tempTax){
-                  invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','tax_not_Found',channel);
-                  commonErrors['errorTitle'] = req.originalUrl;
-                  commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
-                  warningMessage(commonErrors,'tax_not_Found');
-                  return resolve('tax_not_Found');
-                }
-                items['tax'] = tempTax;
-              }
-              let tempItem;
-              //console.log('tempItem',tempItem);
-              if('article_id' in items){
-                tempItem = await getProducts(accessToken,items.article_id);
-                items['article'] = tempItem;
-                // //console.log('articleas',items['article']);
-                
-              }else{
-                //console.log('items',items);
-                
-                items['article'] = {}
-                items['article']['intern_name'] = items.text;
-                items['article']['intern_description'] = items.text;
-    
-              }
-              
-            
-              return resolve(true);
-            }));
+          let customerIds = await constGetContactId(invitionData[0].rk_businessconnection);
+          if (!customerIds) {
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_custimerIds -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'error_custimerIds ');
+            return resolve('customer_ids_not_found');
+          }
+          //console.log(customerIds);
+          //console.log('invitionData',invitionData);     
+          let pdf, fileName, pdfContent;
+          pdf = await getInvoicePdf(accessToken, invoiceId);
+          if (pdf.response == 401) {
 
-            invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'1','',channel);
-              let xml;
-    
-              xml = await setInvoiceToOt(invoice,coutryList,invitionData[0],pdfContent,fileName,customerIds,invoiceCid,channel);
-              //  //console.log('xml',xml);
-              if(xml == false){
-                invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','bexio_item_error',channel);
-                return resolve('bexio_item_error');
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'unauthorized', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'error_getInvoicePdf ');
+            return resolve('unauthorized');
+          }
+          if (!pdf) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'pdf_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'error_getInvoicePdf ');
+            return resolve('pdf_not_found');
+          }
+          let pdf_parsed = JSON.parse(pdf);
+          pdfContent = pdf_parsed.content;
+          fileName = pdf_parsed.name;
+          let coutryList;
+          coutryList = await getCountryLists(accessToken);
+          if (!coutryList) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'countryList_not_found', channel);
+            //console.log('coutryList');
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'countryList_not_found');
+            return resolve('country_not_found');
+          }
+          coutryList = JSON.parse(coutryList);
+          let bank
+          bank = await getBank(accessToken, invoice.bank_account_id);
+          if (!bank) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'bexio_bank_error', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'bank_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'bank_not_found');
+            return resolve('bank_not_found');
+          }
+          // invoice['bank'] = 'iban_nr' in bank ? bank : '';
+          if ('iban_nr' in bank) {
+            invoice['bank'] = bank;
+          }
+          else {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'bexio_bank_error', channel);
+            return resolve('bexio_bank_error');
+          }
+          //console.log('123');
+          //console.log('invoice.currency_id',invoice.currency_id);
+
+          let currency = await getCurrency(accessToken, invoice.currency_id);
+          if (!currency) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'currency_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'currency_not_found');
+            return resolve('currency_not_found');
+          }
+          invoice['currency'] = currency;
+          let temp = await getloginUserCompanyDetails(accessToken);
+          //console.log(temp);  
+          if (!temp) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
+            return resolve('getloginUserCompanyDetails_not_found');
+          }
+          invoice['companyProfile'] = temp;
+          invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+          paymentType = await getPaymentType(accessToken, invoice.payment_type_id);
+          if (!paymentType) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'getPaymentType_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getPaymentType_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'getPaymentType_not_found');
+            return resolve('getPaymentType_not_found');
+
+          }
+          let tempPaymentType = paymentType.filter(e => e.id == invoice.payment_type_id);
+          invoice['paymentType'] = tempPaymentType;
+          let contact = await getContact(accessToken, invoice.contact_id);
+
+          if (!contact) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'contact_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'contact_not_found');
+            return resolve('contact_not_found');
+          }
+          invoice['contact'] = contact;
+          // let user = await getUser(accessToken,invoice.user_id);
+          let user = true;
+          if (!user) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'user_not_found', channel);
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'user_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'user_not_found');
+            return resolve('user_not_found');
+
+          }
+          invoice['user'] = user;
+          // companyDetails = await getloginUserCompanyDetails(accessToken)
+
+          await Promise.all(invoice.positions.map(async (items) => {
+            //console.log('items.tax_id',items.tax_id);
+            if (items.tax_id) {
+              let tempTax = await getTaxs(accessToken, items.tax_id);
+              if (!tempTax) {
+                invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'tax_not_Found', channel);
+                commonErrors['errorTitle'] = req.originalUrl;
+                commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,', JSON.stringify(req.body);
+                warningMessage(commonErrors, 'tax_not_Found');
+                return resolve('tax_not_Found');
               }
-              let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender,'WS',xml,invoice['document_nr'],channel.toUpperCase());
-             console.log('invoiceFilePushD',invoiceFilePushD);
-           await markAsIssued(accessToken,invoiceId);
-              let redisKey = req.body.partyId+"_/";
-              await deleteRedis('sendInvoice',redisKey);
+              items['tax'] = tempTax;
+            }
+            let tempItem;
+            //console.log('tempItem',tempItem);
+            if ('article_id' in items) {
+              tempItem = await getProducts(accessToken, items.article_id);
+              items['article'] = tempItem;
+              // //console.log('articleas',items['article']);
+
+            } else {
+              //console.log('items',items);
+
+              items['article'] = {}
+              items['article']['intern_name'] = items.text;
+              items['article']['intern_description'] = items.text;
+
+            }
+
+
+            return resolve(true);
+          }));
+
+          invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', channel);
+          let xml;
+
+          xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel);
+          //  //console.log('xml',xml);
+          if (xml == false) {
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'bexio_item_error', channel);
+            return resolve('bexio_item_error');
+          }
+          let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender, 'WS', xml, invoice['document_nr'], channel.toUpperCase());
+          console.log('invoiceFilePushD', invoiceFilePushD);
+          await markAsIssued(accessToken, invoiceId);
+          let redisKey = req.body.partyId + "_/";
+          await deleteRedis('sendInvoice', redisKey);
         }
-        else{
-            invoiceCid = await setInvoiceSendStatus(partyId,invoiceId,invoice['document_nr'],'0','invoice_push_error',channel);
-            return resolve('invoice_push_error');
+        else {
+          invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'invoice_push_error', channel);
+          return resolve('invoice_push_error');
         }
       }
-      catch(error){
+      catch (error) {
         console.error('Error in pushInvoiceBulkTest:', error);
         return reject(error); // Ensure the promise is rejected.
       }
@@ -653,72 +658,71 @@ export const pushInvoiceBulkTest = async (req, res,channel) => {
     }
   });
 }
-export const getInvoiceOT = async (access_token,invoiceId)=>{
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-      //  console.log('optionsoptions',options);
-        
-        request(options, function (error, response) {
-          // //console.log("response::::",response.statusCode,response.body);
-          
-          if (error) {  
-           ////console.log('errorerrorerror',error);
-            
-            commonErrors['errorTitle'] = 'getInvoiceOT';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          {
-           ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
-            return resolve(JSON.parse(response.body));
-            
-          }
-          else {
-            return resolve(false)
+export const getInvoiceOT = async (access_token, invoiceId) => {
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    //  console.log('optionsoptions',options);
 
-            }
-        });
-      });
+    request(options, function (error, response) {
+      // //console.log("response::::",response.statusCode,response.body);
+
+      if (error) {
+        ////console.log('errorerrorerror',error);
+
+        commonErrors['errorTitle'] = 'getInvoiceOT';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + invoiceId;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200) {
+        ////console.log('JSON.parse(response.body)',JSON.parse(response.body));
+        return resolve(JSON.parse(response.body));
+
+      }
+      else {
+        return resolve(false)
+
+      }
+    });
+  });
 }
-export const getConnectionDetails = async (partyId,accountId,contactId,req,channel?) => {
+export const getConnectionDetails = async (partyId, accountId, contactId, req, channel?) => {
   try {
-   console.log(contactId);
-  let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
-  console.log('dataCookie',dataCookie);
-  
+    console.log(contactId);
+    let dataCookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME])));
+    console.log('dataCookie', dataCookie);
+
     const partyObjectId = await connectBexio.contact_bc.findMany({
       where: {
         rk_netcomidsender: dataCookie.netcomId,
         rk_sendercontactid: contactId,
-        type: channel?? 'EDI',
+        type: channel ?? 'EDI',
         rk_businessconnection: {
           not: null,
         },
       },
     });
-    console.log('partyObjectId',partyObjectId);
-    
+    console.log('partyObjectId', partyObjectId);
+
     return partyObjectId;
   } catch (error) {
-      commonErrors['errorTitle'] = getConnectionDetails.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+contactId;
-      warningMessage(commonErrors,error);
-   ////console.log(error);
-    
+    commonErrors['errorTitle'] = getConnectionDetails.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + contactId;
+    warningMessage(commonErrors, error);
+    ////console.log(error);
+
   }
 }
-export const constGetContactId = async (code) =>{
+export const constGetContactId = async (code) => {
   try {
-   ////console.log(code);
+    ////console.log(code);
     const getCustomerIdResult = await connectNewGate2b.$queryRaw<any>(Prisma.sql`
   SELECT json_extract_path("ot_updator"::json,'in_custom_id') AS senderId,
   json_extract_path("ot_updator"::json,'out_custom_id')  AS receiverId
@@ -727,9 +731,9 @@ FROM  g2b_business_connections
   `);
     return getCustomerIdResult
   } catch (error) {
-      commonErrors['errorTitle'] = constGetContactId.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+code;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = constGetContactId.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + code;
+    warningMessage(commonErrors, error);
   }
 }
 export const getInvoicePdf = async (accessToken, invoiceId) => {
@@ -744,13 +748,13 @@ export const getInvoicePdf = async (accessToken, invoiceId) => {
         },
       };
       console.log("getInvoicePdf options:", options);
-      
+
 
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getInvoicePdf';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + invoiceId;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
 
@@ -771,552 +775,553 @@ export const getInvoicePdf = async (accessToken, invoiceId) => {
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getInvoicePdf.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+accessToken+' '+invoiceId;
-      warningMessage(commonErrors,error);
-      return false;
+    commonErrors['errorTitle'] = getInvoicePdf.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + accessToken + ' ' + invoiceId;
+    warningMessage(commonErrors, error);
+    return false;
 
-      
+
   }
 }
-export const getCountryLists = async (access_token)=>{
-    try {
-      return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/country`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getCountryLists';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200){
-            return resolve(response.body);
-          }else if(response.statusCode == 401){
+export const getCountryLists = async (access_token) => {
+  try {
+    return new Promise(async (resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/country`,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + access_token
+        }
+      };
+      request(options, function (error, response) {
+        if (error) {
+          commonErrors['errorTitle'] = 'getCountryLists';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+          warningMessage(commonErrors, error);
+          return resolve(false)
+        }
+        if (response.statusCode == 200) {
+          return resolve(response.body);
+        } else if (response.statusCode == 401) {
           return resolve(response.statusCode);
-        }else{
-            return resolve(false)
-          }
+        } else {
+          return resolve(false)
+        }
 
-        });
       });
-    } catch (error) {
-      commonErrors['errorTitle'] = "getCountryLists";
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
-      warningMessage(commonErrors,error);
-      return resolve('');
-    }
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = "getCountryLists";
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
+    warningMessage(commonErrors, error);
+    return resolve('');
+  }
 }
-export const getBank = async (access_token,id)=>{
- ////console.log(id);
-  return new Promise(async(resolve, reject) => {
-    
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/banking/accounts/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          //console.log('response getBank',response.body);
-          //console.log('response.statusCode',response.statusCode);
-          
-          if (error) {  
-            commonErrors['errorTitle'] = 'getBank';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false);
-        });
-      });
-}
-export const getCurrency = async (access_token,id)=>{
+export const getBank = async (access_token, id) => {
+  ////console.log(id);
+  return new Promise(async (resolve, reject) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/currencies/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getCountryLists';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,',id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-            return resolve(JSON.parse(response.body));
-          else
-            return resolve(false)
-        });
-      });
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/banking/accounts/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      //console.log('response getBank',response.body);
+      //console.log('response.statusCode',response.statusCode);
+
+      if (error) {
+        commonErrors['errorTitle'] = 'getBank';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false);
+    });
+  });
 }
-export const getloginUserCompanyDetails = async (access_token)=>{
-  try{
- 
-     return new Promise(async(resolve, reject) => {
- 
+export const getCurrency = async (access_token, id) => {
+
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/currencies/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getCountryLists';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,', id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false)
+    });
+  });
+}
+export const getloginUserCompanyDetails = async (access_token) => {
+  try {
+
+    return new Promise(async (resolve, reject) => {
+
       var options = {
         'method': 'GET',
         'url': 'https://api.bexio.com/2.0/company_profile',
         'headers': {
           'Accept': 'application/json',
-          'Authorization': 'Bearer '+access_token
+          'Authorization': 'Bearer ' + access_token
         }
       };
-      
+
       request(options, function (error, response) {
         if (error) {
           commonErrors['errorTitle'] = "getloginUserCompanyDetails";
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-          warningMessage(commonErrors,error);
-           return resolve(false);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+          warningMessage(commonErrors, error);
+          return resolve(false);
         }
-        if(response.statusCode==200)
+        if (response.statusCode == 200)
           return resolve(response.body)
         else
           return resolve(false)
-        
+
       });
     });
-    
+
   } catch (error) {
-      commonErrors['errorTitle'] = "getloginUserCompanyDetails";
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
-      warningMessage(commonErrors,error);
-      return resolve('');
+    commonErrors['errorTitle'] = "getloginUserCompanyDetails";
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
+    warningMessage(commonErrors, error);
+    return resolve('');
   }
 }
-export const getPaymentType = async (access_token,id)=>{
+export const getPaymentType = async (access_token, id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/payment_type`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getPaymentType';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false)
-        });
-      });
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/payment_type`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getPaymentType';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false)
+    });
+  });
 }
-export const getContact = async (access_token,id)=>{
+export const getContact = async (access_token, id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/contact/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getContact';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-         console.log('responseof contact',response);
-     
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false)
-        });
-      });
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/contact/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getContact';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      console.log('responseof contact', response);
+
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false)
+    });
+  });
 }
-export const getProducts = async (access_token,id)=>{
- ////console.log('IDDD',id);
+export const getProducts = async (access_token, id) => {
+  ////console.log('IDDD',id);
 
   return new Promise((resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/article/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getProducts';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
-          return resolve(false);
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/article/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getProducts';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false);
 
 
-        });
-      });
+    });
+  });
 }
-export const getTaxs = async (access_token,id)=>{
+export const getTaxs = async (access_token, id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/taxes/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getTaxs';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-         ////console.log(response?.body);
-          
-          if(response?.statusCode==200)
-          return resolve(JSON.parse(response?.body));
-          else
-          return resolve(false)
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/taxes/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getTaxs';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      ////console.log(response?.body);
 
-        });
-      });
+      if (response?.statusCode == 200)
+        return resolve(JSON.parse(response?.body));
+      else
+        return resolve(false)
+
+    });
+  });
 }
-export const setInvoiceToOt = async (invoice,coutryList,invitionData,pdf,fileName,customerIds,invoiceCid,channel) => {
- console.log('invitionData',invitionData);
+export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fileName, customerIds, invoiceCid, channel) => {
+  console.log('invitionData', invitionData);
 
   let emptyValue = 'NA'
   let taxIsAdded;
-  
+
   let priceQuantity = '1'
   let orderUnit = {
-    'Stk':'C62',
-    'h':'HUR'
+    'Stk': 'C62',
+    'h': 'HUR'
   }
-//console.log('setInvoiceToOt : invitionData -> ',invitionData);
-let total = '';
-//console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
+  //console.log('setInvoiceToOt : invitionData -> ',invitionData);
+  let total = '';
+  //console.log("invoice['total_credit_vouchers'] == 0",invoice['total_credit_vouchers'] == 0);
 
-total = invoice['total_remaining_payments'];
-//console.log('totalqqqqqqqqqqqqqq',total);
+  total = invoice['total_remaining_payments'];
+  //console.log('totalqqqqqqqqqqqqqq',total);
 
   let obj = JSON.parse(JSON.stringify({
-      "OPENTRANS": {
-          "$": {
-              "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
-              "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
-              "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
-          },
-          "INVOICE": [{
-              "$": {
-                  "version": "2.1"
-              },
-              "INVOICE_HEADER": [{
-                  "INVOICE_INFO": [],
-                  ...(invoice.reference
-                    ? {
-                        "ORDER_HISTORY": [
-                          {
-                            "ORDER_ID": invoice.reference,
-                          },
-                        ],
-                      }
-                    : {})
-              }],
-              "INVOICE_ITEM_LIST": [{
-                  "INVOICE_ITEM": []
-              }],
-              "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
-                  "TOTAL_ITEM_NUM": invoice.positions.length,
-                  "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
-                  "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
-                  "TOTAL_TAX": {
-                    "TAX_DETAILS_FIX":[]
-                  }
-              }]))
-          }]
-      }
+    "OPENTRANS": {
+      "$": {
+        "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+        "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+        "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+      },
+      "INVOICE": [{
+        "$": {
+          "version": "2.1"
+        },
+        "INVOICE_HEADER": [{
+          "INVOICE_INFO": [],
+          ...(invoice.reference
+            ? {
+              "ORDER_HISTORY": [
+                {
+                  "ORDER_ID": invoice.reference,
+                },
+              ],
+            }
+            : {})
+        }],
+        "INVOICE_ITEM_LIST": [{
+          "INVOICE_ITEM": []
+        }],
+        "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
+          "TOTAL_ITEM_NUM": invoice.positions.length,
+          "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
+          "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
+          "TOTAL_TAX": {
+            "TAX_DETAILS_FIX": []
+          }
+        }]))
+      }]
+    }
   }))
 
-let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
-taxIsAdded = invoice.taxs.length;
+  let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
+  taxIsAdded = invoice.taxs.length;
 
   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
-      "INVOICE_ID": invoice.document_nr,
-      "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
-      "INVOICE_TYPE": "invoice",
-      "DELIVERY_DATE": [{
-       "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-       "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
-      }],
-      "bmecat:LANGUAGE": 'deu',
-      "PARTIES": [{
-          "PARTY": [{
-              "bmecat:PARTY_ID": [{
-                  "_": invitionData.rk_netcomidsender,
-                  "$": {
-                      "type": "netcomid"
-                  }
-                 
-              }],
-              "PARTY_ROLE": "invoice_issuer",
-              "ADDRESS": [{
-                  "bmecat:NAME": invoice.companyProfile[0].name?invoice.companyProfile[0].name:undefined,
-                  "bmecat:STREET": invoice.companyProfile[0].address?invoice.companyProfile[0].address:undefined,
-                  "bmecat:ZIP": invoice.companyProfile[0].postcode?invoice.companyProfile[0].postcode:undefined,
-                  "bmecat:CITY": invoice.companyProfile[0].city?invoice.companyProfile[0].city:undefined,
-                 
-                  "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice.companyProfile[0].country_name)[0].iso_3166_alpha2,
-                 
-                  
-              }]
-
-          }, {
-              "bmecat:PARTY_ID": [{
-                  "_": invitionData.rk_netcomidreceived,
-                  "$": {
-                      "type": "supplier_specific"
-                  }
-              }],
-              "PARTY_ROLE": "invoice_recipient",
-              "ADDRESS": [{
-                  "bmecat:NAME": invoice.contact.name_1,
-                  "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
-                  "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
-                  "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
-                  "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
-                  // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
-                  "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined,
-                  "bmecat:EMAIL": invoice.contact.mail?invoice.contact.mail:undefined,
-
-              }]
-          }]
-      }],
-      "INVOICE_ISSUER_IDREF": [{
-          "_": invitionData.sendercustomerid
-      }],
-      "INVOICE_RECIPIENT_IDREF": [{
-          "_": invitionData.receiver_customerid,
+    "INVOICE_ID": invoice.document_nr,
+    "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+    "INVOICE_TYPE": "invoice",
+    "DELIVERY_DATE": [{
+      "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+      "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+    }],
+    "bmecat:LANGUAGE": 'deu',
+    "PARTIES": [{
+      "PARTY": [{
+        "bmecat:PARTY_ID": [{
+          "_": invitionData.rk_netcomidsender,
           "$": {
-              "type": "supplier_specific"
+            "type": "netcomid"
           }
+
+        }],
+        "PARTY_ROLE": "invoice_issuer",
+        "ADDRESS": [{
+          "bmecat:NAME": invoice.companyProfile[0].name ? invoice.companyProfile[0].name : undefined,
+          "bmecat:STREET": invoice.companyProfile[0].address ? invoice.companyProfile[0].address : undefined,
+          "bmecat:ZIP": invoice.companyProfile[0].postcode ? invoice.companyProfile[0].postcode : undefined,
+          "bmecat:CITY": invoice.companyProfile[0].city ? invoice.companyProfile[0].city : undefined,
+
+          "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice.companyProfile[0].country_name)[0].iso_3166_alpha2,
+
+
+        }]
+
+      }, {
+        "bmecat:PARTY_ID": [{
+          "_": invitionData.rk_netcomidreceived,
+          "$": {
+            "type": "supplier_specific"
+          }
+        }],
+        "PARTY_ROLE": "invoice_recipient",
+        "ADDRESS": [{
+          "bmecat:NAME": invoice.contact.name_1,
+          "bmecat:NAME2": invoice.contact.name_2 ? invoice.contact.name_2 : undefined,
+          "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() : undefined,
+          "bmecat:ZIP": invoice.contact.postcode ? invoice.contact.postcode : undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+          "bmecat:CITY": invoice.contact.city ? invoice.contact.city : undefined,
+          // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
+          "bmecat:COUNTRY_CODED": invoice.contact.country_id ? coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2 : undefined,
+          "bmecat:EMAIL": invoice.contact.mail ? invoice.contact.mail : undefined,
+
+        }]
+      }]
+    }],
+    "INVOICE_ISSUER_IDREF": [{
+      "_": invitionData.sendercustomerid
+    }],
+    "INVOICE_RECIPIENT_IDREF": [{
+      "_": invitionData.receiver_customerid,
+      "$": {
+        "type": "supplier_specific"
+      }
+    }],
+    "bmecat:CURRENCY": invoice.currency['name'],
+    "PAYMENT": invoice.bank != '' ? [{
+      "ACCOUNT": [{
+        "HOLDER": invoice.bank?.owner ? invoice.bank.owner : '',
+        "BANK_ACCOUNT": [{
+          "_": invoice.bank?.iban_nr ? invoice.bank.iban_nr : '',
+          "$": {
+            "type": "iban"
+          }
+        }],
+        "BANK_CODE": [{
+          "_": invoice.bank?.bank_nr ? invoice.bank.bank_nr : '',
+          "$": {
+            "type": "bic"
+          }
+        }],
+        "BANK_NAME": invoice.bank?.bank_name ? invoice.bank.bank_name : '',
+        // "BANK_COUNTRY": invoice.bank.currency_id NOT IN BEXIO BANK - REMOVED
       }],
-      "bmecat:CURRENCY": invoice.currency['name'],
-      "PAYMENT":  invoice.bank != '' ?[{
-          "ACCOUNT": [{
-              "HOLDER": invoice.bank?.owner?invoice.bank.owner:'',
-              "BANK_ACCOUNT": [{
-                  "_": invoice.bank?.iban_nr?invoice.bank.iban_nr:'',
-                  "$": {
-                      "type": "iban"
-                  }
-              }],
-              "BANK_CODE": [{
-                  "_": invoice.bank?.bank_nr?invoice.bank.bank_nr:'',
-                  "$": {
-                      "type": "bic"
-                  }
-              }],
-              "BANK_NAME": invoice.bank?.bank_name?invoice.bank.bank_name:'',
-              // "BANK_COUNTRY": invoice.bank.currency_id NOT IN BEXIO BANK - REMOVED
-          }],
-          "PAYMENT_TERMS": [{
-              "TIME_FOR_PAYMENT": [{
-                  "DAYS": ["30"]
-              }],
-              "VALUE_DATE": invoice.is_valid_to
-          }]
-      }]:undefined,
-      "MIME_INFO":[{
-        "MIME":[{
-          "MIME_EMBEDDED":{
-            "MIME_DATA":[{
-              "_":pdf,
+      "PAYMENT_TERMS": [{
+        "TIME_FOR_PAYMENT": [{
+          "DAYS": ["30"]
+        }],
+        "VALUE_DATE": invoice.is_valid_to
+      }]
+    }] : undefined,
+    "MIME_INFO": [{
+      "MIME": [{
+        "MIME_EMBEDDED": {
+          "MIME_DATA": [{
+            "_": pdf,
             //   "$": {
             //     "contentType": "application/pdf"
             // }
-            }],
-            "FILE_NAME":fileName?fileName:'temp'}
-        }]
+          }],
+          "FILE_NAME": fileName ? fileName : 'temp'
+        }
+      }]
+    }],
+    "REMARKS": invoice.title ? invoice.title : undefined,
+    "HEADER_UDX": customerIds.length != 0 || invoiceCid ? [{
+      "HEADER_UDX_OPT": [{
+        "BEX_VERSION": "VER1",
+        "BEX_INVOICE_DOCUMENT_ID": invoiceCid ? invoiceCid : undefined
       }],
-      "REMARKS": invoice.title ? invoice.title : undefined,
-      "HEADER_UDX": customerIds.length != 0 || invoiceCid ? [{
-        "HEADER_UDX_OPT":[{
-          "BEX_VERSION": "VER1",
-          "BEX_INVOICE_DOCUMENT_ID": invoiceCid ? invoiceCid : undefined
-        }],
-        "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
-        "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid? customerIds[0].receiverid:undefined
-      }]:undefined
+      "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid : undefined,
+      "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined
+    }] : undefined
   })))
-  let allTax:any = []
-//console.log('customerIds.length',customerIds.length);
+  let allTax: any = []
+  //console.log('customerIds.length',customerIds.length);
 
-    invoice.positions.forEach(element => {
-      const index = allTax.findIndex(object => object.type === element.tax?.type);
-      if (index === -1) {
-          allTax.push({
-              type: element.tax?.type,
-              value: element.tax?.value,
-          });
-      }
+  invoice.positions.forEach(element => {
+    const index = allTax.findIndex(object => object.type === element.tax?.type);
+    if (index === -1) {
+      allTax.push({
+        type: element.tax?.type,
+        value: element.tax?.value,
+      });
+    }
   })
   let tempTaxArray = [];
-  
- 
 
- invoice.taxs.length!=0?
-invoice.taxs.forEach(element => {
-  JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
-    {
-        "bmecat:TAX": element.percentage,
-        "TAX_AMOUNT": element.value
-    }
-    )))
-})
- :obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"]='';
-  
 
-//console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
+
+  invoice.taxs.length != 0 ?
+    invoice.taxs.forEach(element => {
+      JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
+        {
+          "bmecat:TAX": element.percentage,
+          "TAX_AMOUNT": element.value
+        }
+      )))
+    })
+    : obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"] = '';
+
+
+  //console.log('123',obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]);
 
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
-    console.log('element*',element);
-    
-    let arr,status = true;
+    console.log('element*', element);
+
+    let arr, status = true;
 
 
-      obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
-          "$": {
-              "type": "order_item"
-          },
-          "LINE_ITEM_ID": element.pos?element.pos:index,
-          "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code.substring(0, 23):undefined,
-              ...(element?.article?.deliverer_code
-                ? {
-                    "bmecat:INTERNATIONAL_PID": {
-                      "_": element?.article?.deliverer_code,
-                      "$": {
-                        "type": "ean"
-                      }
-                    }
-                  }
-                : {}),
-              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
-          }],
-          "QUANTITY": element.amount?Math.trunc(element.amount):1,
-          "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62', // add defult value directly
-          "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
-              "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-              "ALLOW_OR_CHARGES_FIX":[{
-                "ALLOW_OR_CHARGE":[{
-                  "$": {
-                    "type": "allowance"
-                },
-                "ALLOW_OR_CHARGE_TYPE":'cash_discount',
-                "ALLOW_OR_CHARGE_VALUE":{
-                  "AOC_PERCENTAGE_FACTOR":element.discount_in_percent,
-                }
-                
-              }]
-              }],
-              "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded>0? [{
-                  "bmecat:TAX_TYPE": element.tax?.type,
-                  "bmecat:TAX": element.tax?.value
-                  // "TAX_AMOUNT": element.tax_value
-              }]:undefined,
-  
-        
-          "bmecat:PRICE_QUANTITY": priceQuantity, // add defult value directly.
-          })),
-        ],
-        "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
-        "ORDER_REFERENCE": [{
-          "ORDER_ID":invoice.document_nr,
-          "LINE_ITEM_ID":index
-        }]
-       
-       
-        
-      })))
-      // element.article.intern_description==''?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_ID'][0]['bmecat:DESCRIPTION_LONG']:'';
-       element.discount_in_percent==null?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX']:'';
+    obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
+      "$": {
+        "type": "order_item"
+      },
+      "LINE_ITEM_ID": element.pos ? element.pos : index,
+      "PRODUCT_ID": [{
+        "bmecat:SUPPLIER_PID": element?.article?.intern_code ? element.article.intern_code.substring(0, 23) : undefined,
+        ...(element?.article?.deliverer_code
+          ? {
+            "bmecat:INTERNATIONAL_PID": {
+              "_": element?.article?.deliverer_code,
+              "$": {
+                "type": "ean"
+              }
+            }
+          }
+          : {}),
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined, // product id mandatory field so just added intername as description short
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+      }],
+      "QUANTITY": element.amount ? Math.trunc(element.amount) : 1,
+      "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62', // add defult value directly
+      "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
+        "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+        "ALLOW_OR_CHARGES_FIX": [{
+          "ALLOW_OR_CHARGE": [{
+            "$": {
+              "type": "allowance"
+            },
+            "ALLOW_OR_CHARGE_TYPE": 'cash_discount',
+            "ALLOW_OR_CHARGE_VALUE": {
+              "AOC_PERCENTAGE_FACTOR": element.discount_in_percent,
+            }
+
+          }]
+        }],
+        "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
+          "bmecat:TAX_TYPE": element.tax?.type,
+          "bmecat:TAX": element.tax?.value
+          // "TAX_AMOUNT": element.tax_value
+        }] : undefined,
+
+
+        "bmecat:PRICE_QUANTITY": priceQuantity, // add defult value directly.
+      })),
+      ],
+      "PRICE_LINE_AMOUNT": element.position_total ? parseFloat(element.position_total).toFixed(2) : 0.00,
+      "ORDER_REFERENCE": [{
+        "ORDER_ID": invoice.document_nr,
+        "LINE_ITEM_ID": index
+      }]
+
+
+
+    })))
+    // element.article.intern_description==''?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_ID'][0]['bmecat:DESCRIPTION_LONG']:'';
+    element.discount_in_percent == null ? delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length - 1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX'] : '';
   }
 
-  let builder = new xml2js.Builder({'xmldec.version':1.0} );
+  let builder = new xml2js.Builder({ 'xmldec.version': 1.0 });
   var xml = builder.buildObject(obj);
   return Buffer.from(xml).toString('base64');
-  
+
 }
-export async function invoiceFilePush(netcomId,service,data,filename,type) {
+export async function invoiceFilePush(netcomId, service, data, filename, type) {
   // //console.log('netcomId',netcomId);
   // //console.log('service',service); 
   // //console.log('data',data);
   // //console.log('filename',filename);
   // //console.log('type',type);
-  
-  let formData 
-  return new Promise(async(resolve, reject) => {
-    formData = {
-      netcom_id:netcomId,
-      interface:service,
-      data:data,
-      filename:filename+'.xml',
-      module:type
-    }
-// console.log('bexio-file-drop formData',formData);
 
-    let  options = {
-        'method': 'POST',        
-        'url':config.PYTHON_API+'bexio-file-drop',
-        // 'headers': headers,
-        formData: formData
-      };
+  let formData
+  return new Promise(async (resolve, reject) => {
+    formData = {
+      netcom_id: netcomId,
+      interface: service,
+      data: data,
+      filename: filename + '.xml',
+      module: type
+    }
+    // console.log('bexio-file-drop formData',formData);
+
+    let options = {
+      'method': 'POST',
+      'url': config.PYTHON_API + 'bexio-file-drop',
+      // 'headers': headers,
+      formData: formData
+    };
     request(options, function (error, response) {
-      try{
-        if (error) { 
+      try {
+        if (error) {
           commonErrors['errorTitle'] = 'bexio-file-drop';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
         return resolve(response?.body)
-      }catch(error){
+      } catch (error) {
         reject(error)
       }
-     
+
     });
   });
 }
@@ -1329,7 +1334,7 @@ export const deleteRedis = async (api, key) => {
   try {
     delApis.split(",").forEach(async element => { // <--- make this async
       const pattern = key + element + '*';
-     ////console.log(pattern);
+      ////console.log(pattern);
 
       const data = await redis_client.keys(pattern); // use await instead of callback
       data.forEach(async apis => {
@@ -1337,7 +1342,7 @@ export const deleteRedis = async (api, key) => {
       });
     });
   } catch (error) {
-   ////console.log(error);
+    ////console.log(error);
   }
 };
 
@@ -1345,15 +1350,15 @@ export const deleteRedis = async (api, key) => {
 export const pushEmailInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
     const decryptData = invoices;
-      const invoice_id = invoices?.doc_id;
-      const bill_recipient_email = invoices?.bill_recipient_email ?? '';
-      const invoice_uuid = invoices?.invoice_uuid;
-      const partyId = bodyValues?.partyId;
-      let pdf, fileName, pdfContent;
+    const invoice_id = invoices?.doc_id;
+    const bill_recipient_email = invoices?.bill_recipient_email ?? '';
+    const invoice_uuid = invoices?.invoice_uuid;
+    const partyId = bodyValues?.partyId;
+    let pdf, fileName, pdfContent;
     try {
-      console.log('invoices::::', invoices,channel);
+      console.log('invoices::::', invoices, channel);
 
-      
+
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
 
@@ -1395,7 +1400,7 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       coutryList = JSON.parse(coutryList);
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
       let contact = await getContact(accessToken, invoice?.contact_id);
-      if(!invoice){
+      if (!invoice) {
         console.log('Invoice not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invoice_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
@@ -1414,27 +1419,27 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
       invoice.contact = contact;
-       let temp = await getloginUserCompanyDetails(accessToken);
-            console.log("getloginUserCompanyDetails:",typeof(temp));  
-            console.log("getloginUserCompanyDetails:",temp);  
-            if(!temp){
-             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
-              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
-              return resolve('getloginUserCompanyDetails_not_found');
-            }
-            invoice['companyProfile'] = temp;
-            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
-        let currency = await getCurrency(accessToken,invoice.currency_id);
-            if(!currency){
-              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
-              warningMessage(commonErrors,'currency_not_found');
-              return resolve('currency_not_found');
-            }
-            invoice['currency'] = currency;
+      let temp = await getloginUserCompanyDetails(accessToken);
+      console.log("getloginUserCompanyDetails:", typeof (temp));
+      console.log("getloginUserCompanyDetails:", temp);
+      if (!temp) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
+        return resolve('getloginUserCompanyDetails_not_found');
+      }
+      invoice['companyProfile'] = temp;
+      invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+      let currency = await getCurrency(accessToken, invoice.currency_id);
+      if (!currency) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'currency_not_found', channel);
+        commonErrors['errorTitle'] = invoices.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'currency_not_found');
+        return resolve('currency_not_found');
+      }
+      invoice['currency'] = currency;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
@@ -1447,12 +1452,12 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
       let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-      console.log('filePush::::', filePush,channel);
-      
+      console.log('filePush::::', filePush, channel);
+
       if (filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
         console.log('invoiceCid::::', invoiceCid);
-        await markAsIssued(accessToken,invoice_id);
+        await markAsIssued(accessToken, invoice_id);
         resolve(invoiceCid);
         return;
       }
@@ -1463,100 +1468,100 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
     } catch (error) {
-       await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
       console.error('Error in pushEmailInvoice:', error);
       return reject(error);
     }
   });
 };
-export const pushEbillInvoiceProcess = async (invoices,billerId,bodyValues,channel)=>{  
-  return new Promise(async(resolve,reject)=>{
-    try{      
-      console.log('pushEbillInvoiceProcess',invoices);
+export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, channel) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log('pushEbillInvoiceProcess', invoices);
       let tempIds = invoices
       for (let index = 0; index < tempIds.length; index++) {
-         const element = tempIds[index];
-         console.log('element.accessToken',element.accessToken);
-         console.log('element.contactId',element.contactId);
-         let contact: any = await getContact(element.accessToken, element.contactId);
-         console.log('contact::::1', contact);
-         // If contact exists, check for required keys
-         
-         const tempParam={
-           body:{
-             invoice_id: element.doc_id,
-             biller_pid: billerId,
-             contact_pid: element.bill_recipient_id ?? "",
-             contact_email: element.bill_recipient_email ?? "",
-             invoice_uuid: "",
-             allow: element.allow,
-             token: element.accessToken
-            }
+        const element = tempIds[index];
+        console.log('element.accessToken', element.accessToken);
+        console.log('element.contactId', element.contactId);
+        let contact: any = await getContact(element.accessToken, element.contactId);
+        console.log('contact::::1', contact);
+        // If contact exists, check for required keys
+
+        const tempParam = {
+          body: {
+            invoice_id: element.doc_id,
+            biller_pid: billerId,
+            contact_pid: element.bill_recipient_id ?? "",
+            contact_email: element.bill_recipient_email ?? "",
+            invoice_uuid: "",
+            allow: element.allow,
+            token: element.accessToken
           }
-          if (!contact?.city || !contact?.country_id || !contact?.postcode) {
-            console.log('contact missing address or postal');
-            console.log('channel detail',channel);
-            let invoiceCid = await setEbillInvoiceSendStatus (bodyValues?.partyId,element.doc_id, '',tempParam,'0','contact_missing_address_or_postal');
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,' ;
-            warningMessage(commonErrors, 'contact_missing_address_or_postal');
-            return resolve('contact_missing_address_or_postal' + invoiceCid);
-            
-          }
-          let v = await pushEbillInvoice(tempParam,'')
         }
-        resolve(true)
-      }catch(error){
-        reject(error)
+        if (!contact?.city || !contact?.country_id || !contact?.postcode) {
+          console.log('contact missing address or postal');
+          console.log('channel detail', channel);
+          let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId, element.doc_id, '', '0', 'contact_missing_address_or_postal', 'EBILL', '', tempParam);
+          commonErrors['errorTitle'] = invoices.originalUrl;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,';
+          warningMessage(commonErrors, 'contact_missing_address_or_postal');
+          return resolve('contact_missing_address_or_postal' + invoiceCid);
+
+        }
+        let v = await pushEbillInvoice(tempParam, '')
       }
+      resolve(true)
+    } catch (error) {
+      reject(error)
+    }
   })
 }
 const checkRecipientValid = async (billerid, pid) => {
-        return new Promise(async (resolve, reject) => {
-          const correlationId = crypto.randomBytes(15).toString('hex');
-          let data = {
-            items: [{
-              'billRecipientId': pid,
-            }]
-          }
-          const options = {
-            method: 'POST',
-            url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerid}/bill-recipients/search`,
-            headers: {
-              'Content-Type': 'application/json',
-              'x-networkpartner-id': config.NETWORK_PARTNER_ID,
-              'X-Correlation-Id': correlationId,
-            },
-            body: JSON.stringify(data),
-            key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
-            cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
-          };
-         
-          await request(options, async function (error, response) {
-            if (error) {
-              return resolve(false)
-            }
-            else {
-              if (response.statusCode == 200) {
-                let resData = JSON.parse(response.body)
+  return new Promise(async (resolve, reject) => {
+    const correlationId = crypto.randomBytes(15).toString('hex');
+    let data = {
+      items: [{
+        'billRecipientId': pid,
+      }]
+    }
+    const options = {
+      method: 'POST',
+      url: config.SIX_API_CERTIFICATE_BASE + `billers/${billerid}/bill-recipients/search`,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-networkpartner-id': config.NETWORK_PARTNER_ID,
+        'X-Correlation-Id': correlationId,
+      },
+      body: JSON.stringify(data),
+      key: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_KEY),
+      cert: fs.readFileSync(config.CERTIFICATE_PATH + config.SIX_API_CERTIFICATE)
+    };
 
-                if (resData.items[0].ebillSubmissionStatus != 'NOT_ALLOWED') {
-                  return resolve(true)
-                }
-                else {
-                  return resolve(false)
-                }
-              }
-              else {
-                return resolve(false)
-              }
-            }
-          })
-        })
+    await request(options, async function (error, response) {
+      if (error) {
+        return resolve(false)
       }
+      else {
+        if (response.statusCode == 200) {
+          let resData = JSON.parse(response.body)
+
+          if (resData.items[0].ebillSubmissionStatus != 'NOT_ALLOWED') {
+            return resolve(true)
+          }
+          else {
+            return resolve(false)
+          }
+        }
+        else {
+          return resolve(false)
+        }
+      }
+    })
+  })
+}
 
 export const pushEbillInvoice = async (req, res) => {
-console.log('pushEbillInvoice',req.body);
+  console.log('pushEbillInvoice', req.body);
 
   return new Promise(async (resolve, reject) => {
 
@@ -1564,17 +1569,17 @@ console.log('pushEbillInvoice',req.body);
     formData = req.body;
     let invoiceCid: any;
     try {
-      
+
       let invoice, paymentType
       const ebillPool = await connectMssql;
       const decryptData = req.body;
-     console.log('decryptData', decryptData);
+      console.log('decryptData', decryptData);
 
       let billerDetails = {
         'recipientid': decryptData.contact_pid,
-        'contact_email':decryptData.contact_email,
+        'contact_email': decryptData.contact_email,
         'billerid': decryptData.biller_pid,
-        'allow': decryptData.allow 
+        'allow': decryptData.allow
       }
 
       let getBiller = `SELECT * 
@@ -1583,7 +1588,7 @@ console.log('pushEbillInvoice',req.body);
           AND status = 'ACTIVE'`
       let getBillerResult = await ebillPool.query(getBiller);
 
-   
+
       const result = await connectBexio.companyregistered.findMany({
         where: {
           netcomid: getBillerResult.recordset[0].netcomid,
@@ -1592,11 +1597,11 @@ console.log('pushEbillInvoice',req.body);
           },
         },
       });
-      
+
       const partyId = result[0].rk_party;
 
       if (getBillerResult.recordset.length == 0) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'biller_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'biller_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'biller_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'biller_not_found');
@@ -1625,47 +1630,47 @@ console.log('pushEbillInvoice',req.body);
       // let tempMail = companyJson['localizedData'][defaultLang]['emailAddress'];
 
       // let checkRecipientData;
-      console.log('decryptData?.contact_pid !',decryptData?.contact_pid);
-      console.log('typeof decryptData.contact_pid',typeof decryptData.contact_pid);
+      console.log('decryptData?.contact_pid !', decryptData?.contact_pid);
+      console.log('typeof decryptData.contact_pid', typeof decryptData.contact_pid);
 
-      console.log('config.IS_LIVE',config.IS_LIVE);
-      
-//     if ((config.IS_LIVE === 'true') && decryptData?.contact_pid) {
-//           console.log('checkRecipientValid');
-//         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
-//       } else {
-//         checkRecipientData = true;
+      console.log('config.IS_LIVE', config.IS_LIVE);
 
-//       }
-//  console.log('checkRecipientData',checkRecipientData);
-//       console.log('checkRecipientData', checkRecipientData, 'Type:', typeof checkRecipientData);
-//       if (!checkRecipientData) {
+      //     if ((config.IS_LIVE === 'true') && decryptData?.contact_pid) {
+      //           console.log('checkRecipientValid');
+      //         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
+      //       } else {
+      //         checkRecipientData = true;
 
-//         await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
-       
-//         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'recipientId_not_allowed');
+      //       }
+      //  console.log('checkRecipientData',checkRecipientData);
+      //       console.log('checkRecipientData', checkRecipientData, 'Type:', typeof checkRecipientData);
+      //       if (!checkRecipientData) {
 
-//         commonErrors['errorTitle'] = req.originalUrl;
-//         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' comapny_name ' + tempCompanyName + ' email_id ' + tempMail + ' recipientId_not_allowed' + '-req param,' + JSON.stringify(decryptData);
+      //         await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
+
+      //         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'recipientId_not_allowed');
+
+      //         commonErrors['errorTitle'] = req.originalUrl;
+      //         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' comapny_name ' + tempCompanyName + ' email_id ' + tempMail + ' recipientId_not_allowed' + '-req param,' + JSON.stringify(decryptData);
 
 
-//         warningMessage(commonErrors, 'recipientId_not_allowed');
+      //         warningMessage(commonErrors, 'recipientId_not_allowed');
 
-//         resolve('recipientId_not_allowed')
-//         return
-//       }
-       let accessToken = '';
+      //         resolve('recipientId_not_allowed')
+      //         return
+      //       }
+      let accessToken = '';
       if ('token' in decryptData) {
         accessToken = decryptData.token;
 
-      } 
+      }
       await markAsIssued(accessToken, decryptData.invoice_id);
-     ////console.log("checkRecipientData----", checkRecipientData);
-      
+      ////console.log("checkRecipientData----", checkRecipientData);
+
       if (result.length == 0) {
 
 
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0','refreshToken_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'refreshToken_not_found', 'EBILL', '', decryptData);
 
 
         commonErrors['errorTitle'] = req.originalUrl;
@@ -1677,16 +1682,16 @@ console.log('pushEbillInvoice',req.body);
         return
       }
 
-     
+
 
       const invoiceId = decryptData.invoice_id;
-     console.log('accessToken', accessToken);
-     ////console.log('invoiceId', invoiceId);
+      console.log('accessToken', accessToken);
+      ////console.log('invoiceId', invoiceId);
 
       invoice = await getInvoiceOT(accessToken, invoiceId);
-     console.log('invoice', invoice);
+      console.log('invoice', invoice);
       if (!invoice) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_invoice_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_invoice_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_invoice_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_invoice_not_found');
@@ -1695,7 +1700,7 @@ console.log('pushEbillInvoice',req.body);
 
       // let recipentStatus;
       // console.log('decryptData?.contact_pid',decryptData?.contact_pid);
-      
+
       // if ((config.IS_LIVE === 'true') && (decryptData?.contact_pid)) {
       //   console.log('checkRecipient');
       //   recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
@@ -1707,7 +1712,7 @@ console.log('pushEbillInvoice',req.body);
       // recipentStatus = (recipentStatus === true || recipentStatus === "true");
       //   console.log('Type:', typeof recipentStatus);
       // if (!recipentStatus) {
-      
+
       //   await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
       //   invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_Recipient_not_found');
       //   commonErrors['errorTitle'] = req.originalUrl;
@@ -1722,7 +1727,7 @@ console.log('pushEbillInvoice',req.body);
       pdf = await getInvoicePdf(accessToken, invoiceId);
       if (pdf?.response == 401) {
         console.log('unauthorized');
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'unauthorized');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'unauthorized', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'unauthorized');
@@ -1730,7 +1735,7 @@ console.log('pushEbillInvoice',req.body);
         return;
       }
       if (!pdf) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_pdf_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_pdf_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_pdf_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_pdf_not_found');
@@ -1742,7 +1747,7 @@ console.log('pushEbillInvoice',req.body);
       let coutryList;
       coutryList = await getCountryLists(accessToken);
       if (!coutryList) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'unauthorized');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'unauthorized', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_countryList_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_countryList_not_found');
@@ -1753,7 +1758,7 @@ console.log('pushEbillInvoice',req.body);
 
       let currency = await getCurrency(accessToken, invoice.currency_id);
       if (!currency) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_currency_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_currency_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_currency_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_currency_not_found');
@@ -1762,8 +1767,8 @@ console.log('pushEbillInvoice',req.body);
       }
       invoice['currency'] = currency;
       let temp = await getloginUserCompanyDetails(accessToken);
-      if (!temp) {   
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_companyDetails_not_found');
+      if (!temp) {
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_companyDetails_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_companyDetails_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_companyDetails_not_found');
@@ -1774,7 +1779,7 @@ console.log('pushEbillInvoice',req.body);
 
       paymentType = true;
       if (!paymentType) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_paymentType_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_paymentType_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_paymentType_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_paymentType_not_found');
@@ -1784,7 +1789,7 @@ console.log('pushEbillInvoice',req.body);
       invoice['paymentType'] = true;
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_contact_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_contact_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_contact_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_contact_not_found');
@@ -1795,7 +1800,7 @@ console.log('pushEbillInvoice',req.body);
       let user = true
 
       if (!user) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_user_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_user_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_user_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_user_not_found');
@@ -1824,7 +1829,7 @@ console.log('pushEbillInvoice',req.body);
 
           if ('article_id' in items) {
             tempItem = await getProducts(accessToken, items.article_id);
-            if(tempItem){
+            if (tempItem) {
               items['article'] = tempItem;
             }
           } else {
@@ -1846,14 +1851,14 @@ console.log('pushEbillInvoice',req.body);
       let xml;
 
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
-      let invoiceCidSucess = await setEbillInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], decryptData, '1','');
+      let invoiceCidSucess = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', 'EBILL', '', decryptData);
       console.log('billerDetails', billerDetails);
-      invoice.partyId=partyId
+      invoice.partyId = partyId
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
 
 
       if (xml == false) {
-        invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_xml_not_found');
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_xml_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'ebill_xml_not_found');
@@ -1861,8 +1866,8 @@ console.log('pushEbillInvoice',req.body);
       }
       await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
       //await issueEbillInvoice(accessToken, decryptData.invoice_id);
-     
-     // await markAsSent(accessToken, decryptData.invoice_id);
+
+      // await markAsSent(accessToken, decryptData.invoice_id);
       return resolve(true)
 
 
@@ -1875,146 +1880,144 @@ console.log('pushEbillInvoice',req.body);
     }
   });
 }
-export const setEbillInvoiceSendStatus = async (partyId,invoiceId,invoicenumber,formData,status,error?,receiverId?) => {
+export const setEbillInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, formData, status, error?, receiverId?) => {
   let sendInvoiceId;
-   console.log('invoiceId',invoiceId);
-   console.log('responseBody error',error);
-    let responseBody = error || '';
-    console.log('responseBody',responseBody);
-    
-    return new Promise(async function (resolve, reject) {
-     try {
-          const selectQryResult = await connectBexio.documents_invoice_send.findMany({
-            where: {
-              rk_invoice: invoiceId,
-              // invoice_type: 'EBILL',
-              companyregistered: {
-                rk_party: Number(partyId),
-              },
-            },
+  console.log('invoiceId', invoiceId);
+  console.log('responseBody error', error);
+  let responseBody = error || '';
+  console.log('responseBody', responseBody);
+
+  return new Promise(async function (resolve, reject) {
+    try {
+      const selectQryResult = await connectBexio.documents_invoice_send.findMany({
+        where: {
+          rk_invoice: invoiceId,
+          // invoice_type: 'EBILL',
+          companyregistered: {
+            rk_party: Number(partyId),
+          },
+        },
+        select: {
+          cid: true,
+          object_id: true,
+          rk_invoice: true,
+          companyregistered: {
             select: {
-              cid: true, 
-              object_id: true,
-              rk_invoice: true,
-              companyregistered: {
-                select: {
-                  cid: true,
-                },
-              },
+              cid: true,
             },
-          });
-    
-          if(selectQryResult.length == 0)
-          {
-            console.log('create');
-            
-            const selectCompanyregisteredQryResult = await connectBexio.companyregistered.findMany({
-              where: {
-                rk_party: Number(partyId), 
-                
-              }
-            });
-            const result = await connectBexio.documents_invoice_send.create({
-              data: {
-                rk_invoice: invoiceId,
-                invoice_number: invoicenumber,
-                fk_companyregistered:Number(selectCompanyregisteredQryResult[0].cid),
-                invoice_type: 'EBILL',
-                invoice_params: formData,
-                response: responseBody,
-                status: Number(status),
-                receiver_contactid:receiverId,
-                is_notifyed: false,
-              },
-              select: {
-                object_id: true,
-              },
-            });
-            sendInvoiceId = result.object_id;
-          }else{
-            sendInvoiceId = selectQryResult[0].object_id;           
-             console.log('updateMany');
-             console.log('Number(invoiceId)',Number(invoiceId));
-              console.log('bigint(invoiceId)',BigInt(invoiceId));
-              console.log('responseBody',responseBody);
-         const updateResult =  await connectBexio.documents_invoice_send.updateMany({
-              where: {
-                fk_companyregistered: selectQryResult[0].companyregistered?.cid,
-                rk_invoice: BigInt(invoiceId),
-              },
-              data: {
-                time_stamp: new Date(), 
-                invoice_params: formData, 
-                is_notifyed: false,
-                reference_id: null,
-                response: responseBody,
-                status: Number(status),
-                invoice_type: 'EBILL',
-              },
-            });
-                console.log("updateResult:", updateResult); 
+          },
+        },
+      });
+
+      if (selectQryResult.length == 0) {
+        console.log('create');
+
+        const selectCompanyregisteredQryResult = await connectBexio.companyregistered.findMany({
+          where: {
+            rk_party: Number(partyId),
+
           }
-     
-          return resolve(sendInvoiceId);
-        } catch (error) {
-         console.log(error);
-        commonErrors['errorTitle'] = setEbillInvoiceSendStatus.name;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+invoiceId+'-invoiceId'+invoicenumber+'invoiceNumber';
-        warningMessage(commonErrors,error);
-          return resolve('');
-          
-        }
-    });
+        });
+        const result = await connectBexio.documents_invoice_send.create({
+          data: {
+            rk_invoice: invoiceId,
+            invoice_number: invoicenumber,
+            fk_companyregistered: Number(selectCompanyregisteredQryResult[0].cid),
+            invoice_type: 'EBILL',
+            invoice_params: formData,
+            response: responseBody,
+            status: Number(status),
+            receiver_contactid: receiverId,
+            is_notifyed: false,
+          },
+          select: {
+            object_id: true,
+          },
+        });
+        sendInvoiceId = result.object_id;
+      } else {
+        sendInvoiceId = selectQryResult[0].object_id;
+        console.log('updateMany');
+        console.log('Number(invoiceId)', Number(invoiceId));
+        console.log('bigint(invoiceId)', BigInt(invoiceId));
+        console.log('responseBody', responseBody);
+        const updateResult = await connectBexio.documents_invoice_send.updateMany({
+          where: {
+            fk_companyregistered: selectQryResult[0].companyregistered?.cid,
+            rk_invoice: BigInt(invoiceId),
+          },
+          data: {
+            time_stamp: new Date(),
+            invoice_params: formData,
+            is_notifyed: false,
+            reference_id: null,
+            response: responseBody,
+            status: Number(status),
+            invoice_type: 'EBILL',
+          },
+        });
+        console.log("updateResult:", updateResult);
+      }
+
+      return resolve(sendInvoiceId);
+    } catch (error) {
+      console.log(error);
+      commonErrors['errorTitle'] = setEbillInvoiceSendStatus.name;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyId + '-partyId' + invoiceId + '-invoiceId' + invoicenumber + 'invoiceNumber';
+      warningMessage(commonErrors, error);
+      return resolve('');
+
+    }
+  });
 
 }
-export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?,bankId?)=>{
+export const notifiBexioBulk = async (token, id, status, message?, netcomId?, amount?, bankId?) => {
   let options;
- ////console.log('refreshToken',token);
+  ////console.log('refreshToken',token);
   let params = {
-    refreshToken:token,
-    id:id,
-    status:status,
-    amount:amount,
+    refreshToken: token,
+    id: id,
+    status: status,
+    amount: amount,
   }
-  let tempMsg,erroMsg = '';
- ////console.log('typeof(message)',typeof(message));
-  
-  if(message){
-    if(typeof(message) == 'object')
-       tempMsg = message;
+  let tempMsg, erroMsg = '';
+  ////console.log('typeof(message)',typeof(message));
+
+  if (message) {
+    if (typeof (message) == 'object')
+      tempMsg = message;
     else
       try {
-       tempMsg = JSON.parse(message);
-        
+        tempMsg = JSON.parse(message);
+
       } catch (error) {
         tempMsg = message;
       }
 
-    if(typeof(tempMsg) == 'object')
-    {
-      if('detail' in tempMsg){
+    if (typeof (tempMsg) == 'object') {
+      if ('detail' in tempMsg) {
         erroMsg = erroMsg + tempMsg['detail'];
       }
-      if('technicalReason' in tempMsg){
-        erroMsg = erroMsg + ' - '+ tempMsg['technicalReason'];
+      if ('technicalReason' in tempMsg) {
+        erroMsg = erroMsg + ' - ' + tempMsg['technicalReason'];
       }
-    }else{
+    } else {
       erroMsg = erroMsg + message;
 
     }
-   
-  }
- ////console.log('erroMsg',erroMsg);
- 
- ////console.log('id',id);
- ////console.log('status',status);
-  await addBexioCommentBulk(token,id,status,erroMsg,netcomId);
 
-  return new Promise(async(resolve, reject) => {
+  }
+  ////console.log('erroMsg',erroMsg);
+
+  ////console.log('id',id);
+  ////console.log('status',status);
+  await addBexioCommentBulk(token, id, status, erroMsg, netcomId);
+
+  return new Promise(async (resolve, reject) => {
     try {
-     ////console.log('bankId',bankId);
-      
-      if(status == 'COMPLETED'){
+      ////console.log('bankId',bankId);
+
+      if (status == 'COMPLETED') {
         let isNotifyBexio = true;
         const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
           where: {
@@ -2022,7 +2025,7 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
             AND: [
               {
                 settings: {
-                  not: Prisma.JsonNull, 
+                  not: Prisma.JsonNull,
                 },
               },
               {
@@ -2037,101 +2040,98 @@ export const notifiBexioBulk = async (token,id,status,message?,netcomId?,amount?
             settings: true,
           },
         });
-        if(getCompanyIdQryResult.length > 0){
+        if (getCompanyIdQryResult.length > 0) {
           isNotifyBexio = false;
         }
-       ////console.log('isNotifyBexio',isNotifyBexio);
-        if(isNotifyBexio)
-        {
+        ////console.log('isNotifyBexio',isNotifyBexio);
+        if (isNotifyBexio) {
           options = {
             'method': 'POST',
             'url': `https://api.bexio.com/2.0/kb_invoice/${id}/payment`,
             'headers': {
               'Accept': 'application/json',
-              'Authorization': 'Bearer '+token
+              'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify({
               "value": amount,
-              "bank_account_id":bankId ? bankId : undefined
+              "bank_account_id": bankId ? bankId : undefined
             })
           };
-         ////console.log('optionsoptions',options);
-        request(options, async function (error, response) {
-          if (error) {  
-           ////console.log('errorr',error);
-            commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          let resStatus = 'success' in JSON.parse(response.body) ? true : false;
-           if(response.statusCode == 201 || resStatus)
-          {
-          
-            return resolve(JSON.parse(response.body));
-          }
-          else{
-            commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-  
-        });
-      }else{
-        return resolve(false);
-      }
-      }else if(status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL'){
+          ////console.log('optionsoptions',options);
+          request(options, async function (error, response) {
+            if (error) {
+              ////console.log('errorr',error);
+              commonErrors['errorTitle'] = 'notifiBexio';
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params);
+              warningMessage(commonErrors, error);
+              return resolve(false)
+            }
+            let resStatus = 'success' in JSON.parse(response.body) ? true : false;
+            if (response.statusCode == 201 || resStatus) {
+
+              return resolve(JSON.parse(response.body));
+            }
+            else {
+              commonErrors['errorTitle'] = 'notifiBexio';
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + response.body.toString() + '-bexio param,' + JSON.stringify(params);
+              warningMessage(commonErrors, error);
+              return resolve(false)
+            }
+
+          });
+        } else {
+          return resolve(false);
+        }
+      } else if (status == 'ERROR' || status == 'INCORRECT' || status == 'REJECTED' || status == 'ERROR-INTERNAL') {
         options = {
           'method': 'POST',
           'url': `https://office.bexio.com/api.php/kb_invoice/${id}/mark_as_ebill_failed`,
           'headers': {
             'Accept': 'application/json',
-            'Authorization': 'Bearer '+token
+            'Authorization': 'Bearer ' + token
           }
         };
         request(options, async function (error, response) {
-          if (error) {  
+          if (error) {
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
-            warningMessage(commonErrors,error);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params);
+            warningMessage(commonErrors, error);
             return resolve(false)
           }
-    
-         console.log('notifiBexionotifiBexio statusCode',response.statusCode);
-         console.log('notifiBexionotifiBexio',response.body);
+
+          console.log('notifiBexionotifiBexio statusCode', response.statusCode);
+          console.log('notifiBexionotifiBexio', response.body);
           let resStatus;
-          if(typeof(response.body) == 'object'){
+          if (typeof (response.body) == 'object') {
             resStatus = 'success' in JSON.parse(response.body) ? true : false;
 
-          }else{
+          } else {
             resStatus = false;
-          }          
-  
-           if(response.statusCode == 201 || resStatus)
-          {
-          
+          }
+
+          if (response.statusCode == 201 || resStatus) {
+
             return resolve(JSON.parse(response.body));
           }
-          else{
+          else {
             commonErrors['errorTitle'] = 'notifiBexio';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response.body.toString()+'-bexio param,'+JSON.stringify(params);
-            warningMessage(commonErrors,error);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + response.body.toString() + '-bexio param,' + JSON.stringify(params);
+            warningMessage(commonErrors, error);
             return resolve(false);
           }
-  
+
         });
-      }else{
+      } else {
         return resolve(true);
       }
-     ////console.log('options',options);
+      ////console.log('options',options);
     } catch (error) {
       commonErrors['errorTitle'] = 'notifiBexio';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(params);
-      warningMessage(commonErrors,error);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(params);
+      warningMessage(commonErrors, error);
       return resolve(false)
     }
-  }); 
+  });
 }
 export const checkRecipient = async (billerId, receiptId, contactId, accessToken) => {
   const pool = await connectMssql;
@@ -2197,7 +2197,7 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
         cid: true,
       },
     });
-    const getContactCheckResult= await connectBexio.contact_bc.findMany({
+    const getContactCheckResult = await connectBexio.contact_bc.findMany({
       where: {
         fk_companyregistered: getCompanyDetails[0].cid,
         rk_contact: contactId,
@@ -2217,155 +2217,155 @@ export const checkRecipient = async (billerId, receiptId, contactId, accessToken
           recipient_id: receiptId,
         },
       });
-    }  
-   
-        const addReceipient = ` INSERT INTO recipient (fk_biller,recipientId,islinked,source,status) 
+    }
+
+    const addReceipient = ` INSERT INTO recipient (fk_biller,recipientId,islinked,source,status) 
         VALUES('${getBillerId.recordset[0].id}','${receiptId}','${1}','BEX','SUBSCRITPTION')`;
-       ////console.log("addReceipient----",addReceipient);
-        // receipeint details are may be different in bexio and six, so we can't add details from bexio 
-     ////console.log("addReceipient----",addReceipient);
-      await new sql.Request(transaction).query(addReceipient);
-        try {
-          const addlogs = ` INSERT INTO log (billerId,recipientId,source,status) 
+    ////console.log("addReceipient----",addReceipient);
+    // receipeint details are may be different in bexio and six, so we can't add details from bexio 
+    ////console.log("addReceipient----",addReceipient);
+    await new sql.Request(transaction).query(addReceipient);
+    try {
+      const addlogs = ` INSERT INTO log (billerId,recipientId,source,status) 
           VALUES('${billerId}','${receiptId}','BEX','')`;
-         ////console.log("addReceipient----",addlogs);
-          await new sql.Request(transaction).query(addlogs);
-        } catch (error) {
-         ////console.log('error while adding six logs');
-        }
-      await transaction.commit();   
+      ////console.log("addReceipient----",addlogs);
+      await new sql.Request(transaction).query(addlogs);
+    } catch (error) {
+      ////console.log('error while adding six logs');
+    }
+    await transaction.commit();
     return true;
   }
 }
 
-export const setInvoiceEbillOt = async (invoice,coutryList,contactNumber,pdf,fileName,invoiceCid,billerDetails,formData,invoiceLogUid) => {
- console.log('EBILLLL',billerDetails);
+export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf, fileName, invoiceCid, billerDetails, formData, invoiceLogUid) => {
+  console.log('EBILLLL', billerDetails);
   let taxIsAdded;
   let priceQuantity = '1'
   let orderUnit = {
-    'Stk':'C62',
-    'h':'HUR'
+    'Stk': 'C62',
+    'h': 'HUR'
   }
-  let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
+  let billDetails = await getRefrenceNumber(pdf, invoice.document_nr, billerDetails);
   let total = '';
-  total = invoice['total_remaining_payments'];  
- console.log('REFERENCE_NUMBER',billerDetails);
-  if(!billDetails)
-  {
-    invoiceCid = await setEbillInvoiceSendStatus( invoice.partyId,invoice.document_nr, '', formData, '0', 'QR_code_not_found');
+  total = invoice['total_remaining_payments'];
+  console.log('REFERENCE_NUMBER', billerDetails);
+  if (!billDetails) {
+    invoiceCid = await setInvoiceSendStatus(invoice.partyId, invoice.document_nr, '', '0', 'QR_code_not_found', 'EBILL', '', formData);
     commonErrors['errorTitle'] = 'QR_code_not_found';
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
-    warningMessage(commonErrors,'QR_code_not_found');
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'QR_code_not_found ' + '-req param,' + JSON.stringify(formData);
+    warningMessage(commonErrors, 'QR_code_not_found');
     return false;
   }
   let obj = JSON.parse(JSON.stringify({
-      "OPENTRANS": {
-          "$": {
-              "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
-              "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
-              "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
-          },
-          "INVOICE": [{
-              "$": {
-                  "version": "2.1"
-              },
-              "INVOICE_HEADER": [{
-                  "CONTROL_INFO":[],
-                  "INVOICE_INFO": []
-              }],
-              "INVOICE_ITEM_LIST": [{
-                  "INVOICE_ITEM": []
-              }],
-              "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
-                  "TOTAL_ITEM_NUM": invoice.positions.length,
-                  "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
-                  "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
-                  "TOTAL_TAX": {
-                    "TAX_DETAILS_FIX":[]
-                  }
-              }]))
-          }]
-      }
+    "OPENTRANS": {
+      "$": {
+        "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+        "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+        "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+      },
+      "INVOICE": [{
+        "$": {
+          "version": "2.1"
+        },
+        "INVOICE_HEADER": [{
+          "CONTROL_INFO": [],
+          "INVOICE_INFO": []
+        }],
+        "INVOICE_ITEM_LIST": [{
+          "INVOICE_ITEM": []
+        }],
+        "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
+          "TOTAL_ITEM_NUM": invoice.positions.length,
+          "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
+          "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
+          "TOTAL_TAX": {
+            "TAX_DETAILS_FIX": []
+          }
+        }]))
+      }]
+    }
   }))
 
-let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
-taxIsAdded = invoice.taxs.length;
+  let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
+  taxIsAdded = invoice.taxs.length;
   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
-      "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
+    "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
   }))),
-  obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
+    obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
       "INVOICE_ID": invoice.document_nr,
       "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
       "INVOICE_TYPE": "invoice",
       "DELIVERY_DATE": [{
-       "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-       "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+        "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+        "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
       }],
       "bmecat:LANGUAGE": 'deu',
       "PARTIES": [{
-          "PARTY": [{
-              "bmecat:PARTY_ID": [{
-                  "_": billerDetails['billerid'],
-                  "$": {
-                      "type": "party_specific"
-                  }
-                 
-              }],
-              "PARTY_ROLE": "invoice_issuer",
-              "ADDRESS": [{
-                  "bmecat:NAME": invoice.companyProfile[0].name?invoice.companyProfile[0].name:undefined,
-                  "bmecat:STREET": invoice.companyProfile[0].address?invoice.companyProfile[0].address:undefined,
-                  "bmecat:ZIP": invoice.companyProfile[0].postcode?invoice.companyProfile[0].postcode:undefined,
-                  "bmecat:CITY": invoice.companyProfile[0].city?invoice.companyProfile[0].city:undefined,
-                  "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice.companyProfile[0].country_name)[0].iso_3166_alpha2,
-                  
-              }]
+        "PARTY": [{
+          "bmecat:PARTY_ID": [{
+            "_": billerDetails['billerid'],
+            "$": {
+              "type": "party_specific"
+            }
 
-          }, {
-              "bmecat:PARTY_ID": [{
-                  "_": billerDetails['recipientid'] || "0000000000000000",
-                  "$": {
-                      "type": "party_specific"
-                  }
-              }],
-              "PARTY_ROLE": "invoice_recipient",
-              "ADDRESS": [{
-                  "bmecat:NAME": invoice.contact.name_1,
-                  "bmecat:NAME2": invoice.contact.name_2?invoice.contact.name_2:undefined,
+          }],
+          "PARTY_ROLE": "invoice_issuer",
+          "ADDRESS": [{
+            "bmecat:NAME": invoice.companyProfile[0].name ? invoice.companyProfile[0].name : undefined,
+            "bmecat:STREET": invoice.companyProfile[0].address ? invoice.companyProfile[0].address : undefined,
+            "bmecat:ZIP": invoice.companyProfile[0].postcode ? invoice.companyProfile[0].postcode : undefined,
+            "bmecat:CITY": invoice.companyProfile[0].city ? invoice.companyProfile[0].city : undefined,
+            "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice.companyProfile[0].country_name)[0].iso_3166_alpha2,
 
-                  "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim(): undefined,
-                  "bmecat:ZIP": invoice.contact.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
-                  "bmecat:CITY": invoice.contact.city?invoice.contact.city:undefined,
-                  "bmecat:COUNTRY_CODED": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
-              }]
           }]
+
+        }, {
+          "bmecat:PARTY_ID": [{
+            "_": billerDetails['recipientid'] || "0000000000000000",
+            "$": {
+              "type": "party_specific"
+            }
+          }],
+          "PARTY_ROLE": "invoice_recipient",
+          "ADDRESS": [{
+            "bmecat:NAME": invoice.contact.name_1,
+            "bmecat:NAME2": invoice.contact.name_2 ? invoice.contact.name_2 : undefined,
+
+            "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() : undefined,
+            "bmecat:ZIP": invoice.contact.postcode ? invoice.contact.postcode : undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+            "bmecat:CITY": invoice.contact.city ? invoice.contact.city : undefined,
+            "bmecat:COUNTRY_CODED": invoice.contact.country_id ? coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2 : undefined
+          }]
+        }]
       }],
       "INVOICE_ISSUER_IDREF": [{
-          "_": billerDetails['billerid'],
-          "$": {
-            "type": "party_specific"
+        "_": billerDetails['billerid'],
+        "$": {
+          "type": "party_specific"
         }
       }],
       "INVOICE_RECIPIENT_IDREF": [{
-          "_": billerDetails['recipientid'] || "0000000000000000",
-          "$": {
-              "type": "party_specific"
-          }
+        "_": billerDetails['recipientid'] || "0000000000000000",
+        "$": {
+          "type": "party_specific"
+        }
       }],
       "bmecat:CURRENCY": invoice.currency['name'],
-      "MIME_INFO":[{
-        "MIME":[{
-          "MIME_EMBEDDED":{
-            "MIME_DATA":[{
-              "_":pdf,
-          
+      "MIME_INFO": [{
+        "MIME": [{
+          "MIME_EMBEDDED": {
+            "MIME_DATA": [{
+              "_": pdf,
+
             }],
-            "FILE_NAME":fileName?fileName:'temp'}
+            "FILE_NAME": fileName ? fileName : 'temp'
+          }
         }]
       }],
       "REMARKS": invoice.title ? invoice.title : undefined,
-      "HEADER_UDX":  JSON.parse(JSON.stringify([{
-        ...(billerDetails['allow']=='bill_recipient_id'
+      "HEADER_UDX": JSON.parse(JSON.stringify([{
+        ...(billerDetails['allow'] == 'bill_recipient_id'
           ? { "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'] }
           : { "EBILL.BILL_RECIPIENT_EMAIL": billerDetails['contact_email'] }),
         "EBILL.QR_IBAN": billDetails['iban'],
@@ -2377,78 +2377,78 @@ taxIsAdded = invoice.taxs.length;
           "BEX_INVOICE_EBIIL_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined
         }]
       }]))
-  })))
+    })))
 
-  let allTax:any = []
+  let allTax: any = []
 
-    invoice.positions.forEach(element => {
-      const index = allTax.findIndex(object => object.type === element.tax?.type);
-      if (index === -1) {
-          allTax.push({
-              type: element.tax?.type,
-              value: element.tax?.value,
-          });
-      }
+  invoice.positions.forEach(element => {
+    const index = allTax.findIndex(object => object.type === element.tax?.type);
+    if (index === -1) {
+      allTax.push({
+        type: element.tax?.type,
+        value: element.tax?.value,
+      });
+    }
   })
   let tempTaxArray = [];
- 
- invoice.taxs.length!=0?
-invoice.taxs.forEach(element => {
-  JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
-    {
-        "bmecat:TAX": element.percentage,
-        "TAX_AMOUNT": element.value
-    }
-    )))
-})
- :obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"]='';
-  
+
+  invoice.taxs.length != 0 ?
+    invoice.taxs.forEach(element => {
+      JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
+        {
+          "bmecat:TAX": element.percentage,
+          "TAX_AMOUNT": element.value
+        }
+      )))
+    })
+    : obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"] = '';
+
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
-    let arr,status = true;
-     ////console.log('987');
-      obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
-          "$": {
-              "type": "order_item"
-          },
-          "LINE_ITEM_ID": element.pos?element.pos:index,
-          "PRODUCT_ID": [{
-              "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code:undefined,
-              "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, 
-              "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
-          }],
-          "QUANTITY": element?.amount?Math.trunc(element.amount):1,
-          "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62',
-          "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
-              "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-              "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded>0? [{
-                  "bmecat:TAX_TYPE": element?.tax?.type,
-                  "bmecat:TAX": element?.tax?.value
-                 
-              }]:undefined,
-  
-        
-          "bmecat:PRICE_QUANTITY": priceQuantity, 
-          })),
-        ],
-        "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
-        "DELIVERY_REFERENCE": [{
-          "DELIVERY_DATE": [{
-              "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-              "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString()
-          }]
+    let arr, status = true;
+    ////console.log('987');
+    obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
+      "$": {
+        "type": "order_item"
+      },
+      "LINE_ITEM_ID": element.pos ? element.pos : index,
+      "PRODUCT_ID": [{
+        "bmecat:SUPPLIER_PID": element?.article?.intern_code ? element.article.intern_code : undefined,
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined,
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+      }],
+      "QUANTITY": element?.amount ? Math.trunc(element.amount) : 1,
+      "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
+      "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
+        "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+        "TAX_DETAILS_FIX": element?.tax?.value && taxIsAdded > 0 ? [{
+          "bmecat:TAX_TYPE": element?.tax?.type,
+          "bmecat:TAX": element?.tax?.value
+
+        }] : undefined,
+
+
+        "bmecat:PRICE_QUANTITY": priceQuantity,
+      })),
+      ],
+      "PRICE_LINE_AMOUNT": element?.position_total ? parseFloat(element.position_total).toFixed(2) : 0.00,
+      "DELIVERY_REFERENCE": [{
+        "DELIVERY_DATE": [{
+          "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+          "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString()
         }]
-      })))
-    
-       element.discount_in_percent==null?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX']:'';
+      }]
+    })))
+
+    element.discount_in_percent == null ? delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length - 1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX'] : '';
   }
 
-  let builder = new xml2js.Builder({'xmldec.version':1.0} );
+  let builder = new xml2js.Builder({ 'xmldec.version': 1.0 });
   var xml = builder.buildObject(obj);
- ////console.log(xml);
+  ////console.log(xml);
 
   return Buffer.from(xml).toString('base64');
- 
+
 }
 // export const issueEbillInvoice = async (access_token,id)=>{
 
@@ -2478,7 +2478,7 @@ invoice.taxs.forEach(element => {
 //             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
 //             warningMessage(commonErrors,error);
 //             return resolve(false)
-            
+
 //           }
 //         }catch(err){
 //           reject(err)
@@ -2486,70 +2486,68 @@ invoice.taxs.forEach(element => {
 //         });
 //       });
 // }
-export const markAsSent = async (access_token,id)=>{
+export const markAsSent = async (access_token, id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'POST',
-          'url': `https://api.bexio.com/2.0/kb_invoice/${id}/mark_as_sent`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          try{
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'POST',
+      'url': `https://api.bexio.com/2.0/kb_invoice/${id}/mark_as_sent`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      try {
 
-            if (error) {  
-              commonErrors['errorTitle'] = 'markAsSent';
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
-              warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-            return resolve(JSON.parse(response.body)[0]);
-          else
-            return resolve(false)
-        }catch(err){
-          reject(err) 
+        if (error) {
+          commonErrors['errorTitle'] = 'markAsSent';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
+          warningMessage(commonErrors, error);
+          return resolve(false)
         }
-        });
-      });
+        if (response.statusCode == 200)
+          return resolve(JSON.parse(response.body)[0]);
+        else
+          return resolve(false)
+      } catch (err) {
+        reject(err)
+      }
+    });
+  });
 }
-export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) => {
+export const addBexioCommentBulk = async (token, id, status, message?, netcomId?) => {
   let parms = {
-    token:token,
-    id:id,
-    status:status,
-    message:message,
-    netcomId:netcomId
+    token: token,
+    id: id,
+    status: status,
+    message: message,
+    netcomId: netcomId
   }
-  
-  return new Promise(async(resolve, reject) => {
+
+  return new Promise(async (resolve, reject) => {
     try {
       let commentsData = JSON.parse(config.BEXIO_COMMENTS);
-      let comments = commentsData[status].replace('[message]','{ '+message+' }')
-      let invoiceData = await getInvoiceOT(token,id);
-      
-      if(!invoiceData)
-      {
+      let comments = commentsData[status].replace('[message]', '{ ' + message + ' }')
+      let invoiceData = await getInvoiceOT(token, id);
+
+      if (!invoiceData) {
         commonErrors['errorTitle'] = 'addBexioComment';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'addBexioComment '+'-bexio param,'+JSON.stringify(parms);
-        warningMessage(commonErrors,'error');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'addBexioComment ' + '-bexio param,' + JSON.stringify(parms);
+        warningMessage(commonErrors, 'error');
         resolve(false)
         return
       }
-      let userData = await getUser(token,invoiceData['user_id']);
-      
-      if(!userData){
+      let userData = await getUser(token, invoiceData['user_id']);
+
+      if (!userData) {
         userData = await getDefaultUser(token);
       }
 
-      if(!userData)
-      {
+      if (!userData) {
         commonErrors['errorTitle'] = 'addBexioComment';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'addBexioComment '+'-bexio param,'+JSON.stringify(parms);
-        warningMessage(commonErrors,'error');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'addBexioComment ' + '-bexio param,' + JSON.stringify(parms);
+        warningMessage(commonErrors, 'error');
         resolve(false)
         return
       }
@@ -2558,252 +2556,250 @@ export const addBexioCommentBulk = async (token,id,status,message?,netcomId?) =>
         'url': `https://api.bexio.com/2.0/kb_invoice/${id}/comment`,
         'headers': {
           'Accept': 'application/json',
-          'Authorization': 'Bearer '+token
+          'Authorization': 'Bearer ' + token
         },
         body: JSON.stringify({
           "text": comments,
-          "user_name":'iomarket AG'
+          "user_name": 'iomarket AG'
         })
       };
-             request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'addBexioComment';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-    
-          if(response.statusCode == 201)
-          {
-            resolve(JSON.parse(response.body));
-            return;
-          }
-          else{
-            commonErrors['errorTitle'] = 'addBexioComment';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+(response?response.body.toString():'')+'-bexio param,'+JSON.stringify(parms);
-            warningMessage(commonErrors,error);
-            resolve(false)
-            return;
-          }
-          // resolve(false)
-        })
-      } catch (error) {
-       
-        commonErrors['errorTitle'] = 'addBexioComment';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+JSON.stringify(parms);
-        warningMessage(commonErrors,error);
-        resolve(false);
-        return;
-        
-      }
-    })
-
-}
-export const getUser = async (access_token,id)=>{
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/users/${id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getUser';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body));
-          else
+      request(options, function (error, response) {
+        if (error) {
+          commonErrors['errorTitle'] = 'addBexioComment';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(parms);
+          warningMessage(commonErrors, error);
           return resolve(false)
-        });
-      });
-}
-export const getDefaultUser = async (access_token)=>{
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/users?order_by=lastname`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'getDefaultUser';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-          return resolve(JSON.parse(response.body)[0]);
-          else
-          return resolve(false)
-        });
-      });
-}
-export const getRefrenceNumber = async (pdf,invoiceNumber,billerDetails)=>{
-    try {
-  
-      let data ={
-        billerDetails:billerDetails,
-        invoiceNumber:invoiceNumber
-      }
-      const buf = Buffer.from(pdf, 'base64');
-      
-      
-      return new Promise(async(resolve, reject) => {
-        const options = {
-          method: 'POST',
-          url: config.QRREADERURL+'bill',
-          headers: {
-            'Content-Type': 'application/pdf'
-          },
-          body:buf
-      };
-        request(options, function (error, response) {
-          
+        }
 
-          if(response.body.length < 3)
-          {
-         
-            var s = new Date(new Date()); 
-            let v = s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds();
-            let res = {
-              iban:undefined,
-              type:undefined,
-              ref:undefined,
-              referenceEbil:invoiceNumber+'_'+v
-
-            }
-            
-            commonErrors['errorTitle'] = 'QR_code_not_found';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(data);
-            warningMessage(commonErrors,'QR_code_not_found');
-           return resolve(res);
-          }
-         
-            let paymentDetails = response.body.split("\\n");
-            
-            let typeIndex = paymentDetails.indexOf('QRR') != -1 ?  paymentDetails.indexOf('QRR') : paymentDetails.indexOf('SCOR');
-            if(typeIndex == -1){
-              typeIndex = paymentDetails.indexOf('NON') != -1 ?  paymentDetails.indexOf('NON') : -1;
-            }
-            var s = new Date(new Date()); 
-            let v = s.getFullYear()*10000000000 + (s.getMonth()+1)*100000000 + s.getDate()*1000000 + s.getHours()*10000 + s.getMinutes()*100 + s.getSeconds();
-           
-            
-            let res = {
-              iban:paymentDetails[3],
-              type:paymentDetails[typeIndex],
-              ref:paymentDetails[typeIndex+1] ? paymentDetails[typeIndex+1] : undefined,
-              referenceEbil:invoiceNumber+'_'+v
-
-            }
-            
-            if(typeIndex == -1){
-
-              commonErrors['errorTitle'] = 'QR_code_not_found';
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(data);
-              warningMessage(commonErrors,'QR_code_not_found');
-              res = {
-                iban:undefined,
-                type:undefined,
-                ref:undefined,
-                referenceEbil:invoiceNumber+'_'+v
-  
-              }
-              return resolve(res);
-            }
-            
-            return resolve(res);
-          
-
-        });
-      });
-      
+        if (response.statusCode == 201) {
+          resolve(JSON.parse(response.body));
+          return;
+        }
+        else {
+          commonErrors['errorTitle'] = 'addBexioComment';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + (response ? response.body.toString() : '') + '-bexio param,' + JSON.stringify(parms);
+          warningMessage(commonErrors, error);
+          resolve(false)
+          return;
+        }
+        // resolve(false)
+      })
     } catch (error) {
-      JSON.stringify(error)
-      commonErrors['errorTitle'] = 'getRefrenceNumber';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'ebill_xml_not_found '+'-req param,'+invoiceNumber;
-      warningMessage(commonErrors,'ebill_xml_not_found');
-      return resolve('');
+
+      commonErrors['errorTitle'] = 'addBexioComment';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(parms);
+      warningMessage(commonErrors, error);
+      resolve(false);
+      return;
+
     }
+  })
+
+}
+export const getUser = async (access_token, id) => {
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/users/${id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getUser';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false)
+    });
+  });
+}
+export const getDefaultUser = async (access_token) => {
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/users?order_by=lastname`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getDefaultUser';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body)[0]);
+      else
+        return resolve(false)
+    });
+  });
+}
+export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails) => {
+  try {
+
+    let data = {
+      billerDetails: billerDetails,
+      invoiceNumber: invoiceNumber
+    }
+    const buf = Buffer.from(pdf, 'base64');
+
+
+    return new Promise(async (resolve, reject) => {
+      const options = {
+        method: 'POST',
+        url: config.QRREADERURL + 'bill',
+        headers: {
+          'Content-Type': 'application/pdf'
+        },
+        body: buf
+      };
+      request(options, function (error, response) {
+
+
+        if (response.body.length < 3) {
+
+          var s = new Date(new Date());
+          let v = s.getFullYear() * 10000000000 + (s.getMonth() + 1) * 100000000 + s.getDate() * 1000000 + s.getHours() * 10000 + s.getMinutes() * 100 + s.getSeconds();
+          let res = {
+            iban: undefined,
+            type: undefined,
+            ref: undefined,
+            referenceEbil: invoiceNumber + '_' + v
+
+          }
+
+          commonErrors['errorTitle'] = 'QR_code_not_found';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'QR_code_not_found ' + '-req param,' + JSON.stringify(data);
+          warningMessage(commonErrors, 'QR_code_not_found');
+          return resolve(res);
+        }
+
+        let paymentDetails = response.body.split("\\n");
+
+        let typeIndex = paymentDetails.indexOf('QRR') != -1 ? paymentDetails.indexOf('QRR') : paymentDetails.indexOf('SCOR');
+        if (typeIndex == -1) {
+          typeIndex = paymentDetails.indexOf('NON') != -1 ? paymentDetails.indexOf('NON') : -1;
+        }
+        var s = new Date(new Date());
+        let v = s.getFullYear() * 10000000000 + (s.getMonth() + 1) * 100000000 + s.getDate() * 1000000 + s.getHours() * 10000 + s.getMinutes() * 100 + s.getSeconds();
+
+
+        let res = {
+          iban: paymentDetails[3],
+          type: paymentDetails[typeIndex],
+          ref: paymentDetails[typeIndex + 1] ? paymentDetails[typeIndex + 1] : undefined,
+          referenceEbil: invoiceNumber + '_' + v
+
+        }
+
+        if (typeIndex == -1) {
+
+          commonErrors['errorTitle'] = 'QR_code_not_found';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'QR_code_not_found ' + '-req param,' + JSON.stringify(data);
+          warningMessage(commonErrors, 'QR_code_not_found');
+          res = {
+            iban: undefined,
+            type: undefined,
+            ref: undefined,
+            referenceEbil: invoiceNumber + '_' + v
+
+          }
+          return resolve(res);
+        }
+
+        return resolve(res);
+
+
+      });
+    });
+
+  } catch (error) {
+    JSON.stringify(error)
+    commonErrors['errorTitle'] = 'getRefrenceNumber';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + invoiceNumber;
+    warningMessage(commonErrors, 'ebill_xml_not_found');
+    return resolve('');
+  }
 }
 export const getTaxListActive = async (access_token) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/3.0/taxes?scope=active`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          if(response.statusCode==200)
-           return resolve(JSON.parse(response.body));
-          else
-           return resolve(false)
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/3.0/taxes?scope=active`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else
+        return resolve(false)
 
-        });
-      });
+    });
+  });
 }
-export const getContactDetails = async (access_token,id) => {    
-  
+export const getContactDetails = async (access_token, id) => {
+
   try {
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'GET',
         'url': `https://api.bexio.com/2.0/contact/${id}`,
         'headers': {
           'Accept': 'application/json',
-          'Authorization': 'Bearer '+access_token
+          'Authorization': 'Bearer ' + access_token
         }
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getContactDetails';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+id;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
-        
-        if(response.statusCode==200){
+
+        if (response.statusCode == 200) {
 
           return resolve(JSON.parse(response.body));
         }
-          else if(response.statusCode == 401){
+        else if (response.statusCode == 401) {
           return resolve(JSON.parse(response.body));
 
         }
-        else{
+        else {
           return resolve(false)
         }
 
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = getContactDetails.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token+id;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = getContactDetails.name;
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token + id;
+    warningMessage(commonErrors, error);
 
     return resolve('');
   }
 }
-export const setOrderId = async (id,billId) =>{
+export const setOrderId = async (id, billId) => {
 
   try {
     const getcustomerIdResult = await connectBexio.documents_order_receive.updateMany({
@@ -2817,65 +2813,65 @@ export const setOrderId = async (id,billId) =>{
     });
     return getcustomerIdResult
   } catch (error) {
-      commonErrors['errorTitle'] = 'setOrderId';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+billId;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = 'setOrderId';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + billId;
+    warningMessage(commonErrors, error);
     return 0;
   }
 }
 export function formatDate(date) {
   var d = new Date(date),
-      month = '' + (d.getMonth() + 1),
-      day = '' + d.getDate(),
-      year = d.getFullYear();
+    month = '' + (d.getMonth() + 1),
+    day = '' + d.getDate(),
+    year = d.getFullYear();
 
-  if (month.length < 2) 
-      month = '0' + month;
-  if (day.length < 2) 
-      day = '0' + day;
+  if (month.length < 2)
+    month = '0' + month;
+  if (day.length < 2)
+    day = '0' + day;
 
   return [year, month, day].join('-');
 }
-export const moveFile = async (netcomId,fileName)=>{
-  let formData ;
+export const moveFile = async (netcomId, fileName) => {
+  let formData;
   try {
-   formData = {
-      netcom_id:netcomId,
-      filename:fileName
+    formData = {
+      netcom_id: netcomId,
+      filename: fileName
     }
-    
-    return new Promise(async(resolve, reject) => {
+
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API+'move-file',
+        'url': config.PYTHON_API + 'move-file',
         //  'url':'http://192.168.2.63:5005/api/post-list/invitations',
         formData: formData
       };
-      
+
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'moveFile';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
-      
+
         return resolve(response.body);
 
       });
     });
   } catch (error) {
-      commonErrors['errorTitle'] = 'moveFile';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+netcomId+fileName;
-      warningMessage(commonErrors,error);
+    commonErrors['errorTitle'] = 'moveFile';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + netcomId + fileName;
+    warningMessage(commonErrors, error);
     return resolve('');
   }
 }
-export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernumber,status,error?) => {
+export const setDeliveryNotesCidSendStatus = async (partyId, delivery_id, ordernumber, status, error?) => {
   let sendDeliveryNotesId;
-  return new Promise( async function (resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
-     const selectQryResult = await connectBexio.documents_dispatchnotification_send.findMany({
+      const selectQryResult = await connectBexio.documents_dispatchnotification_send.findMany({
         where: {
           rk_deliverynotes: delivery_id,
           deliverynotes_type: 'EDI',
@@ -2884,29 +2880,29 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
           },
         },
         select: {
-          cid: true, 
+          cid: true,
           companyregistered: {
             select: {
-              cid: true, 
+              cid: true,
             },
           },
         },
       });
 
-      if(selectQryResult.length == 0){
+      if (selectQryResult.length == 0) {
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
-            rk_party:Number(partyId),
+            rk_party: Number(partyId),
           },
         });
-        
+
         const result = await connectBexio.documents_dispatchnotification_send.create({
           data: {
             rk_deliverynotes: delivery_id,
             deliverynotes_number: ordernumber,
             fk_companyregistered: selectQryResultParty[0].cid,
             deliverynotes_type: 'EDI',
-            status:Number(status), // assuming this is the correct type
+            status: Number(status), // assuming this is the correct type
           },
           select: {
             cid: true,
@@ -2914,11 +2910,11 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
         });
         sendDeliveryNotesId = result[0].cid;
       }
-      else{
+      else {
         sendDeliveryNotesId = selectQryResult[0].cid;
         await connectBexio.documents_dispatchnotification_send.updateMany({
           where: {
-            fk_companyregistered:selectQryResult[0]?.companyregistered?.cid,
+            fk_companyregistered: selectQryResult[0]?.companyregistered?.cid,
             rk_deliverynotes: delivery_id,
             deliverynotes_type: 'EDI',
           },
@@ -2931,8 +2927,8 @@ export const setDeliveryNotesCidSendStatus = async (partyId,delivery_id,ordernum
       return resolve(sendDeliveryNotesId);
     } catch (error) {
       commonErrors['errorTitle'] = setInvoiceSendStatus.name;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+delivery_id+'-deliveryId'+ordernumber+'orderNumber';
-      warningMessage(commonErrors,error);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyId + '-partyId' + delivery_id + '-deliveryId' + ordernumber + 'orderNumber';
+      warningMessage(commonErrors, error);
       return resolve('');
     }
   });
@@ -2960,85 +2956,85 @@ export const setPurchaseOrderBulk = async (purchaseOrder, bodyValues, headerPara
 
     const result = await pushPurchaseOrderBulk(tempParam, "");
   }
-  
+
 };
-export const pushPurchaseOrderBulk = async( req, res)=>{
-  return new Promise( async(resolve,reject) => {
+export const pushPurchaseOrderBulk = async (req, res) => {
+  return new Promise(async (resolve, reject) => {
     let cookie
     let decryptData;
     let purchaseorderCid;
     decryptData = req.body;
 
     try {
-      let purchaseOrder,paymentType;
+      let purchaseOrder, paymentType;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const partyId = decryptData.partyId;
       const accountId = decryptData.accountId;
       const purchaseOrderId = decryptData.order_id || 1;
-      purchaseOrder = await getOrderOT(accessToken,purchaseOrderId); // Get order from bexio using orderId
-      if( !purchaseOrder){ // If there is no purchaseOrder with this orderId, return with error
-        purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,'','0','order_not_found');
+      purchaseOrder = await getOrderOT(accessToken, purchaseOrderId); // Get order from bexio using orderId
+      if (!purchaseOrder) { // If there is no purchaseOrder with this orderId, return with error
+        purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, '', '0', 'order_not_found');
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'order_not_found -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'order_not_found');
-       
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'order_not_found -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'order_not_found');
+
         return resolve('order_not_found');
       }
-      console.log("getConnectionDetails",purchaseOrder.contact_id,req);
-      
-      let invitationData:any = await getConnectionDetails(partyId,accountId,purchaseOrder.contact_id,req); // Get the connection details using contact_id, party and account
-     console.log("invitationData: ",invitationData);
+      console.log("getConnectionDetails", purchaseOrder.contact_id, req);
+
+      let invitationData: any = await getConnectionDetails(partyId, accountId, purchaseOrder.contact_id, req); // Get the connection details using contact_id, party and account
+      console.log("invitationData: ", invitationData);
       let customerIds = await constGetContactId(invitationData[0].rk_businessconnection); // Get customer Id using businessConnection
-      if( invitationData != undefined ){ // If there is any invitationData then do
-        let pdf,fileName,pdfContent;
+      if (invitationData != undefined) { // If there is any invitationData then do
+        let pdf, fileName, pdfContent;
 
         /* Fetch country data from bexio using accessToken */
         let countryList;
         countryList = await getCountryLists(accessToken);
 
-        if( !countryList ){ // If country list not found, return with error.
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','countryList_not_found');
+        if (!countryList) { // If country list not found, return with error.
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'countryList_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'countryList_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'countryList_not_found');
           return resolve('countryList_not_found');
         }
 
-      
+
 
         /* Fetch currency from bexio using id. */
-        let currency = await getCurrency(accessToken,purchaseOrder.currency_id);
-        if( !currency ){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','currency_not_found');
+        let currency = await getCurrency(accessToken, purchaseOrder.currency_id);
+        if (!currency) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'currency_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'currency_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'currency_not_found');
+
           return resolve('currency_not_found');
         }
         purchaseOrder['currency'] = currency;
 
         /* Get user details from access token */
         let temp = await getloginUserCompanyDetails(accessToken);
-        if( !temp ){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','loginUserCompanyDetails_not_found');
+        if (!temp) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'loginUserCompanyDetails_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'loginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'loginUserCompanyDetails_not_found');
-       
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'loginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'loginUserCompanyDetails_not_found');
+
           return resolve('loginUserCompanyDetails_not_found');
         }
         purchaseOrder['companyProfile'] = temp;
         purchaseOrder['companyProfile'] = JSON.parse(purchaseOrder['companyProfile']);
         /* Fetch payment type from purchaseOrder */
-        paymentType = await getPaymentType(accessToken,purchaseOrder.payment_type_id);
-        if(!paymentType){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','paymentType_not_found');
+        paymentType = await getPaymentType(accessToken, purchaseOrder.payment_type_id);
+        if (!paymentType) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'paymentType_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'paymentType_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'paymentType_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'paymentType_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'paymentType_not_found');
+
           return resolve('paymentType_not_found');
         }
 
@@ -3046,53 +3042,53 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
         purchaseOrder['paymentType'] = tempPaymentType;
 
         /* Fetch contact using contact id from purchaseOrder */
-        let contact = await getContact(accessToken,purchaseOrder.contact_id);
-        if(!contact){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','contact_not_found');
+        let contact = await getContact(accessToken, purchaseOrder.contact_id);
+        if (!contact) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'contact_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contact_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'contact_not_found');
-     
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'contact_not_found');
+
           return resolve('contact_not_found');
         }
         purchaseOrder['contact'] = contact;
         let user = true;
-        if(!user){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','user_not_found');
+        if (!user) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'user_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'user_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'user_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'user_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'user_not_found');
+
           return resolve('user_not_found');
         }
         purchaseOrder['user'] = user;
 
         /* Loop over positions in purchaseOrder */
         let taxIsAdded = false;
-        for ( const items of purchaseOrder.positions.required ) {
-         ////console.log('items.tax_id',items.tax_id);
-          if(items.tax_id){ // Check tax is there or not
+        for (const items of purchaseOrder.positions.required) {
+          ////console.log('items.tax_id',items.tax_id);
+          if (items.tax_id) { // Check tax is there or not
             /* Fetch tax using tax id */
-            let tempTax = await getTaxs(accessToken,items.tax_id);
+            let tempTax = await getTaxs(accessToken, items.tax_id);
             taxIsAdded = true;
-            if(!tempTax){
-              purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','tax_not_Found');
-             
+            if (!tempTax) {
+              purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'tax_not_Found');
+
               // addlogs(logs,decryptData.partyId,decryptData.accountId);
               commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'tax_not_Found');
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,', JSON.stringify(req.body);
+              warningMessage(commonErrors, 'tax_not_Found');
               return resolve('tax_not_Found');
             }
             items['tax'] = tempTax;
           }
           let tempItem;
-          if('article_id' in items){
-            tempItem = await getProducts(accessToken,items.article_id);
-            if(tempItem){
+          if ('article_id' in items) {
+            tempItem = await getProducts(accessToken, items.article_id);
+            if (tempItem) {
               items['article'] = tempItem;
             }
-          }else{
+          } else {
             items['article'] = {}
             items['article']['article_id'] = items.id;
             items['article']['amount'] = items.amount;
@@ -3101,43 +3097,43 @@ export const pushPurchaseOrderBulk = async( req, res)=>{
 
           }
         }
-        purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'1');
+        purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '1');
 
         /* Create XML from data */
         let xml;
-        xml = await setOrderToOt(purchaseOrder,countryList,invitationData[0],pdfContent,fileName,customerIds,purchaseorderCid,taxIsAdded);
-        if( xml == false){
-          purchaseorderCid = await setOrderSendStatus(partyId,purchaseOrderId,purchaseOrder['document_nr'],'0','bexio_item_error');
+        xml = await setOrderToOt(purchaseOrder, countryList, invitationData[0], pdfContent, fileName, customerIds, purchaseorderCid, taxIsAdded);
+        if (xml == false) {
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'bexio_item_error');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'bexio_item_error -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'bexio_item_error');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'bexio_item_error -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'bexio_item_error');
+
           return resolve('bexio_item_error');
         }
-        const sendOrderRes = await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,purchaseOrder['document_nr'],'EDI');
-        let redisKey = req.body.partyId+"_/";
-        await deleteRedis('sendOrder',redisKey);
-        console.log("sendOrderRes",sendOrderRes);
-        
+        const sendOrderRes = await invoiceFilePush(invitationData[0].rk_netcomidsender, 'WS', xml, purchaseOrder['document_nr'], 'EDI');
+        let redisKey = req.body.partyId + "_/";
+        await deleteRedis('sendOrder', redisKey);
+        console.log("sendOrderRes", sendOrderRes);
+
         return resolve(true);
-    }
-    else{
-  
-      // addlogs(logs,decryptData.partyId,decryptData.accountId);
-      commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'ORDER_FOR_OPEN_TRANSACTION -req param,',JSON.stringify(req.body);
-      warningMessage(commonErrors,'ORDER_FOR_OPEN_TRANSACTION');
-      return resolve('purchase_order_push_error')
-    }
+      }
+      else {
+
+        // addlogs(logs,decryptData.partyId,decryptData.accountId);
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'ORDER_FOR_OPEN_TRANSACTION -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'ORDER_FOR_OPEN_TRANSACTION');
+        return resolve('purchase_order_push_error')
+      }
     } catch (error) {
       console.error('Error in pushPurchaseOrderBulk:', error);
       reject(error); // Ensure the promise is rejected.
     }
   });
 }
-export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,error?) => {
+export const setOrderSendStatus = async (partyId, orderId, ordernumber, status, error?) => {
   let sendOrderId;
-  return new Promise( async function (resolve, reject) {
+  return new Promise(async function (resolve, reject) {
     try {
 
       const selectQryResult = await connectBexio.documents_order_send.findMany({
@@ -3145,7 +3141,7 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
           rk_order: orderId,
           order_type: 'EDI',
           companyregistered: {
-            rk_party:Number(partyId) ,
+            rk_party: Number(partyId),
           },
         },
         select: {
@@ -3157,11 +3153,11 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
           },
         },
       });
-      
-      if(selectQryResult.length == 0){
+
+      if (selectQryResult.length == 0) {
         const selectQryResultParty = await connectBexio.companyregistered.findMany({
           where: {
-            rk_party:Number(partyId),
+            rk_party: Number(partyId),
           },
         });
 
@@ -3177,16 +3173,16 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
             cid: true, // This is the equivalent of RETURNING cid
           },
         });
-       ////console.log(result);
+        ////console.log(result);
         sendOrderId = result[0].cid;
       }
-      else{
+      else {
         sendOrderId = selectQryResult[0]?.cid;
 
 
         await connectBexio.documents_order_send.updateMany({
           where: {
-            fk_companyregistered:selectQryResult[0]?.companyregistered?.cid,
+            fk_companyregistered: selectQryResult[0]?.companyregistered?.cid,
             rk_order: orderId,
             order_type: 'EDI',
           },
@@ -3197,47 +3193,44 @@ export const setOrderSendStatus = async (partyId,orderId,ordernumber,status,erro
         });
 
       }
-    
+
       return resolve(sendOrderId);
     } catch (error) {
-      commonErrors['errorTitle'] =' setInvoiceSendStatus';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+'-partyId'+orderId+'-orderId'+ordernumber+'orderNumber';
-      warningMessage(commonErrors,error);
+      commonErrors['errorTitle'] = ' setInvoiceSendStatus';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyId + '-partyId' + orderId + '-orderId' + ordernumber + 'orderNumber';
+      warningMessage(commonErrors, error);
       return resolve('');
     }
   });
 
 }
 
-const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customerIds,orderId,taxIsAdded)=>{
- 
+const setOrderToOt = async (order, coutryList, contactDetails, pdf, fileName, customerIds, orderId, taxIsAdded) => {
+
   let tempString = JSON.stringify(order.delivery_address_manual)
-  let tempArray ;
-  
-  if(tempString.indexOf("\\r\\n") != -1)
-  {
-    tempArray = tempString.substring(1, tempString.length-1).replace(/\\r\\n/g, "___________");
+  let tempArray;
+
+  if (tempString.indexOf("\\r\\n") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\r\\n/g, "___________");
   }
-  else if(tempString.indexOf("\\n") != -1)
-  {
-    tempArray = tempString.substring(1, tempString.length-1).replace(/\\n/g, "___________");
+  else if (tempString.indexOf("\\n") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\n/g, "___________");
   }
-  else if(tempString.indexOf("\\r") != -1)
-  {
-    tempArray = tempString.substring(1, tempString.length-1).replace(/\\r/g, "___________");
+  else if (tempString.indexOf("\\r") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\r/g, "___________");
   }
-  else{
+  else {
     tempArray = tempString;
   }
 
   let deliveryAddress2 = tempArray.split("___________");
-  
-  let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
-  if(tempAdress.length == 4){
-    tempAdress.splice(1,0," ")
+
+  let tempAdress = deliveryAddress2.filter((e) => e.length != 0);
+  if (tempAdress.length == 4) {
+    tempAdress.splice(1, 0, " ")
   }
 
-  let countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.name ==  tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : ''
+  let countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.name == tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : ''
 
   coutryList = JSON.parse(coutryList);
   let emptyValue = 'NA'
@@ -3246,10 +3239,10 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
 
 
   let orderUnit = {
-    'Stk':'C62',
-    'h':'HUR'
+    'Stk': 'C62',
+    'h': 'HUR'
   }
-  let obj:any = {
+  let obj: any = {
     "OPENTRANS": {
       "$": {
         "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
@@ -3259,10 +3252,10 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
       "ORDER": [{
         "$": {
           "version": "2.1",
-          "type":"release"
+          "type": "release"
         },
         "ORDER_HEADER": [{
-          "CONTROL_INFO":[],
+          "CONTROL_INFO": [],
           "ORDER_INFO": []
         }],
         "ORDER_ITEM_LIST": [{
@@ -3275,11 +3268,11 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
   };
 
   let v = coutryList.filter(coutry => coutry.id == order.contact.country_id)
- 
- ////console.log("\ntaxIsAdded:: "+taxIsAdded);
-  
- ////console.log('contactDetailscontactDetailscontactDetails',contactDetails);
-    
+
+  ////console.log("\ntaxIsAdded:: "+taxIsAdded);
+
+  ////console.log('contactDetailscontactDetailscontactDetails',contactDetails);
+
   obj.OPENTRANS.ORDER[0]['ORDER_HEADER'][0]['ORDER_INFO'].push(JSON.parse(
     JSON.stringify({
       "ORDER_ID": order.document_nr,
@@ -3297,25 +3290,25 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
               "type": "supplier_specific"
             }
           }],
-          "PARTY_ROLE":"buyer",
+          "PARTY_ROLE": "buyer",
           "ADDRESS": [{
-            "bmecat:NAME": order.companyProfile[0].name?order.companyProfile[0].name:undefined,
-            "bmecat:STREET": order.companyProfile[0].address?order.companyProfile[0].address:undefined,
-            "bmecat:ZIP": order.companyProfile[0].postcode?order.companyProfile[0].postcode:undefined,
-            "bmecat:CITY": order.companyProfile[0].city?order.companyProfile[0].city:undefined,
-            "bmecat:COUNTRY_CODED":coutryList.filter(coutry => coutry.name == order.companyProfile[0].country_name)[0].iso_3166_alpha2
+            "bmecat:NAME": order.companyProfile[0].name ? order.companyProfile[0].name : undefined,
+            "bmecat:STREET": order.companyProfile[0].address ? order.companyProfile[0].address : undefined,
+            "bmecat:ZIP": order.companyProfile[0].postcode ? order.companyProfile[0].postcode : undefined,
+            "bmecat:CITY": order.companyProfile[0].city ? order.companyProfile[0].city : undefined,
+            "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == order.companyProfile[0].country_name)[0].iso_3166_alpha2
           }]
-        },{
+        }, {
           "bmecat:PARTY_ID": [{
             "_": contactDetails.rk_netcomidreceived,
             "$": {
               "type": "buyer_specific"
             }
           }],
-          "PARTY_ROLE":"supplier",
+          "PARTY_ROLE": "supplier",
           "ADDRESS": [{
             "bmecat:NAME": order.contact.name_1,
-            "bmecat:NAME2": order.contact.name_2?order.contact.name_2:undefined,
+            "bmecat:NAME2": order.contact.name_2 ? order.contact.name_2 : undefined,
 
             // "CONTACT_DETAILS": [{
             //     "bmecat:CONTACT_NAME": invoice.contact.name_1,
@@ -3324,118 +3317,118 @@ const setOrderToOt = async(order,coutryList,contactDetails,pdf,fileName,customer
             //         "bmecat:EMAIL": invitionData.receiveremail
             //     }]
             // }],
-            "bmecat:STREET": order.contact.street_name?`${order.contact.street_name} ${order.contact.house_number ?? ''}`.trim():undefined,
-            "bmecat:ZIP": order.contact.postcode?order.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
-            "bmecat:CITY": order.contact.city?order.contact.city:undefined,
+            "bmecat:STREET": order.contact.street_name ? `${order.contact.street_name} ${order.contact.house_number ?? ''}`.trim() : undefined,
+            "bmecat:ZIP": order.contact.postcode ? order.contact.postcode : undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+            "bmecat:CITY": order.contact.city ? order.contact.city : undefined,
             // "bmecat:COUNTRY": invoice.contact.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].name:undefined,
-            "bmecat:COUNTRY_CODED": order.contact.country_id?coutryList.filter(coutry => coutry.id == order.contact.country_id)[0].iso_3166_alpha2:undefined
-        }]
-        },{
+            "bmecat:COUNTRY_CODED": order.contact.country_id ? coutryList.filter(coutry => coutry.id == order.contact.country_id)[0].iso_3166_alpha2 : undefined
+          }]
+        }, {
           "bmecat:PARTY_ID": [{
             "_": contactDetails.rk_netcomidsender,
             "$": {
               "type": "buyer_specific"
             }
           }],
-          "PARTY_ROLE":"final_delivery",
+          "PARTY_ROLE": "final_delivery",
           "ADDRESS": [{
             "bmecat:NAME": tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
             "bmecat:NAME2": tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
-            "bmecat:STREET":  tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
-            "bmecat:ZIP":  tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
-            "bmecat:CITY":  tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
+            "bmecat:STREET": tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
+            "bmecat:ZIP": tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
+            "bmecat:CITY": tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined,
             "bmecat:COUNTRY_CODED": countryCode ? countryCode : undefined
           }]
         }]
       }],
-      "ORDER_PARTIES_REFERENCE":[{
+      "ORDER_PARTIES_REFERENCE": [{
         "bmecat:BUYER_IDREF": contactDetails.sendercustomerid,
-        "bmecat:SUPPLIER_IDREF":contactDetails.receiver_customerid
+        "bmecat:SUPPLIER_IDREF": contactDetails.receiver_customerid
       }],
-      "bmecat:CURRENCY":order.currency['name'],
+      "bmecat:CURRENCY": order.currency['name'],
       "REMARKS": order.title ? order.title : undefined,
       "HEADER_UDX": customerIds.length != 0 || orderId ? [{
-        "HEADER_UDX_OPT":[{
+        "HEADER_UDX_OPT": [{
           "BEX_VERSION": "VER1",
           "BEX_ORDER_DOCUMENT_ID": orderId ? orderId : undefined
         }],
-        "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid:undefined,
-        "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid? customerIds[0].receiverid:undefined
-      }]:undefined
+        "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid : undefined,
+        "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined
+      }] : undefined
     })
   ));
   //////console.log(JSON.stringify(obj.OPENTRANS));
- ////console.log("-----------------------------------------------------------");
-  let allTax:any = [];
+  ////console.log("-----------------------------------------------------------");
+  let allTax: any = [];
   order.positions.required.forEach(element => {
     const index = allTax.findIndex(object => object.type === element.tax?.type);
     if (index === -1) {
       allTax.push({
-          type: element.tax?.type,
-          value: element.tax?.value,
+        type: element.tax?.type,
+        value: element.tax?.value,
       });
     }
   })
   let tempTaxArray = [];
   let totalAmount: any = '0.00';
-  
- ////console.log("order.positions",order.positions.required)
+
+  ////console.log("order.positions",order.positions.required)
   for (let index = 0; index < order.positions.required.length; index++) {
     let element = order.positions.required[index];
     delete element.internal_pos
-   ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-   ////console.log(JSON.stringify(element));    
-   ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-   ////console.log("....... :: "+element.tax?.value);
-    
+    ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+    ////console.log(JSON.stringify(element));    
+    ////console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+    ////console.log("....... :: "+element.tax?.value);
+
     totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
-    let arr,status = true;
-   ////console.log('element.articleelement.article',element);
-    
+    let arr, status = true;
+    ////console.log('element.articleelement.article',element);
+
     obj.OPENTRANS.ORDER[0]['ORDER_ITEM_LIST'][0]['ORDER_ITEM'].push(JSON.parse(JSON.stringify({
-      "LINE_ITEM_ID": element.pos?element.pos:index,
+      "LINE_ITEM_ID": element.pos ? element.pos : index,
       "PRODUCT_ID": [{
-        "bmecat:SUPPLIER_PID": element?.article?.article_id?element.article.article_id:element.article.id,
+        "bmecat:SUPPLIER_PID": element?.article?.article_id ? element.article.article_id : element.article.id,
         ...(element?.article?.id
           ? {
-              "bmecat:INTERNATIONAL_PID": {
-                "_": element?.article?.id,
-                "$": {
-                  "type": "ean"
-                }
+            "bmecat:INTERNATIONAL_PID": {
+              "_": element?.article?.id,
+              "$": {
+                "type": "ean"
               }
             }
+          }
           : {}),
-        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, // product id mandatory field so just added intername as description short
-        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
-    }],
-      "QUANTITY": element?.article?.amount?element.article.amount:element.amount,
-      "bmecat:ORDER_UNIT":orderUnit[element.unit_name]?orderUnit[element.unit_name]:'CT',
-      "PRODUCT_PRICE_FIX" : [JSON.parse(JSON.stringify({
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined, // product id mandatory field so just added intername as description short
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+      }],
+      "QUANTITY": element?.article?.amount ? element.article.amount : element.amount,
+      "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'CT',
+      "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-        "TAX_DETAILS_FIX":element?.tax?.value&&taxIsAdded? [{
+        "TAX_DETAILS_FIX": element?.tax?.value && taxIsAdded ? [{
           "bmecat:TAX": element?.tax?.value
           // "TAX_AMOUNT": element.tax_value
-        }]:undefined,
+        }] : undefined,
       }))],
-      "PRICE_LINE_AMOUNT": element?.position_total? parseFloat(element.position_total).toFixed(2) : 0.00
+      "PRICE_LINE_AMOUNT": element?.position_total ? parseFloat(element.position_total).toFixed(2) : 0.00
     })))
   }
   obj.OPENTRANS['ORDER'][0]['ORDER_SUMMARY'].push(JSON.parse(JSON.stringify({
-    "TOTAL_ITEM_NUM" : order.positions.required.length,
+    "TOTAL_ITEM_NUM": order.positions.required.length,
     "TOTAL_AMOUNT": parseFloat(order.positions.total).toFixed(2)
   })))
   // return
 
-  let builder = new xml2js.Builder({'xmldec.version':1.0} );
- ////console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
+  let builder = new xml2js.Builder({ 'xmldec.version': 1.0 });
+  ////console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
   var xml = builder.buildObject(obj);
- ////console.log("xml:  ---------------------------\n",xml);
+  ////console.log("xml:  ---------------------------\n",xml);
   return Buffer.from(xml).toString('base64');
 }
-export const getOrderOT = async (accessToken,orderId) =>{
+export const getOrderOT = async (accessToken, orderId) => {
   try {
-    return new Promise( async( resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'GET',
         'url': `https://api.bexio.com/3.0/purchase_orders/${orderId}`,
@@ -3445,38 +3438,38 @@ export const getOrderOT = async (accessToken,orderId) =>{
         }
       };
       //////console.log('optionsoptions',options);
-      
 
-      request( options, function(error, response){
-        if(error){
-         ////console.log('errorerrorerror',error);
+
+      request(options, function (error, response) {
+        if (error) {
+          ////console.log('errorerrorerror',error);
           commonErrors['errorTitle'] = 'getOrderOT';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+orderId;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + orderId;
+          warningMessage(commonErrors, error);
           return resolve(error);
         }
         //////console.log('responseresponse',response);
 
-        if( response.statusCode == 200){
+        if (response.statusCode == 200) {
           return resolve(JSON.parse(response.body));
         }
-        else{
+        else {
           return resolve(false);
         }
       })
     });
   } catch (error) {
     commonErrors['errorTitle'] = 'getOrderOT';
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+orderId;
-    warningMessage(commonErrors,error);
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + orderId;
+    warningMessage(commonErrors, error);
     return;
-  }  
+  }
 }
 export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerParams) => {
   //console.log("worker processing invoices...");
   //console.log('deliveryNotes',deliveryNotes);
   //console.log('bodyValues',bodyValues);
- 
+
   let tempIds = JSON.parse(deliveryNotes);
 
   for (let index = 0; index < tempIds.length; index++) {
@@ -3496,60 +3489,60 @@ export const setDeliveryNotesBulk = async (deliveryNotes, bodyValues, headerPara
     //console.log("start processing delivery notes");
     const result = await pushDeliveryNotesBulk(tempParam, "");
     console.log("result:", result);
-    
+
     //console.log("end processing delivery notes");
   }
 };
-export const pushDeliveryNotesBulk = async( req, res)=>{
-  return new Promise( async(resolve,reject) => {
-    let cookie ;
-    let decryptData ;
+export const pushDeliveryNotesBulk = async (req, res) => {
+  return new Promise(async (resolve, reject) => {
+    let cookie;
+    let decryptData;
     let deliveryNotesCid;
     decryptData = req.body;
-    
+
     try {
-      let deliveryNotes,paymentType;
+      let deliveryNotes, paymentType;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const partyId = decryptData.partyId;
       const accountId = decryptData.accountId;
       const delivery_id = decryptData.delivery_id || 1;
-      deliveryNotes = await getDeliveryNotesOT(accessToken,delivery_id); // Get deliveryNotes from bexio using orderId
+      deliveryNotes = await getDeliveryNotesOT(accessToken, delivery_id); // Get deliveryNotes from bexio using orderId
 
-      if( !deliveryNotes){ // If there is no deliveryNotes with this orderId, return with error
-        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,'','0','error_in_getDeliveryNotesOT');
+      if (!deliveryNotes) { // If there is no deliveryNotes with this orderId, return with error
+        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, '', '0', 'error_in_getDeliveryNotesOT');
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_in_getDeliveryNotesOT -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'error_in_getDeliveryNotesOT');
-     
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_in_getDeliveryNotesOT -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_in_getDeliveryNotesOT');
+
         return resolve('error_in_getDeliveryNotesOT');
       }
-      let invitationData:any = await getConnectionDetails(partyId,accountId,deliveryNotes.contact_id,req); // Get the connection details using contact_id, party and account
+      let invitationData: any = await getConnectionDetails(partyId, accountId, deliveryNotes.contact_id, req); // Get the connection details using contact_id, party and account
       let customerIds
-      if( invitationData.length > 0)
+      if (invitationData.length > 0)
         customerIds = await constGetContactId(invitationData[0].rk_businessconnection); // Get customer Id using businessConnection
       else
-        if( !customerIds ){ // If there is no customerIds, return with error
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','customerIds_not_found');
+        if (!customerIds) { // If there is no customerIds, return with error
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'customerIds_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'customerIds_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'customerIds_not_found');
-         
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'customerIds_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'customerIds_not_found');
+
           return resolve('customerIds_not_found');
         }
-      if( invitationData != undefined){ // If there is any invitationData then do
-        let pdf,fileName,pdfContent;
-        pdf = await getDeliveryNotesPdf(accessToken,delivery_id); // Fetch pdf file for deliveryNotes from bexio.
+      if (invitationData != undefined) { // If there is any invitationData then do
+        let pdf, fileName, pdfContent;
+        pdf = await getDeliveryNotesPdf(accessToken, delivery_id); // Fetch pdf file for deliveryNotes from bexio.
 
-        if( !pdf ){ // If there is no pdf, return with error
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','deliveryNotesPdf_not_found');
+        if (!pdf) { // If there is no pdf, return with error
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'deliveryNotesPdf_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'deliveryNotesPdf_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'deliveryNotesPdf_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'deliveryNotesPdf_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'deliveryNotesPdf_not_found');
+
           return resolve('deliveryNotesPdf_not_found');
         }
-        
+
         pdfContent = JSON.parse(pdf).content; // Assign pdf content.
         fileName = JSON.parse(pdf).name; // Assign pdf name.
 
@@ -3557,47 +3550,47 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         let countryList;
         countryList = await getCountryLists(accessToken);
 
-        if( !countryList ){ // If country list not found, return with error.
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','countryList_not_found');
+        if (!countryList) { // If country list not found, return with error.
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'countryList_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'countryList_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'countryList_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'countryList_not_found');
           return resolve('countryList_not_found');
         }
         let bank;
         //console.log("deliveryNotes.currency_id :: ",deliveryNotes.currency_id);
         /* Fetch currency from bexio using id. */
-        let currency = await getCurrency(accessToken,deliveryNotes.currency_id);
-        if( !currency ){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','currency_not_found');
+        let currency = await getCurrency(accessToken, deliveryNotes.currency_id);
+        if (!currency) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'currency_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'currency_not_found');
-         
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'currency_not_found');
+
           return resolve('currency_not_found');
         }
         deliveryNotes['currency'] = currency;
 
         /* Get user details from access token */
         let temp = await getloginUserCompanyDetails(accessToken);
-        if( !temp ){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','loginUserCompanyDetails_not_found');
+        if (!temp) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'loginUserCompanyDetails_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'loginUserCompanyDetails_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'loginUserCompanyDetails_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'loginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'loginUserCompanyDetails_not_found');
+
           return resolve('loginUserCompanyDetails_not_found');
         }
         deliveryNotes['companyProfile'] = temp;
         deliveryNotes['companyProfile'] = JSON.parse(deliveryNotes['companyProfile']);
         /* Fetch payment type from deliveryNotes */
-        paymentType = await getPaymentType(accessToken,deliveryNotes.payment_type_id);
-        if(!paymentType){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','paymentType_not_found');
+        paymentType = await getPaymentType(accessToken, deliveryNotes.payment_type_id);
+        if (!paymentType) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'paymentType_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'paymentType_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'paymentType_not_found');
-         
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'paymentType_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'paymentType_not_found');
+
           return resolve('paymentType_not_found');
         }
 
@@ -3605,23 +3598,23 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         deliveryNotes['paymentType'] = tempPaymentType;
 
         /* Fetch contact using contact id from deliveryNotes */
-        let contact = await getContact(accessToken,deliveryNotes.contact_id);
-        if(!contact){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','contact_not_found');
+        let contact = await getContact(accessToken, deliveryNotes.contact_id);
+        if (!contact) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'contact_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'contact_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'contact_not_found');
-         
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'contact_not_found');
+
           return resolve('contact_not_found');
         }
         deliveryNotes['contact'] = contact;
         let user = true;
-        if(!user){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','user_not_found');
+        if (!user) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'user_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'user_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'user_not_found');
-        
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'user_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'user_not_found');
+
           return resolve('user_not_found');
         }
         deliveryNotes['user'] = user;
@@ -3629,430 +3622,428 @@ export const pushDeliveryNotesBulk = async( req, res)=>{
         /* Loop over positions in deliveryNotes */
         for (const items of deliveryNotes.positions) {
           //console.log('items.tax_id',items.tax_id);
-          if(items.tax_id){ // Check tax is there or not
+          if (items.tax_id) { // Check tax is there or not
             /* Fetch tax using tax id */
-            let tempTax = await getTaxs(accessToken,items.tax_id);
-            if(!tempTax){
-              deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','tax_not_Found');
-             
+            let tempTax = await getTaxs(accessToken, items.tax_id);
+            if (!tempTax) {
+              deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'tax_not_Found');
+
               // addlogs(logs,decryptData.partyId,decryptData.accountId);
               commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
-              warningMessage(commonErrors,'tax_not_Found');
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,', JSON.stringify(req.body);
+              warningMessage(commonErrors, 'tax_not_Found');
               return resolve('tax_not_Found');
             }
             items['tax'] = tempTax;
           }
           let tempItem;
-          if('article_id' in items){
-            tempItem = await getProducts(accessToken,items.article_id);
+          if ('article_id' in items) {
+            tempItem = await getProducts(accessToken, items.article_id);
             items['article'] = tempItem;
-          }else{
+          } else {
             items['article'] = {}
             items['article']['intern_name'] = items.text;
             items['article']['intern_description'] = items.text;
 
           }
         }
-        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'1');
+        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '1');
 
         /* Create XML from data */
         let xml;
-        xml = await setDeliveryNotesToOt(deliveryNotes,countryList,invitationData[0],pdfContent,fileName,customerIds,deliveryNotesCid);
-        if( xml == false){
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId,delivery_id,deliveryNotes['document_nr'],'0','deliveryNotesToOt_not_found');
+        xml = await setDeliveryNotesToOt(deliveryNotes, countryList, invitationData[0], pdfContent, fileName, customerIds, deliveryNotesCid);
+        if (xml == false) {
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'deliveryNotesToOt_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'deliveryNotesToOt_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'deliveryNotesToOt_not_found');
-   
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'deliveryNotesToOt_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'deliveryNotesToOt_not_found');
+
           return resolve('deliveryNotesToOt_not_found');
         }
-        await invoiceFilePush(invitationData[0].rk_netcomidsender,'WS',xml,deliveryNotes['document_nr'],'EDI');
-        let redisKey = req.body.partyId+"_/";
-        await deleteRedis(req.url.substr(1,req.url.length),redisKey);
+        await invoiceFilePush(invitationData[0].rk_netcomidsender, 'WS', xml, deliveryNotes['document_nr'], 'EDI');
+        let redisKey = req.body.partyId + "_/";
+        await deleteRedis(req.url.substr(1, req.url.length), redisKey);
         return resolve(true);
       }
-      else{
-      
+      else {
+
         // addlogs(logs,decryptData.partyId,decryptData.accountId);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'ORDER_FOR_OPEN_TRANSACTION -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'ORDER_FOR_OPEN_TRANSACTION');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'ORDER_FOR_OPEN_TRANSACTION -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'ORDER_FOR_OPEN_TRANSACTION');
         return resolve('deliveryNotes_push_error')
       }
-      } catch (error) {
-        console.error('Error in pushDeliveryNotesBulk:', error);
-        reject(error); // Ensure the promise is rejected.
-      }
-    });
-  }
-  const getDeliveryNotesOT = async (accessToken,delivery_id) =>{
-    try {
-      return new Promise( async( resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}`,
-          'headers': {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        };
-    
-        request( options, function(error, response){
-          if(error){
-            commonErrors['errorTitle'] = 'getDeliveryNotesCidOT';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
-            warningMessage(commonErrors,error);
-            return resolve(error);
-          }
-          if( response.statusCode == 200){
-            return resolve(JSON.parse(response.body));
-          }
-          else{
-            return resolve(false);
-          }
-        })
-      });
     } catch (error) {
-      commonErrors['errorTitle'] = 'getDeliveryNotesOT';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
-      warningMessage(commonErrors,error);
-      return;
-    }  
-  }
-  const getDeliveryNotesPdf = async( accessToken,delivery_id) => {
-    try {
-      return new Promise( async( resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}/pdf`,
-          'headers': {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-            }
-        };
-    
-        request( options, function( error, respons){
-          if(error){
-            commonErrors['errorTitle'] = 'getOrderResposnePdf';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
-            warningMessage(commonErrors,error);
-            return resolve(error);
-          }
-          if( respons.statusCode == 200){
-            return resolve(respons.body);
-          }
-          else{
-            return resolve(false);
-          }
-        })
-      });
-    } catch (error) {
-      commonErrors['errorTitle'] = 'getOrderResposnePdf';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+delivery_id;
-      warningMessage(commonErrors,error);
-      return;
+      console.error('Error in pushDeliveryNotesBulk:', error);
+      reject(error); // Ensure the promise is rejected.
     }
-    
-  }
-  const setDeliveryNotesToOt = async(deliveryNotes,coutryList,contactDetails,pdf,fileName,customerIds,delivery_id)=>{
-    
-    coutryList = JSON.parse(coutryList);
-    //console.log("gghghgh");
-    let emptyValue = 'NA'
-    let taxIsAdded;
-    let priceQuantity = '1'
-    let deliveryNotesUnit = {
-      'Stk':'C62',
-      'h':'HUR'
-    }
-    let obj:any = {
-      "OPENTRANS": {
-        "$": {
-          "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
-          "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
-          "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
-        },
-        "DISPATCHNOTIFICATION": [{
-          "$": {
-            "version": "2.1"
-          },
-          "DISPATCHNOTIFICATION_HEADER": [{
-            "CONTROL_INFO":[],
-            "DISPATCHNOTIFICATION_INFO": []
-          }],
-          "DISPATCHNOTIFICATION_ITEM_LIST": [{
-            "DISPATCHNOTIFICATION_ITEM": []
-          }],
-          "DISPATCHNOTIFICATION_SUMMARY": []
-  
-        }]
-      }
-    };
-  
-    let v = coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)  
-    taxIsAdded = deliveryNotes.taxs.length;
-    //console.log("\ntaxIsAdded:: "+taxIsAdded);
-    //console.log("JSON.stringify(deliveryNotes) ",JSON.stringify(deliveryNotes.contact));
-    //console.log(coutryList[0]);
-    
-    
-    obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
-      "GENERATOR_INFO": new Date(deliveryNotes.updated_at).toISOString()
-    })))
-    //console.log("-------------------------\n"+new Date(deliveryNotes.updated_at).toISOString()+"\n----------------");
-    let deliveryAddress = {};
-    let tempString = JSON.stringify(deliveryNotes.delivery_address)
-    let tempArray = "";
-    //console.log("tempString",tempString);
-  
-    
-    if(tempString.indexOf("\\r\\n") != -1)
-    {
-      tempArray = tempString.substring(1, tempString.length-1).replace(/\\r\\n/g, "___________");
-    }
-    else if(tempString.indexOf("\\n") != -1)
-    {
-      tempArray = tempString.substring(1, tempString.length-1).replace(/\\n/g, "___________");
-    }
-    else if(tempString.indexOf("\\r") != -1)
-    {
-      tempArray = tempString.substring(1, tempString.length-1).replace(/\\r/g, "___________");
-    }
-    else{
-      tempArray = tempString;
-    }
-  
-    //console.log('tempArray',tempArray);
-    let deliveryAddress2 = tempArray.split("___________");
-    //console.log("deliveryAddress2",deliveryAddress2);
-    
-    let tempAdress = deliveryAddress2.filter((e)=>e.length!=0);
-    //console.log('tempAdress',tempAdress);
-    if(tempAdress.length == 4){
-      tempAdress.splice(1,0," ")
-    }
-    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    let isEmailAdded = pattern.test(tempAdress[1]);
-    let tempStreet;
-    let tempZip;
-    let tempCity;
-    let countryCode;
-    let secondName ;
-    if(isEmailAdded){
-      tempStreet = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-      tempZip = tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-      tempCity = tempAdress[5]?.trim() ? tempAdress[5]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-      countryCode = tempAdress[6] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[6].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
-    }else{
-      if(tempAdress.length == 5){
-        countryCode = tempAdress[4] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[4].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
-        tempStreet = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-        tempZip = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-        tempCity =  tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-      }else{
-        countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 ==  tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
-        secondName = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-        tempStreet = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-        tempZip = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-        tempCity =  tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
-      }
-    }
-    obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['DISPATCHNOTIFICATION_INFO'].push(JSON.parse(
-      JSON.stringify({
-        "DISPATCHNOTIFICATION_ID": deliveryNotes.document_nr,
-        "DISPATCHNOTIFICATION_DATE": new Date(deliveryNotes.updated_at).toISOString(),
-        "bmecat:LANGUAGE": 'deu',
-        "DELIVERY_DATE": [{
-          "DELIVERY_START_DATE": new Date(deliveryNotes.is_valid_from).toISOString(),
-          "DELIVERY_END_DATE": new Date(deliveryNotes.is_valid_from).toISOString()
-        }],      
-        "PARTIES": [{
-          "PARTY": [{
-            "bmecat:PARTY_ID": [{
-              "_": contactDetails.rk_netcomidsender,
-              "$": {
-                "type": "supplier_specific"
-              }
-            }],
-            "PARTY_ROLE":"supplier",
-            "ADDRESS": [{
-              "bmecat:NAME": deliveryNotes.companyProfile[0].name_1?deliveryNotes.companyProfile[0].name_1:undefined,
-              "bmecat:NAME2": deliveryNotes.companyProfile[0].name_2?deliveryNotes.companyProfile[0].name_2:undefined,
-              "bmecat:STREET": deliveryNotes.companyProfile[0].address?deliveryNotes.companyProfile[0].address:undefined,
-              "bmecat:ZIP": deliveryNotes.companyProfile[0].postcode?deliveryNotes.companyProfile[0].postcode:undefined,
-              "bmecat:CITY": deliveryNotes.companyProfile[0].city?deliveryNotes.companyProfile[0].city:undefined,
-              "bmecat:COUNTRY_CODED":coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2
-            }]
-          },{
-            "bmecat:PARTY_ID": [{
-              "_": contactDetails.rk_netcomidreceived,
-              "$": {
-                "type": "buyer_specific"
-              }
-            }],
-            "PARTY_ROLE":"buyer",
-            "ADDRESS": [{
-              "bmecat:NAME": deliveryNotes.contact.name_1?deliveryNotes.contact.name_1:undefined,
-              "bmecat:NAME2": deliveryNotes.contact.name_2?deliveryNotes.contact.name_2:undefined,
-              "bmecat:STREET": deliveryNotes.contact.street_name?`${deliveryNotes.contact.street_name} ${deliveryNotes.contact.house_number ?? ''}`.trim():undefined,
-              "bmecat:ZIP": deliveryNotes.contact.postcode?deliveryNotes.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
-              "bmecat:CITY": deliveryNotes.contact.city?deliveryNotes.contact.city:undefined,
-              "bmecat:COUNTRY_CODED": deliveryNotes.contact.country_id?coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2:undefined
-            }]
-          },{
-            "bmecat:PARTY_ID": [{
-              "_": contactDetails.rk_netcomidsender,
-              "$": {
-                "type": "party_specific"
-              }
-            }],
-            "PARTY_ROLE":"delivery",
-            "ADDRESS": [{
-              "bmecat:NAME": tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
-               "bmecat:NAME2": secondName,
-               "CONTACT_DETAILS":isEmailAdded ? [{
-                "bmecat:CONTACT_NAME":tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
-                "bmecat:PHONE":tempAdress[2]?.replace(/\n/g, "") ? tempAdress[2]:undefined,
-                "bmecat:EMAILS":tempAdress[1]?.trim()?[{
-                  "bmecat:EMAIL":tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined
-                }]:undefined,
-               }]: undefined,
-              "bmecat:STREET": tempStreet,
-              "bmecat:ZIP":  tempZip,
-              "bmecat:CITY":  tempCity,
-              "bmecat:COUNTRY_CODED": countryCode ? countryCode : undefined
-            }]
-          }]
-        }],
-        "bmecat:SUPPLIER_IDREF":contactDetails.sendercustomerid,
-        "bmecat:BUYER_IDREF": contactDetails.receiver_customerid,
-        "SHIPMENT_PARTIES_REFERENCE":[{
-          "DELIVERY_IDREF": contactDetails.rk_netcomidsender
-        }],
-        "REMARKS": deliveryNotes.title ? deliveryNotes.title : undefined,
-        "HEADER_UDX":[{
-          "HEADER_UDX_OPT": [{
-          "BEX_VERSION": "VER1",
-            "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
-          }],
-          "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
-          "RECEIVER_CUSTOM_ID_1": contactDetails.receiver_customerid,
-        }]
+  });
+}
+const getDeliveryNotesOT = async (accessToken, delivery_id) => {
+  try {
+    return new Promise(async (resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}`,
+        'headers': {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      };
+
+      request(options, function (error, response) {
+        if (error) {
+          commonErrors['errorTitle'] = 'getDeliveryNotesCidOT';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + delivery_id;
+          warningMessage(commonErrors, error);
+          return resolve(error);
+        }
+        if (response.statusCode == 200) {
+          return resolve(JSON.parse(response.body));
+        }
+        else {
+          return resolve(false);
+        }
       })
-    ));
-    // //console.log(JSON.stringify(obj.OPENTRANS));
-    //console.log("-----------------------------------------------------------");
-    let allTax:any = [];
-    deliveryNotes.positions.forEach(element => {
-      const index = allTax.findIndex(object => object.type === element.tax?.type);
-      if (index === -1) {
-        allTax.push({
-            type: element.tax?.type,
-            value: element.tax?.value,
-        });
-      }
-    })
-    let tempTaxArray = [];
-    let totalAmount: any = '0.00';
-    for (let index = 0; index < deliveryNotes.positions.length; index++) {
-      let element = deliveryNotes.positions[index];
-      //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-      //console.log(element);    
-      //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-      
-      totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
-      let arr,status = true;
-      obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_ITEM_LIST'][0]['DISPATCHNOTIFICATION_ITEM'].push(JSON.parse(JSON.stringify({
-        "LINE_ITEM_ID": element.pos?element.pos:index,
-        "PRODUCT_ID": [{
-          "bmecat:SUPPLIER_PID" : element.internal_pos?element.internal_pos:undefined,
-          ...(element.article.intern_code
-            ? {
-                "bmecat:INTERNATIONAL_PID": {
-                  "_": element.article.intern_code,
-                  "$": {
-                    "type": "ean"
-                  }
-                }
-              }
-            : {}),
-            "bmecat:DESCRIPTION_LONG": element.text? element.text:undefined
-         
-        }],
-        "QUANTITY": element.amount?Math.trunc(element.amount):1,
-        "bmecat:ORDER_UNIT":deliveryNotesUnit[element.unit_name]?deliveryNotesUnit[element.unit_name]:'C62',
-        "ORDER_REFERENCE": [{
-          "ORDER_ID": element.id,
-          "LINE_ITEM_ID": element.pos?element.pos:index
-        }],
-        "SHIPMENT_PARTIES_REFERENCE":[{
-          "DELIVERY_IDREF": contactDetails.rk_netcomidsender
-        }]
-      })))
-    }
-    obj.OPENTRANS['DISPATCHNOTIFICATION'][0]['DISPATCHNOTIFICATION_SUMMARY'].push(JSON.parse(JSON.stringify({
-      "TOTAL_ITEM_NUM" : deliveryNotes.positions.length
-    })))
-    // return
-    
-    let builder = new xml2js.Builder({'xmldec.version':1.0} );
-    //console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
-    var xml = builder.buildObject(obj);
-    //console.log("xml:  ---------------------------\n",xml);
-    return Buffer.from(xml).toString('base64');
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = 'getDeliveryNotesOT';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + delivery_id;
+    warningMessage(commonErrors, error);
+    return;
+  }
+}
+const getDeliveryNotesPdf = async (accessToken, delivery_id) => {
+  try {
+    return new Promise(async (resolve, reject) => {
+      var options = {
+        'method': 'GET',
+        'url': `https://api.bexio.com/2.0/kb_delivery/${delivery_id}/pdf`,
+        'headers': {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      };
+
+      request(options, function (error, respons) {
+        if (error) {
+          commonErrors['errorTitle'] = 'getOrderResposnePdf';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + delivery_id;
+          warningMessage(commonErrors, error);
+          return resolve(error);
+        }
+        if (respons.statusCode == 200) {
+          return resolve(respons.body);
+        }
+        else {
+          return resolve(false);
+        }
+      })
+    });
+  } catch (error) {
+    commonErrors['errorTitle'] = 'getOrderResposnePdf';
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + delivery_id;
+    warningMessage(commonErrors, error);
+    return;
   }
 
-  export const getSendInvoiceList = async (partyId: number,status:string): Promise<any[]> => {
-    try {
-      let result
-      if(status=='sent'){
-        
-        const [successOrPending, failedGate2b] = await Promise.all([
-          connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+}
+const setDeliveryNotesToOt = async (deliveryNotes, coutryList, contactDetails, pdf, fileName, customerIds, delivery_id) => {
+
+  coutryList = JSON.parse(coutryList);
+  //console.log("gghghgh");
+  let emptyValue = 'NA'
+  let taxIsAdded;
+  let priceQuantity = '1'
+  let deliveryNotesUnit = {
+    'Stk': 'C62',
+    'h': 'HUR'
+  }
+  let obj: any = {
+    "OPENTRANS": {
+      "$": {
+        "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+        "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+        "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+      },
+      "DISPATCHNOTIFICATION": [{
+        "$": {
+          "version": "2.1"
+        },
+        "DISPATCHNOTIFICATION_HEADER": [{
+          "CONTROL_INFO": [],
+          "DISPATCHNOTIFICATION_INFO": []
+        }],
+        "DISPATCHNOTIFICATION_ITEM_LIST": [{
+          "DISPATCHNOTIFICATION_ITEM": []
+        }],
+        "DISPATCHNOTIFICATION_SUMMARY": []
+
+      }]
+    }
+  };
+
+  let v = coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)
+  taxIsAdded = deliveryNotes.taxs.length;
+  //console.log("\ntaxIsAdded:: "+taxIsAdded);
+  //console.log("JSON.stringify(deliveryNotes) ",JSON.stringify(deliveryNotes.contact));
+  //console.log(coutryList[0]);
+
+
+  obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
+    "GENERATOR_INFO": new Date(deliveryNotes.updated_at).toISOString()
+  })))
+  //console.log("-------------------------\n"+new Date(deliveryNotes.updated_at).toISOString()+"\n----------------");
+  let deliveryAddress = {};
+  let tempString = JSON.stringify(deliveryNotes.delivery_address)
+  let tempArray = "";
+  //console.log("tempString",tempString);
+
+
+  if (tempString.indexOf("\\r\\n") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\r\\n/g, "___________");
+  }
+  else if (tempString.indexOf("\\n") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\n/g, "___________");
+  }
+  else if (tempString.indexOf("\\r") != -1) {
+    tempArray = tempString.substring(1, tempString.length - 1).replace(/\\r/g, "___________");
+  }
+  else {
+    tempArray = tempString;
+  }
+
+  //console.log('tempArray',tempArray);
+  let deliveryAddress2 = tempArray.split("___________");
+  //console.log("deliveryAddress2",deliveryAddress2);
+
+  let tempAdress = deliveryAddress2.filter((e) => e.length != 0);
+  //console.log('tempAdress',tempAdress);
+  if (tempAdress.length == 4) {
+    tempAdress.splice(1, 0, " ")
+  }
+  const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let isEmailAdded = pattern.test(tempAdress[1]);
+  let tempStreet;
+  let tempZip;
+  let tempCity;
+  let countryCode;
+  let secondName;
+  if (isEmailAdded) {
+    tempStreet = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+    tempZip = tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+    tempCity = tempAdress[5]?.trim() ? tempAdress[5]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+    countryCode = tempAdress[6] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 == tempAdress[6].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+  } else {
+    if (tempAdress.length == 5) {
+      countryCode = tempAdress[4] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 == tempAdress[4].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+      tempStreet = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempZip = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempCity = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+    } else {
+      countryCode = tempAdress[5] ? coutryList.filter(coutry => coutry.iso_3166_alpha2 == tempAdress[5].replace(/\n/g, "").replace(/\r/g, "").trim())[0]?.iso_3166_alpha2 : undefined;
+      secondName = tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempStreet = tempAdress[2]?.trim() ? tempAdress[2]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempZip = tempAdress[3]?.trim() ? tempAdress[3]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+      tempCity = tempAdress[4]?.trim() ? tempAdress[4]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined;
+    }
+  }
+  obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_HEADER'][0]['DISPATCHNOTIFICATION_INFO'].push(JSON.parse(
+    JSON.stringify({
+      "DISPATCHNOTIFICATION_ID": deliveryNotes.document_nr,
+      "DISPATCHNOTIFICATION_DATE": new Date(deliveryNotes.updated_at).toISOString(),
+      "bmecat:LANGUAGE": 'deu',
+      "DELIVERY_DATE": [{
+        "DELIVERY_START_DATE": new Date(deliveryNotes.is_valid_from).toISOString(),
+        "DELIVERY_END_DATE": new Date(deliveryNotes.is_valid_from).toISOString()
+      }],
+      "PARTIES": [{
+        "PARTY": [{
+          "bmecat:PARTY_ID": [{
+            "_": contactDetails.rk_netcomidsender,
+            "$": {
+              "type": "supplier_specific"
+            }
+          }],
+          "PARTY_ROLE": "supplier",
+          "ADDRESS": [{
+            "bmecat:NAME": deliveryNotes.companyProfile[0].name_1 ? deliveryNotes.companyProfile[0].name_1 : undefined,
+            "bmecat:NAME2": deliveryNotes.companyProfile[0].name_2 ? deliveryNotes.companyProfile[0].name_2 : undefined,
+            "bmecat:STREET": deliveryNotes.companyProfile[0].address ? deliveryNotes.companyProfile[0].address : undefined,
+            "bmecat:ZIP": deliveryNotes.companyProfile[0].postcode ? deliveryNotes.companyProfile[0].postcode : undefined,
+            "bmecat:CITY": deliveryNotes.companyProfile[0].city ? deliveryNotes.companyProfile[0].city : undefined,
+            "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2
+          }]
+        }, {
+          "bmecat:PARTY_ID": [{
+            "_": contactDetails.rk_netcomidreceived,
+            "$": {
+              "type": "buyer_specific"
+            }
+          }],
+          "PARTY_ROLE": "buyer",
+          "ADDRESS": [{
+            "bmecat:NAME": deliveryNotes.contact.name_1 ? deliveryNotes.contact.name_1 : undefined,
+            "bmecat:NAME2": deliveryNotes.contact.name_2 ? deliveryNotes.contact.name_2 : undefined,
+            "bmecat:STREET": deliveryNotes.contact.street_name ? `${deliveryNotes.contact.street_name} ${deliveryNotes.contact.house_number ?? ''}`.trim() : undefined,
+            "bmecat:ZIP": deliveryNotes.contact.postcode ? deliveryNotes.contact.postcode : undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+            "bmecat:CITY": deliveryNotes.contact.city ? deliveryNotes.contact.city : undefined,
+            "bmecat:COUNTRY_CODED": deliveryNotes.contact.country_id ? coutryList.filter(coutry => coutry.id == deliveryNotes.companyProfile[0].country_id)[0].iso_3166_alpha2 : undefined
+          }]
+        }, {
+          "bmecat:PARTY_ID": [{
+            "_": contactDetails.rk_netcomidsender,
+            "$": {
+              "type": "party_specific"
+            }
+          }],
+          "PARTY_ROLE": "delivery",
+          "ADDRESS": [{
+            "bmecat:NAME": tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
+            "bmecat:NAME2": secondName,
+            "CONTACT_DETAILS": isEmailAdded ? [{
+              "bmecat:CONTACT_NAME": tempAdress[0]?.trim() ? tempAdress[0]?.replace(/\n/g, "")?.replace(/\r/g, "").trim() : undefined,
+              "bmecat:PHONE": tempAdress[2]?.replace(/\n/g, "") ? tempAdress[2] : undefined,
+              "bmecat:EMAILS": tempAdress[1]?.trim() ? [{
+                "bmecat:EMAIL": tempAdress[1]?.trim() ? tempAdress[1]?.replace(/\n/g, "").replace(/\r/g, "").trim() : undefined
+              }] : undefined,
+            }] : undefined,
+            "bmecat:STREET": tempStreet,
+            "bmecat:ZIP": tempZip,
+            "bmecat:CITY": tempCity,
+            "bmecat:COUNTRY_CODED": countryCode ? countryCode : undefined
+          }]
+        }]
+      }],
+      "bmecat:SUPPLIER_IDREF": contactDetails.sendercustomerid,
+      "bmecat:BUYER_IDREF": contactDetails.receiver_customerid,
+      "SHIPMENT_PARTIES_REFERENCE": [{
+        "DELIVERY_IDREF": contactDetails.rk_netcomidsender
+      }],
+      "REMARKS": deliveryNotes.title ? deliveryNotes.title : undefined,
+      "HEADER_UDX": [{
+        "HEADER_UDX_OPT": [{
+          "BEX_VERSION": "VER1",
+          "BEX_DISPATCHNOTIFICATION_DOCUMENT_ID": delivery_id
+        }],
+        "SENDER_CUSTOM_ID_1": contactDetails.sendercustomerid,
+        "RECEIVER_CUSTOM_ID_1": contactDetails.receiver_customerid,
+      }]
+    })
+  ));
+  // //console.log(JSON.stringify(obj.OPENTRANS));
+  //console.log("-----------------------------------------------------------");
+  let allTax: any = [];
+  deliveryNotes.positions.forEach(element => {
+    const index = allTax.findIndex(object => object.type === element.tax?.type);
+    if (index === -1) {
+      allTax.push({
+        type: element.tax?.type,
+        value: element.tax?.value,
+      });
+    }
+  })
+  let tempTaxArray = [];
+  let totalAmount: any = '0.00';
+  for (let index = 0; index < deliveryNotes.positions.length; index++) {
+    let element = deliveryNotes.positions[index];
+    //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+    //console.log(element);    
+    //console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+
+    totalAmount = parseFloat(totalAmount) + parseFloat(element.position_total);
+    let arr, status = true;
+    obj.OPENTRANS.DISPATCHNOTIFICATION[0]['DISPATCHNOTIFICATION_ITEM_LIST'][0]['DISPATCHNOTIFICATION_ITEM'].push(JSON.parse(JSON.stringify({
+      "LINE_ITEM_ID": element.pos ? element.pos : index,
+      "PRODUCT_ID": [{
+        "bmecat:SUPPLIER_PID": element.internal_pos ? element.internal_pos : undefined,
+        ...(element.article.intern_code
+          ? {
+            "bmecat:INTERNATIONAL_PID": {
+              "_": element.article.intern_code,
+              "$": {
+                "type": "ean"
+              }
+            }
+          }
+          : {}),
+        "bmecat:DESCRIPTION_LONG": element.text ? element.text : undefined
+
+      }],
+      "QUANTITY": element.amount ? Math.trunc(element.amount) : 1,
+      "bmecat:ORDER_UNIT": deliveryNotesUnit[element.unit_name] ? deliveryNotesUnit[element.unit_name] : 'C62',
+      "ORDER_REFERENCE": [{
+        "ORDER_ID": element.id,
+        "LINE_ITEM_ID": element.pos ? element.pos : index
+      }],
+      "SHIPMENT_PARTIES_REFERENCE": [{
+        "DELIVERY_IDREF": contactDetails.rk_netcomidsender
+      }]
+    })))
+  }
+  obj.OPENTRANS['DISPATCHNOTIFICATION'][0]['DISPATCHNOTIFICATION_SUMMARY'].push(JSON.parse(JSON.stringify({
+    "TOTAL_ITEM_NUM": deliveryNotes.positions.length
+  })))
+  // return
+
+  let builder = new xml2js.Builder({ 'xmldec.version': 1.0 });
+  //console.log("JSON.stringify(obj):: ",JSON.stringify(obj))
+  var xml = builder.buildObject(obj);
+  //console.log("xml:  ---------------------------\n",xml);
+  return Buffer.from(xml).toString('base64');
+}
+
+export const getSendInvoiceList = async (partyId: number, status: string): Promise<any[]> => {
+  try {
+    let result
+    if (status == 'sent') {
+
+      const [successOrPending, failedGate2b] = await Promise.all([
+        connectBexio.$queryRaw<any[]>(
+          Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                FROM documents_invoice_send ds
                INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                WHERE c.rk_party = ${partyId} AND ds.status IN (1, 2)`,
-          ),
-          connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+        ),
+        connectBexio.$queryRaw<any[]>(
+          Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                FROM documents_invoice_send ds
                INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                WHERE c.rk_party = ${partyId} AND ds.status = 0`,
-          ),
-        ]);
-          result = [{successOrPending: successOrPending},{failedGate2b:failedGate2b}]
-        }
-        else if(status=='failed'){
-     
-      
-        result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+        ),
+      ]);
+      result = [{ successOrPending: successOrPending }, { failedGate2b: failedGate2b }]
+    }
+    else if (status == 'failed') {
+
+
+      result = await connectBexio.$queryRaw<any[]>(
+        Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId} AND ds.status = 0`
-        )
-        }
-        else if(status=='draft'){
-      console.log('draft',status);
-      
-        result = await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
+      )
+    }
+    else if (status == 'draft') {
+      console.log('draft', status);
+
+      result = await connectBexio.$queryRaw<any[]>(
+        Prisma.sql`SELECT array_agg(rk_invoice::text) AS "invoiceId" 
                        FROM documents_invoice_send ds
                        INNER JOIN companyregistered c ON c.cid = ds.fk_companyregistered
                        WHERE c.rk_party = ${partyId}`
-        );}
-        // Serialize BigInt values to strings
-        return result;
-        // return result.map(row => ({
-        //     ...row,
-        //     invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
-        // }));
-    } catch (error) {
-        console.error('Error fetching send invoice list:', error);
-        throw new Error('Failed to fetch send invoice list');
+      );
     }
+    // Serialize BigInt values to strings
+    return result;
+    // return result.map(row => ({
+    //     ...row,
+    //     invoiceId: row.invoiceId.map((id: BigInt) => id.toString())
+    // }));
+  } catch (error) {
+    console.error('Error fetching send invoice list:', error);
+    throw new Error('Failed to fetch send invoice list');
+  }
 };
 
 export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number[]): Promise<any[]> {
@@ -4071,224 +4062,225 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
   }
 
 }
-export const setInvoiceEmailOt = async (invoice,bill_recipient_email,coutryList,pdf,fileName,billerDetails,formData,invoiceLogUid) => {
-  console.log('EMAIL:::',invoice?.companyProfile);
-   
- 
-   let emptyValue = 'NA'
-   let taxIsAdded;
-   let priceQuantity = '1'
-   let orderUnit = {
-     'Stk':'C62',
-     'h':'HUR'
-   }
+export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryList, pdf, fileName, billerDetails, formData, invoiceLogUid) => {
+  console.log('EMAIL:::', invoice?.companyProfile);
+
+
+  let emptyValue = 'NA'
+  let taxIsAdded;
+  let priceQuantity = '1'
+  let orderUnit = {
+    'Stk': 'C62',
+    'h': 'HUR'
+  }
   //  let billDetails = await getRefrenceNumber(pdf,invoice.document_nr,billerDetails);
-   //////console.log('invoiceinvoiceinvoice',invoice);
-   let total = '';
- 
-   total = invoice['total_remaining_payments'];
- 
+  //////console.log('invoiceinvoiceinvoice',invoice);
+  let total = '';
+
+  total = invoice['total_remaining_payments'];
+
   ////console.log('billDetails',billDetails);
-   
+
   ////console.log('REFERENCE_NUMBER',billerDetails);
   //  if(!billDetails)
   //  {
-     
+
   //    commonErrors['errorTitle'] = 'QR_code_not_found';
   //    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'QR_code_not_found '+'-req param,'+JSON.stringify(formData);
   //    warningMessage(commonErrors,'QR_code_not_found');
   //    return false;
   //  }
-   let obj = JSON.parse(JSON.stringify({
-       "OPENTRANS": {
-           "$": {
-               "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
-               "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
-               "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
-           },
-           "INVOICE": [{
-               "$": {
-                   "version": "2.1"
-               },
-               "INVOICE_HEADER": [{
-                   "CONTROL_INFO":[],
-                   "INVOICE_INFO": []
-               }],
-               "INVOICE_ITEM_LIST": [{
-                   "INVOICE_ITEM": []
-               }],
-               "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
-                   "TOTAL_ITEM_NUM": invoice.positions.length,
-                   "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
-                   "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
-                   "TOTAL_TAX": {
-                     "TAX_DETAILS_FIX":[]
-                   }
-               }]))
-           }]
-       }
-   }))
- 
- // let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
- taxIsAdded = invoice.taxs.length;
-   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
-       "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
-   }))),
-   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
-       "INVOICE_ID": invoice.document_nr,
-       "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
-       "INVOICE_TYPE": "invoice",
-       "DELIVERY_DATE": [{
+  let obj = JSON.parse(JSON.stringify({
+    "OPENTRANS": {
+      "$": {
+        "xmlns:iomarket": "http://tempuri.org/io-market/openTRANS_UDX",
+        "xmlns:bmecat": "http://www.bmecat.org/bmecat/2005",
+        "xmlns": "http://www.opentrans.org/XMLSchema/2.1"
+      },
+      "INVOICE": [{
+        "$": {
+          "version": "2.1"
+        },
+        "INVOICE_HEADER": [{
+          "CONTROL_INFO": [],
+          "INVOICE_INFO": []
+        }],
+        "INVOICE_ITEM_LIST": [{
+          "INVOICE_ITEM": []
+        }],
+        "INVOICE_SUMMARY": JSON.parse(JSON.stringify([{
+          "TOTAL_ITEM_NUM": invoice.positions.length,
+          "NET_VALUE_GOODS": parseFloat(invoice.total_net).toFixed(2),
+          "TOTAL_AMOUNT": parseFloat(total).toFixed(2),
+          "TOTAL_TAX": {
+            "TAX_DETAILS_FIX": []
+          }
+        }]))
+      }]
+    }
+  }))
+
+  // let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
+  taxIsAdded = invoice.taxs.length;
+  obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
+    "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
+  }))),
+    obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
+      "INVOICE_ID": invoice.document_nr,
+      "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+      "INVOICE_TYPE": "invoice",
+      "DELIVERY_DATE": [{
         "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
         "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
-       }],
-       "bmecat:LANGUAGE": 'deu',
-       "PARTIES": [{
-           "PARTY": [{
-               "bmecat:PARTY_ID": [{
-                   "_": billerDetails['billerid']??'00000000',
-                   "$": {
-                       "type": "party_specific"
-                   }
-                  
-               }],
-               "PARTY_ROLE": "invoice_issuer",
-               "ADDRESS": [{
-                    "bmecat:NAME": invoice?.companyProfile[0].name || undefined,
-                    "bmecat:STREET": invoice?.companyProfile[0].address || undefined,
-                    "bmecat:ZIP": invoice?.companyProfile[0].postcode || undefined,
-                    "bmecat:CITY": invoice?.companyProfile[0].city || undefined,
-                    "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
-                }]
- 
-           }, {
-               "bmecat:PARTY_ID": [{
-                   "_": billerDetails['recipientid']||'00000000',
-                   "$": {
-                       "type": "party_specific"
-                   }
-               }],
-               "PARTY_ROLE": "invoice_recipient",
-               "ADDRESS": [{
-                   "bmecat:NAME": invoice?.contact?.name_1??undefined,
-                   "bmecat:NAME2": invoice?.contact?.name_2??undefined,
- 
-                   "bmecat:STREET": invoice.contact.street_name  ?`${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() :undefined,
-                   "bmecat:ZIP": invoice?.contact?.postcode?invoice.contact.postcode:undefined, //NOT IN BEXIO CONTACTS - REMOVED 
-                   "bmecat:CITY": invoice?.contact?.city?invoice.contact.city:undefined,
-                   "bmecat:COUNTRY_CODED": invoice?.contact?.country_id?coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2:undefined
-               }]
-           }]
-       }],
-       "INVOICE_ISSUER_IDREF": [{
-        "_": billerDetails['recipientid']??"0000000000000000",
-           "$": {
-             "type": "party_specific"
-         }
-       }],
-       "INVOICE_RECIPIENT_IDREF": [{
-           "_": billerDetails['recipientid']??"0000000000000000",
-           "$": {
-               "type": "party_specific"
-           }
-       }],
-       "bmecat:CURRENCY": invoice?.currency['name']|| undefined,
-       "MIME_INFO":[{
-         "MIME":[{
-           "MIME_EMBEDDED":{
-             "MIME_DATA":[{
-               "_":pdf,
-           
-             }],
-             "FILE_NAME":fileName?fileName:'temp'}
-         }]
-       }],
-       "REMARKS": invoice.title ? invoice.title : undefined,
-       "HEADER_UDX":  JSON.parse(JSON.stringify([{
-         "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid']??undefined,
+      }],
+      "bmecat:LANGUAGE": 'deu',
+      "PARTIES": [{
+        "PARTY": [{
+          "bmecat:PARTY_ID": [{
+            "_": billerDetails['billerid'] ?? '00000000',
+            "$": {
+              "type": "party_specific"
+            }
+
+          }],
+          "PARTY_ROLE": "invoice_issuer",
+          "ADDRESS": [{
+            "bmecat:NAME": invoice?.companyProfile[0].name || undefined,
+            "bmecat:STREET": invoice?.companyProfile[0].address || undefined,
+            "bmecat:ZIP": invoice?.companyProfile[0].postcode || undefined,
+            "bmecat:CITY": invoice?.companyProfile[0].city || undefined,
+            "bmecat:COUNTRY_CODED": coutryList.filter(coutry => coutry.name == invoice?.companyProfile[0].country_name)?.[0]?.iso_3166_alpha2 || undefined,
+          }]
+
+        }, {
+          "bmecat:PARTY_ID": [{
+            "_": billerDetails['recipientid'] || '00000000',
+            "$": {
+              "type": "party_specific"
+            }
+          }],
+          "PARTY_ROLE": "invoice_recipient",
+          "ADDRESS": [{
+            "bmecat:NAME": invoice?.contact?.name_1 ?? undefined,
+            "bmecat:NAME2": invoice?.contact?.name_2 ?? undefined,
+
+            "bmecat:STREET": invoice.contact.street_name ? `${invoice.contact.street_name} ${invoice.contact.house_number ?? ''}`.trim() : undefined,
+            "bmecat:ZIP": invoice?.contact?.postcode ? invoice.contact.postcode : undefined, //NOT IN BEXIO CONTACTS - REMOVED 
+            "bmecat:CITY": invoice?.contact?.city ? invoice.contact.city : undefined,
+            "bmecat:COUNTRY_CODED": invoice?.contact?.country_id ? coutryList.filter(coutry => coutry.id == invoice.contact.country_id)[0].iso_3166_alpha2 : undefined
+          }]
+        }]
+      }],
+      "INVOICE_ISSUER_IDREF": [{
+        "_": billerDetails['recipientid'] ?? "0000000000000000",
+        "$": {
+          "type": "party_specific"
+        }
+      }],
+      "INVOICE_RECIPIENT_IDREF": [{
+        "_": billerDetails['recipientid'] ?? "0000000000000000",
+        "$": {
+          "type": "party_specific"
+        }
+      }],
+      "bmecat:CURRENCY": invoice?.currency['name'] || undefined,
+      "MIME_INFO": [{
+        "MIME": [{
+          "MIME_EMBEDDED": {
+            "MIME_DATA": [{
+              "_": pdf,
+
+            }],
+            "FILE_NAME": fileName ? fileName : 'temp'
+          }
+        }]
+      }],
+      "REMARKS": invoice.title ? invoice.title : undefined,
+      "HEADER_UDX": JSON.parse(JSON.stringify([{
+        "EBILL.BILL_RECIPIENT_ID": billerDetails['recipientid'] ?? undefined,
         //  "EBILL.QR_IBAN": billDetails['iban']??undefined,
         //  "EBILL.IBAN_REFERENCE_NUMBER": billDetails['ref']??undefined,
         //  "EBILL.QR_TYPE": billDetails['type']??undefined,
-         "EBILL.DUE_DATE":invoice?.is_valid_to ? invoice.is_valid_to: '',
-         "HEADER_UDX_OPT":[{
+        "EBILL.DUE_DATE": invoice?.is_valid_to ? invoice.is_valid_to : '',
+        "HEADER_UDX_OPT": [{
           "BEX_VERSION": "VER1",
-           "BEX_INVOICE_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
-           "RECEIVER_MAIL_ID": bill_recipient_email??'',
-         }]
-       }]))
-   })))
- 
-   let allTax:any = []
- 
-     invoice.positions.forEach(element => {
-       const index = allTax.findIndex(object => object.type === element.tax?.type);
-       if (index === -1) {
-           allTax.push({
-               type: element.tax?.type,
-               value: element.tax?.value,
-           });
-       }
-   })
-  
-  invoice.taxs.length!=0?
- invoice.taxs.forEach(element => {
-   JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
-     {
-         "bmecat:TAX": element.percentage,
-         "TAX_AMOUNT": element.value
-     }
-     )))
- })
-  :obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"]='';
-   
-   for (let index = 0; index < invoice.positions.length; index++) {
-     let element = invoice.positions[index];
-       obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
-           "$": {
-               "type": "order_item"
-           },
-           "LINE_ITEM_ID": element.pos?element.pos:index,
-           "PRODUCT_ID": [{
-               "bmecat:SUPPLIER_PID": element?.article?.intern_code?element.article.intern_code:undefined,
-               "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name?element.article.intern_name.substring(0, 145):undefined, 
-               "bmecat:DESCRIPTION_LONG": element?.article?.intern_description? element.article.intern_description:undefined
-           }],
-           "QUANTITY": element.amount?Math.trunc(element.amount):1,
-           "bmecat:ORDER_UNIT": orderUnit[element.unit_name]?orderUnit[element.unit_name]:'C62',
-           "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
-               "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-               "TAX_DETAILS_FIX":element.tax?.value&&taxIsAdded>0? [{
-                   "bmecat:TAX_TYPE": element.tax?.type,
-                   "bmecat:TAX": element.tax?.value
-                  
-               }]:undefined,
-   
-         
-           "bmecat:PRICE_QUANTITY": priceQuantity, 
-           })),
-         ],
-         "PRICE_LINE_AMOUNT": element.position_total? parseFloat(element.position_total).toFixed(2) : 0.00,
-         "DELIVERY_REFERENCE": [{
-           "DELIVERY_DATE": [{
-               "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-               "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString()
-           }]
-         }]
-       })))
-     
-        element.discount_in_percent==null?delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length-1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX']:'';
-   }
- 
-   let builder = new xml2js.Builder({'xmldec.version':1.0} );
-   var xml = builder.buildObject(obj);
- 
-   return Buffer.from(xml).toString('base64');
-  
- }
+          "BEX_INVOICE_DOCUMENT_ID": invoiceLogUid ? invoiceLogUid : undefined,
+          "RECEIVER_MAIL_ID": bill_recipient_email ?? '',
+        }]
+      }]))
+    })))
+
+  let allTax: any = []
+
+  invoice.positions.forEach(element => {
+    const index = allTax.findIndex(object => object.type === element.tax?.type);
+    if (index === -1) {
+      allTax.push({
+        type: element.tax?.type,
+        value: element.tax?.value,
+      });
+    }
+  })
+
+  invoice.taxs.length != 0 ?
+    invoice.taxs.forEach(element => {
+      JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
+        {
+          "bmecat:TAX": element.percentage,
+          "TAX_AMOUNT": element.value
+        }
+      )))
+    })
+    : obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"] = '';
+
+  for (let index = 0; index < invoice.positions.length; index++) {
+    let element = invoice.positions[index];
+    obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
+      "$": {
+        "type": "order_item"
+      },
+      "LINE_ITEM_ID": element.pos ? element.pos : index,
+      "PRODUCT_ID": [{
+        "bmecat:SUPPLIER_PID": element?.article?.intern_code ? element.article.intern_code : undefined,
+        "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined,
+        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+      }],
+      "QUANTITY": element.amount ? Math.trunc(element.amount) : 1,
+      "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
+      "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
+        "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
+        "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
+          "bmecat:TAX_TYPE": element.tax?.type,
+          "bmecat:TAX": element.tax?.value
+
+        }] : undefined,
+
+
+        "bmecat:PRICE_QUANTITY": priceQuantity,
+      })),
+      ],
+      "PRICE_LINE_AMOUNT": element.position_total ? parseFloat(element.position_total).toFixed(2) : 0.00,
+      "DELIVERY_REFERENCE": [{
+        "DELIVERY_DATE": [{
+          "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
+          "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString()
+        }]
+      }]
+    })))
+
+    element.discount_in_percent == null ? delete obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'][obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].length - 1]['PRODUCT_PRICE_FIX'][0]['ALLOW_OR_CHARGES_FIX'] : '';
+  }
+
+  let builder = new xml2js.Builder({ 'xmldec.version': 1.0 });
+  var xml = builder.buildObject(obj);
+
+  return Buffer.from(xml).toString('base64');
+
+}
 export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, module) => {
- console.log('partyId', partyId);
- console.log('accountId', accountId);
- console.log('partyAccount', partyAccount);
+  console.log('partyId', partyId);
+  console.log('accountId', accountId);
+  console.log('partyAccount', partyAccount);
 
   try {
     let userRoles;
@@ -4297,7 +4289,7 @@ export const setEbillRole = async (partyId, accountId, partyAccount, roleValue, 
     } else {
       userRoles = "'EBILL_USER'";
     }
-   console.log('userRoles', userRoles);
+    console.log('userRoles', userRoles);
 
     // Get role data
     const roleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
@@ -4364,9 +4356,9 @@ export const partyServiceUpdate = async (
 ): Promise<boolean> => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("partyServiceUpdate",partyResponse);
-      console.log("partyServiceUpdate",BigInt(partyResponse??0));
-      console.log("partyServiceUpdate",Number(partyResponse??0));
+      console.log("partyServiceUpdate", partyResponse);
+      console.log("partyServiceUpdate", BigInt(partyResponse ?? 0));
+      console.log("partyServiceUpdate", Number(partyResponse ?? 0));
 
       const serviceName = service;
       const partyId = Number(partyResponse);
@@ -4380,11 +4372,11 @@ export const partyServiceUpdate = async (
         INNER JOIN application a ON a.cid = av.fk_application
         WHERE paa.fk_party = ${partyId} AND aps.code = ${serviceName} AND a.code = ${appName}
       `);
-      console.log("getExisted",getExisted);
-      
+      console.log("getExisted", getExisted);
+
       if (getExisted.length) {
-      console.log("Service already exists for this party.",getExisted);
-      return
+        console.log("Service already exists for this party.", getExisted);
+        return resolve(true)
       }
 
       const getAppServiceId = await connectLibrary.$queryRaw<any>(Prisma.sql`
@@ -4395,31 +4387,31 @@ export const partyServiceUpdate = async (
         INNER JOIN application a ON a.cid = av.fk_application
         WHERE aps.code = ${serviceName} AND a.code = ${appName}
       `);
-      console.log("getAppServiceId",getAppServiceId);
-      
+      console.log("getAppServiceId", getAppServiceId);
+
       const updateData = await connectLibrary.$executeRaw(
         Prisma.sql`
           INSERT INTO party_applicationversion_appservice (fk_party, fk_applicationversion_appservice)
           VALUES (${partyId}, ${getAppServiceId[0].cid})
         `
       );
-      console.log("updateData",updateData);
-      
+      console.log("updateData", updateData);
+
       return resolve(true);
     } catch (error) {
       commonErrors['errorTitle'] = 'partyServiceUpdate';
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + partyResponse;
       warningMessage(commonErrors, error);
-     return  resolve(error);
+      return resolve(error);
     }
   });
 };
 
 // Function to fetch contact groups from bexio
 
-export const getContactGroupList = async(accessToken) => {
+export const getContactGroupList = async (accessToken) => {
   try {
-    return new Promise( async( resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'GET',
         'url': `https://api.bexio.com/2.0/contact_group`,
@@ -4427,220 +4419,219 @@ export const getContactGroupList = async(accessToken) => {
           'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         }
-      };  
-      request( options, function(error, response){
-        if(error){
+      };
+      request(options, function (error, response) {
+        if (error) {
           commonErrors['errorTitle'] = 'getContactGroupList';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+          warningMessage(commonErrors, error);
           return resolve(error);
         }
-        if( response.statusCode == 200){
+        if (response.statusCode == 200) {
           return resolve(JSON.parse(response.body));
         }
-        else{
+        else {
           return resolve(false);
         }
       })
     });
   } catch (error) {
     commonErrors['errorTitle'] = 'getContactGroupList';
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString();
-    warningMessage(commonErrors,error);
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
+    warningMessage(commonErrors, error);
     return;
-  } 
+  }
 }
 
 
 // Function to fetch units from the bexio
 
-export const getUnitList = async (access_token,unitId) => {
+export const getUnitList = async (access_token, unitId) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}2.0/unit/${unitId}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          // res.send(response.body)
-         ////console.log("getTaxListA :: ",response.body);
-          if(response.statusCode==200)
-           return resolve(JSON.parse(response.body));
-          else{
-            let returnObject = {
-              statuscode: response.statusCode,
-              message: response.statusMessage,
-              status: false
-            }
-            return resolve(returnObject)
-          }
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `${config.BEXIO_API}2.0/unit/${unitId}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      // res.send(response.body)
+      ////console.log("getTaxListA :: ",response.body);
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else {
+        let returnObject = {
+          statuscode: response.statusCode,
+          message: response.statusMessage,
+          status: false
+        }
+        return resolve(returnObject)
+      }
 
-        });
-      });
+    });
+  });
 }
 
 
 // Function to fetch accounts
 export const getActiveAccounts = async (access_token) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/accounts`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          // res.send(response.body)
-        // console.log("response.statusCode :: ",response.statusCode);
-         
-          if(response.statusCode==200)
-          {
-              let returnData = {
-              statuscode: response.statusCode,
-              data:JSON.parse(response.body),
-              message: response.statusMessage,
-              status: true
-            }
-            return resolve(returnData)
-          }
-          else{
-            let returnObject = {
-              statuscode: response.statusCode,
-              message: response.statusMessage,
-              status: false
-            }
-            return resolve(returnObject);
-          }
-        });
-      });
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/accounts`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      // res.send(response.body)
+      // console.log("response.statusCode :: ",response.statusCode);
+
+      if (response.statusCode == 200) {
+        let returnData = {
+          statuscode: response.statusCode,
+          data: JSON.parse(response.body),
+          message: response.statusMessage,
+          status: true
+        }
+        return resolve(returnData)
+      }
+      else {
+        let returnObject = {
+          statuscode: response.statusCode,
+          message: response.statusMessage,
+          status: false
+        }
+        return resolve(returnObject);
+      }
+    });
+  });
 }
 
 
 export const getActiveArticle = async (access_token) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `https://api.bexio.com/2.0/article`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          // res.send(response.body)
-         ////console.log("getTaxListA :: ",response.body);
-          if(response.statusCode==200)
-           return resolve(JSON.parse(response.body));
-          else{
-            let returnObject = {
-              statuscode: response.statusCode,
-              message: response.statusMessage,
-              status: false
-            }
-            return resolve(returnObject)
-          }
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `https://api.bexio.com/2.0/article`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      // res.send(response.body)
+      ////console.log("getTaxListA :: ",response.body);
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else {
+        let returnObject = {
+          statuscode: response.statusCode,
+          message: response.statusMessage,
+          status: false
+        }
+        return resolve(returnObject)
+      }
 
-        });
-      });
+    });
+  });
 }
 
-export const getActiveSalesTaxBexio = async (access_token,tax_id) => {
+export const getActiveSalesTaxBexio = async (access_token, tax_id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}3.0/taxes/${tax_id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          // res.send(response.body)
-         ////console.log("getTaxListA :: ",response.body);
-          if(response.statusCode==200)
-           return resolve(JSON.parse(response.body));
-          else{
-            let returnObject = {
-              statuscode: response.statusCode,
-              message: response.statusMessage,
-              status: false
-            }
-            return resolve(returnObject)
-          }
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `${config.BEXIO_API}3.0/taxes/${tax_id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      // res.send(response.body)
+      ////console.log("getTaxListA :: ",response.body);
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else {
+        let returnObject = {
+          statuscode: response.statusCode,
+          message: response.statusMessage,
+          status: false
+        }
+        return resolve(returnObject)
+      }
 
-        });
-      });
+    });
+  });
 }
-export const getActiveItem = async (access_token,article_id) => {
+export const getActiveItem = async (access_token, article_id) => {
 
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'GET',
-          'url': `${config.BEXIO_API}2.0/article/${article_id}`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          }
-        };
-        request(options, function (error, response) {
-          if (error) {  
-            commonErrors['errorTitle'] = 'taxes';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-        
-          if(response.statusCode==200)
-           return resolve(JSON.parse(response.body));
-          else{
-            let returnObject = {
-              statuscode: response.statusCode,
-              message: response.statusMessage,
-              status: false
-            }
-            return resolve(returnObject)
-          }
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'GET',
+      'url': `${config.BEXIO_API}2.0/article/${article_id}`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      }
+    };
+    request(options, function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'taxes';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
 
-        });
-      });
+      if (response.statusCode == 200)
+        return resolve(JSON.parse(response.body));
+      else {
+        let returnObject = {
+          statuscode: response.statusCode,
+          message: response.statusMessage,
+          status: false
+        }
+        return resolve(returnObject)
+      }
+
+    });
+  });
 }
-export const getContactSearch = async (accessToken,searchJson) => {
+export const getContactSearch = async (accessToken, searchJson) => {
 
-  return new Promise(async(resolve, reject) => {
-   
+  return new Promise(async (resolve, reject) => {
+
     let optionsContact = {
       'method': 'POST',
       'url': `${config.BEXIO_API}2.0/contact/search`,
@@ -4648,61 +4639,61 @@ export const getContactSearch = async (accessToken,searchJson) => {
       // url = `${url}`;
       'headers': {
         'Accept': 'application/json',
-        'Authorization': 'Bearer '+accessToken
+        'Authorization': 'Bearer ' + accessToken
       },
       body: JSON.stringify(searchJson)
     };
-    console.log('optionsContact',optionsContact);
+    console.log('optionsContact', optionsContact);
     request(optionsContact, async function (error, response) {
       if (error) {
         commonErrors['errorTitle'] = 'getContactById';
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
-        warningMessage(commonErrors,error);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + '-bexio param,' + accessToken;
+        warningMessage(commonErrors, error);
         return resolve(error);
       }
-   
-      
-      if(response.statusCode == 200){
-        return resolve(JSON.parse(response.body));      
-      }else{
+
+
+      if (response.statusCode == 200) {
+        return resolve(JSON.parse(response.body));
+      } else {
         return resolve(false)
       }
-    }); 
+    });
   });
-          
- 
+
+
 }
-export const getInvoiceSearch = async (accessToken,searchJson) => {
-  return new Promise(async(resolve, reject) => {
-  let optionsContact = {
-    'method': 'POST',
-    'url': `${config.BEXIO_API}2.0/kb_invoice/search`,
-    // 'url': `${config.BEXIO_API}${data.api}`,
-    // url = `${url}`;
-    'headers': {
-      'Accept': 'application/json',
-      'Authorization': 'Bearer '+accessToken
-    },
-    body: JSON.stringify(searchJson)
-  };
-  console.log('optionsContact',optionsContact);
-  request(optionsContact, async function (error, response) {
-    if (error) {
-      commonErrors['errorTitle'] = 'getContactById';
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'-bexio param,'+accessToken;
-      warningMessage(commonErrors,error);
-      return resolve(error);
-    }
-      console.log("response.body",response.statusCode);
-      
-    if(response.statusCode == 200){
-      return resolve(JSON.parse(response.body));      
-    }else{
-      return resolve(false)
-    }
-  }); 
-});
- 
+export const getInvoiceSearch = async (accessToken, searchJson) => {
+  return new Promise(async (resolve, reject) => {
+    let optionsContact = {
+      'method': 'POST',
+      'url': `${config.BEXIO_API}2.0/kb_invoice/search`,
+      // 'url': `${config.BEXIO_API}${data.api}`,
+      // url = `${url}`;
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + accessToken
+      },
+      body: JSON.stringify(searchJson)
+    };
+    console.log('optionsContact', optionsContact);
+    request(optionsContact, async function (error, response) {
+      if (error) {
+        commonErrors['errorTitle'] = 'getContactById';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + '-bexio param,' + accessToken;
+        warningMessage(commonErrors, error);
+        return resolve(error);
+      }
+      console.log("response.body", response.statusCode);
+
+      if (response.statusCode == 200) {
+        return resolve(JSON.parse(response.body));
+      } else {
+        return resolve(false)
+      }
+    });
+  });
+
 }
 export const getOctConfig = async (netComId) => {
 
@@ -4754,56 +4745,55 @@ export const getOctConfig = async (netComId) => {
     warningMessage(commonErrors, error);
 
   }
-  }
-export const updateInvoicePosition = async (partyId,invoiceId,article,access_token,channel) => {
+}
+export const updateInvoicePosition = async (partyId, invoiceId, article, access_token, channel) => {
   console.log('invoiceId', invoiceId);
-  
-  return new Promise(async(resolve, reject) => {
-        var options = {
-          'method': 'POST',
-          'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/kb_position_article`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+access_token
-          },
-          body: JSON.stringify(article)
-        };
-        console.log('options',options);
-        
-        request(options, async function (error, response) {
-          
-          if (error || response.statusCode != 201) {
-            if(error){
-            console.log('error', error);           
 
-            commonErrors['errorTitle'] = 'kb_position_article';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-            }
-            else{
-            console.log('response error kb_position_article', response);
-            commonErrors['errorTitle'] = 'kb_position_article';
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+'kb_position_article'+'-bexio param,'+access_token;
-            }
-            warningMessage(commonErrors,error);
-            return resolve(false)
-          }
-          console.log("response.statusCode :: ",response.statusCode);
-          
-          if( response.statusCode == 201){
-            return resolve(JSON.parse(response.body));
-         console.log("kb_position_article :: ",response.body);
-          }  
-          else if(response.statusCode == 422)    
-        {
-          let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invalid_article', channel);
-            commonErrors['errorTitle'] = 'kb_position_article';
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,';
-            warningMessage(commonErrors, 'invalid_article');
-            resolve('invalid_article' + invoiceCid);
-            return;
+  return new Promise(async (resolve, reject) => {
+    var options = {
+      'method': 'POST',
+      'url': `https://api.bexio.com/2.0/kb_invoice/${invoiceId}/kb_position_article`,
+      'headers': {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + access_token
+      },
+      body: JSON.stringify(article)
+    };
+    console.log('options', options);
+
+    request(options, async function (error, response) {
+
+      if (error || response.statusCode != 201) {
+        if (error) {
+          console.log('error', error);
+
+          commonErrors['errorTitle'] = 'kb_position_article';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
         }
-        });
-      });
+        else {
+          console.log('response error kb_position_article', response);
+          commonErrors['errorTitle'] = 'kb_position_article';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'kb_position_article' + '-bexio param,' + access_token;
+        }
+        warningMessage(commonErrors, error);
+        return resolve(false)
+      }
+      console.log("response.statusCode :: ", response.statusCode);
+
+      if (response.statusCode == 201) {
+        return resolve(JSON.parse(response.body));
+        console.log("kb_position_article :: ", response.body);
+      }
+      else if (response.statusCode == 422) {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invalid_article', channel);
+        commonErrors['errorTitle'] = 'kb_position_article';
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,';
+        warningMessage(commonErrors, 'invalid_article');
+        resolve('invalid_article' + invoiceCid);
+        return;
+      }
+    });
+  });
 }
 export const pushPrintInvoice = async (invoices, bodyValues, headerParams, channel) => {
   return new Promise(async (resolve, reject) => {
@@ -4819,7 +4809,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(headerParams.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
-      if(!invoice){
+      if (!invoice) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invoice_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
@@ -4839,7 +4829,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
         resolve('print_contact_not_found' + invoiceCid);
         return;
       }
-      
+
       console.log('contact::::', contact);
       // If contact exists, check for required keys
       if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
@@ -4909,7 +4899,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     "discount_in_percent": '0.000000',
                     "article_id": articleDetail.id
                   }
-                  const invPosUpdate = await updateInvoicePosition(partyId,invoice_id, printArticle, accessToken,channel);
+                  const invPosUpdate = await updateInvoicePosition(partyId, invoice_id, printArticle, accessToken, channel);
                   console.log('invPosUpdate::::', invPosUpdate);
                   if (!invPosUpdate) {
                     console.error('Article update failed:', articleDetail);
@@ -4974,26 +4964,26 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 
           invoice.contact = contact;
           let temp = await getloginUserCompanyDetails(accessToken);
-            console.log("getloginUserCompanyDetails:",typeof(temp));  
-            console.log("getloginUserCompanyDetails:",temp);  
-            if(!temp){
-             let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','getloginUserCompanyDetails_not_found',channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getloginUserCompanyDetails_not_found -req param,',JSON.stringify(decryptData);
-              warningMessage(commonErrors,'getloginUserCompanyDetails_not_found');
-              return resolve('getloginUserCompanyDetails_not_found');
-            }
-            invoice['companyProfile'] = temp;
-            invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
-        let currency = await getCurrency(accessToken,invoice.currency_id);
-            if(!currency){
-              let invoiceCid = await setInvoiceSendStatus(partyId,invoice_id,invoice['document_nr'],'0','currency_not_found',channel);
-              commonErrors['errorTitle'] = invoices.originalUrl;
-              commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'currency_not_found -req param,',JSON.stringify(decryptData);
-              warningMessage(commonErrors,'currency_not_found');
-              return resolve('currency_not_found');
-            }
-            invoice['currency'] = currency;
+          console.log("getloginUserCompanyDetails:", typeof (temp));
+          console.log("getloginUserCompanyDetails:", temp);
+          if (!temp) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
+            return resolve('getloginUserCompanyDetails_not_found');
+          }
+          invoice['companyProfile'] = temp;
+          invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
+          let currency = await getCurrency(accessToken, invoice.currency_id);
+          if (!currency) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'currency_not_found', channel);
+            commonErrors['errorTitle'] = invoices.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'currency_not_found');
+            return resolve('currency_not_found');
+          }
+          invoice['currency'] = currency;
           let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
           if (xml == false) {
@@ -5006,13 +4996,13 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           }
 
           let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-         
+
           console.log('filePush::::', filePush, channel);
 
           if (filePush) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
             console.log('invoiceCid::::', invoiceCid);
-            await markAsIssued(accessToken,invoice_id);
+            await markAsIssued(accessToken, invoice_id);
             resolve(invoiceCid);
             return;
           }
@@ -5041,23 +5031,23 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 };
 
 export function isArticleMatch(item: any, article: any): boolean {
-    console.log('item::::', item);
-    console.log('article::::', article);
-    console.log('item.amount::::', item.amount,article.amount); 
-    console.log('item.unit_id::::', item.unit_id,article.unit_id);
-    console.log('item.account_id::::', item.account_id,article.account_id);
-    console.log('item.tax_id::::', item.tax_id,article.tax_id);
-    console.log('item.text::::', item.text,article.text);
-    console.log('item.unit_price::::', item.unit_price,article.unit_price);
-    console.log('item.discount_in_percent::::', item.discount_in_percent,article.discount_in_percent);
-    return ( Number(item.amount) == Number(article.amount) &&
-      String(item.unit_id) == String(article.unit_id) &&
-      String(item.account_id) == String(article.account_id) &&
-      String(item.tax_id) == String(article.tax_id) &&
-      String(item.text || '') == String(article.text || '') &&
-      Number(item.unit_price) == Number(article.unit_price) &&
-      Number(item.discount_in_percent) == Number(article.discount_in_percent))
-  
+  console.log('item::::', item);
+  console.log('article::::', article);
+  console.log('item.amount::::', item.amount, article.amount);
+  console.log('item.unit_id::::', item.unit_id, article.unit_id);
+  console.log('item.account_id::::', item.account_id, article.account_id);
+  console.log('item.tax_id::::', item.tax_id, article.tax_id);
+  console.log('item.text::::', item.text, article.text);
+  console.log('item.unit_price::::', item.unit_price, article.unit_price);
+  console.log('item.discount_in_percent::::', item.discount_in_percent, article.discount_in_percent);
+  return (Number(item.amount) == Number(article.amount) &&
+    String(item.unit_id) == String(article.unit_id) &&
+    String(item.account_id) == String(article.account_id) &&
+    String(item.tax_id) == String(article.tax_id) &&
+    String(item.text || '') == String(article.text || '') &&
+    Number(item.unit_price) == Number(article.unit_price) &&
+    Number(item.discount_in_percent) == Number(article.discount_in_percent))
+
 }
 //status change to draft to pending
 // export const markAsPending = async (access_token, id) => {
@@ -5146,7 +5136,7 @@ export async function pushContactToBexio(
     return [{ success: false, error: 'Failed to get access token' }];
   }
   const accessToken = tokenSet.access_token;
-  
+
   // 3. Only push contact if search result for that name does not exist
   if (contacts && Array.isArray(contacts)) {
     const results: any[] = [];
@@ -5154,43 +5144,43 @@ export async function pushContactToBexio(
 
       const fullName = contact.Name?.trim() || '';
 
-        let firstName1 = '';
-        let lastName1 = '';
+      let firstName1 = '';
+      let lastName1 = '';
 
 
-  const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+      const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
 
-  if (separatorMatch) {
-    // Treat as couple
-    const separator = separatorMatch[0];
-    const parts = fullName.split(separator);
-    if (parts.length === 2) {
-      firstName1 = parts[0].trim() + ' &';
-      lastName1 = parts[1].trim();
-    } else {
-      firstName1 = fullName;
-    }
-  } else {
-    // Normal single person name logic
-    const parts = fullName.split(/\s+/);
-    if (parts.length === 1) {
-      firstName1 = parts[0];
-    } else if (/^\d/.test(parts[0])) {
-      lastName1 = parts[0];
-      firstName1 = parts.slice(1).join(' ');
-    } else if (/^\d/.test(parts[parts.length - 1])) {
-      lastName1 = parts[parts.length - 1];
-      firstName1 = parts.slice(0, -1).join(' ');
-    } else if (parts.length >= 3) {
-      firstName1 = parts[0];
-      lastName1 = parts.slice(1).join(' ');
-    } else {
-      firstName1 = parts[0];
-      lastName1 = parts.slice(1).join(' ');
-    }
-  }
-  console.log('lastName1',lastName1);
-   console.log('firstName1',firstName1);
+      if (separatorMatch) {
+        // Treat as couple
+        const separator = separatorMatch[0];
+        const parts = fullName.split(separator);
+        if (parts.length === 2) {
+          firstName1 = parts[0].trim() + ' &';
+          lastName1 = parts[1].trim();
+        } else {
+          firstName1 = fullName;
+        }
+      } else {
+        // Normal single person name logic
+        const parts = fullName.split(/\s+/);
+        if (parts.length === 1) {
+          firstName1 = parts[0];
+        } else if (/^\d/.test(parts[0])) {
+          lastName1 = parts[0];
+          firstName1 = parts.slice(1).join(' ');
+        } else if (/^\d/.test(parts[parts.length - 1])) {
+          lastName1 = parts[parts.length - 1];
+          firstName1 = parts.slice(0, -1).join(' ');
+        } else if (parts.length >= 3) {
+          firstName1 = parts[0];
+          lastName1 = parts.slice(1).join(' ');
+        } else {
+          firstName1 = parts[0];
+          lastName1 = parts.slice(1).join(' ');
+        }
+      }
+      console.log('lastName1', lastName1);
+      console.log('firstName1', firstName1);
       const nameToCheck2: string = lastName1;
       const nameToCheck1: string = firstName1;
       const searchOptions = {
@@ -5213,7 +5203,7 @@ export async function pushContactToBexio(
         //     "criteria": "="
         //   },
         // ])
-          body: JSON.stringify([
+        body: JSON.stringify([
           {
             "field": "nr",
             "value": contact.Iso_SAP_Partner_ID__c,
@@ -5259,28 +5249,28 @@ export async function pushContactToBexio(
         if (!existingContacts || existingContacts.length === 0) {
           console.log(`No existing contacts found for name: ${nameToCheck1}. Proceeding to push contact.`);
           console.log(`No existing contacts found for name: ${contact.Iso_SAP_Partner_ID__c}. Proceeding to push contact.`);
-            // Prepare Bexio contact payload from Salesforce record
-            // In Bexio: name_1 = last name, name_2 = first name
-            // If two users: user1 (first/last) and user2 (first/last)
-            // Place user2's name in name_1 (last name), user1's name in name_2 (first name, with '&')
-            // const firstName1 = contact.Iso_Account_1st_First_Name__c || '';
-            // const lastName1 = contact.Iso_Account_1st_Last_Name__c || '';
-            // const firstName2 = contact.Iso_Account_2nd_FName__c || '';
-            // const lastName2 = contact.Iso_Account_2nd_LName__c || '';
+          // Prepare Bexio contact payload from Salesforce record
+          // In Bexio: name_1 = last name, name_2 = first name
+          // If two users: user1 (first/last) and user2 (first/last)
+          // Place user2's name in name_1 (last name), user1's name in name_2 (first name, with '&')
+          // const firstName1 = contact.Iso_Account_1st_First_Name__c || '';
+          // const lastName1 = contact.Iso_Account_1st_Last_Name__c || '';
+          // const firstName2 = contact.Iso_Account_2nd_FName__c || '';
+          // const lastName2 = contact.Iso_Account_2nd_LName__c || '';
 
-            // let name_1 = '';
-            // let name_2 = '';
+          // let name_1 = '';
+          // let name_2 = '';
 
-            // if (firstName2 || lastName2) {
-            // // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
-            // name_1 = `${lastName2} ${firstName2}`.trim();
-            // name_2 = `${firstName1} ${lastName1}`.trim();
-            // if (name_2) name_2 = `${name_2}&`;
-            // } else {
-            // // Only user1: last name to name_1, first name to name_2
-            // name_1 = lastName1;
-            // name_2 = firstName1;
-            // }
+          // if (firstName2 || lastName2) {
+          // // Two users: user2 goes to name_1, user1 goes to name_2 with '&'
+          // name_1 = `${lastName2} ${firstName2}`.trim();
+          // name_2 = `${firstName1} ${lastName1}`.trim();
+          // if (name_2) name_2 = `${name_2}&`;
+          // } else {
+          // // Only user1: last name to name_1, first name to name_2
+          // name_1 = lastName1;
+          // name_2 = firstName1;
+          // }
           let address = contact.BillingAddress?.street?.trim() || '';
           let parts = address.split(' ').filter(p => p.trim() !== '');
 
@@ -5301,19 +5291,19 @@ export async function pushContactToBexio(
           console.log('streetName:', streetName);
           console.log('houseNumber:', houseNumber);
 
-            const bexioContact = {
+          const bexioContact = {
             name_1: lastName1 || null,
             name_2: firstName1 || null,
             mail: contact.Iso_Email__c || null,
             nr: contact.Iso_SAP_Partner_ID__c || null,
-            street_name: streetName|| null,
-            house_number:houseNumber|| null,
+            street_name: streetName || null,
+            house_number: houseNumber || null,
             postcode: contact.BillingAddress?.postalCode,
             city: contact.BillingAddress?.city || null,
             contact_type_id: 2,
             user_id: 1,
             owner_id: 1,
-            };
+          };
 
           const pushOptions = {
             method: 'POST',
@@ -5365,7 +5355,7 @@ export async function pushContactToBexio(
           }
         } else {
           console.log(`Contact with name ${nameToCheck1} already exists in Bexio. Skipping push.`);
-           console.log(`Contact with name ${nameToCheck2} already exists in Bexio. Skipping push.`);
+          console.log(`Contact with name ${nameToCheck2} already exists in Bexio. Skipping push.`);
           console.log('Existing contacts:', existingContacts);
 
           results.push({ success: false, error: 'Contact with same name already exists', data: existingContacts, record: contact });
@@ -5436,7 +5426,7 @@ export async function pushSchedulerContactToBexio(
   contacts: Array<{
     Name: string;
     Iso_Email__c?: string;
-    BillingAddress?: { street?: string; postalCode?: string; city?: string; country?: string,countryCode?: string};
+    BillingAddress?: { street?: string; postalCode?: string; city?: string; country?: string, countryCode?: string };
     Iso_SAP_Partner_ID__c?: string;
     [key: string]: any;
   }>
@@ -5448,7 +5438,7 @@ export async function pushSchedulerContactToBexio(
     where: { netcomid },
     select: { refresh_token: true }
   });
-console.log('company', company);
+  console.log('company', company);
   if (!company?.refresh_token) {
     return [{ success: false, error: 'No refresh_token found' }];
   }
@@ -5466,8 +5456,8 @@ console.log('company', company);
 
   // Get all SAP IDs
   const ids = contacts.map(c => c.Iso_SAP_Partner_ID__c).filter(Boolean);
-     console.log('ids', ids.length);
-     console.log('ids', ids);
+  console.log('ids', ids.length);
+  console.log('ids', ids);
   //  Search existing contacts in Bexio
   let existingContacts: any[] = [];
   if (ids.length) {
@@ -5489,10 +5479,11 @@ console.log('company', company);
         existingContacts = await new Promise<any[]>((resolve, reject) => {
           request(searchOptions, (err, resp, body) => {
             if (err) return reject(err);
-            if (resp.statusCode === 200) 
-              { console.log('JSON.parse(body)', JSON.parse(body));
-              return resolve(JSON.parse(body));}
-            else if (resp.statusCode === 429) return  reject({ retry: true });
+            if (resp.statusCode === 200) {
+              console.log('JSON.parse(body)', JSON.parse(body));
+              return resolve(JSON.parse(body));
+            }
+            else if (resp.statusCode === 429) return reject({ retry: true });
             else return reject(body);
           });
         });
@@ -5507,312 +5498,312 @@ console.log('company', company);
   }
 
   const existingIds = existingContacts.map(c => c.nr);
- console.log('existingIds',existingIds);
+  console.log('existingIds', existingIds);
   //  Filter new contacts
   const newContacts = contacts.filter(c => !existingIds.includes(c.Iso_SAP_Partner_ID__c));
- console.log('newContacts.length',newContacts.length);
-  console.log('newContacts.length',newContacts);
+  console.log('newContacts.length', newContacts.length);
+  console.log('newContacts.length', newContacts);
   if (!newContacts.length) {
     console.log('No new contacts to push to Bexio.');
     return [];
   }
   const saleforceContact = [
-  ...new Map(
-    contacts
-      .map(c => ({
-        country_code: c.BillingAddress?.countryCode?.trim(),
-        country_name: c.BillingAddress?.country?.trim()
-      }))
-      .filter(c => c.country_code && c.country_name)
-      .map(c => [c.country_code, c])
-  ).values()
-];
+    ...new Map(
+      contacts
+        .map(c => ({
+          country_code: c.BillingAddress?.countryCode?.trim(),
+          country_name: c.BillingAddress?.country?.trim()
+        }))
+        .filter(c => c.country_code && c.country_name)
+        .map(c => [c.country_code, c])
+    ).values()
+  ];
 
-       console.log('saleforceContact',saleforceContact);
-        let countryList;
-      countryList = await getCountryLists(accessToken);
-      if (countryList) {
-        countryList = JSON.parse(countryList);
-      }else{
-        countryList = [];
-      }
-      
-   console.log('coutryList.',countryList);
-   const existingcountryList = countryList.map(c => c.iso_3166_alpha2);
-    console.log('existingcoutryList',existingcountryList);
-    const newCountries = saleforceContact.filter(c => !existingcountryList.includes(c.country_code));
-   console.log('New countries to add:', newCountries);
-
-      if (!newCountries.length) {
-    console.log('No new country to push to Bexio.');
-     }
-     else{
-            await Promise.all(
-        newCountries.map(contact =>
-          createCountry(
-            accessToken,
-            contact.country_name,
-            contact.country_code,
-            contact.country_code
-          )
-        )
-      );
-     }
-    
-  //  Prepare payload
-// Prepare all contacts (each async operation returns a promise)
-const bexioPayloadPromises = newContacts.map(async contact => {
-  const fullName = contact.Name?.trim() || '';
-  let firstName1 = '';
-  let lastName1 = '';
-
-  const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
-  if (separatorMatch) {
-    const separator = separatorMatch[0];
-    const parts = fullName.split(separator);
-    if (parts.length === 2) {
-      firstName1 = parts[0].trim() + ' &';
-      lastName1 = parts[1].trim();
-    } else firstName1 = fullName;
-  } else {
-    const parts = fullName.split(/\s+/);
-    if (parts.length === 1) firstName1 = parts[0];
-    else if (/^\d/.test(parts[0])) {
-      lastName1 = parts[0];
-      firstName1 = parts.slice(1).join(' ');
-    } else if (/^\d/.test(parts[parts.length - 1])) {
-      lastName1 = parts[parts.length - 1];
-      firstName1 = parts.slice(0, -1).join(' ');
-    } else if (parts.length >= 3) {
-      firstName1 = parts[0];
-      lastName1 = parts.slice(1).join(' ');
-    } else {
-      firstName1 = parts[0];
-      lastName1 = parts.slice(1).join(' ');
-    }
-  }
-
-  let address = contact.BillingAddress?.street?.trim() || '';
-  let parts = address.split(' ').filter(p => p.trim() !== '');
-     console.log('address', address);
-     console.log('parts', parts);
-  let streetName = '';
-  let houseNumber = '';
-
-  if (parts.length > 1) {
-      houseNumber = parts.pop() || ''; // safely remove last word
-    streetName = parts.join(' ');
-  } else {
-    streetName = address;
-  }
-  streetName = streetName.trim();
-  houseNumber = houseNumber.trim();
-
-  // Wait for country list
-  let countryList:any = await getCountryLists(accessToken);
+  console.log('saleforceContact', saleforceContact);
+  let countryList;
+  countryList = await getCountryLists(accessToken);
   if (countryList) {
     countryList = JSON.parse(countryList);
-  }else{
+  } else {
     countryList = [];
   }
 
-  let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
-  const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
-  const countryId = countryObj?.id;
-console.log('countryId', countryId);
-console.log('streetName', streetName);
-console.log('houseNumber', houseNumber);
+  console.log('coutryList.', countryList);
+  const existingcountryList = countryList.map(c => c.iso_3166_alpha2);
+  console.log('existingcoutryList', existingcountryList);
+  const newCountries = saleforceContact.filter(c => !existingcountryList.includes(c.country_code));
+  console.log('New countries to add:', newCountries);
 
- const data = {
-  name_1: lastName1 || null,
-  name_2: firstName1 || null,
-  mail: contact.Iso_Email__c || null,
-  nr: contact.Iso_SAP_Partner_ID__c || null,
-  street_name: streetName || null,
-  house_number: houseNumber || null,
-  postcode: contact.BillingAddress?.postalCode || null,
-  city: contact.BillingAddress?.city || null,
-  country_id: countryId || null,
-  contact_type_id: 2,
-  user_id: 1,
-  owner_id: 1
-};
+  if (!newCountries.length) {
+    console.log('No new country to push to Bexio.');
+  }
+  else {
+    await Promise.all(
+      newCountries.map(contact =>
+        createCountry(
+          accessToken,
+          contact.country_name,
+          contact.country_code,
+          contact.country_code
+        )
+      )
+    );
+  }
 
-console.log('Prepared contact payload:', data);
+  //  Prepare payload
+  // Prepare all contacts (each async operation returns a promise)
+  const bexioPayloadPromises = newContacts.map(async contact => {
+    const fullName = contact.Name?.trim() || '';
+    let firstName1 = '';
+    let lastName1 = '';
 
-return data;
-});
-
-// Wait until all contacts are processed
-const bexioPayload = await Promise.all(bexioPayloadPromises);
-console.log('bexioPayload', JSON.stringify(bexioPayload));
-
-if (!bexioPayload || bexioPayload.length === 0) {
-  return results;
-}
-
-const BATCH_SIZE = 50;
-const maxRetries = 3;
-
-for (let i = 0; i < bexioPayload.length; i += BATCH_SIZE) {
-  const batch = bexioPayload.slice(i, i + BATCH_SIZE);
-  const pushOptions = {
-    method: 'POST',
-    url: 'https://api.bexio.com/2.0/contact/_bulk_create',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(batch)
-  };
-
-  let retryCount = 0;
-  try {
-    let result;
-    while (retryCount < maxRetries) {
-      try {
-        result = await new Promise((resolve, reject) => {
-          request(pushOptions, (err, resp, body) => {
-            if (err) return reject(err);
-            if (resp.statusCode === 200 || resp.statusCode === 201) {
-              try {
-                resolve(JSON.parse(body));
-              } catch (parseErr) {
-                // if body is not JSON, resolve raw body
-                resolve(body);
-              }
-            } else if (resp.statusCode === 429) {
-              return reject({ retry: true, statusCode: resp.statusCode });
-            } else {
-              reject({ statusCode: resp.statusCode, body });
-            }
-          });
-        });
-        break;
-      } catch (err: any) {
-        if (err?.retry) {
-          retryCount++;
-          console.warn(`Rate limited, retry ${retryCount}/${maxRetries} for batch starting at index ${i}`);
-          await new Promise(res => setTimeout(res, 60000));
-        } else {
-          throw err;
-        }
+    const separatorMatch = fullName.match(/\s+(?:&|and|und)\s+/i);
+    if (separatorMatch) {
+      const separator = separatorMatch[0];
+      const parts = fullName.split(separator);
+      if (parts.length === 2) {
+        firstName1 = parts[0].trim() + ' &';
+        lastName1 = parts[1].trim();
+      } else firstName1 = fullName;
+    } else {
+      const parts = fullName.split(/\s+/);
+      if (parts.length === 1) firstName1 = parts[0];
+      else if (/^\d/.test(parts[0])) {
+        lastName1 = parts[0];
+        firstName1 = parts.slice(1).join(' ');
+      } else if (/^\d/.test(parts[parts.length - 1])) {
+        lastName1 = parts[parts.length - 1];
+        firstName1 = parts.slice(0, -1).join(' ');
+      } else if (parts.length >= 3) {
+        firstName1 = parts[0];
+        lastName1 = parts.slice(1).join(' ');
+      } else {
+        firstName1 = parts[0];
+        lastName1 = parts.slice(1).join(' ');
       }
     }
-    results.push({ success: true, data: result, batchStart: i, batchSize: batch.length });
-  } catch (err) {
-    console.error(`Failed to push batch starting at ${i}:`, err);
-    results.push({ success: false, error: err, batchStart: i, batchSize: batch.length });
-  }
-}
 
- console.log('results',results);
+    let address = contact.BillingAddress?.street?.trim() || '';
+    let parts = address.split(' ').filter(p => p.trim() !== '');
+    console.log('address', address);
+    console.log('parts', parts);
+    let streetName = '';
+    let houseNumber = '';
+
+    if (parts.length > 1) {
+      houseNumber = parts.pop() || ''; // safely remove last word
+      streetName = parts.join(' ');
+    } else {
+      streetName = address;
+    }
+    streetName = streetName.trim();
+    houseNumber = houseNumber.trim();
+
+    // Wait for country list
+    let countryList: any = await getCountryLists(accessToken);
+    if (countryList) {
+      countryList = JSON.parse(countryList);
+    } else {
+      countryList = [];
+    }
+
+    let countryCode = contact.BillingAddress?.countryCode?.trim() || '';
+    const countryObj = countryList.find(c => c.iso_3166_alpha2 === countryCode);
+    const countryId = countryObj?.id;
+    console.log('countryId', countryId);
+    console.log('streetName', streetName);
+    console.log('houseNumber', houseNumber);
+
+    const data = {
+      name_1: lastName1 || null,
+      name_2: firstName1 || null,
+      mail: contact.Iso_Email__c || null,
+      nr: contact.Iso_SAP_Partner_ID__c || null,
+      street_name: streetName || null,
+      house_number: houseNumber || null,
+      postcode: contact.BillingAddress?.postalCode || null,
+      city: contact.BillingAddress?.city || null,
+      country_id: countryId || null,
+      contact_type_id: 2,
+      user_id: 1,
+      owner_id: 1
+    };
+
+    console.log('Prepared contact payload:', data);
+
+    return data;
+  });
+
+  // Wait until all contacts are processed
+  const bexioPayload = await Promise.all(bexioPayloadPromises);
+  console.log('bexioPayload', JSON.stringify(bexioPayload));
+
+  if (!bexioPayload || bexioPayload.length === 0) {
+    return results;
+  }
+
+  const BATCH_SIZE = 50;
+  const maxRetries = 3;
+
+  for (let i = 0; i < bexioPayload.length; i += BATCH_SIZE) {
+    const batch = bexioPayload.slice(i, i + BATCH_SIZE);
+    const pushOptions = {
+      method: 'POST',
+      url: 'https://api.bexio.com/2.0/contact/_bulk_create',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(batch)
+    };
+
+    let retryCount = 0;
+    try {
+      let result;
+      while (retryCount < maxRetries) {
+        try {
+          result = await new Promise((resolve, reject) => {
+            request(pushOptions, (err, resp, body) => {
+              if (err) return reject(err);
+              if (resp.statusCode === 200 || resp.statusCode === 201) {
+                try {
+                  resolve(JSON.parse(body));
+                } catch (parseErr) {
+                  // if body is not JSON, resolve raw body
+                  resolve(body);
+                }
+              } else if (resp.statusCode === 429) {
+                return reject({ retry: true, statusCode: resp.statusCode });
+              } else {
+                reject({ statusCode: resp.statusCode, body });
+              }
+            });
+          });
+          break;
+        } catch (err: any) {
+          if (err?.retry) {
+            retryCount++;
+            console.warn(`Rate limited, retry ${retryCount}/${maxRetries} for batch starting at index ${i}`);
+            await new Promise(res => setTimeout(res, 60000));
+          } else {
+            throw err;
+          }
+        }
+      }
+      results.push({ success: true, data: result, batchStart: i, batchSize: batch.length });
+    } catch (err) {
+      console.error(`Failed to push batch starting at ${i}:`, err);
+      results.push({ success: false, error: err, batchStart: i, batchSize: batch.length });
+    }
+  }
+
+  console.log('results', results);
   return results;
 }
 
-export const createCountry = async (access_token,name,name_short,country_code)=>{
+export const createCountry = async (access_token, name, name_short, country_code) => {
   try {
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
         'url': `https://api.bexio.com/2.0/country`,
         'headers': {
           'Accept': 'application/json',
-          'Authorization': 'Bearer '+access_token
+          'Authorization': 'Bearer ' + access_token
         },
-            body: JSON.stringify({
-              "name": name,
-              "name_short":name_short,
-              "iso3166_alpha2":country_code
-            })
+        body: JSON.stringify({
+          "name": name,
+          "name_short": name_short,
+          "iso3166_alpha2": country_code
+        })
       };
       request(options, function (error, response) {
-        if (error) {  
+        if (error) {
           commonErrors['errorTitle'] = 'getCountryLists';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+access_token;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + access_token;
+          warningMessage(commonErrors, error);
           return resolve(false)
         }
-        if(response.statusCode==200)
-        return resolve(response.body);
+        if (response.statusCode == 200)
+          return resolve(response.body);
         else
-        return resolve(false)
+          return resolve(false)
 
       });
     });
   } catch (error) {
     commonErrors['errorTitle'] = "getCountryLists";
-    commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+access_token;
-    warningMessage(commonErrors,error);
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + access_token;
+    warningMessage(commonErrors, error);
     return resolve('');
   }
 }
 
 
 export const parseResponse = (response: any) => {
-          if (response) {
-            try {
-              console.log('response:: type', typeof response);
-              console.log('response:: type', response);
-              // let parsedData = JSON.parse(response);
-              // let parsedData = response;
-              // console.log("response:: parsedData",response)
-              if (Array.isArray(response)) {
-                return response;
-              } else if (
-                response &&
-                typeof response === 'object' &&
-                response.message
-              ) {
-                return [];
-              } else {
-                return [];
-              }
-            } catch (error) {
-              console.error('Error parsing response:', error);
-            }
-          }
-          return [];
-        };
+  if (response) {
+    try {
+      console.log('response:: type', typeof response);
+      console.log('response:: type', response);
+      // let parsedData = JSON.parse(response);
+      // let parsedData = response;
+      // console.log("response:: parsedData",response)
+      if (Array.isArray(response)) {
+        return response;
+      } else if (
+        response &&
+        typeof response === 'object' &&
+        response.message
+      ) {
+        return [];
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error('Error parsing response:', error);
+    }
+  }
+  return [];
+};
 
-const CHANNEL_GROUP={
+const CHANNEL_GROUP = {
   print: ["print", "post"],
   email: ["email"],
   ebill: ["ebill"]
 }
 
-export const getContactIdsByChannel=async(accessToken:string,channel:string)=>{
-  const targetChannel=CHANNEL_GROUP[channel.toLowerCase()]
-  if(!targetChannel) return []
+export const getContactIdsByChannel = async (accessToken: string, channel: string) => {
+  const targetChannel = CHANNEL_GROUP[channel.toLowerCase()]
+  if (!targetChannel) return []
 
-   let contactGroupList: any = await getContactGroupList(accessToken);
-   console.log("channel",channel);
-   console.log("targetChannel",targetChannel);
-   console.log("contactGroupList",contactGroupList);
-  
-   const ids = contactGroupList
-              ?.filter(group => targetChannel.includes(group.name.toLowerCase()))
-              .map(group => group.id);
-  console.log("contactGroupList ids ::",ids);
-  
-    let searchContactgrp: any[] = [{
+  let contactGroupList: any = await getContactGroupList(accessToken);
+  console.log("channel", channel);
+  console.log("targetChannel", targetChannel);
+  console.log("contactGroupList", contactGroupList);
+
+  const ids = contactGroupList
+    ?.filter(group => targetChannel.includes(group.name.toLowerCase()))
+    .map(group => group.id);
+  console.log("contactGroupList ids ::", ids);
+
+  let searchContactgrp: any[] = [{
     field: "contact_group_ids",
     value: ids,
     criteria: "in"
   }];
 
-  let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-  console.log("contactIds ::",contactIds);
-  
+  let contactIds: any = await getContactSearch(accessToken, searchContactgrp);
+  console.log("contactIds ::", contactIds);
+
   return contactIds?.map(contact => contact.id) || []
 }
 
-export const validDate = (date:string,isEnd?:boolean) => {
+export const validDate = (date: string, isEnd?: boolean) => {
   const parsedDate = new Date(date);
-  if(isNaN(parsedDate.getTime())) return undefined
-  if(isEnd){
-    parsedDate.setHours(23,59,59,999)
+  if (isNaN(parsedDate.getTime())) return undefined
+  if (isEnd) {
+    parsedDate.setHours(23, 59, 59, 999)
   }
   return parsedDate;
 };
@@ -5823,37 +5814,36 @@ export const getInvoicesQuery = async (
   include: boolean
 ) => {
   const normalizedChannel =
-  channel.toLowerCase() === "print"
-    ? ["PRINT", "POST"]
-    : [channel.toUpperCase()];
+    channel.toLowerCase() === "print"
+      ? ["PRINT", "POST"]
+      : [channel.toUpperCase()];
 
-return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
-  Prisma.sql`
+  return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+    Prisma.sql`
     SELECT array_agg(ds.rk_invoice::int) AS invoices
     FROM documents_invoice_send ds
     INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
     WHERE c.netcomid = ${netcomId}
-      AND ${
-        include
-          ? Prisma.sql`UPPER(ds.invoice_type) IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
-          : Prisma.sql`UPPER(ds.invoice_type) NOT IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
+      AND ${include
+        ? Prisma.sql`UPPER(ds.invoice_type) IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
+        : Prisma.sql`UPPER(ds.invoice_type) NOT IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
       }
   `
-);
+  );
 
 };
-     
+
 
 export function escapeLikeChars(text) {
   return text.replace(/[_%]/g, "\\$&")
 }
 
-export const getStatusLabel=(status:number)=>{
-  if(status===0){
+export const getStatusLabel = (status: number) => {
+  if (status === 0) {
     return "Fehlgeschlagen"
-  }else if(status===1){
+  } else if (status === 1) {
     return "In Bearbeitung"
-  }else if(status===2){
+  } else if (status === 2) {
     return "Abgeschlossen"
   }
   return null;

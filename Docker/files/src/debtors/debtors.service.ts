@@ -17,7 +17,7 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, setEbillInvoiceSendStatus, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued, markAsSent } from 'src/common/utils/helperfn';
+import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued, markAsSent } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
@@ -1989,28 +1989,30 @@ export class DebtorsService {
   });
 console.log('!invoice.allow',invoice.allow);
  if (!invoice.allow) {
-    await setEbillInvoiceSendStatus(
+    await setInvoiceSendStatus(
       recipientToken[0]?.rk_party,
       invoice.doc_id,
       invoice.documentNumber,
-      [invoice],
       '0',
       'no_subscription_found',
-      invoice.contactId
+      'EBILL',
+      invoice.contactId,
+      [invoice]
     );
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
   }
 
   // --- Continue normal processing ---
-  await setEbillInvoiceSendStatus(
+  await setInvoiceSendStatus(
     recipientToken[0]?.rk_party,
     invoice.doc_id,
     invoice.documentNumber,
-    [invoice],
     '1',
     '',
+    'EBILL',
     invoice.contactId,
+    [invoice]
   );
   const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
   invoice.accessToken = tokenSet.access_token;
