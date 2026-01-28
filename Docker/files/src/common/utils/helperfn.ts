@@ -321,15 +321,15 @@ export const getTagName = async (netcom_id, details, autoTag) => {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status, error?, channel?, receiverId?, formData?) => {
-  console.log('channel,invoiceId::::::::::::', channel, invoiceId);
+  console.log('channel,invoiceId::::::::::::', channel, invoiceId, status);
   console.log('channel,invoiceId,partyId::::::::::::', partyId);
   console.log('invoicenumber::::::::::::', invoicenumber);
-  console.log("formData",formData)
+  console.log("formData:::::::::::::::", formData)
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
     try {
-      
+
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
         where: {
           rk_invoice: invoiceId,
@@ -341,7 +341,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         select: {
           cid: true,
           object_id: true,
-          invoice_params:true,
+          invoice_params: true,
           companyregistered: {
             select: {
               cid: true,
@@ -350,50 +350,32 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       console.log("selectQryResult", selectQryResult);
-console.log('selectQryResult', selectQryResult);
 
-      // -------------------------------
-      // 2. Merge formData safely
-      // -------------------------------
-      let mergedFormData = Array.isArray(formData) ? [...formData] : [];
-
-      if (selectQryResult.length && Array.isArray(selectQryResult[0]?.invoice_params)) {
+      let oldLogs: any[] = [];
+      if (selectQryResult.length && selectQryResult[0]?.invoice_params && selectQryResult[0]?.invoice_params["channel_change_logs"] && Array.isArray(selectQryResult[0]?.invoice_params["channel_change_logs"])) {
         const oldParams = selectQryResult[0].invoice_params;
-        if (mergedFormData.length && oldParams.length) {
-          // Cast mergedFormData[0] as any
-            const mergedFirst: any = mergedFormData[0];
-
-            // preserve old channel logs safely
-            mergedFirst.channel_change_logs = (oldParams[0] as any)?.channel_change_logs || [];
-
-            // Use mergedFirst in the rest of the code
-            mergedFormData[0] = mergedFirst;
-
-        }
+        oldLogs = oldParams["channel_change_logs"];
       }
 
       // -------------------------------
       // 3. Add new channel log if failed_invoice_type != channel
       // -------------------------------
       if (
-        status === 1 &&
-        mergedFormData.length &&
-        mergedFormData[0]?.failed_invoice_type &&
+        formData?.failed_invoice_type &&
         channel &&
-        mergedFormData[0].failed_invoice_type.toLowerCase() !== channel.toLowerCase()
+        formData.failed_invoice_type.toLowerCase() !== channel.toLowerCase()
       ) {
-        const fromChannel = mergedFormData[0].failed_invoice_type;
-        const oldLogs = mergedFormData[0].channel_change_logs || [];
-        const userId=mergedFormData[0].userId;
-      
+        console.log('oldLogs', oldLogs);
+
         oldLogs.push({
-          fromchannel: fromChannel,
-          tochannel: channel,
-          user:userId,
+          from: formData.failed_invoice_type,
+          to: channel,
+          user: formData.userId,
           timestamp: new Date().toISOString(),
         });
+        console.log('oldLogs', oldLogs);
 
-        mergedFormData[0].channel_change_logs = oldLogs;
+
       }
 
       if (selectQryResult.length == 0) {
@@ -410,7 +392,7 @@ console.log('selectQryResult', selectQryResult);
             invoice_number: invoicenumber,
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
             invoice_type: channel,
-            invoice_params: mergedFormData,
+            invoice_params: formData,
             status: Number(status),
             receiver_contactid: receiverId,
             response: errorBody,
@@ -429,6 +411,15 @@ console.log('selectQryResult', selectQryResult);
         console.log('updateMany', selectQryResult[0]?.cid, channel, invoiceId, status);
 
         sendInvoiceId = channel === 'EBILL' ? selectQryResult[0]?.object_id : selectQryResult[0]?.cid;
+        let invoiceParams: any = selectQryResult[0]?.invoice_params;
+        if (!invoiceParams || Array.isArray(invoiceParams) || typeof invoiceParams !== 'object') {
+          invoiceParams = {};
+        }
+        invoiceParams.channel_change_logs = oldLogs;
+        console.log('invoiceParams', invoiceParams);
+        console.log('selectQryResult', selectQryResult);
+        console.log('oldLogs', oldLogs);
+
         await connectBexio.documents_invoice_send.updateMany({
           where: {
             fk_companyregistered: selectQryResult[0].companyregistered?.cid,
@@ -440,7 +431,7 @@ console.log('selectQryResult', selectQryResult);
             status: Number(status),
             response: errorBody,
             invoice_type: channel,
-            invoice_params: mergedFormData,
+            invoice_params: invoiceParams,
             ...(channel === 'EBILL' && { is_notifyed: false }),
             ...(channel === 'EBILL' && { reference_id: null })
           }
