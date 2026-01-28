@@ -324,6 +324,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
   console.log('channel,invoiceId::::::::::::', channel, invoiceId);
   console.log('channel,invoiceId,partyId::::::::::::', partyId);
   console.log('invoicenumber::::::::::::', invoicenumber);
+  console.log("formData",formData)
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
