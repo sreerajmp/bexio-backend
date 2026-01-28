@@ -1981,8 +1981,9 @@ export class DebtorsService {
   //   return invoice;
   // }
 
- private async processEbillInvoice(invoice, data, bexioClient): Promise<any> {
+ private async processEbillInvoice(invoice, data,bodyData): Promise<any> {
   const pool = await connectMssql;
+  const bexioClient = await bexioInterfaceClient();
   const recipientToken = await connectBexio.companyregistered.findMany({
     where: { netcomid: data.netcomId },
     select: { refresh_token: true, rk_party: true }
@@ -2002,7 +2003,9 @@ console.log('!invoice.allow',invoice.allow);
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
   }
-
+if (bodyData?.userId && !invoice.userId) {
+    invoice.userId = bodyData.userId;
+  }
   // --- Continue normal processing ---
   await setInvoiceSendStatus(
     recipientToken[0]?.rk_party,
@@ -2014,7 +2017,7 @@ console.log('!invoice.allow',invoice.allow);
     invoice.contactId,
     [invoice]
   );
-  const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token);
+  const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token||'');
   invoice.accessToken = tokenSet.access_token;
   invoice.refreshToken = tokenSet.refresh_token;
 
@@ -2034,13 +2037,13 @@ console.log('!invoice.allow',invoice.allow);
 
   return invoice;
 }
-  private async processEbillInvoices(data, bexioClient): Promise<any[]> {
+  private async processEbillInvoices(data,bodyParams): Promise<any[]> {
   const results: any[] = [];
   if (!data.ebillInvoices?.length) return results;
 
   for (const invoice of data.ebillInvoices) {
     try {
-      const result = await this.processEbillInvoice(invoice, data, bexioClient);
+      const result = await this.processEbillInvoice(invoice, data,bodyParams);
        if (!result) {
         console.log(`Invoice skipped )`);
         results.push(invoice);
@@ -2080,6 +2083,9 @@ console.log('!invoice.allow',invoice.allow);
         console.log('inv.doc_id',inv.doc_id);
          console.log('docNumber',docNumber);
       console.log('bodyData.partyId, invoiceId, docNumber',bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
+      if (bodyData?.userId && !inv.userId) {
+       inv.userId = bodyData.userId;
+        }
       const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId,invoices);
       results.push(result);
     }
@@ -2088,7 +2094,15 @@ console.log('!invoice.allow',invoice.allow);
   }
 async sendInvoice(req: Request, res: Response): Promise<any> {
   const data = req.body;
-  const bexioClient = await bexioInterfaceClient();
+
+const decryptedCookie = encryptionControl.decryptCookie(
+  JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
+);
+
+const parsedCookie = JSON.parse(decryptedCookie);
+console.log('parsedCookie',parsedCookie);
+const userId = parsedCookie.company_user_id;
+console.log('company_user_id',userId);
 
   const combinedResponse: any = {
     otherInvoiceResults: [],
@@ -2115,7 +2129,8 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
     const bodyParams = {
       partyId: data.partyId,
       accountId: data.accountId,
-      netcomId: data.netcomId
+      netcomId: data.netcomId,
+      userId:userId
     };
 
     // ------------------------------
@@ -2170,7 +2185,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
       const [emailResults, printResults, ebillResults] = await Promise.all([
         Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))),
         Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))),
-        Promise.all(otherEbillInvoices.map(inv => this.processEbillInvoice(inv, data, bexioClient)))
+        Promise.all(otherEbillInvoices.map(inv => this.processEbillInvoice(inv, data,bodyParams)))
       ]);
       console.log('emailResults',emailResults);
       console.log('printResults',printResults);
@@ -2307,7 +2322,7 @@ async sendInvoice(req: Request, res: Response): Promise<any> {
         const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
         if (billTagItem) validEbillnvoices.forEach(inv => inv.allow = billTagItem.allow);
 
-        const ebillResults = await this.processEbillInvoices(data, bexioClient);
+        const ebillResults = await this.processEbillInvoices(data,bodyParams);
         ebillResults.forEach(inv => {
           if (!inv) return;
           inv['tag'] = 'EBILL';

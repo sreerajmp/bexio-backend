@@ -328,6 +328,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
     try {
+      
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
         where: {
           rk_invoice: invoiceId,
@@ -339,6 +340,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         select: {
           cid: true,
           object_id: true,
+          invoice_params:true,
           companyregistered: {
             select: {
               cid: true,
@@ -347,6 +349,51 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       console.log("selectQryResult", selectQryResult);
+console.log('selectQryResult', selectQryResult);
+
+      // -------------------------------
+      // 2. Merge formData safely
+      // -------------------------------
+      let mergedFormData = Array.isArray(formData) ? [...formData] : [];
+
+      if (selectQryResult.length && Array.isArray(selectQryResult[0]?.invoice_params)) {
+        const oldParams = selectQryResult[0].invoice_params;
+        if (mergedFormData.length && oldParams.length) {
+          // Cast mergedFormData[0] as any
+            const mergedFirst: any = mergedFormData[0];
+
+            // preserve old channel logs safely
+            mergedFirst.channel_change_logs = (oldParams[0] as any)?.channel_change_logs || [];
+
+            // Use mergedFirst in the rest of the code
+            mergedFormData[0] = mergedFirst;
+
+        }
+      }
+
+      // -------------------------------
+      // 3. Add new channel log if failed_invoice_type != channel
+      // -------------------------------
+      if (
+        status === 1 &&
+        mergedFormData.length &&
+        mergedFormData[0]?.failed_invoice_type &&
+        channel &&
+        mergedFormData[0].failed_invoice_type.toLowerCase() !== channel.toLowerCase()
+      ) {
+        const fromChannel = mergedFormData[0].failed_invoice_type;
+        const oldLogs = mergedFormData[0].channel_change_logs || [];
+        const userId=mergedFormData[0].userId;
+      
+        oldLogs.push({
+          fromchannel: fromChannel,
+          tochannel: channel,
+          user:userId,
+          timestamp: new Date().toISOString(),
+        });
+
+        mergedFormData[0].channel_change_logs = oldLogs;
+      }
 
       if (selectQryResult.length == 0) {
         console.log('createany');
@@ -362,7 +409,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             invoice_number: invoicenumber,
             fk_companyregistered: companyregisteredSelectQryResult[0].cid, // assuming you already formatted your result
             invoice_type: channel,
-            invoice_params: formData,
+            invoice_params: mergedFormData,
             status: Number(status),
             receiver_contactid: receiverId,
             response: errorBody,
@@ -392,7 +439,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             status: Number(status),
             response: errorBody,
             invoice_type: channel,
-            invoice_params: formData,
+            invoice_params: mergedFormData,
             ...(channel === 'EBILL' && { is_notifyed: false }),
             ...(channel === 'EBILL' && { reference_id: null })
           }
