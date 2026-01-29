@@ -321,13 +321,15 @@ export const getTagName = async (netcom_id, details, autoTag) => {
 
 }
 export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, status, error?, channel?, receiverId?, formData?) => {
-  console.log('channel,invoiceId::::::::::::', channel, invoiceId);
+  console.log('channel,invoiceId::::::::::::', channel, invoiceId, status);
   console.log('channel,invoiceId,partyId::::::::::::', partyId);
   console.log('invoicenumber::::::::::::', invoicenumber);
+  console.log("formData:::::::::::::::", formData)
   let sendInvoiceId;
   return new Promise(async function (resolve, reject) {
     let errorBody = error || '';
     try {
+
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
         where: {
           rk_invoice: invoiceId,
@@ -339,6 +341,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         select: {
           cid: true,
           object_id: true,
+          invoice_params: true,
           companyregistered: {
             select: {
               cid: true,
@@ -347,6 +350,33 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         },
       });
       console.log("selectQryResult", selectQryResult);
+
+      let oldLogs: any[] = [];
+      if (selectQryResult.length && selectQryResult[0]?.invoice_params && selectQryResult[0]?.invoice_params["channel_change_logs"] && Array.isArray(selectQryResult[0]?.invoice_params["channel_change_logs"])) {
+        const oldParams = selectQryResult[0].invoice_params;
+        oldLogs = oldParams["channel_change_logs"];
+      }
+
+      // -------------------------------
+      // 3. Add new channel log if failed_invoice_type != channel
+      // -------------------------------
+      if (
+        formData?.failed_invoice_type &&
+        channel &&
+        formData.failed_invoice_type.toLowerCase() !== channel.toLowerCase()
+      ) {
+        console.log('oldLogs', oldLogs);
+
+        oldLogs.push({
+          from: formData.failed_invoice_type,
+          to: channel,
+          user: formData.userId,
+          timestamp: new Date().toISOString(),
+        });
+        console.log('oldLogs', oldLogs);
+
+
+      }
 
       if (selectQryResult.length == 0) {
         console.log('createany');
@@ -381,6 +411,15 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         console.log('updateMany', selectQryResult[0]?.cid, channel, invoiceId, status);
 
         sendInvoiceId = channel === 'EBILL' ? selectQryResult[0]?.object_id : selectQryResult[0]?.cid;
+        let invoiceParams: any = selectQryResult[0]?.invoice_params;
+        if (!invoiceParams || Array.isArray(invoiceParams) || typeof invoiceParams !== 'object') {
+          invoiceParams = {};
+        }
+        invoiceParams.channel_change_logs = oldLogs;
+        console.log('invoiceParams', invoiceParams);
+        console.log('selectQryResult', selectQryResult);
+        console.log('oldLogs', oldLogs);
+
         await connectBexio.documents_invoice_send.updateMany({
           where: {
             fk_companyregistered: selectQryResult[0].companyregistered?.cid,
@@ -392,7 +431,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
             status: Number(status),
             response: errorBody,
             invoice_type: channel,
-            invoice_params: formData,
+            invoice_params: invoiceParams,
             ...(channel === 'EBILL' && { is_notifyed: false }),
             ...(channel === 'EBILL' && { reference_id: null })
           }
@@ -470,10 +509,15 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
         // //console.log('invoice::::',invoice);
         if (!invoice || !invoice.positions) {
           invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'invoice_invalid', channel);
-          //console.log('invoice not found');
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_pushInvoiceBulkTest -req param,', JSON.stringify(decryptData);
-          warningMessage(commonErrors, 'error_getInvoiceOT');
+          const logData = {
+            ...commonErrors,
+            errorTitle: req.originalUrl,
+            errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_pushInvoiceBulkTest -req param, ' + JSON.stringify(decryptData),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "400"
+          };
+          warningMessage(logData, 'error_getInvoiceOT');
           return resolve('invoice_invalid');
         }
 
@@ -483,9 +527,15 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
 
           let customerIds = await constGetContactId(invitionData[0].rk_businessconnection);
           if (!customerIds) {
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_custimerIds -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'error_custimerIds ');
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_custimerIds -req param, ' + JSON.stringify(req.body),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "400"
+            };
+            warningMessage(logData, 'error_custimerIds ');
             return resolve('customer_ids_not_found');
           }
           //console.log(customerIds);
@@ -495,16 +545,28 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
           if (pdf.response == 401) {
 
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'unauthorized', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'error_getInvoicePdf ');
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param, ' + JSON.stringify(req.body),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "401"
+            };
+            warningMessage(logData, 'error_getInvoicePdf ');
             return resolve('unauthorized');
           }
           if (!pdf) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'pdf_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'error_getInvoicePdf ');
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param, ' + JSON.stringify(req.body),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "404"
+            };
+            warningMessage(logData, 'error_getInvoicePdf ');
             return resolve('pdf_not_found');
           }
           let pdf_parsed = JSON.parse(pdf);
@@ -1312,9 +1374,16 @@ export async function invoiceFilePush(netcomId, service, data, filename, type) {
     request(options, function (error, response) {
       try {
         if (error) {
-          commonErrors['errorTitle'] = 'bexio-file-drop';
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
-          warningMessage(commonErrors, error);
+          const logData = {
+            ...commonErrors,
+            errorTitle: 'bexio-file-drop',
+            errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + JSON.stringify(formData),
+            netcomId: netcomId,
+            filename: filename + '.xml',
+            channel: type,
+            messagetype: "500"
+          };
+          warningMessage(logData, error);
           return resolve(false)
         }
         return resolve(response?.body)
@@ -1367,9 +1436,15 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       if (pdf?.response == 401) {
         console.log('unauthorized');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'unauthorized');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "401"
+        };
+        warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
         return;
       }
@@ -1377,9 +1452,15 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         console.log('pdf not found');
 
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'email_pdf_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_pdf_not_found');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "404"
+        };
+        warningMessage(logData, 'email_pdf_not_found');
         resolve('email_pdf_not_found' + invoiceCid);
         return;
       }
@@ -1502,9 +1583,15 @@ export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, ch
           console.log('contact missing address or postal');
           console.log('channel detail', channel);
           let invoiceCid = await setInvoiceSendStatus(bodyValues?.partyId, element.doc_id, '', '0', 'contact_missing_address_or_postal', 'EBILL', '', tempParam);
-          commonErrors['errorTitle'] = invoices.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'Ebill_contact_missing_address_or_postal ' + '-invoices param,';
-          warningMessage(commonErrors, 'contact_missing_address_or_postal');
+          const logData = {
+            ...commonErrors,
+            errorTitle: invoices.originalUrl,
+            errorDescription: 'From:' + path.basename(__filename) + ' Ebill_contact_missing_address_or_postal ' + '-invoices param,',
+            netcomId: bodyValues?.netcomId,
+            channel: 'EBILL',
+            messagetype: "400"
+          };
+          warningMessage(logData, 'contact_missing_address_or_postal');
           return resolve('contact_missing_address_or_postal' + invoiceCid);
 
         }
@@ -4811,9 +4898,15 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       const invoice: any = await getInvoiceOT(accessToken, invoice_id);
       if (!invoice) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invoice_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'error');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "404"
+        };
+        warningMessage(logData, 'error');
         resolve('invoice_not_found' + invoiceCid);
         return
       }
@@ -4823,9 +4916,15 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_contact_not_found');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "404"
+        };
+        warningMessage(logData, 'email_contact_not_found');
         resolve('print_contact_not_found' + invoiceCid);
         return;
       }
@@ -4835,9 +4934,15 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       if (!contact?.name_1 || !contact?.street_name || !contact?.city || !contact?.country_id || !contact?.postcode) {
         console.log('contact missing address or postal');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_missing_address_or_postal', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_contact_missing_address_or_postal ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'contact_missing_address_or_postal');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' print_contact_missing_address_or_postal ' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "400"
+        };
+        warningMessage(logData, 'contact_missing_address_or_postal');
         resolve('print_contact_missing_address_or_postal' + invoiceCid);
         return;
       }
@@ -4859,9 +4964,15 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           if (error) {
             console.log('error article', error);
             await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'print_article_error', channel);
-            commonErrors['errorTitle'] = 'getArticle';
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken;
-            warningMessage(commonErrors, error);
+            const logData = {
+              ...commonErrors,
+              errorTitle: 'getArticle',
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken,
+              netcomId: bodyValues?.netcomId,
+              channel: channel,
+              messagetype: "500"
+            };
+            warningMessage(logData, error);
             return resolve(error);
           }
 
