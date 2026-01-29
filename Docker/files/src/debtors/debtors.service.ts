@@ -698,6 +698,14 @@ export class DebtorsService {
     let netcomId = data.netcomId;
     let arrayContactIds:number[] = [],invoiceContactListIds: any[] = [],tempContact: any[] = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
     let invoiceListTemp;
+    warningMessage({
+      messagetype: "200",
+      netcomId: netcomId,
+      errorDescription: "Dummy log: initializing getInvoiceV2",
+      errorTitle: "DebtorsService.getInvoiceV2",
+      process: "Initialization",
+      guid: "dummy-guid-123"
+    }, null);
 
     try {
       // -----------------------------------------------------------------------------------------

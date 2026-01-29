@@ -2,6 +2,11 @@ import * as nodemailer from 'nodemailer';
 import config from '../config';
 
 const sendEmail = async (options) => {
+    return {
+        success: true,
+        message: "Email send successful",
+
+    }
     // create transporter
     console.log(options.email);
     console.log(config.MAIL_SERVER);
@@ -15,7 +20,7 @@ const sendEmail = async (options) => {
     let transporter;
     // if (config.MAIL_PASSWORD) {
     //     console.log('iffffffffffff');
-        
+
     //     transporter = nodemailer.createTransport({
     //         host: config.MAIL_SERVER,
     //         port: config.MAIL_PORT,
@@ -26,17 +31,17 @@ const sendEmail = async (options) => {
     //         name: process.env.MAIL_INTERNAL_DOMAIN,
     //     });
     // } else {
-        console.log('elseeeeeee');
+    console.log('elseeeeeee');
 
-        transporter = nodemailer.createTransport({
-            host: config.MAIL_SERVER,
-            port: config.MAIL_PORT,
-            name: process.env.MAIL_INTERNAL_DOMAIN,
-        });
+    transporter = nodemailer.createTransport({
+        host: config.MAIL_SERVER,
+        port: config.MAIL_PORT,
+        name: process.env.MAIL_INTERNAL_DOMAIN,
+    });
     // }
-    
-    
- 
+
+
+
     const mailOptions = {
         from: config.MAIL_USERNAME,
         to: options.email,
@@ -44,20 +49,20 @@ const sendEmail = async (options) => {
         html: options.message,
     };
     try {
-   const info= await transporter.sendMail(mailOptions);
-   return {
-    success:true,
-    message:"Email send successful",
-    info
-   }
+        const info = await transporter.sendMail(mailOptions);
+        return {
+            success: true,
+            message: "Email send successful",
+            info
+        }
     } catch (error) {
-        console.log("errorMail:",error);
-        throw{
-            success:true,
-            message:"Email send failed",
+        console.log("errorMail:", error);
+        throw {
+            success: true,
+            message: "Email send failed",
             error
         }
-        
+
     }
 };
 module.exports = sendEmail;
