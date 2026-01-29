@@ -411,11 +411,15 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         console.log('updateMany', selectQryResult[0]?.cid, channel, invoiceId, status);
 
         sendInvoiceId = channel === 'EBILL' ? selectQryResult[0]?.object_id : selectQryResult[0]?.cid;
+        
         let invoiceParams: any = selectQryResult[0]?.invoice_params;
         if (!invoiceParams || Array.isArray(invoiceParams) || typeof invoiceParams !== 'object') {
           invoiceParams = {};
         }
-        invoiceParams.channel_change_logs = oldLogs;
+          invoiceParams = {
+            ...formData,
+            channel_change_logs: oldLogs
+          };
         console.log('invoiceParams', invoiceParams);
         console.log('selectQryResult', selectQryResult);
         console.log('oldLogs', oldLogs);
@@ -5111,10 +5115,10 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           console.log('filePush::::', filePush, channel);
 
           if (filePush) {
-            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
-            console.log('invoiceCid::::', invoiceCid);
+           // let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
+           // console.log('invoiceCid::::', invoiceCid);
             await markAsIssued(accessToken, invoice_id);
-            resolve(invoiceCid);
+            resolve(invoice_id);
             return;
           }
 
