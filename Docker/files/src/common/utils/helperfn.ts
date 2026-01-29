@@ -354,7 +354,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
       let oldLogs: any[] = [];
       if (selectQryResult.length && selectQryResult[0]?.invoice_params && selectQryResult[0]?.invoice_params["channel_change_logs"] && Array.isArray(selectQryResult[0]?.invoice_params["channel_change_logs"])) {
         const oldParams = selectQryResult[0].invoice_params;
-        oldLogs = oldParams["channel_change_logs"];
+       // oldLogs = oldParams["channel_change_logs"];
+        oldLogs = [...oldParams["channel_change_logs"]];
       }
 
       // -------------------------------
@@ -365,7 +366,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         channel &&
         formData.failed_invoice_type.toLowerCase() !== channel.toLowerCase()
       ) {
-        console.log('oldLogs', oldLogs);
+        console.log('oldLogs1', oldLogs);
 
         oldLogs.push({
           from: formData.failed_invoice_type,
@@ -373,7 +374,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           user: formData.userId,
           timestamp: new Date().toISOString(),
         });
-        console.log('oldLogs', oldLogs);
+        console.log('oldLogs2', oldLogs);
 
 
       }
@@ -417,6 +418,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           invoiceParams = {};
         }
           invoiceParams = {
+            ...invoiceParams,
             ...formData,
             channel_change_logs: oldLogs
           };
