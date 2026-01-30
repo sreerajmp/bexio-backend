@@ -36,9 +36,10 @@ const pushToLoki = async (data: any, error: any) => {
  * Main entry point for logging warnings/errors.
  * Now exclusively uses pushToLoki (via stdout/Logger).
  */
-const warningMessageToDotnet = async (data, error) => {
-    await pushToLoki(data, error);
-    return
+const warningMessageToDotnet = async (data, error ,isLogger:boolean = true) => {
+    if(isLogger){
+        await pushToLoki(data, error);
+    }
     if (error != null) {
         const errorId = crypto.randomBytes(15).toString('hex');
         const errorFolder = config.ERROR_PATH + '/'

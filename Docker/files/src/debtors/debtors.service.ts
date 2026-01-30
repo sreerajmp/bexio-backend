@@ -23,6 +23,7 @@ import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
 import {getInvoiceOT,getUser,getDefaultUser} from 'src/common/utils/helperfn';
 import status_code from 'src/common/utils/statusCodes';
+import { ChannelChangeLog, InvoiceChannelChangeResult, UserDetails } from 'src/common/utils/types';
 // const { logMessage } = require('./logger');
 
 @Injectable()
@@ -2648,6 +2649,7 @@ console.log('userId',userId);
             });
 
   }
+
   async viewInvoicePdf(req: Request, res: Response,): Promise<any> {
     try {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
@@ -2706,6 +2708,94 @@ console.log('userId',userId);
     }
    
   }
+
+async invoiceDetails(req: Request, res: Response,): Promise<any> {
+    try {
+
+      console.log("Invoice details called");
+      
+      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+      let accessToken = cookie.access_Token;
+      let invoiceId =req.body.invoice_id;
+      let netcomid = req.body.netcomid;
+      let pdf,fileName,pdfContent;
+      pdf = await getInvoicePdf(accessToken,invoiceId);
+      if(pdf.response == 401){
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'error_getInvoicePdf ');
+        return res.status(status_code.UNAUTHORISED).json({
+          status_code: 401,
+          message: 'common_error',
+        });
+  
+      }
+      if(!pdf){
+        commonErrors['errorTitle'] = req.originalUrl;
+        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
+        warningMessage(commonErrors,'error_getInvoicePdf ');
+      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+        status_code: 500,
+        message: 'pdf_not_found',
+      });
+      }
+      let pdf_parsed = JSON.parse(pdf);
+
+      console.log("invoiceId",invoiceId);
+      const invoiceIdNumber = Number(invoiceId);
+      console.log("invoiceIdNumber",invoiceIdNumber);
+      // const userDetails=await getUser(accessToken,)
+      const result=await connectBexio.$queryRaw<InvoiceChannelChangeResult[]>(
+                Prisma.sql`
+                    SELECT
+                      ds.invoice_params->'channel_change_logs' AS channel_change_logs
+                    FROM documents_invoice_send AS ds
+                    INNER JOIN companyregistered AS c
+                      ON ds.fk_companyregistered = c.cid
+                    WHERE c.netcomid = ${netcomid}
+                    AND ds.rk_invoice = ${invoiceIdNumber}`
+              )
+              console.log("result",result);
+              let logs:ChannelChangeLog[]=result[0]?.channel_change_logs
+              let userUpdatedLogs
+              if(logs && logs.length>0){  
+               userUpdatedLogs = await Promise.all(logs.map(async (log) => {
+                const user:any = await getUser(accessToken, log.user)
+                console.log("user Details", user);
+                return {
+                  ...log,
+                  user:{
+                    id:user?.id,
+                    firstname:user?.firstname,
+                    lastname:user?.lastname,
+                    email:user?.email,
+                  }
+                }
+              }));
+              console.log('resultresultresultresult', userUpdatedLogs);
+              } 
+      pdfContent = pdf_parsed.content;
+      fileName = pdf_parsed.name;      
+      return res.status(status_code.OK).json({
+        status_code: 200,
+        message: 'common_success',
+        status: true,
+        data:{pdf_parsed,pdfContent,fileName,channelLogs:userUpdatedLogs || []},
+      });
+    } catch (error) {
+      console.log("error in invoiceDetails :: ",error);      
+      let responseValue = req.body.invoiceId;
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+      });
+    }
+}
+
   async changeInvoiceSendStatus(req: Request, res: Response,): Promise<any> {
   
     let formData 
