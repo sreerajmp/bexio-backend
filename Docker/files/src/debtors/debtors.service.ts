@@ -1372,8 +1372,8 @@ export class DebtorsService {
       let showTo:number;
       let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
       showTo = showFrom + parseInt(data.records_per_page) - 1;
-      //console.log('showFrom',showFrom);
-      //console.log('showTo',showTo);
+      console.log('showFrom',showFrom);
+      console.log('showTo',showTo);
       if(isBexioUser)
       {
        
@@ -1387,7 +1387,7 @@ export class DebtorsService {
         };
         request(options, async function (error, response) {
           if (error){
-            //console.log(error);
+            console.log(error);
             commonErrors['errorTitle'] = req.originalUrl;
             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
             warningMessage(commonErrors,error);
@@ -1466,7 +1466,7 @@ export class DebtorsService {
             console.log("Total Orders:", orderListCount);
             const totalOrders = Number(orderListCount); // Convert BigInt to Number
             
-            //console.log("Total Orders:", totalOrders);
+            console.log("Total Orders:", totalOrders);
 
   
             for (let index = 0; index < orderList.length; index++) {
@@ -1485,7 +1485,7 @@ export class DebtorsService {
               WHERE bc.id = ${element.rk_businessconnection};
             `;
             
-            //console.log(getBc);
+            console.log(getBc);
              
               if(getBc.length != 0)
               {
@@ -1529,7 +1529,7 @@ export class DebtorsService {
     } catch (error) {
    
  
-      //console.log(error);
+      console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
@@ -1627,7 +1627,7 @@ export class DebtorsService {
       if(bcDetails?.data?.length){
         for (let index = 0; index < bcDetails['data'].length; index++) {
           const element = bcDetails['data'][index];
-          //console.log("element :: ",element);      
+          console.log("element :: ",element);      
           if(element['company_details']['doc_type']['data'] == 'DispatchNotification'){
             tempBc.push(element['bc_id'])
           }      
@@ -1644,7 +1644,7 @@ export class DebtorsService {
     //   ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
     //   AND cb.rk_businessconnection IS NOT NULL
     // `);
-    // //console.log('getConnectionBc',getConnectionBc);
+    // console.log('getConnectionBc',getConnectionBc);
     // let resultArray = getConnectionBc[0]?.array_agg;
     let resultArray=await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
   console.log('resultArray',resultArray);
@@ -1747,7 +1747,7 @@ export class DebtorsService {
           let keys = Object.keys(req.body)
           // let redisKey = req.url+"_"+req.body.partyId+"_";
           let redisKey = req.body.partyId+"_"+req.url+"_";
-          //console.log('redisKey',redisKey);
+          console.log('redisKey',redisKey);
           keys.forEach(element => {
               redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
           });
@@ -1774,7 +1774,7 @@ export class DebtorsService {
     } catch (error) {
     
      
-      //console.log(error);
+      console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
       warningMessage(commonErrors,error);
@@ -1886,6 +1886,7 @@ if (bodyData?.userId && !invoice.userId) {
       if (bodyData?.userId && !inv.userId) {
        inv.userId = bodyData.userId;
         }
+       console.log('inv',inv);
       const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId,inv);
       results.push(result);
     }
@@ -2018,13 +2019,24 @@ console.log('userId',userId);
         console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
         ebillProcessed.push(inv);
       });
-          data.otherInvoice.forEach(inv => {
-             console.log('no inv',inv);
-      if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
-        console.log('no inv1',inv);
-        combinedResponse.otherInvoiceResults.push(inv);
+       for (const inv of data.otherInvoice) {
+        if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
+
+          await setInvoiceSendStatus(
+            data.partyId,
+            inv.doc_id,
+            inv.documentNumber,
+            '0',
+            'no_channel',
+            '',
+            inv.contactId,
+            inv
+          );
+
+          combinedResponse.otherInvoiceResults.push(inv);
+        }
       }
-    });
+
     }
 
     // ------------------------------
@@ -2310,12 +2322,7 @@ console.log('userId',userId);
   
        console.log('orderTitle',orderTitle);
   
-        console.log({
-          header,
-          itemList,
-          summary,
-          orderId
-        });
+        console.log({ header,itemList,summary,orderId});
        
   
         if ('ORDER_ID' in header.ORDER_INFO[0]) {
@@ -3006,7 +3013,7 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
   //               });
   //             }
   //             // res.send(response.body)
-  //             //console.log(response.body);
+  //             console.log(response.body);
   //             if(response.statusCode==200)
   //             {
   //               await markAsPending(tokenSet.access_token,invoice)
@@ -3213,7 +3220,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
             return resolve(false)
           }
           // res.send(response.body)
-          //console.log(response.body);
+          console.log(response.body);
           console.log('notifiBexionotifiBexio', options);
 
           console.log('notifiBexionotifiBexio', response.body);
@@ -3353,7 +3360,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
             return resolve(false)
           }
           // res.send(response.body)
-          //console.log(response.body);
+          console.log(response.body);
           console.log('options', options);
 
           console.log('response', response.body);

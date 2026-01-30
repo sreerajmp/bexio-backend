@@ -354,7 +354,8 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
       let oldLogs: any[] = [];
       if (selectQryResult.length && selectQryResult[0]?.invoice_params && selectQryResult[0]?.invoice_params["channel_change_logs"] && Array.isArray(selectQryResult[0]?.invoice_params["channel_change_logs"])) {
         const oldParams = selectQryResult[0].invoice_params;
-        oldLogs = oldParams["channel_change_logs"];
+       // oldLogs = oldParams["channel_change_logs"];
+        oldLogs = [...oldParams["channel_change_logs"]];
       }
 
       // -------------------------------
@@ -365,7 +366,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
         channel &&
         formData.failed_invoice_type.toLowerCase() !== channel.toLowerCase()
       ) {
-        console.log('oldLogs', oldLogs);
+        console.log('oldLogs1', oldLogs);
 
         oldLogs.push({
           from: formData.failed_invoice_type,
@@ -373,7 +374,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           user: formData.userId,
           timestamp: new Date().toISOString(),
         });
-        console.log('oldLogs', oldLogs);
+        console.log('oldLogs2', oldLogs);
 
 
       }
@@ -417,6 +418,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
           invoiceParams = {};
         }
           invoiceParams = {
+            ...invoiceParams,
             ...formData,
             channel_change_logs: oldLogs
           };
@@ -456,7 +458,7 @@ export const setInvoiceSendStatus = async (partyId, invoiceId, invoicenumber, st
   });
 
 }
-export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channel?) => {
+export const pushEDIInvoiceProcess = async (invoices, bodyValues, headerParams, channel?) => {
   try {
     console.log("worker processing invoices...", invoices);
 
@@ -478,7 +480,7 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
 
       console.log("start processing invoice", tempParam);
       try {
-        const result = await pushInvoiceBulkTest(tempParam, "", channel);
+        const result = await pushEDIInvoice(tempParam, "", channel);
         console.log("result:", result);
       } catch (error) {
         console.error("Error processing invoice:", element.invoiceId, error);
@@ -486,12 +488,12 @@ export const pushInvoiceBulk = async (invoices, bodyValues, headerParams, channe
       //console.log("end processing invoice");
     }
   } catch (error) {
-    console.error('Error in pushInvoiceBulkxx:', error);
+    console.error('Error in pushEDIInvoiceProcessxx:', error);
     throw error; // Ensure the error is thrown to be caught by the caller
   }
 };
 
-export const pushInvoiceBulkTest = async (req, res, channel) => {
+export const pushEDIInvoice = async (req, res, channel) => {
   return new Promise(async (resolve, reject) => {
     try {
       let decryptData = req;
@@ -516,12 +518,12 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
           const logData = {
             ...commonErrors,
             errorTitle: req.originalUrl,
-            errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_pushInvoiceBulkTest -req param, ' + JSON.stringify(decryptData),
+            errorDescription: 'From:' + path.basename(__filename) + ' ' + 'invoice_invalid -req param, ' + JSON.stringify(decryptData),
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
-            messagetype: "400"
+            messagetype: "452"
           };
-          warningMessage(logData, 'error_getInvoiceOT');
+          warningMessage(logData, 'invoice_invalid');
           return resolve('invoice_invalid');
         }
 
@@ -534,13 +536,13 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
             const logData = {
               ...commonErrors,
               errorTitle: req.originalUrl,
-              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_custimerIds -req param, ' + JSON.stringify(req.body),
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'customerIds_not_found -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
-              messagetype: "400"
+              messagetype: "472"
             };
-            warningMessage(logData, 'error_custimerIds ');
-            return resolve('customer_ids_not_found');
+            warningMessage(logData, 'customerIds_not_found ');
+            return resolve('customerIds_not_found');
           }
           //console.log(customerIds);
           //console.log('invitionData',invitionData);     
@@ -552,12 +554,12 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
             const logData = {
               ...commonErrors,
               errorTitle: req.originalUrl,
-              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param, ' + JSON.stringify(req.body),
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'unauthorized -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "401"
             };
-            warningMessage(logData, 'error_getInvoicePdf ');
+            warningMessage(logData, 'unauthorized ');
             return resolve('unauthorized');
           }
           if (!pdf) {
@@ -565,12 +567,12 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
             const logData = {
               ...commonErrors,
               errorTitle: req.originalUrl,
-              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param, ' + JSON.stringify(req.body),
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + 'pdf_not_found -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
-              messagetype: "404"
+              messagetype: "454"
             };
-            warningMessage(logData, 'error_getInvoicePdf ');
+            warningMessage(logData, 'pdf_not_found ');
             return resolve('pdf_not_found');
           }
           let pdf_parsed = JSON.parse(pdf);
@@ -579,11 +581,11 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
           let coutryList;
           coutryList = await getCountryLists(accessToken);
           if (!coutryList) {
-            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'countryList_not_found', channel);
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'country_list_not_found', channel);
             //console.log('coutryList');
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'countryList_not_found');
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'country_list_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'country_list_not_found');
             return resolve('country_not_found');
           }
           coutryList = JSON.parse(coutryList);
@@ -619,21 +621,21 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
           let temp = await getloginUserCompanyDetails(accessToken);
           //console.log(temp);  
           if (!temp) {
-            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'company_details_not_found', channel);
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
-            return resolve('getloginUserCompanyDetails_not_found');
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'company_details_not_found');
+            return resolve('company_details_not_found');
           }
           invoice['companyProfile'] = temp;
           invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
           paymentType = await getPaymentType(accessToken, invoice.payment_type_id);
           if (!paymentType) {
-            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'getPaymentType_not_found', channel);
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'payment_type_not_found', channel);
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getPaymentType_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'getPaymentType_not_found');
-            return resolve('getPaymentType_not_found');
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'payment_type_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'payment_type_not_found');
+            return resolve('payment_type_not_found');
 
           }
           let tempPaymentType = paymentType.filter(e => e.id == invoice.payment_type_id);
@@ -648,19 +650,6 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
             return resolve('contact_not_found');
           }
           invoice['contact'] = contact;
-          // let user = await getUser(accessToken,invoice.user_id);
-          let user = true;
-          if (!user) {
-            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'user_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'user_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'user_not_found');
-            return resolve('user_not_found');
-
-          }
-          invoice['user'] = user;
-          // companyDetails = await getloginUserCompanyDetails(accessToken)
-
           await Promise.all(invoice.positions.map(async (items) => {
             //console.log('items.tax_id',items.tax_id);
             if (items.tax_id) {
@@ -700,10 +689,15 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
           xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel);
           //  //console.log('xml',xml);
           if (xml == false) {
-            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'bexio_item_error', channel);
-            return resolve('bexio_item_error');
+            invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'xml_not_found', channel);
+            return resolve('xml_not_found');
           }
           let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender, 'WS', xml, invoice['document_nr'], channel.toUpperCase());
+            if (!invoiceFilePushD) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'file_push_error', channel);
+             resolve(invoiceCid);
+            return;
+          }
           console.log('invoiceFilePushD', invoiceFilePushD);
           await markAsIssued(accessToken, invoiceId);
           let redisKey = req.body.partyId + "_/";
@@ -715,11 +709,11 @@ export const pushInvoiceBulkTest = async (req, res, channel) => {
         }
       }
       catch (error) {
-        console.error('Error in pushInvoiceBulkTest:', error);
+        console.error('Error in pushEDIInvoice:', error);
         return reject(error); // Ensure the promise is rejected.
       }
     } catch (error) {
-      console.error('Error in pushInvoiceBulkTest:', error);
+      console.error('Error in pushEDIInvoice:', error);
       reject(error); // Ensure the promise is rejected.
     }
   });
@@ -1455,17 +1449,17 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       if (!pdf) {
         console.log('pdf not found');
 
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'email_pdf_not_found', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'pdf_not_found', channel);
         const logData = {
           ...commonErrors,
           errorTitle: invoices.originalUrl,
-          errorDescription: 'From:' + path.basename(__filename) + ' email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          errorDescription: 'From:' + path.basename(__filename) + ' pdf_not_found' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "404"
+          messagetype: "454"
         };
-        warningMessage(logData, 'email_pdf_not_found');
-        resolve('email_pdf_not_found' + invoiceCid);
+        warningMessage(logData, 'pdf_not_found');
+        resolve('pdf_not_found' + invoiceCid);
         return;
       }
 
@@ -1489,18 +1483,18 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         console.log('Invoice not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invoice_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found' + '-invoices param,' + JSON.stringify(decryptData);
         warningMessage(commonErrors, 'invoice_not_found');
         resolve('invoice_not_found' + invoiceCid);
         return;
       }
       if (!contact) {
         console.log('contact not found');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'email_contact_not_found', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_contact_not_found');
-        resolve('email_contact_not_found' + invoiceCid);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'contact_not_found' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'contact_not_found');
+        resolve('contact_not_found' + invoiceCid);
         return;
       }
       invoice.contact = contact;
@@ -1508,11 +1502,11 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       console.log("getloginUserCompanyDetails:", typeof (temp));
       console.log("getloginUserCompanyDetails:", temp);
       if (!temp) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'company_details_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
-        return resolve('getloginUserCompanyDetails_not_found');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'company_details_not_found');
+        return resolve('company_details_not_found');
       }
       invoice['companyProfile'] = temp;
       invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
@@ -1528,11 +1522,11 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'xml_not_found', channel);
         commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'email_xml_not_found');
-        resolve('something_went_wrong' + invoiceCid);
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found' + '-invoices param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'xml_not_found');
+        resolve('xml_not_found' + invoiceCid);
         return;
       }
 
@@ -1548,12 +1542,12 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       }
 
       if (!filePush) {
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'file_push_error', channel);
         resolve(invoiceCid);
         return;
       }
     } catch (error) {
-      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'push_email_invoice', channel);
       console.error('Error in pushEmailInvoice:', error);
       return reject(error);
     }
@@ -1590,10 +1584,10 @@ export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, ch
           const logData = {
             ...commonErrors,
             errorTitle: invoices.originalUrl,
-            errorDescription: 'From:' + path.basename(__filename) + ' Ebill_contact_missing_address_or_postal ' + '-invoices param,',
+            errorDescription: 'From:' + path.basename(__filename) + ' contact_missing_address_or_postal ' + '-invoices param,',
             netcomId: bodyValues?.netcomId,
             channel: 'EBILL',
-            messagetype: "400"
+            messagetype: "465"
           };
           warningMessage(logData, 'contact_missing_address_or_postal');
           return resolve('contact_missing_address_or_postal' + invoiceCid);
@@ -1782,11 +1776,11 @@ export const pushEbillInvoice = async (req, res) => {
       invoice = await getInvoiceOT(accessToken, invoiceId);
       console.log('invoice', invoice);
       if (!invoice) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_invoice_not_found', 'EBILL', '', decryptData);
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'invoice_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_invoice_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_invoice_not_found');
-        return resolve('ebill_invoice_not_found')
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'invoice_not_found');
+        return resolve('invoice_not_found')
       }
 
       // let recipentStatus;
@@ -1819,18 +1813,24 @@ export const pushEbillInvoice = async (req, res) => {
       if (pdf?.response == 401) {
         console.log('unauthorized');
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'unauthorized', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'unauthorized');
+            const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "401"
+        };
+        warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
         return;
       }
       if (!pdf) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_pdf_not_found', 'EBILL', '', decryptData);
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'pdf_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_pdf_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_pdf_not_found');
-        return resolve('ebill_pdf_not_found')
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'pdf_not_found' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'pdf_not_found');
+        return resolve('pdf_not_found')
       }
       pdfContent = JSON.parse(pdf).content;
       fileName = JSON.parse(pdf).name;
@@ -1838,86 +1838,80 @@ export const pushEbillInvoice = async (req, res) => {
       let coutryList;
       coutryList = await getCountryLists(accessToken);
       if (!coutryList) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'unauthorized', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_countryList_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_countryList_not_found');
-        return resolve('ebill_countryList_not_found')
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'country_list_not_found', 'EBILL', '', decryptData);
+        const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + 'country_list_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "455"
+        };
+        warningMessage(logData, 'country_list_not_found');
+        return resolve('country_list_not_found' + invoiceCid);
 
       }
       coutryList = JSON.parse(coutryList);
 
       let currency = await getCurrency(accessToken, invoice.currency_id);
       if (!currency) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_currency_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_currency_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_currency_not_found');
-        return resolve('ebill_currency_not_found')
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'currency_not_found', 'EBILL', '', decryptData);
+       const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + 'currency_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "457"
+        };
+        warningMessage(logData, 'currency_not_found');
+        return resolve('currency_not_found' + invoiceCid);
 
       }
       invoice['currency'] = currency;
       let temp = await getloginUserCompanyDetails(accessToken);
       if (!temp) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_companyDetails_not_found', 'EBILL', '', decryptData);
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'company_details_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_companyDetails_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_companyDetails_not_found');
-        return resolve('ebill_companyDetails_not_found')
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'company_details_not_found' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'company_details_not_found');
+        return resolve('company_details_not_found')
       }
       invoice['companyProfile'] = temp;
       invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
 
-      paymentType = true;
-      if (!paymentType) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_paymentType_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_paymentType_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_paymentType_not_found');
-        return resolve('ebill_paymentType_not_found')
-      }
+      // paymentType = true;
+      // if (!paymentType) {
+      //   invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_paymentType_not_found', 'EBILL', '', decryptData);
+      //   commonErrors['errorTitle'] = req.originalUrl;
+      //   commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_paymentType_not_found ' + '-req param,' + JSON.stringify(decryptData);
+      //   warningMessage(commonErrors, 'ebill_paymentType_not_found');
+      //   return resolve('ebill_paymentType_not_found')
+      // }
 
-      invoice['paymentType'] = true;
+      // invoice['paymentType'] = true;
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_contact_not_found', 'EBILL', '', decryptData);
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'contact_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_contact_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_contact_not_found');
-        return resolve('ebill_contact_not_found')
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'contact_not_found' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'contact_not_found');
+        return resolve('contact_not_found')
       }
       invoice['contact'] = contact;
-
-      let user = true
-
-      if (!user) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_user_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_user_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_user_not_found');
-        return resolve('ebill_user_not_found')
-      }
-      invoice['user'] = user;
-
-
       if (invoice.positions.length != 0) {
         for (const items of invoice.positions) {
-
           if (items.tax_id) {
             let tempTax = await getTaxs(accessToken, items.tax_id);
             if (!tempTax) {
               commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_tax_not_found ' + '-req param,' + JSON.stringify(decryptData);
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_tax_not_found' + '-req param,' + JSON.stringify(decryptData);
               warningMessage(commonErrors, 'ebill_tax_not_found');
               return resolve('ebill_tax_not_found')
-
             }
             items['tax'] = tempTax;
           }
-
-
           let tempItem;
-
           if ('article_id' in items) {
             tempItem = await getProducts(accessToken, items.article_id);
             if (tempItem) {
@@ -1937,37 +1931,31 @@ export const pushEbillInvoice = async (req, res) => {
         items['article']['intern_description'] = 'Dummy Desccription';
         invoice.positions.push(items);
       }
-
-
       let xml;
-
       decryptData['bank_id'] = 'bank_account_id' in invoice ? invoice['bank_account_id'] : '';
       let invoiceCidSucess = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', 'EBILL', '', decryptData);
       console.log('billerDetails', billerDetails);
       invoice.partyId = partyId
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
-
-
       if (xml == false) {
-        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_xml_not_found', 'EBILL', '', decryptData);
+        invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'xml_not_found', 'EBILL', '', decryptData);
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'ebill_xml_not_found');
-        return resolve('something_went_wrong')
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found' + '-req param,' + JSON.stringify(decryptData);
+        warningMessage(commonErrors, 'xml_not_found');
+        return resolve('xml_not_found')
       }
-      await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
-      //await issueEbillInvoice(accessToken, decryptData.invoice_id);
-
-      // await markAsSent(accessToken, decryptData.invoice_id);
+     let filePush = await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
+         if (!filePush) {
+            let invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'file_push_error','EBILL');
+            resolve(invoiceCid);
+            return;
+          }
       return resolve(true)
-
-
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
       warningMessage(commonErrors, error);
-      return resolve('something_went_wrong12')
-
+      return resolve('push_ebill_invoice')
     }
   });
 }
@@ -1977,7 +1965,6 @@ export const setEbillInvoiceSendStatus = async (partyId, invoiceId, invoicenumbe
   console.log('responseBody error', error);
   let responseBody = error || '';
   console.log('responseBody', responseBody);
-
   return new Promise(async function (resolve, reject) {
     try {
       const selectQryResult = await connectBexio.documents_invoice_send.findMany({
@@ -2344,7 +2331,7 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
   if (!billDetails) {
     invoiceCid = await setInvoiceSendStatus(invoice.partyId, invoice.document_nr, '', '0', 'QR_code_not_found', 'EBILL', '', formData);
     commonErrors['errorTitle'] = 'QR_code_not_found';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'QR_code_not_found ' + '-req param,' + JSON.stringify(formData);
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'QR_code_not_found' + '-req param,' + JSON.stringify(formData);
     warningMessage(commonErrors, 'QR_code_not_found');
     return false;
   }
@@ -2541,42 +2528,6 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
   return Buffer.from(xml).toString('base64');
 
 }
-// export const issueEbillInvoice = async (access_token,id)=>{
-
-//   return new Promise(async(resolve, reject) => {
-//         var options = {
-//           'method': 'POST',
-//           'url': `https://api.bexio.com/2.0/kb_invoice/${id}/issue`,
-//           'headers': {
-//             'Accept': 'application/json',
-//             'Authorization': 'Bearer '+access_token
-//           }
-//         };
-//         request(options, function (error, response) {
-//           try{
-
-//             if (error) {  
-//               commonErrors['errorTitle'] = 'issueEbillInvoice';
-//               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,';
-//               warningMessage(commonErrors,error);
-//             return resolve(false)
-//           }
-//           if(response.statusCode==200){
-//             return resolve(JSON.parse(response.body)[0]);
-//           }else{           
-//             console.log("issuebillinvoice response",response);              
-//             commonErrors['errorTitle'] = 'issueEbillInvoice';
-//             commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+response?.toString()+'-bexio param,';
-//             warningMessage(commonErrors,error);
-//             return resolve(false)
-
-//           }
-//         }catch(err){
-//           reject(err)
-//         }
-//         });
-//       });
-// }
 export const markAsSent = async (access_token, id) => {
 
   return new Promise(async (resolve, reject) => {
@@ -2817,8 +2768,8 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails) => {
   } catch (error) {
     JSON.stringify(error)
     commonErrors['errorTitle'] = 'getRefrenceNumber';
-    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_xml_not_found ' + '-req param,' + invoiceNumber;
-    warningMessage(commonErrors, 'ebill_xml_not_found');
+    commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'get_refrence_number ' + '-req param,' + invoiceNumber;
+    warningMessage(commonErrors, 'get_refrence_number');
     return resolve('');
   }
 }
@@ -3065,12 +3016,12 @@ export const pushPurchaseOrderBulk = async (req, res) => {
       const purchaseOrderId = decryptData.order_id || 1;
       purchaseOrder = await getOrderOT(accessToken, purchaseOrderId); // Get order from bexio using orderId
       if (!purchaseOrder) { // If there is no purchaseOrder with this orderId, return with error
-        purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, '', '0', 'order_not_found');
+        purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, '', '0', 'error_in_order_OT');
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'order_not_found -req param,', JSON.stringify(req.body);
-        warningMessage(commonErrors, 'order_not_found');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_in_order_OT -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_in_order_OT');
 
-        return resolve('order_not_found');
+        return resolve('error_in_order_OT');
       }
       console.log("getConnectionDetails", purchaseOrder.contact_id, req);
 
@@ -3085,11 +3036,11 @@ export const pushPurchaseOrderBulk = async (req, res) => {
         countryList = await getCountryLists(accessToken);
 
         if (!countryList) { // If country list not found, return with error.
-          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'countryList_not_found');
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'country_list_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'countryList_not_found');
-          return resolve('countryList_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'country_list_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'country_list_not_found');
+          return resolve('country_list_not_found');
         }
 
 
@@ -3109,24 +3060,24 @@ export const pushPurchaseOrderBulk = async (req, res) => {
         /* Get user details from access token */
         let temp = await getloginUserCompanyDetails(accessToken);
         if (!temp) {
-          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'loginUserCompanyDetails_not_found');
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'company_details_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'loginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'loginUserCompanyDetails_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'company_details_not_found');
 
-          return resolve('loginUserCompanyDetails_not_found');
+          return resolve('company_details_not_found');
         }
         purchaseOrder['companyProfile'] = temp;
         purchaseOrder['companyProfile'] = JSON.parse(purchaseOrder['companyProfile']);
         /* Fetch payment type from purchaseOrder */
         paymentType = await getPaymentType(accessToken, purchaseOrder.payment_type_id);
         if (!paymentType) {
-          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'paymentType_not_found');
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'payment_type_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'paymentType_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'paymentType_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'payment_type_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'payment_type_not_found');
 
-          return resolve('paymentType_not_found');
+          return resolve('payment_type_not_found');
         }
 
         let tempPaymentType = paymentType.filter(e => e.id == purchaseOrder.payment_type_id);
@@ -3194,14 +3145,15 @@ export const pushPurchaseOrderBulk = async (req, res) => {
         let xml;
         xml = await setOrderToOt(purchaseOrder, countryList, invitationData[0], pdfContent, fileName, customerIds, purchaseorderCid, taxIsAdded);
         if (xml == false) {
-          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'bexio_item_error');
+          purchaseorderCid = await setOrderSendStatus(partyId, purchaseOrderId, purchaseOrder['document_nr'], '0', 'xml_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'bexio_item_error -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'bexio_item_error');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'xml_not_found-req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'xml_not_found');
 
-          return resolve('bexio_item_error');
+          return resolve('xml_not_found');
         }
         const sendOrderRes = await invoiceFilePush(invitationData[0].rk_netcomidsender, 'WS', xml, purchaseOrder['document_nr'], 'EDI');
+         
         let redisKey = req.body.partyId + "_/";
         await deleteRedis('sendOrder', redisKey);
         console.log("sendOrderRes", sendOrderRes);
@@ -3601,12 +3553,11 @@ export const pushDeliveryNotesBulk = async (req, res) => {
       deliveryNotes = await getDeliveryNotesOT(accessToken, delivery_id); // Get deliveryNotes from bexio using orderId
 
       if (!deliveryNotes) { // If there is no deliveryNotes with this orderId, return with error
-        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, '', '0', 'error_in_getDeliveryNotesOT');
+        deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, '', '0', 'error_in_deliveryNotes_OT');
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_in_getDeliveryNotesOT -req param,', JSON.stringify(req.body);
-        warningMessage(commonErrors, 'error_in_getDeliveryNotesOT');
-
-        return resolve('error_in_getDeliveryNotesOT');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_in_deliveryNotes_OT -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_in_deliveryNotes_OT');
+        return resolve('error_in_deliveryNotes_OT');
       }
       let invitationData: any = await getConnectionDetails(partyId, accountId, deliveryNotes.contact_id, req); // Get the connection details using contact_id, party and account
       let customerIds
@@ -3626,12 +3577,12 @@ export const pushDeliveryNotesBulk = async (req, res) => {
         pdf = await getDeliveryNotesPdf(accessToken, delivery_id); // Fetch pdf file for deliveryNotes from bexio.
 
         if (!pdf) { // If there is no pdf, return with error
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'deliveryNotesPdf_not_found');
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'pdf_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'deliveryNotesPdf_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'deliveryNotesPdf_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'pdf_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'pdf_not_found');
 
-          return resolve('deliveryNotesPdf_not_found');
+          return resolve('pdf_not_found');
         }
 
         pdfContent = JSON.parse(pdf).content; // Assign pdf content.
@@ -3642,11 +3593,11 @@ export const pushDeliveryNotesBulk = async (req, res) => {
         countryList = await getCountryLists(accessToken);
 
         if (!countryList) { // If country list not found, return with error.
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'countryList_not_found');
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'country_list_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'countryList_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'countryList_not_found');
-          return resolve('countryList_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'country_list_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'country_list_not_found');
+          return resolve('country_list_not_found');
         }
         let bank;
         //console.log("deliveryNotes.currency_id :: ",deliveryNotes.currency_id);
@@ -3665,24 +3616,24 @@ export const pushDeliveryNotesBulk = async (req, res) => {
         /* Get user details from access token */
         let temp = await getloginUserCompanyDetails(accessToken);
         if (!temp) {
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'loginUserCompanyDetails_not_found');
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'company_details_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'loginUserCompanyDetails_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'loginUserCompanyDetails_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'company_details_not_found');
 
-          return resolve('loginUserCompanyDetails_not_found');
+          return resolve('company_details_not_found');
         }
         deliveryNotes['companyProfile'] = temp;
         deliveryNotes['companyProfile'] = JSON.parse(deliveryNotes['companyProfile']);
         /* Fetch payment type from deliveryNotes */
         paymentType = await getPaymentType(accessToken, deliveryNotes.payment_type_id);
         if (!paymentType) {
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'paymentType_not_found');
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'payment_type_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'paymentType_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'paymentType_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'payment_type_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'payment_type_not_found');
 
-          return resolve('paymentType_not_found');
+          return resolve('payment_type_not_found');
         }
 
         let tempPaymentType = paymentType.filter(e => e.id == deliveryNotes.payment_type_id);
@@ -3744,12 +3695,11 @@ export const pushDeliveryNotesBulk = async (req, res) => {
         let xml;
         xml = await setDeliveryNotesToOt(deliveryNotes, countryList, invitationData[0], pdfContent, fileName, customerIds, deliveryNotesCid);
         if (xml == false) {
-          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'deliveryNotesToOt_not_found');
+          deliveryNotesCid = await setDeliveryNotesCidSendStatus(partyId, delivery_id, deliveryNotes['document_nr'], '0', 'xml_not_found');
           commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'deliveryNotesToOt_not_found -req param,', JSON.stringify(req.body);
-          warningMessage(commonErrors, 'deliveryNotesToOt_not_found');
-
-          return resolve('deliveryNotesToOt_not_found');
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'xml_not_found -req param,', JSON.stringify(req.body);
+          warningMessage(commonErrors, 'xml_not_found');
+          return resolve('xml_not_found');
         }
         await invoiceFilePush(invitationData[0].rk_netcomidsender, 'WS', xml, deliveryNotes['document_nr'], 'EDI');
         let redisKey = req.body.partyId + "_/";
@@ -4919,16 +4869,16 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       let contact: any = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
         console.log('contact not found');
-        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_contact', channel);
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_not_found', channel);
         const logData = {
           ...commonErrors,
           errorTitle: invoices.originalUrl,
-          errorDescription: 'From:' + path.basename(__filename) + ' print_contact_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          errorDescription: 'From:' + path.basename(__filename) + 'contact_not_found' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "404"
         };
-        warningMessage(logData, 'email_contact_not_found');
+        warningMessage(logData, 'contact_not_found');
         resolve('print_contact_not_found' + invoiceCid);
         return;
       }
@@ -5031,9 +4981,9 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                   // Stop the process if articleDetail is invalid or null
                   let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invalid_article', channel);
                   commonErrors['errorTitle'] = invoices.originalUrl;
-                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'print_invalid_article ' + '-invoices param,' + JSON.stringify(decryptData);
+                  commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,' + JSON.stringify(decryptData);
                   warningMessage(commonErrors, 'invalid_article');
-                  resolve('print_invalid_article' + invoiceCid);
+                  resolve('invalid_article' + invoiceCid);
                   return;
                 }
               }
@@ -5046,19 +4996,25 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           if (pdf?.response == 401) {
             console.log('unauthorized');
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'unauthorized', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'unauthorized');
-            resolve('unauthorized' + invoiceCid);
+            const logData = {
+              ...commonErrors,
+              errorTitle: invoices.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
+              netcomId: bodyValues?.netcomId,
+              channel: channel,
+              messagetype: "401"
+            };
+            warningMessage(logData, 'error');
+            resolve('invoice_not_found' + invoiceCid);
             return;
           }
           if (!pdf) {
             console.log('pdf not found');
-            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'email_pdf_not_found', channel);
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'pdf_not_found', channel);
             commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_pdf_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'email_pdf_not_found');
-            resolve('email_pdf_not_found' + invoiceCid);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'pdf_not_found' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'pdf_not_found');
+            resolve('pdf_not_found' + invoiceCid);
             return;
           }
 
@@ -5082,11 +5038,11 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           console.log("getloginUserCompanyDetails:", typeof (temp));
           console.log("getloginUserCompanyDetails:", temp);
           if (!temp) {
-            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'getloginUserCompanyDetails_not_found', channel);
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'company_details_not_found', channel);
             commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getloginUserCompanyDetails_not_found -req param,', JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'getloginUserCompanyDetails_not_found');
-            return resolve('getloginUserCompanyDetails_not_found');
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'company_details_not_found');
+            return resolve('company_details_not_found');
           }
           invoice['companyProfile'] = temp;
           invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
@@ -5102,11 +5058,11 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
           if (xml == false) {
-            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'xml_not_found', channel);
             commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'email_xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'email_xml_not_found');
-            resolve('something_went_wrong' + invoiceCid);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
+            warningMessage(commonErrors, 'xml_not_found');
+            resolve('xml_not_found' + invoiceCid);
             return;
           }
 
@@ -5123,13 +5079,13 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           }
 
           if (!filePush) {
-            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'file_push_error', channel);
             resolve(invoiceCid);
             return;
           }
 
         } catch (err) {
-          await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+          await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'push_print_invoice', channel);
           console.error('Failed to parse response or extract Article:', err);
         }
 
@@ -5138,7 +5094,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       console.log('invoices::::', invoices, channel);
 
     } catch (error) {
-      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'something_went_wrong', channel);
+      await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'push_print_invoice', channel);
       console.error('Error in pushEmailInvoice:', error);
       reject(error);
     }

@@ -877,9 +877,8 @@ export class ConfigurationService {
       }
       if (!senderNr) {
         commonErrors['errorTitle'] = 'inviteCompany';
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_details_not_found - req param,', req.body;
-        warningMessage(commonErrors, 'contact_details_not_found');
-
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_not_found - req param,', req.body;
+        warningMessage(commonErrors, 'contact_not_found');
         return res.status(status_code.INTERNAL_SERVER_ERROR).json({
           status_code: 500,
           message: 'something_went_wrong',
