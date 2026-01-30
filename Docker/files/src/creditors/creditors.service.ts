@@ -28,16 +28,16 @@ import { escapeLikeChars, getAllCurrency, getBcDetails, getContactById, getConta
 
 @Injectable()
 export class CreditorsService {
-  constructor(private readonly sendOrderWorkerHost: SendOrderWorkerHost) {}
+  constructor(private readonly sendOrderWorkerHost: SendOrderWorkerHost) { }
   async getInvoice(req: Request, res: Response): Promise<any> {
     let cookie = null;
     let data = req.body;
 
-    console.log("request Body ",data);
+    console.log("request Body ", data);
 
-    console.log( "Status ", data.status);
-    
-    
+    console.log("Status ", data.status);
+
+
 
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
@@ -76,15 +76,14 @@ export class CreditorsService {
         request(options, async function (error, response) {
           if (error) {
             console.log(error);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] =
-              'From:' +
-              path.basename(__filename) +
-              ' ' +
-              error.toString() +
-              '-bexio param,' +
-              accessToken;
-            warningMessage(commonErrors, error);
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken,
+              netcomId: data.netcomId,
+              messagetype: "500"
+            };
+            warningMessage(logData, error);
             return res.status(200).json({
               status: false,
               message: 'something_went_wrong',
@@ -122,13 +121,13 @@ export class CreditorsService {
             const parsedDate = new Date(date);
             return isNaN(parsedDate.getTime()) ? undefined : parsedDate;
           };
-          const docSearch=data.documentNo?.trim() ? escapeLikeChars(data.documentNo?.trim()) : undefined
+          const docSearch = data.documentNo?.trim() ? escapeLikeChars(data.documentNo?.trim()) : undefined
           const rkCondition =
             data.billStatus === 'Yes'
               ? { rk_invoice: { not: null } }
               : data.billStatus === 'No'
-              ? { rk_invoice: null }
-              : {};
+                ? { rk_invoice: null }
+                : {};
 
           const billsList =
             await connectBexio.documents_invoice_receive.findMany({
@@ -150,7 +149,7 @@ export class CreditorsService {
               take: Number(showTo) - Number(showFrom) + 1,
             });
 
-           console.log("billsList ----------------", billsList);
+          console.log("billsList ----------------", billsList);
 
           const billsListCount =
             await connectBexio.documents_invoice_receive.count({
@@ -227,15 +226,14 @@ export class CreditorsService {
       }
     } catch (error) {
       // console.log(error);
-      commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] =
-        'From:' +
-        path.basename(__filename) +
-        ' ' +
-        error.toString() +
-        '-req param,' +
-        cookie;
-      warningMessage(commonErrors, error);
+      const logData = {
+        ...commonErrors,
+        errorTitle: req.originalUrl,
+        errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie,
+        netcomId: data.netcomId,
+        messagetype: "500"
+      };
+      warningMessage(logData, error);
       return res
         .status(200)
         .json({ status: 500, message: 'something_went_wrong' });
@@ -377,7 +375,7 @@ export class CreditorsService {
             criteria: 'like',
           });
         }
-         if (data.search!='' && data.search != null && data.search != undefined) {
+        if (data.search != '' && data.search != null && data.search != undefined) {
           searchJson.push({
             field: 'title',
             value: data.search,
@@ -470,17 +468,14 @@ export class CreditorsService {
 
         request(options, async function (error, response) {
           if (error) {
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] =
-              'From:' +
-              path.basename(__filename) +
-              ' ' +
-              error.toString() +
-              '-bexio param,' +
-              showTo +
-              ' ' +
-              showFrom;
-            warningMessage(commonErrors, error);
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + showTo + ' ' + showFrom,
+              netcomId: getNetcomId[0]?.netcomid,
+              messagetype: "500"
+            };
+            warningMessage(logData, error);
             return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
@@ -914,13 +909,13 @@ export class CreditorsService {
                   taxId = taxList?.filter(
                     (e) =>
                       e.type ==
-                        element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
-                          'bmecat:TAX_TYPE'
-                        ] &&
+                      element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
+                      'bmecat:TAX_TYPE'
+                      ] &&
                       e.value ==
-                        element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
-                          'bmecat:TAX'
-                        ],
+                      element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
+                      'bmecat:TAX'
+                      ],
                   );
                   taxId != '' ? (items['tax_id'] = taxId[0]['id']) : '';
                 }
@@ -949,7 +944,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'contact_details_not_found',
+              message: 'contact_not_found',
               status: false,
             });
             return;
@@ -1290,7 +1285,7 @@ export class CreditorsService {
     try {
       // Get yesterday's date
       let accessToken: any = '';
-      const results:any[]=[]
+      const results: any[] = []
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
@@ -1301,10 +1296,10 @@ export class CreditorsService {
       const targetDate = `${yyyy}-${mm}-${dd}`;
 
       // Define start and end timestamps for the day
-      const startDate=req.body?.startDate ?? targetDate
-      const endDate=req.body?.endDate ?? targetDate
+      const startDate = req.body?.startDate ?? targetDate
+      const endDate = req.body?.endDate ?? targetDate
 
-      const startTimestamp = `${startDate}T00:00:00` ;
+      const startTimestamp = `${startDate}T00:00:00`;
       const endTimestamp = `${endDate}T23:59:59`
 
       const getDistinctCompany =
@@ -1337,7 +1332,7 @@ export class CreditorsService {
           let companyregistered = getDistinctCompany[j].fk_companyregistered;
           let company_partyid = getDistinctCompany[j].partyid;
           let invoicedCompanyName = '';
-          console.log("company reg and partyID", { 
+          console.log("company reg and partyID", {
             companyregistered,
             company_partyid,
           });
@@ -1356,8 +1351,8 @@ export class CreditorsService {
             continue;
           }
 
-          console.log("invoicedCompanyName ----",invoicedCompanyName);
-          
+          console.log("invoicedCompanyName ----", invoicedCompanyName);
+
           // const qryListAllInvoice =
           //   await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type, status
           //                   FROM public.documents_invoice_send
@@ -1367,15 +1362,15 @@ export class CreditorsService {
           //  `;
 
           const qryListAllInvoice =
-                  await connectBexio.$queryRaw<any>` 
+            await connectBexio.$queryRaw<any>` 
                   SELECT cid, rk_invoice, invoice_number, invoice_type, status
                   FROM public.documents_invoice_send
                   WHERE fk_companyregistered = ${companyregistered}
                     AND time_stamp BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz 
                   ORDER BY time_stamp DESC`;
 
-          console.log("qryListAllInvoice---",qryListAllInvoice);
-          console.log(`getCompanyName Invoices`,getCompanyName ,"+",qryListAllInvoice);
+          console.log("qryListAllInvoice---", qryListAllInvoice);
+          console.log(`getCompanyName Invoices`, getCompanyName, "+", qryListAllInvoice);
           const invoiceList: number[] = [];
           const invoiceChannelList: any = [];
           for (let index = 0; index < qryListAllInvoice.length; index++) {
@@ -1383,7 +1378,7 @@ export class CreditorsService {
             invoiceChannelList.push({
               invoice_id: Number(qryListAllInvoice[index]['rk_invoice']),
               channel: qryListAllInvoice[index]['invoice_type'],
-              status:getStatusLabel(qryListAllInvoice[index]['status']),
+              status: getStatusLabel(qryListAllInvoice[index]['status']),
             });
           }
           var searchJson: any = [];
@@ -1424,8 +1419,8 @@ export class CreditorsService {
             contactIdList.push(invoiceDataList[i]['contact_id']);
           }
 
-          console.log("invoiceDataList ----",invoiceDataList);
-          
+          console.log("invoiceDataList ----", invoiceDataList);
+
 
           const bexioContactResponse: any = await getContactById(
             accessToken,
@@ -1444,8 +1439,8 @@ export class CreditorsService {
             contactNameIdList.push({ contact_name: name, id: element.id });
           });
 
-          console.log("contactNameIdList---" ,contactNameIdList);
-          
+          console.log("contactNameIdList---", contactNameIdList);
+
 
           const enrichedInvoices = invoiceDataList.map((invoice) => {
             const contact = contactNameIdList.find(
@@ -1460,7 +1455,7 @@ export class CreditorsService {
               contact_name: contact ? contact.contact_name : null, // or "Unknown"
               channel: channel ? channel.channel : null,
               doc_number: invoice.document_nr,
-              status:channel? channel.status : null
+              status: channel ? channel.status : null
             };
           });
           console.log('enrichedInvoices :: ', enrichedInvoices);
@@ -1487,7 +1482,7 @@ export class CreditorsService {
           const date = new Date();
           date.setDate(date.getDate() - 1); // Subtract 1 day to get yesterday
 
-          const germanDate = startDate ?`${new Date(startTimestamp).toLocaleDateString('de-DE')}` : date.toLocaleDateString('de-DE');
+          const germanDate = startDate ? `${new Date(startTimestamp).toLocaleDateString('de-DE')}` : date.toLocaleDateString('de-DE');
 
           // const today = new Date();
           // today.setDate(today.getDate()); // Subtract 1 day to get yesterday
@@ -1574,17 +1569,17 @@ export class CreditorsService {
           }
           console.log('subject :: ', subject);
           try {
-            const result=await sendEmail({
+            const result = await sendEmail({
               email: req.body.email || getCompanyName[0].email,
               subject,
               message,
             });
 
             results.push({
-                company: getDistinctCompany[j].fk_companyregistered,
-                message: 'Email sent successfully',
-                status: "success",
-                info: result.info
+              company: getDistinctCompany[j].fk_companyregistered,
+              message: 'Email sent successfully',
+              status: "success",
+              info: result.info
             })
             // return res.status(200).json({              
             //   status_code: 200,
@@ -1599,10 +1594,10 @@ export class CreditorsService {
             //   error: error,
             // })      
             results.push({
-                company: getDistinctCompany[j].fk_companyregistered,
-                message: 'Email sent failed',
-                status: "failed",
-                error
+              company: getDistinctCompany[j].fk_companyregistered,
+              message: 'Email sent failed',
+              status: "failed",
+              error
             })
           }
         }
@@ -1737,8 +1732,8 @@ const setOrderSendStatus = async (
         },
       });
 
-      console.log("selectQryResult",selectQryResult);
-      
+      console.log("selectQryResult", selectQryResult);
+
 
       if (selectQryResult.length == 0) {
         console.log('ifffffffffffff');
@@ -1762,7 +1757,7 @@ const setOrderSendStatus = async (
             cid: true, // This is the equivalent of RETURNING cid
           },
         });
-        console.log("send order status result",result);
+        console.log("send order status result", result);
         sendOrderId = result.cid;
       } else {
         console.log('elseeeeeeeeeee');
@@ -1784,7 +1779,7 @@ const setOrderSendStatus = async (
 
       return resolve(sendOrderId);
     } catch (error) {
-      console.log("error in send Order status" ,error);
+      console.log("error in send Order status", error);
       commonErrors['errorTitle'] = ' setInvoiceSendStatus';
       commonErrors['errorDescription'] =
         'From:' +
