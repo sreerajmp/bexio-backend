@@ -944,7 +944,7 @@ export class CreditorsService {
 
             res.send({
               status_code: 500,
-              message: 'contact_details_not_found',
+              message: 'contact_not_found',
               status: false,
             });
             return;
