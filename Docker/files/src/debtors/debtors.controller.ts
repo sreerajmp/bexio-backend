@@ -65,7 +65,13 @@ export class DebtorsController {
   @Post('viewInvoicePdf')
   @UseInterceptors(AnyFilesInterceptor()) 
   async viewInvoicePdf(@Req() req: Request, @Res() res: Response): Promise<any> { 
-  return this.debtorsService.viewInvoicePdf(req,res);
+  return this.debtorsService.invoiceDetails(req,res);
+  }
+
+  @Post('invoiceDetails')
+  @UseInterceptors(AnyFilesInterceptor()) 
+  async invoiceDetails(@Req() req: Request, @Res() res: Response): Promise<any> { 
+  return this.debtorsService.invoiceDetails(req,res);
   }
   @Post('changeInvoiceSendStatus')
   @UseInterceptors(AnyFilesInterceptor()) 
