@@ -697,16 +697,7 @@ export class DebtorsService {
     let data = req.body;
     let partyId = data.partyId;
     let netcomId = data.netcomId;
-    let arrayContactIds:number[] = [],invoiceContactListIds: any[] = [],tempContact: any[] = [] ,getNotInvoiceId:any[] = [],dbInvoice,configData = {};
-    let invoiceListTemp;
-    warningMessage({
-      messagetype: "200",
-      netcomId: netcomId,
-      errorDescription: "Dummy log: initializing getInvoiceV2",
-      errorTitle: "DebtorsService.getInvoiceV2",
-      process: "Initialization",
-      guid: "dummy-guid-123"
-    }, null);
+    let arrayContactIds:number[] = [],configData = {}; 
 
     try {
       // -----------------------------------------------------------------------------------------
@@ -1805,6 +1796,14 @@ console.log('!invoice.allow',invoice.allow);
       invoice.contactId,
       [invoice]
     );
+    warningMessage({
+      messagetype: "478",
+      netcomId: data.netcomId,
+      errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
+      errorTitle: "DebtorsService.processEbillInvoice",
+      process: "processEbillInvoice",
+      guid: "dummy-guid"
+    }, "no_subscription_found");
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
   }
@@ -2032,6 +2031,14 @@ console.log('userId',userId);
             inv.contactId,
             inv
           );
+          warningMessage({
+            messagetype: "479",
+            netcomId: data.netcomId,
+            errorDescription: `From:${path.basename(__filename)} no_channel for invoice ${inv.doc_id}`,
+            errorTitle: "DebtorsService.sendInvoice",
+            process: "sendInvoice",
+            guid: "dummy-guid"
+          }, "no_channel");
 
           combinedResponse.otherInvoiceResults.push(inv);
         }
@@ -2504,6 +2511,10 @@ console.log('userId',userId);
        
         if(!taxStatus){
           console.log('TAX NOT FOUND');
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
+          commonErrors['messagetype'] = "460";
+          warningMessage(commonErrors,'tax_not_Found');
           res.send({
             status_code: 500,
             message: 'tax_not_Found',
