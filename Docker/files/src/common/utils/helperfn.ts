@@ -521,7 +521,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             errorDescription: 'From:' + path.basename(__filename) + ' ' + 'invoice_invalid -req param, ' + JSON.stringify(decryptData),
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
-            messagetype: "452"
+            messagetype: "404",
+            message:'Not Found Bexio InvoiceAPI Failed'
           };
           warningMessage(logData, 'invoice_invalid');
           return resolve('invoice_invalid');
@@ -539,7 +540,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               errorDescription: 'From:' + path.basename(__filename) + ' ' + 'customerIds_not_found -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
-              messagetype: "472"
+              messagetype: "503",
+              message:"Service Unavailable ContactId"
             };
             warningMessage(logData, 'customerIds_not_found ');
             return resolve('customerIds_not_found');
@@ -557,7 +559,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               errorDescription: 'From:' + path.basename(__filename) + ' ' + 'unauthorized -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
-              messagetype: "401"
+              messagetype: "401",
+              message:'Unauthorized Bexio'
             };
             warningMessage(logData, 'unauthorized ');
             return resolve('unauthorized');
@@ -570,7 +573,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               errorDescription: 'From:' + path.basename(__filename) + ' ' + 'pdf_not_found -req param, ' + JSON.stringify(req.body),
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
-              messagetype: "454"
+              messagetype: "406",
+              message:'Not Acceptable PDF Missing'
             };
             warningMessage(logData, 'pdf_not_found ');
             return resolve('pdf_not_found');
@@ -583,20 +587,34 @@ export const pushEDIInvoice = async (req, res, channel) => {
           if (!coutryList) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'country_list_not_found', channel);
             //console.log('coutryList');
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'country_list_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'country_list_not_found');
-            return resolve('country_not_found');
+           const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'country_list_not_found -req param,'+ JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Country Missing'
+          };
+          warningMessage(logData, 'country_list_not_found');
+          return resolve('country_not_found');
           }
           coutryList = JSON.parse(coutryList);
           let bank
           bank = await getBank(accessToken, invoice.bank_account_id);
           if (!bank) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'bexio_bank_error', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'bank_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'bexio_bank_error');
-            return resolve('bexio_bank_error');
+            const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'bank_not_found -req param,'+JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Invalid Bank'
+          };
+          warningMessage(logData, 'bexio_bank_error');
+          return resolve('bexio_bank_error');
           }
           // invoice['bank'] = 'iban_nr' in bank ? bank : '';
           if ('iban_nr' in bank) {
@@ -612,33 +630,51 @@ export const pushEDIInvoice = async (req, res, channel) => {
           let currency = await getCurrency(accessToken, invoice.currency_id);
           if (!currency) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'currency_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(req.body);
-            warningMessage(commonErrors, 'currency_not_found');
-            return resolve('currency_not_found');
+            const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,'+ JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Currency Missing'
+          };
+          warningMessage(logData, 'currency_not_found');
+          return resolve('currency_not_found');
           }
           invoice['currency'] = currency;
           let temp = await getloginUserCompanyDetails(accessToken);
           //console.log(temp);  
           if (!temp) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'company_details_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(req.body);
-            commonErrors['messagetype'] = "458";
-            warningMessage(commonErrors, 'company_details_not_found');
-            return resolve('company_details_not_found');
+            const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,'+JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Company Details Missing'
+          };
+          warningMessage(logData, 'company_details_not_found');
+           return resolve('company_details_not_found');
           }
           invoice['companyProfile'] = temp;
           invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
           paymentType = await getPaymentType(accessToken, invoice.payment_type_id);
           if (!paymentType) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'payment_type_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'payment_type_not_found -req param,', JSON.stringify(req.body);
-            commonErrors['messagetype'] = "470";
-            warningMessage(commonErrors, 'payment_type_not_found');
-            return resolve('payment_type_not_found');
-
+            const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'payment_type_not_found -req param,'+ JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable PaymentType Missing'
+           };
+          warningMessage(logData,'payment_type_not_found');
+          return resolve('payment_type_not_found');
           }
           let tempPaymentType = paymentType.filter(e => e.id == invoice.payment_type_id);
           invoice['paymentType'] = tempPaymentType;
@@ -646,11 +682,17 @@ export const pushEDIInvoice = async (req, res, channel) => {
 
           if (!contact) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'contact_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'contact_not_found -req param,', JSON.stringify(req.body);
-            commonErrors['messagetype'] = "459";
-            warningMessage(commonErrors, 'contact_not_found');
-            return resolve('contact_not_found');
+            const logData = {
+            ...commonErrors,
+            errorTitle:  req.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'contact_not_found -req param,'+JSON.stringify(req.body),
+            netcomId: decryptData?.body?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Contact Missing'
+          };
+          warningMessage(logData, 'contact_not_found');
+           return resolve('contact_not_found');
           }
           invoice['contact'] = contact;
           await Promise.all(invoice.positions.map(async (items) => {
@@ -659,10 +701,16 @@ export const pushEDIInvoice = async (req, res, channel) => {
               let tempTax = await getTaxs(accessToken, items.tax_id);
               if (!tempTax) {
                 invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'tax_not_Found', channel);
-                commonErrors['errorTitle'] = req.originalUrl;
-                commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,', JSON.stringify(req.body);
-                commonErrors['messagetype'] = "460";
-                warningMessage(commonErrors, 'tax_not_Found');
+                const logData = {
+                  ...commonErrors,
+                  errorTitle:  req.originalUrl,
+                  errorDescription:'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,'+ JSON.stringify(req.body),
+                  netcomId: decryptData?.body?.netcomId,
+                  channel: channel,
+                  messagetype: "406",
+                  message:'Not Acceptable Tax Missing'
+                };
+                warningMessage(logData, 'tax_not_Found');
                 return resolve('tax_not_Found');
               }
               items['tax'] = tempTax;
@@ -695,15 +743,31 @@ export const pushEDIInvoice = async (req, res, channel) => {
           //  //console.log('xml',xml);
           if (xml == false) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'xml_not_found', channel);
-            commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found ' + '-invoices param,' + JSON.stringify(invoice);
-            commonErrors['messagetype'] = "461";
-            warningMessage(commonErrors, 'xml_not_found');
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'xml_not_found ' + '-invoices param,' + JSON.stringify(invoice),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "406",
+              message: 'Not Acceptable XML Missing'
+            };
+            warningMessage(logData, 'xml_not_found');
             return resolve('xml_not_found');
           }
           let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender, 'WS', xml, invoice['document_nr'], channel.toUpperCase());
           if (!invoiceFilePushD) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'file_push_error', channel);
+               const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'file_push_error ' + '-invoices param,' + JSON.stringify(invoice),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "503",
+              message: 'Service Unavailable Filepush'
+            };
+            warningMessage(logData, 'file_push_error');
             resolve(invoiceCid);
             return;
           }
@@ -714,11 +778,17 @@ export const pushEDIInvoice = async (req, res, channel) => {
         }
         else {
           invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'invoice_push_error', channel);
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_push_error ' + '-invoices param,' + JSON.stringify(invoice);
-          commonErrors['messagetype'] = "462";
-          warningMessage(commonErrors, 'invoice_push_error');
-          return resolve('invoice_push_error');
+           const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'invoice_push_error ' + '-invoices param,' + JSON.stringify(invoice),
+              netcomId: decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "503",
+              message: 'Service Unavailable BusinessConnection InActive'
+            };
+            warningMessage(logData, 'invoice_push_error');
+             return resolve('invoice_push_error');
         }
       }
       catch (error) {
@@ -1455,7 +1525,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + ' unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "401"
+          messagetype: "401",
+          message:'Unauthorized Bexio'
         };
         warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
@@ -1471,7 +1542,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + ' pdf_not_found' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "454"
+          messagetype: "406",
+          message:'Not Acceptable PDF Missing'
         };
         warningMessage(logData, 'pdf_not_found');
         resolve('pdf_not_found' + invoiceCid);
@@ -1485,10 +1557,16 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       coutryList = await getCountryLists(accessToken);
       if (!coutryList) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'country_list_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'country_list_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'country_list_not_found');
-        resolve('country_list_not_found' + invoiceCid);
+          const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'country_list_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "406",
+          message:'Not Acceptable Country Missing'
+        };
+        warningMessage(logData, 'country_list_not_found');
         return;
       }
       coutryList = JSON.parse(coutryList);
@@ -1497,21 +1575,32 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       if (!invoice) {
         console.log('Invoice not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'invoice_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found' + '-invoices param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "463";
-        warningMessage(commonErrors, 'invoice_not_found');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'invoice_not_found' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "406",
+          message:'Not Acceptable Invoice Missing'
+        };
+        warningMessage(logData, 'invoice_not_found');
         resolve('invoice_not_found' + invoiceCid);
         return;
       }
       if (!contact) {
         console.log('contact not found');
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'contact_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'contact_not_found' + '-invoices param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "459";
-        warningMessage(commonErrors, 'contact_not_found');
-        resolve('contact_not_found' + invoiceCid);
+         const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'contact_not_found' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "406",
+          message:'Not Acceptable Contact Missing'
+        };
+        warningMessage(logData, 'contact_not_found');
         return;
       }
       invoice.contact = contact;
@@ -1520,11 +1609,17 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       console.log("getloginUserCompanyDetails:", temp);
       if (!temp) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'company_details_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "458";
-        warningMessage(commonErrors, 'company_details_not_found');
-        return resolve('company_details_not_found');
+         const logData = {
+            ...commonErrors,
+            errorTitle:invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,'+JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Company Details Missing'
+          };
+          warningMessage(logData, 'company_details_not_found');
+          return resolve('company_details_not_found');
       }
       invoice['companyProfile'] = temp;
       invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
@@ -1535,17 +1630,25 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(decryptData);
         warningMessage(commonErrors, 'currency_not_found');
         return resolve('currency_not_found');
+        
       }
       invoice['currency'] = currency;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'xml_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found' + '-invoices param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "461";
-        warningMessage(commonErrors, 'xml_not_found');
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' ' + 'xml_not_found -req param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "406",
+          message: ' Not Acceptable XML Missing'
+        };
+        warningMessage(logData, 'xml_not_found');
         resolve('xml_not_found' + invoiceCid);
+
         return;
       }
 
@@ -1568,7 +1671,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + ' file_push_error' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "480"
+          messagetype: "503",
+          message:"Service Unavailable Filepush"
         };
         warningMessage(logData, 'file_push_error');
         resolve(invoiceCid);
@@ -1615,7 +1719,8 @@ export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, ch
             errorDescription: 'From:' + path.basename(__filename) + ' contact_missing_address_or_postal ' + '-invoices param,',
             netcomId: bodyValues?.netcomId,
             channel: 'EBILL',
-            messagetype: "465"
+            messagetype: "406",
+            message:"Not Acceptable Contact Details Missing"
           };
           warningMessage(logData, 'contact_missing_address_or_postal');
           return resolve('contact_missing_address_or_postal' + invoiceCid);
@@ -1715,12 +1820,17 @@ export const pushEbillInvoice = async (req, res) => {
 
       if (getBillerResult.recordset.length == 0) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'biller_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'biller_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "466";
-        warningMessage(commonErrors, 'biller_not_found');
+         const logData = {
+          ...commonErrors,
+          errorTitle:req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'biller_not_found ' + '-req param,' + JSON.stringify(decryptData),
+         netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message:'Not Acceptable Biller Details Missing'
+        };
+        warningMessage(logData, 'biller_not_found');
         resolve('biller_not_found')
-
         return
       }
 
@@ -1782,21 +1892,20 @@ export const pushEbillInvoice = async (req, res) => {
       ////console.log("checkRecipientData----", checkRecipientData);
 
       if (result.length == 0) {
-
-
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'refreshToken_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'refreshToken_not_found ' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "467";
-        warningMessage(commonErrors, 'refreshToken_not_found');
-
+        const logData = {
+          ...commonErrors,
+          errorTitle:req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'refreshToken_not_found ' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "511",
+          message:'Network Authentication Required'
+        };
+        warningMessage(logData, 'refreshToken_not_found');
         resolve('refreshToken_not_found')
-
         return
       }
-
-
-
       const invoiceId = decryptData.invoice_id;
       console.log('accessToken', accessToken);
       ////console.log('invoiceId', invoiceId);
@@ -1805,10 +1914,16 @@ export const pushEbillInvoice = async (req, res) => {
       console.log('invoice', invoice);
       if (!invoice) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'invoice_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'invoice_not_found' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "463";
-        warningMessage(commonErrors, 'invoice_not_found');
+         const logData = {
+          ...commonErrors,
+          errorTitle:req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'invoice_not_found' + '-req param,' + JSON.stringify(decryptData),
+         netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message:'Not Acceptable Invoice Missing'
+        };
+        warningMessage(logData, 'invoice_not_found');
         return resolve('invoice_not_found')
       }
 
@@ -1848,7 +1963,8 @@ export const pushEbillInvoice = async (req, res) => {
           errorDescription: 'From:' + path.basename(__filename) + ' unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
-          messagetype: "401"
+          messagetype: "401",
+          message:'Unauthorized Bexio'
         };
         warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
@@ -1856,9 +1972,16 @@ export const pushEbillInvoice = async (req, res) => {
       }
       if (!pdf) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'pdf_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'pdf_not_found' + '-req param,' + JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'pdf_not_found');
+         const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + 'pdf_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message:'Not Acceptable PDF Missing'
+        };
+        warningMessage(logData, 'pdf_not_found');
         return resolve('pdf_not_found')
       }
       pdfContent = JSON.parse(pdf).content;
@@ -1874,7 +1997,8 @@ export const pushEbillInvoice = async (req, res) => {
           errorDescription: 'From:' + path.basename(__filename) + 'country_list_not_found' + '-req param,' + JSON.stringify(decryptData),
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
-          messagetype: "455"
+          messagetype: "406",
+          message:'Not Acceptable Country Missing'
         };
         warningMessage(logData, 'country_list_not_found');
         return resolve('country_list_not_found' + invoiceCid);
@@ -1891,7 +2015,8 @@ export const pushEbillInvoice = async (req, res) => {
           errorDescription: 'From:' + path.basename(__filename) + 'currency_not_found' + '-req param,' + JSON.stringify(decryptData),
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
-          messagetype: "457"
+          messagetype: "406",
+          message:'Not Acceptable Currency Missing'
         };
         warningMessage(logData, 'currency_not_found');
         return resolve('currency_not_found' + invoiceCid);
@@ -1901,11 +2026,17 @@ export const pushEbillInvoice = async (req, res) => {
       let temp = await getloginUserCompanyDetails(accessToken);
       if (!temp) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'company_details_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'company_details_not_found' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "458";
-        warningMessage(commonErrors, 'company_details_not_found');
-        return resolve('company_details_not_found')
+        const logData = {
+           ...commonErrors,
+          errorTitle:  req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'company_details_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message:'Not Acceptable Company Details Missing'
+          };
+          warningMessage(logData, 'company_details_not_found');
+          return resolve('company_details_not_found');
       }
       invoice['companyProfile'] = temp;
       invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
@@ -1923,11 +2054,17 @@ export const pushEbillInvoice = async (req, res) => {
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'contact_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'contact_not_found' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "459";
-        warningMessage(commonErrors, 'contact_not_found');
-        return resolve('contact_not_found')
+        const logData = {
+           ...commonErrors,
+          errorTitle:  req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'contact_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message:'Not Acceptable Contact Missing'
+          };
+          warningMessage(logData, 'contact_not_found');
+          return resolve('contact_not_found');
       }
       invoice['contact'] = contact;
       if (invoice.positions.length != 0) {
@@ -1935,10 +2072,18 @@ export const pushEbillInvoice = async (req, res) => {
           if (items.tax_id) {
             let tempTax = await getTaxs(accessToken, items.tax_id);
             if (!tempTax) {
-              commonErrors['errorTitle'] = req.originalUrl;
-              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_tax_not_found' + '-req param,' + JSON.stringify(decryptData);
-              warningMessage(commonErrors, 'ebill_tax_not_found');
-              return resolve('ebill_tax_not_found')
+                invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'tax_not_found', 'EBILL', '', decryptData);
+               const logData = {
+                ...commonErrors,
+                errorTitle:  req.originalUrl,
+                errorDescription:'From:' + path.basename(__filename) + 'tax_not_found' + '-req param,' + JSON.stringify(decryptData),
+                netcomId: getBillerResult.recordset[0].netcomid,
+                channel: 'EBILL',
+                messagetype: "406",
+                message:'Not Acceptable Tax Missing'
+                };
+                warningMessage(logData, 'tax_not_found');
+                return resolve('tax_not_found');
             }
             items['tax'] = tempTax;
           }
@@ -1970,20 +2115,32 @@ export const pushEbillInvoice = async (req, res) => {
       xml = await setInvoiceEbillOt(invoice, coutryList, '', pdfContent, fileName, '', billerDetails, decryptData, invoiceCidSucess);
       if (xml == false) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'xml_not_found', 'EBILL', '', decryptData);
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "461";
-        warningMessage(commonErrors, 'xml_not_found');
-        return resolve('xml_not_found')
+        const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + 'xml_not_found' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "406",
+          message: 'Not Acceptable XML Missing'
+        };
+        warningMessage(logData, 'xml_not_found');
+        return resolve('xml_not_found');
       }
       let filePush = await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
       if (!filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'file_push_error', 'EBILL');
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'file_push_error' + '-req param,' + JSON.stringify(decryptData);
-        commonErrors['messagetype'] = "480";
-        warningMessage(commonErrors, 'file_push_error');
-        resolve(invoiceCid);
+          const logData = {
+          ...commonErrors,
+          errorTitle: req.originalUrl,
+          errorDescription:'From:' + path.basename(__filename) + 'file_push_error' + '-req param,' + JSON.stringify(decryptData),
+          netcomId: getBillerResult.recordset[0].netcomid,
+          channel: 'EBILL',
+          messagetype: "503",
+          message: 'Service Unavailable Filepush'
+        };
+        warningMessage(logData, 'file_push_error');
+       resolve(invoiceCid);
         return;
       }
       return resolve(true)
@@ -3620,7 +3777,6 @@ export const pushDeliveryNotesBulk = async (req, res) => {
           commonErrors['errorTitle'] = req.originalUrl;
           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'pdf_not_found -req param,', JSON.stringify(req.body);
           warningMessage(commonErrors, 'pdf_not_found');
-
           return resolve('pdf_not_found');
         }
 
@@ -4902,9 +5058,10 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + ' invoice_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "474"
+          messagetype: "406",
+          message:"Not Acceptable Invoice Missing"
         };
-        warningMessage(logData, 'error');
+        warningMessage(logData, 'invoice_not_found');
         resolve('invoice_not_found' + invoiceCid);
         return
       }
@@ -4920,7 +5077,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + 'contact_not_found' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "459"
+          messagetype: "406",
+          message:"Not Acceptable Contact Missing"
         };
         warningMessage(logData, 'contact_not_found');
         resolve('print_contact_not_found' + invoiceCid);
@@ -4938,7 +5096,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           errorDescription: 'From:' + path.basename(__filename) + ' print_contact_missing_address_or_postal ' + '-invoices param,' + JSON.stringify(decryptData),
           netcomId: bodyValues?.netcomId,
           channel: channel,
-          messagetype: "465"
+          messagetype: "406",
+          message:"Not Acceptable Contact Details Missing"
         };
         warningMessage(logData, 'contact_missing_address_or_postal');
         resolve('print_contact_missing_address_or_postal' + invoiceCid);
@@ -4968,7 +5127,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               errorDescription: 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken,
               netcomId: bodyValues?.netcomId,
               channel: channel,
-              messagetype: "475"
+              messagetype: "503",
+              message:"Service Unavailable Print Settings"
             };
             warningMessage(logData, error);
             return resolve(error);
@@ -5019,9 +5179,10 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                       errorDescription: 'From:' + path.basename(__filename) + 'article_update_failed ' + '-invoices param,' + JSON.stringify(decryptData),
                       netcomId: bodyValues?.netcomId,
                       channel: channel,
-                      messagetype: "476"
+                      messagetype: "404",
+                      message:"Not Found Bexio ArticleAPI Failed"
                     };
-                    warningMessage(logData, 'article_update_failed');
+                    warningMessage(logData,'article_update_failed');
                     resolve('article_update_failed' + invoiceCid);
                     return;
                   }
@@ -5036,7 +5197,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     errorDescription: 'From:' + path.basename(__filename) + 'invalid_article' + '-invoices param,' + JSON.stringify(decryptData),
                     netcomId: bodyValues?.netcomId,
                     channel: channel,
-                    messagetype: "473"
+                    messagetype: "406",
+                    message:"Not Acceptable Article Missing"
                   };
                   warningMessage(logData, 'invalid_article');
                   resolve('invalid_article' + invoiceCid);
@@ -5058,22 +5220,29 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               errorDescription: 'From:' + path.basename(__filename) + 'unauthorized' + '-invoices param,' + JSON.stringify(decryptData),
               netcomId: bodyValues?.netcomId,
               channel: channel,
-              messagetype: "401"
+               messagetype: "401",
+              message:'Unauthorized Bexio'
             };
-            warningMessage(logData, 'error');
-            resolve('invoice_not_found' + invoiceCid);
+            warningMessage(logData, 'unauthorized');
+            resolve('unauthorized' + invoiceCid);
             return;
           }
           if (!pdf) {
             console.log('pdf not found');
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'pdf_not_found', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'pdf_not_found' + '-invoices param,' + JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'pdf_not_found');
+           const logData = {
+              ...commonErrors,
+              errorTitle: invoices.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'pdf_not_found' + '-invoices param,' + JSON.stringify(decryptData),
+              netcomId: bodyValues?.netcomId,
+              channel: channel,
+              messagetype: "406",
+              message:'Not Acceptable PDF Missing'
+            };
+            warningMessage(logData, 'pdf_not_found');
             resolve('pdf_not_found' + invoiceCid);
             return;
           }
-
           pdfContent = JSON.parse(pdf).content;
           fileName = JSON.parse(pdf).name;
 
@@ -5081,11 +5250,18 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           coutryList = await getCountryLists(accessToken);
           if (!coutryList) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'country_list_not_found', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'country_list_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'country_list_not_found');
-            resolve('country_list_not_found' + invoiceCid);
-            return;
+          const logData = {
+            ...commonErrors,
+            errorTitle: invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + 'country_list_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Country Missing'
+          };
+          warningMessage(logData, 'country_list_not_found');
+          resolve('country_list_not_found' + invoiceCid);
+          return;
           }
           coutryList = JSON.parse(coutryList);
 
@@ -5095,11 +5271,17 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           console.log("getloginUserCompanyDetails:", temp);
           if (!temp) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'company_details_not_found', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,', JSON.stringify(decryptData);
-            commonErrors['messagetype'] = "458";
-            warningMessage(commonErrors, 'company_details_not_found');
-            return resolve('company_details_not_found');
+             const logData = {
+            ...commonErrors,
+            errorTitle:invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'company_details_not_found -req param,'+ JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Company Details Missing'
+           };
+           warningMessage(logData, 'company_details_not_found');
+           return resolve('company_details_not_found');
           }
           invoice['companyProfile'] = temp;
           invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
@@ -5116,12 +5298,18 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
 
           if (xml == false) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'xml_not_found', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData);
-            commonErrors['messagetype'] = "461";
-            warningMessage(commonErrors, 'xml_not_found');
-            resolve('xml_not_found' + invoiceCid);
-            return;
+             const logData = {
+            ...commonErrors,
+            errorTitle:invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + 'xml_not_found ' + '-invoices param,' + JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable XML Missing'
+           };
+           warningMessage(logData, 'xml_not_found');
+           resolve('xml_not_found' + invoiceCid);
+           return
           }
 
           let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
@@ -5144,7 +5332,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               errorDescription: 'From:' + path.basename(__filename) + 'file_push_error' + '-invoices param,' + JSON.stringify(decryptData),
               netcomId: bodyValues?.netcomId,
               channel: channel,
-              messagetype: "480"
+              messagetype: "503",
+              message:"Service Unavailable Filepush"
             };
             warningMessage(logData, 'file_push_error');
             resolve(invoiceCid);
