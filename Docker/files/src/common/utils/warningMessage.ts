@@ -16,7 +16,7 @@ const pushToLoki = async (data: any, error: any) => {
         const lokiData = {
             messagetype: data.messagetype || "500",
             tenant: data.netcomId || data.tenant || data.addl_params?.netcomid || "",
-            message: data.errorDescription || (error ? error.toString() : "Unknown Error"),
+            message: data.message || (error ? error.toString() : "Unknown Error"),
             service: config.DOCKER_NAME || config.APP_NAME || "Bexio-Interface",
             process: data.process || data.errorTitle || "",
             user: { name: 'autobot' },
