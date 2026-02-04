@@ -690,7 +690,7 @@ export const pushEDIInvoice = async (req, res, channel) => {
           invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', channel);
           let xml;
            
-           let billDetails = await getRefrenceNumber(pdf,pdfContent);
+           let billDetails = await getRefrenceNumber(pdfContent,invoice['document_nr']);
           xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel,billDetails);
           //  //console.log('xml',xml);
           if (xml == false) {
