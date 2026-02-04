@@ -689,8 +689,9 @@ export const pushEDIInvoice = async (req, res, channel) => {
 
           invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', channel);
           let xml;
-
-          xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel);
+           
+           let billDetails = await getRefrenceNumber(pdf,pdfContent);
+          xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel,billDetails);
           //  //console.log('xml',xml);
           if (xml == false) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'xml_not_found', channel);
@@ -1088,9 +1089,10 @@ export const getTaxs = async (access_token, id) => {
     });
   });
 }
-export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fileName, customerIds, invoiceCid, channel) => {
+export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fileName, customerIds, invoiceCid, channel,billDetails) => {
   console.log('invitionData', invitionData);
-
+  console.log('billDetails', billDetails);
+  console.log('billDetails ref', billDetails['ref']);
   let emptyValue = 'NA'
   let taxIsAdded;
 
@@ -1253,7 +1255,8 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
         "BEX_INVOICE_DOCUMENT_ID": invoiceCid ? invoiceCid : undefined
       }],
       "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid : undefined,
-      "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined
+      "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined,
+      "QR_REFERENCE":billDetails['ref']
     }] : undefined
   })))
   let allTax: any = []
@@ -2719,11 +2722,11 @@ export const getDefaultUser = async (access_token) => {
     });
   });
 }
-export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails) => {
+export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails?) => {
   try {
 
     let data = {
-      billerDetails: billerDetails,
+      billerDetails: billerDetails?billerDetails:'',
       invoiceNumber: invoiceNumber
     }
     const buf = Buffer.from(pdf, 'base64');
@@ -2776,7 +2779,7 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails) => {
           referenceEbil: invoiceNumber + '_' + v
 
         }
-
+        console.log('res1',res)
         if (typeIndex == -1) {
 
           commonErrors['errorTitle'] = 'QR_code_not_found';
@@ -2791,7 +2794,7 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails) => {
           }
           return resolve(res);
         }
-
+          console.log('res',res)
         return resolve(res);
 
 
