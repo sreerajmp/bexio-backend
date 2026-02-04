@@ -1256,7 +1256,7 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
       }],
       "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid : undefined,
       "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined,
-      "QR_REFERENCE":billDetails['ref']
+      "QR_REFERENCE":billDetails['ref']??undefined
     }] : undefined
   })))
   let allTax: any = []
