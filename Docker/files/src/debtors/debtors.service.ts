@@ -1797,7 +1797,8 @@ console.log('!invoice.allow',invoice.allow);
       [invoice]
     );
     warningMessage({
-      messagetype: "478",
+      messagetype: "406",
+      message:"Not Acceptable Receipient NotSubscribed",
       netcomId: data.netcomId,
       errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
       errorTitle: "DebtorsService.processEbillInvoice",
@@ -2032,7 +2033,8 @@ console.log('userId',userId);
             inv
           );
           warningMessage({
-            messagetype: "479",
+            messagetype: "406",
+            message:"Not Acceptable Channel Missing",
             netcomId: data.netcomId,
             errorDescription: `From:${path.basename(__filename)} no_channel for invoice ${inv.doc_id}`,
             errorTitle: "DebtorsService.sendInvoice",
