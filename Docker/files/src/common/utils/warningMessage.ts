@@ -14,7 +14,7 @@ const logger = new Logger('WarningMessage');
 const pushToLoki = async (data: any, error: any) => {
     try {
         const lokiData = {
-            messagetype: data.messagetype || "500",
+            messagetype: Number(data.messagetype) || 500,
             tenant: data.netcomId || data.tenant || data.addl_params?.netcomid || "",
             message: data.message || (error ? error.toString() : "Unknown Error"),
             service: config.DOCKER_NAME || config.APP_NAME || "Bexio-Interface",

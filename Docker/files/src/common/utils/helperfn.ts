@@ -522,7 +522,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "404",
-            message:'Not Found Bexio InvoiceAPI Failed'
+            message:'Not Found Bexio InvoiceAPI Failed',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'invoice_invalid');
           return resolve('invoice_invalid');
@@ -541,7 +542,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "503",
-              message:"Service Unavailable ContactId"
+              message:"Service Unavailable ContactId",
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'customerIds_not_found ');
             return resolve('customerIds_not_found');
@@ -560,7 +562,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "401",
-              message:'Unauthorized Bexio'
+              message:'Unauthorized Bexio',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'unauthorized ');
             return resolve('unauthorized');
@@ -574,7 +577,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "406",
-              message:'Not Acceptable PDF Missing'
+              message:'Not Acceptable PDF Missing',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'pdf_not_found ');
             return resolve('pdf_not_found');
@@ -594,7 +598,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Country Missing'
+            message:'Not Acceptable Country Missing',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'country_list_not_found');
           return resolve('country_not_found');
@@ -611,7 +616,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Invalid Bank'
+            message:'Not Acceptable Invalid Bank',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'bexio_bank_error');
           return resolve('bexio_bank_error');
@@ -637,7 +643,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Currency Missing'
+            message:'Not Acceptable Currency Missing',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'currency_not_found');
           return resolve('currency_not_found');
@@ -654,7 +661,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Company Details Missing'
+            message:'Not Acceptable Company Details Missing',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'company_details_not_found');
            return resolve('company_details_not_found');
@@ -671,7 +679,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable PaymentType Missing'
+            message:'Not Acceptable PaymentType Missing',
+            filename:invoice['document_nr']
            };
           warningMessage(logData,'payment_type_not_found');
           return resolve('payment_type_not_found');
@@ -689,7 +698,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
             netcomId: decryptData?.body?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Contact Missing'
+            message:'Not Acceptable Contact Missing',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'contact_not_found');
            return resolve('contact_not_found');
@@ -708,7 +718,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
                   netcomId: decryptData?.body?.netcomId,
                   channel: channel,
                   messagetype: "406",
-                  message:'Not Acceptable Tax Missing'
+                  message:'Not Acceptable Tax Missing',
+                  filename:invoice['document_nr']
                 };
                 warningMessage(logData, 'tax_not_Found');
                 return resolve('tax_not_Found');
@@ -750,7 +761,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "406",
-              message: 'Not Acceptable XML Missing'
+              message: 'Not Acceptable XML Missing',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'xml_not_found');
             return resolve('xml_not_found');
@@ -765,7 +777,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "503",
-              message: 'Service Unavailable Filepush'
+              message: 'Service Unavailable Filepush',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'file_push_error');
             resolve(invoiceCid);
@@ -785,7 +798,8 @@ export const pushEDIInvoice = async (req, res, channel) => {
               netcomId: decryptData?.body?.netcomId,
               channel: channel,
               messagetype: "503",
-              message: 'Service Unavailable BusinessConnection InActive'
+              message: 'Service Unavailable BusinessConnection InActive',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'invoice_push_error');
              return resolve('invoice_push_error');
@@ -1464,7 +1478,8 @@ export async function invoiceFilePush(netcomId, service, data, filename, type) {
             netcomId: netcomId,
             filename: filename + '.xml',
             channel: type,
-            messagetype: "500"
+            messagetype: "503",
+            message:'Service Unavailable Filepush'
           };
           warningMessage(logData, error);
           return resolve(false)
@@ -1526,7 +1541,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "401",
-          message:'Unauthorized Bexio'
+          message:'Unauthorized Bexio',
+          filename:invoices?.documentNumber
         };
         warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
@@ -1543,7 +1559,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:'Not Acceptable PDF Missing'
+          message:'Not Acceptable PDF Missing',
+          filename:invoices?.documentNumber
         };
         warningMessage(logData, 'pdf_not_found');
         resolve('pdf_not_found' + invoiceCid);
@@ -1564,7 +1581,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:'Not Acceptable Country Missing'
+          message:'Not Acceptable Country Missing',
+          filename:invoices?.documentNumber
         };
         warningMessage(logData, 'country_list_not_found');
         return;
@@ -1582,7 +1600,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:'Not Acceptable Invoice Missing'
+          message:'Not Acceptable Invoice Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'invoice_not_found');
         resolve('invoice_not_found' + invoiceCid);
@@ -1598,7 +1617,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:'Not Acceptable Contact Missing'
+          message:'Not Acceptable Contact Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'contact_not_found');
         return;
@@ -1616,7 +1636,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
             netcomId: bodyValues?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Company Details Missing'
+            message:'Not Acceptable Company Details Missing',
+            filename:invoice['document_nr']
           };
           warningMessage(logData, 'company_details_not_found');
           return resolve('company_details_not_found');
@@ -1626,11 +1647,18 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
       let currency = await getCurrency(accessToken, invoice.currency_id);
       if (!currency) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'currency_not_found', channel);
-        commonErrors['errorTitle'] = invoices.originalUrl;
-        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(decryptData);
-        warningMessage(commonErrors, 'currency_not_found');
-        return resolve('currency_not_found');
-        
+         const logData = {
+            ...commonErrors,
+            errorTitle:invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,'+ JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Currency Missing',
+            filename:invoice['document_nr']
+          };
+          warningMessage(logData, 'currency_not_found');
+          return resolve('currency_not_found');
       }
       invoice['currency'] = currency;
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
@@ -1644,7 +1672,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message: ' Not Acceptable XML Missing'
+          message: ' Not Acceptable XML Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'xml_not_found');
         resolve('xml_not_found' + invoiceCid);
@@ -1672,7 +1701,8 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "503",
-          message:"Service Unavailable Filepush"
+          message:"Service Unavailable Filepush",
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'file_push_error');
         resolve(invoiceCid);
@@ -1706,7 +1736,8 @@ export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, ch
             contact_email: element.bill_recipient_email ?? "",
             invoice_uuid: "",
             allow: element.allow,
-            token: element.accessToken
+            token: element.accessToken,
+            document_number:element.documentNumber
           }
         }
         if (!contact?.city || !contact?.country_id || !contact?.postcode) {
@@ -1720,7 +1751,8 @@ export const pushEbillInvoiceProcess = async (invoices, billerId, bodyValues, ch
             netcomId: bodyValues?.netcomId,
             channel: 'EBILL',
             messagetype: "406",
-            message:"Not Acceptable Contact Details Missing"
+            message:"Not Acceptable Contact Details Missing",
+            filename:invoices.documentNumber
           };
           warningMessage(logData, 'contact_missing_address_or_postal');
           return resolve('contact_missing_address_or_postal' + invoiceCid);
@@ -1827,7 +1859,8 @@ export const pushEbillInvoice = async (req, res) => {
          netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Biller Details Missing'
+          message:'Not Acceptable Biller Details Missing',
+          filename:decryptData.document_number
         };
         warningMessage(logData, 'biller_not_found');
         resolve('biller_not_found')
@@ -1900,7 +1933,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "511",
-          message:'Network Authentication Required'
+          message:'Network Authentication Required',
+          filename:decryptData.document_number
         };
         warningMessage(logData, 'refreshToken_not_found');
         resolve('refreshToken_not_found')
@@ -1921,7 +1955,8 @@ export const pushEbillInvoice = async (req, res) => {
          netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Invoice Missing'
+          message:'Not Acceptable Invoice Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'invoice_not_found');
         return resolve('invoice_not_found')
@@ -1964,7 +1999,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "401",
-          message:'Unauthorized Bexio'
+          message:'Unauthorized Bexio',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'unauthorized');
         resolve('unauthorized' + invoiceCid);
@@ -1979,7 +2015,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable PDF Missing'
+          message:'Not Acceptable PDF Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'pdf_not_found');
         return resolve('pdf_not_found')
@@ -1998,7 +2035,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Country Missing'
+          message:'Not Acceptable Country Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'country_list_not_found');
         return resolve('country_list_not_found' + invoiceCid);
@@ -2016,7 +2054,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Currency Missing'
+          message:'Not Acceptable Currency Missing',
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'currency_not_found');
         return resolve('currency_not_found' + invoiceCid);
@@ -2033,7 +2072,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Company Details Missing'
+          message:'Not Acceptable Company Details Missing',
+          filename:invoice['document_nr']
           };
           warningMessage(logData, 'company_details_not_found');
           return resolve('company_details_not_found');
@@ -2061,7 +2101,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message:'Not Acceptable Contact Missing'
+          message:'Not Acceptable Contact Missing',
+          filename:invoice['document_nr']
           };
           warningMessage(logData, 'contact_not_found');
           return resolve('contact_not_found');
@@ -2080,7 +2121,8 @@ export const pushEbillInvoice = async (req, res) => {
                 netcomId: getBillerResult.recordset[0].netcomid,
                 channel: 'EBILL',
                 messagetype: "406",
-                message:'Not Acceptable Tax Missing'
+                message:'Not Acceptable Tax Missing',
+                filename:invoice['document_nr']
                 };
                 warningMessage(logData, 'tax_not_found');
                 return resolve('tax_not_found');
@@ -2122,7 +2164,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "406",
-          message: 'Not Acceptable XML Missing'
+          message: 'Not Acceptable XML Missing',
+           filename:invoice['document_nr']
         };
         warningMessage(logData, 'xml_not_found');
         return resolve('xml_not_found');
@@ -2137,7 +2180,8 @@ export const pushEbillInvoice = async (req, res) => {
           netcomId: getBillerResult.recordset[0].netcomid,
           channel: 'EBILL',
           messagetype: "503",
-          message: 'Service Unavailable Filepush'
+          message: 'Service Unavailable Filepush',
+           filename:invoice['document_nr']
         };
         warningMessage(logData, 'file_push_error');
        resolve(invoiceCid);
@@ -5059,7 +5103,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:"Not Acceptable Invoice Missing"
+          message:"Not Acceptable Invoice Missing",
+           filename:invoice['document_nr']
         };
         warningMessage(logData, 'invoice_not_found');
         resolve('invoice_not_found' + invoiceCid);
@@ -5078,7 +5123,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:"Not Acceptable Contact Missing"
+          message:"Not Acceptable Contact Missing",
+          filename:invoice['document_nr']
         };
         warningMessage(logData, 'contact_not_found');
         resolve('print_contact_not_found' + invoiceCid);
@@ -5097,7 +5143,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           netcomId: bodyValues?.netcomId,
           channel: channel,
           messagetype: "406",
-          message:"Not Acceptable Contact Details Missing"
+          message:"Not Acceptable Contact Details Missing",
+           filename:invoice['document_nr']
         };
         warningMessage(logData, 'contact_missing_address_or_postal');
         resolve('print_contact_missing_address_or_postal' + invoiceCid);
@@ -5128,7 +5175,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               netcomId: bodyValues?.netcomId,
               channel: channel,
               messagetype: "503",
-              message:"Service Unavailable Print Settings"
+              message:"Service Unavailable Print Settings",
+              filename:invoice['document_nr']
             };
             warningMessage(logData, error);
             return resolve(error);
@@ -5180,7 +5228,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                       netcomId: bodyValues?.netcomId,
                       channel: channel,
                       messagetype: "404",
-                      message:"Not Found Bexio ArticleAPI Failed"
+                      message:"Not Found Bexio ArticleAPI Failed",
+                      filename:invoice['document_nr']
                     };
                     warningMessage(logData,'article_update_failed');
                     resolve('article_update_failed' + invoiceCid);
@@ -5198,7 +5247,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
                     netcomId: bodyValues?.netcomId,
                     channel: channel,
                     messagetype: "406",
-                    message:"Not Acceptable Article Missing"
+                    message:"Not Acceptable Article Missing",
+                    filename:invoice['document_nr']
                   };
                   warningMessage(logData, 'invalid_article');
                   resolve('invalid_article' + invoiceCid);
@@ -5221,7 +5271,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               netcomId: bodyValues?.netcomId,
               channel: channel,
                messagetype: "401",
-              message:'Unauthorized Bexio'
+              message:'Unauthorized Bexio',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'unauthorized');
             resolve('unauthorized' + invoiceCid);
@@ -5237,7 +5288,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               netcomId: bodyValues?.netcomId,
               channel: channel,
               messagetype: "406",
-              message:'Not Acceptable PDF Missing'
+              message:'Not Acceptable PDF Missing',
+              filename:invoice['document_nr']
             };
             warningMessage(logData, 'pdf_not_found');
             resolve('pdf_not_found' + invoiceCid);
@@ -5257,7 +5309,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             netcomId: bodyValues?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Country Missing'
+            message:'Not Acceptable Country Missing',
+             filename:invoice['document_nr']
           };
           warningMessage(logData, 'country_list_not_found');
           resolve('country_list_not_found' + invoiceCid);
@@ -5278,7 +5331,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             netcomId: bodyValues?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable Company Details Missing'
+            message:'Not Acceptable Company Details Missing',
+             filename:invoice['document_nr']
            };
            warningMessage(logData, 'company_details_not_found');
            return resolve('company_details_not_found');
@@ -5288,10 +5342,18 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
           let currency = await getCurrency(accessToken, invoice.currency_id);
           if (!currency) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, invoice['document_nr'], '0', 'currency_not_found', channel);
-            commonErrors['errorTitle'] = invoices.originalUrl;
-            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,', JSON.stringify(decryptData);
-            warningMessage(commonErrors, 'currency_not_found');
-            return resolve('currency_not_found');
+             const logData = {
+            ...commonErrors,
+            errorTitle:invoices.originalUrl,
+            errorDescription:'From:' + path.basename(__filename) + ' ' + 'currency_not_found -req param,'+ JSON.stringify(decryptData),
+            netcomId: bodyValues?.netcomId,
+            channel: channel,
+            messagetype: "406",
+            message:'Not Acceptable Currency Missing',
+             filename:invoice['document_nr']
+           };
+           warningMessage(logData, 'currency_not_found');
+           return resolve('currency_not_found');
           }
           invoice['currency'] = currency;
           let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
@@ -5305,7 +5367,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
             netcomId: bodyValues?.netcomId,
             channel: channel,
             messagetype: "406",
-            message:'Not Acceptable XML Missing'
+            message:'Not Acceptable XML Missing',
+             filename:invoice['document_nr']
            };
            warningMessage(logData, 'xml_not_found');
            resolve('xml_not_found' + invoiceCid);
@@ -5333,7 +5396,8 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
               netcomId: bodyValues?.netcomId,
               channel: channel,
               messagetype: "503",
-              message:"Service Unavailable Filepush"
+              message:"Service Unavailable Filepush",
+               filename:invoice['document_nr']
             };
             warningMessage(logData, 'file_push_error');
             resolve(invoiceCid);
