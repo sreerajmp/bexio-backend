@@ -748,9 +748,9 @@ export const pushEDIInvoice = async (req, res, channel) => {
 
           invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '1', '', channel);
           let xml;
-           
-           let billDetails = await getRefrenceNumber(pdfContent,invoice['document_nr']);
-          xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel,billDetails);
+
+          let billDetails = await getRefrenceNumber(pdfContent, invoice['document_nr']);
+          xml = await setInvoiceToOt(invoice, coutryList, invitionData[0], pdfContent, fileName, customerIds, invoiceCid, channel, billDetails);
           //  //console.log('xml',xml);
           if (xml == false) {
             invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, invoice['document_nr'], '0', 'xml_not_found', channel);
@@ -1173,7 +1173,7 @@ export const getTaxs = async (access_token, id) => {
     });
   });
 }
-export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fileName, customerIds, invoiceCid, channel,billDetails) => {
+export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fileName, customerIds, invoiceCid, channel, billDetails) => {
   console.log('invitionData', invitionData);
   console.log('billDetails', billDetails);
   console.log('billDetails ref', billDetails['ref']);
@@ -1340,7 +1340,7 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
       }],
       "SENDER_CUSTOM_ID_1": customerIds[0]?.senderid ? customerIds[0].senderid : undefined,
       "RECEIVER_CUSTOM_ID_1": customerIds[0]?.receiverid ? customerIds[0].receiverid : undefined,
-      "QR_REFERENCE":billDetails['ref']??undefined
+      "QR_REFERENCE": billDetails['ref'] ?? undefined
     }] : undefined
   })))
   let allTax: any = []
@@ -2927,7 +2927,7 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails?) => {
   try {
 
     let data = {
-      billerDetails: billerDetails?billerDetails:'',
+      billerDetails: billerDetails ? billerDetails : '',
       invoiceNumber: invoiceNumber
     }
     const buf = Buffer.from(pdf, 'base64');
@@ -2980,7 +2980,7 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails?) => {
           referenceEbil: invoiceNumber + '_' + v
 
         }
-        console.log('res1',res)
+        console.log('res1', res)
         if (typeIndex == -1) {
 
           commonErrors['errorTitle'] = 'QR_code_not_found';
@@ -2995,7 +2995,7 @@ export const getRefrenceNumber = async (pdf, invoiceNumber, billerDetails?) => {
           }
           return resolve(res);
         }
-          console.log('res',res)
+        console.log('res', res)
         return resolve(res);
 
 
@@ -6209,9 +6209,9 @@ export const getInvoicesQuery = async (
       ? ["PRINT", "POST"]
       : [channel.toUpperCase()];
 
-  return await connectBexio.$queryRaw<{ invoices: number[] }[]>(
+  return await connectBexio.$queryRaw<{ invoices: number[]; contacts: number[]; invoice_type: string[] }[]>(
     Prisma.sql`
-    SELECT array_agg(ds.rk_invoice::int) AS invoices
+    SELECT array_agg(ds.rk_invoice::int) AS invoices, array_agg(ds.receiver_contactid::int) AS contacts, array_agg(ds.invoice_type) AS invoice_type
     FROM documents_invoice_send ds
     INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
     WHERE c.netcomid = ${netcomId}
