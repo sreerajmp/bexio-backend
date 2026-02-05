@@ -17,693 +17,32 @@ import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
 const path = require('path')
 var xml2js = require('xml2js');
-import { getOctConfig,getInvoiceSearch,getContactSearch,constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf,getContactGroupList, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery,markAsIssued, markAsSent } from 'src/common/utils/helperfn';
+import { getOctConfig, getInvoiceSearch, getContactSearch, constGetContactId, deliveryNotesListCountSearch, formatDate, getAllCurrency, getBcDetails, getContactById, getContactDetails, getRecipientList, getSendInvoiceList, getTagName, getTaxListActive, moveFile, setDeliveryNotesCidSendStatus, setInvoiceSendStatus, setOrderId, getConnectionBc, getInvoicePdf, getContactGroupList, parseResponse, getContactIdsByChannel, validDate, getInvoicesQuery, markAsIssued, markAsSent } from 'src/common/utils/helperfn';
 import { PushWorkerHost } from '../common/utils/push.worker.host';
 import { SendDeliveryNotesHost } from '../common/utils/sendDeliveryNotes.host';
 import connectMssql from '../db/mssql-client'
-import {getInvoiceOT,getUser,getDefaultUser} from 'src/common/utils/helperfn';
+import { getInvoiceOT, getUser, getDefaultUser } from 'src/common/utils/helperfn';
 import status_code from 'src/common/utils/statusCodes';
 import { ChannelChangeLog, InvoiceChannelChangeResult, UserDetails } from 'src/common/utils/types';
 // const { logMessage } = require('./logger');
 
 @Injectable()
 export class DebtorsService {
-  constructor(private readonly pushWorkerHost: PushWorkerHost, private readonly sendDeliveryNotesHost: SendDeliveryNotesHost) {}
-  async getInvoice(req: Request, res: Response): Promise<any> {
-   let data = req.body;
-    let partyId = req.body.partyId;
-    let netcomId = req.body.netcomId;
-    let arrayContactIds = [],invoiceContactListIds = [],tempContact = [] ,getNotInvoiceId = [],dbInvoice,configData = {};
-    let invoiceListTemp;
-    try {
-      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-      if (!cookieData) {
-        return res.status(500).send({
-          status_code: 500,
-          message: 'Missing_cookie',
-          status: false,
-        });
-      }
-      let configDetails:any = await getOctConfig(netcomId);
-      console.log("configdetails:",configDetails);
-      
-      if(configDetails.status && configDetails.records.length > 0){
-        configData =  configDetails.records[0].config.serviceStatus
-      }
-      let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-      console.log('cookie.access_Token', cookie.access_Token);
+  constructor(private readonly pushWorkerHost: PushWorkerHost, private readonly sendDeliveryNotesHost: SendDeliveryNotesHost) { }
 
-      let accessToken = cookie.access_Token;
-      let isBexioUser = cookie.isBexioUser;
-
-      if (!isBexioUser) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'unauthorized',
-        });
-      }
-
-      let resultData: any[] = [];
-      let totalCount;
-      let sortColumn = data.sortColumn || 'updated_at';
-      let sortType = data.sort || 'asc';
-
-      let showFrom = req.body.records_per_page * (req.body.page_number - 1);
-      let showTo = req.body.page_number==1 ? 2000: req.body.records_per_page ;
-      console.log('showFrom', showFrom);
-      console.log('showTo', showTo);
-      let resultArray: any[] = [];
-
-      const invoiceList = await connectBexio.documents_invoice_send.findMany({
-        where: {
-          companyregistered: {
-            rk_party: Number(req.body?.partyId)
-          }
-        },
-        include: {
-          companyregistered: true
-        }
-      });
-     console.log('invoiceList', invoiceList);
-        const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-                    SELECT array_agg(pa.cid) AS cid 
-                    FROM party_account pa 
-                    WHERE pa.fk_party = ${Number(partyId)}
-                  `
-        );
-        console.log('getInviteCompanyId',getInviteCompanyId);
-        console.log('netcomId',netcomId);
-
-        const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
-          Prisma.sql`
-                  SELECT array_agg(rk_businessconnection) AS "bcConnection"
-                  FROM contact_bc cb
-                  WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
-                  AND cb.type = 'EDI'
-                  AND cb.rk_businessconnection IS NOT NULL
-                `
-        );
-      console.log('getConnectionStatusList',getConnectionStatusList);
-        const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
-        let bcDetails;
-        bcDetails = await getBcDetails(bcConnectionIds, netcomId);
-       console.log('bcDetails',bcDetails);
-        let tempBc = [0];
-        if (bcDetails?.data?.length) {
-          for (const element of bcDetails.data) {
-            if (element?.company_details?.doc_type?.data === 'Invoice') {
-              tempBc.push(element.bc_id);
-            }
-          }
-        }
-        const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
-        console.log('getConnectionBcResult',getConnectionBcResult);
-        resultArray = getConnectionBcResult[0]?.array_agg;
-        console.log('resultArray',resultArray);
-      let options;
-      let searchJson: any[] = [];
-      let getSendInvoiceListResult;
-
-      if (data['invoiceStatus']) {
-        getSendInvoiceListResult = await getSendInvoiceList(Number(partyId),data['invoiceStatus']);
-        console.log('getSendInvoiceListResult', getSendInvoiceListResult);
-        
-        if(getSendInvoiceListResult.length > 0) {
-          if (data['invoiceStatus'] == 'sent') {
-           // console.log("invoiceStatus", data['invoiceStatus']);
-            const sentJson = [
-              {
-                field: 'kb_item_status_id',
-                value: [8, 9],
-                criteria: 'in',
-              },
-            ];
-
-            const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
-            console.log('paidOrPendingBexioInvoices',paidOrPendingBexioInvoices);
-            const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
-            console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
-           
-              if (!getSendInvoiceListResult[0].successOrPending[0].invoiceId) {
-                getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
-              }
-
-              getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
-
-
-            searchJson.push(
-              {
-                field: 'id',
-                value: getSendInvoiceListResult[0].successOrPending[0].invoiceId
-                  ? getSendInvoiceListResult[0].successOrPending[0].invoiceId
-                  : '',
-                criteria: 'in',
-              },
-              {
-                field: 'id',
-                value: getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
-                  ? getSendInvoiceListResult[1].failedGate2b[0]?.invoiceId
-                  : '',
-                criteria: 'not_in',
-              },
-            );
-          }
-          if (data['invoiceStatus'] == 'failed') {
-            searchJson.push(
-            {
-              "field": "id",
-              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId : "",
-              "criteria": "in"
-            });
-          }
-          if (data['invoiceStatus'] == 'draft') {
-            console.log("invoiceStatus no", data['invoiceStatus']);
-    
-            searchJson.push(
-            //   {
-            //   "field": "contact_id",
-            //   "value": resultArray == null ? "" : resultArray,
-            //   "criteria": "in"
-            // },
-            {
-              "field": "id",
-              "value": getSendInvoiceListResult[0]?.invoiceId ? getSendInvoiceListResult[0].invoiceId: "",
-              "criteria": "not_in"
-            },
-            {
-              "field": "kb_item_status_id",
-              "value": 7,
-              "criteria": "equal"
-            },
-          );
-          }
-        }
-        
-      }
-
-      console.log("Query Datas",data);
-      
-
-      if (data.documentNo) {
-        searchJson.push({
-          "field": "document_nr",
-          "value": data.documentNo,
-          "criteria": "like"
-        });
-      }
-      if (data.invoiceTitle != '' && data.invoiceTitle) {
-        searchJson.push({
-          "field": "title",
-          "value": data.invoiceTitle,
-          "criteria": "like"
-        });
-      }
-      if (data.dateFrom) {
-        searchJson.push({
-          "field": "is_valid_from",
-          "value": data.dateFrom,
-          "criteria": ">="
-        });
-      }
-      if (data.dateTo) {
-        searchJson.push({
-          "field": "is_valid_from",
-          "value": data.dateTo,
-          "criteria": "<="
-        });
-      }
-      if (data['customerId'] != '' && data['customerId']) {
-        searchJson.push({
-          "field": "contact_id",
-          "value": data.customerId,
-          "criteria": "="
-        });
-      }
-    console.log('channel',data);
-    
-      if("channel" in data){
-  
-        const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) = UPPER(${data.channel.toUpperCase()})
-          `
-          );
-          console.log("getInvoiceIdRslt",getInvoiceIdRslt);
-          
-          console.log("getInvoiceIdRslt-invoices",getInvoiceIdRslt[0]['invoices']);
-
-          if(getInvoiceIdRslt[0]['invoices']){
-            console.log('22222222222222222222222');
-             dbInvoice = getInvoiceIdRslt[0]['invoices']
-            let searchJson: any[] = [];
-            searchJson.push({
-              "field": "id",
-              "value": getInvoiceIdRslt[0]['invoices'],
-              "criteria": "in"
-            });
-
-            invoiceListTemp = await getInvoiceSearch(accessToken,searchJson);
-          }
-
-          console.log("invoiceListTemp",invoiceListTemp);
-          if(invoiceListTemp){
-            invoiceContactListIds = invoiceListTemp?.map(inv => inv.contact_id);
-            console.log("invoiceContactListIds",invoiceContactListIds);
-          }
-       
-          
-          if(data.channel.toLowerCase() == 'edi'){
-            tempContact = getInvoiceIdRslt[0]['contacts'] != null ? getInvoiceIdRslt[0]['contacts'] : [];
-          }else if(data.channel.toLowerCase() == 'print'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['Print', 'Post'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
-              console.log("arrayContactIds",arrayContactIds);
-          }
-       else if(data.channel.toLowerCase() == 'email'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['email'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
-              console.log("arrayContactIds",arrayContactIds);
-          }
-           else if(data.channel.toLowerCase() == 'ebill'){
-             let contactGroupList: any = await getContactGroupList(accessToken);
-            const targetNames = ['ebill'];
-
-            const ids = contactGroupList
-              ?.filter(group => targetNames.includes(group.name))
-              .map(group => group.id);
-
-             console.log("contactGroupList",contactGroupList);
-             let searchContactgrp: any[] = [];
-              searchContactgrp.push({
-                "field": "contact_group_ids",
-                "value": ids,
-                "criteria": "in"
-              });
-            let contactIds:any = await getContactSearch(accessToken,searchContactgrp);
-            arrayContactIds = contactIds?.map(contact => contact.id);
-              console.log("arrayContactIds",arrayContactIds);
-          }
-      }
-      console.log("arrayContactIds1111111111",arrayContactIds);
-      console.log("arrayContactIds1111111111",invoiceContactListIds);
-      if(arrayContactIds.length != 0 || invoiceContactListIds.length != 0){
-        let tempArray = [...arrayContactIds,...invoiceContactListIds]
-        if(data.channel.toLowerCase() == 'edi' || data.channel.toLowerCase() == 'print'||data.channel.toLowerCase() == 'email' || data.channel.toLowerCase() == 'ebill'){
-           const getNotInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
-          SELECT array_agg(rk_invoice::int) AS invoices FROM documents_invoice_send ds 
-          INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-          WHERE netcomid = ${netcomId} AND UPPER(ds.invoice_type) != UPPER(${data.channel.toUpperCase()})
-          `
-          );
-          getNotInvoiceId = getNotInvoiceIdRslt[0]['invoices'];
-
-          tempArray = [...tempArray,...tempContact]
-        searchJson.push({
-          "field": "contact_id",
-          "value": tempArray,
-          "criteria": "in"
-        });
-        
-        if(getNotInvoiceId?.length > 0)
-          searchJson.push({
-            "field": "id",
-            "value": getNotInvoiceId,
-            "criteria": "not_in"
-          });
-      }else{
-        if(dbInvoice){
-          searchJson.push({
-            "field": "id",
-            "value": dbInvoice,
-            "criteria": "in"
-          });
-        }
-        
-      }
-
-      }
-      let resData: any[] = [];
-      console.log('final searchJson:::',searchJson);
-      if (searchJson.length > 0) {
-      console.log('searchJson 2:::',searchJson);
-
-          // totalCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000);
-          options = {
-            'method': 'POST',
-            'url': `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-            'headers': {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer ' + accessToken
-            },
-            body: JSON.stringify(searchJson)
-          };
-          console.log("invoice filter endpoint options",options);
-          
-        const response = await new Promise<any>((resolve, reject) => {
-          request(options, (error, response) => {
-            if (error) reject(error);
-            else resolve(response);
-          });
-        });
-
-        if (response.statusCode != 200) {
-              return res.status(401).json({
-                status: true,
-                status_code: response.statusCode,
-                data: [],
-                message: 'unauthorized',
-              });
-            }
-
-        resData = JSON.parse(response.body);
-          console.log("resData id ", resData.map(item=>item.id));
-
-        console.log('resData', resData);
-
-        const parseResponse = (response: any) => {
-          if (response) {
-            try {
-              console.log('response:: type', typeof response);
-              console.log('response:: type', response);
-              // let parsedData = JSON.parse(response);
-              // let parsedData = response;
-              // console.log("response:: parsedData",response)
-              if (Array.isArray(response)) {
-                return response;
-              } else if (
-                response &&
-                typeof response === 'object' &&
-                response.message
-              ) {
-                return [];
-              } else {
-                return [];
-              }
-            } catch (error) {
-              console.error('Error parsing response:', error);
-            }
-          }
-          return [];
-        };
-          
-        const parsed = JSON.parse(response.body) as any[];
-        const perPage = Number(req.body.records_per_page);
-        console.log('parsed', parsed.length);
-        console.log('isarray:', Array.isArray(parsed));
-        console.log('perPage', perPage);
-        console.log('perPage', perPage);
-        if (Array.isArray(parsed) && parsed.length > perPage) {
-          totalCount = parsed.length;
-          console.log('entered in if', totalCount);
-          resData = parseResponse(parsed.slice(0, perPage));
-        } else {
-          console.log('entered in else', parsed.length);
-          resData = parseResponse(parsed.slice(0, perPage));
-          totalCount =
-            req.body.page_number != 1
-              ? Number(req.body.totalCount)
-              : parsed.length | 0;
-        }
-
-      } else {
-          // let totalCountInvoiceList = await invoiceListCountSearch(accessToken, 0, 2000) as number;
-          // let totalCountInvoiceCount = await invoiceCountSearch(accessToken, searchJson, 0, 2000) as number;
-          // totalCount = totalCountInvoiceList + totalCountInvoiceCount;
-          console.log('searchJson:',searchJson);          
-
-          const getOptions = {
-            'method': 'GET',
-            'url': `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
-            'headers': {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer ' + accessToken
-            }
-          };
-
-          const parseResponse = (response: any) => {
-            if (response) {
-              try {
-                console.log("response:: type", typeof response)
-                console.log("response:: type",response)
-                // let parsedData = JSON.parse(response);
-                // let parsedData = response;
-                // console.log("response:: parsedData",response)
-                if (Array.isArray(response)) {
-                  return response;
-                } else if (response && typeof response === "object" && response.message) {
-                return [];
-                }else{
-                  return [];
-
-                }
-              } catch (error) {
-                console.error("Error parsing response:", error);
-              }
-            }
-            return [];
-          };
-
-          const getResponse = await new Promise<any>((resolve, reject) => {
-            request(getOptions, (error, response) => {
-              if (error) reject(error);
-              else resolve(response);
-            });
-          }).catch(error => {
-            console.error("Request error:", error);
-          return null;
-          });
-          console.log('searchJson',searchJson);
-          console.log('getOptions',getOptions);
-
-          console.log('getResponse',getResponse.statusCode);
-          // console.log('getResponse message',getResponse);
-         
-          if (getResponse.statusCode == 401) {
-            return res.status(401).json({
-              status: true,
-              data: [],
-              message: "unauthorized",
-            });
-          }
-        else if (getResponse.statusCode == 200) {
-          const parsed = JSON.parse(getResponse.body) as any[];
-          const perPage = Number(req.body.records_per_page);
-          console.log('parsed', parsed.length);
-          console.log("isarray:",Array.isArray(parsed));          
-          console.log('perPage', perPage);
-          console.log('perPage', perPage);
-          if (Array.isArray(parsed) && (parsed.length > perPage)) {
-            totalCount = parsed.length ;
-
-            console.log('entered in if',totalCount);
-            
-            resData = parseResponse(parsed.slice(0, perPage));
-          } else {
-            console.log('entered in else',parsed.length);
-            
-            resData = parseResponse(parsed.slice(0, perPage));
-            totalCount = req.body.page_number !=1? Number(req.body.totalCount): parsed.length | 0;
-          }
-        }
-
-        else {
-          console.log('getResponse', getResponse);
-          console.log('getResponse body', getResponse.body);
-          console.log('getResponse status', getResponse.statusCode);
-          return res.status(getResponse.statusCode).json({
-            status: true,
-            data: getResponse.body,
-            message: getResponse.statusMessage,
-          });
-
-        }
-      }
-
-      if (resData && resData.length > 0) {
-          let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
-          let contact_idList: any = [];
-          console.log('resultArrayresultArrayresultArray',resultArray);
-        
-          for (let invoice in resData) {
-          resData[invoice]['allowSend'] =  true;
-          // resData[invoice]['allowSend'] = resData[invoice]['isEbill'] ? true : resultArray?.map(Number).includes(Number(resData[invoice].contact_id)) ? true : true;
-            contact_idList.push((resData[invoice].contact_id));
-            resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
-            resData[invoice]['timestamp'] = '';
-            resData[invoice]['rk_globaltransaction'] = '';
-            resData[invoice]['status'] = '';
-            resData[invoice]['statusLabelInvoice'] = '';
-            resData[invoice]['invoice_type'] = resultArray?.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
-            for (let qryInvoice in invoiceList) {
-              if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
-                resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
-                resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
-                resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS || '')[invoiceList[qryInvoice]['status'] || ''];
-                resData[invoice]['timestamp'] = invoiceList[qryInvoice]['time_stamp'];
-                resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
-                resData[invoice]['response'] = invoiceList[qryInvoice]['response'];
-                resData[invoice]['invoice_type'] = invoiceList[qryInvoice]['invoice_type']; // Add invoice_type
-                
-                if (invoiceList[qryInvoice]?.status === 2) {
-                  resData[invoice]['allowSend'] = false;
-                }
-                break;
-              }
-          }
-            resultData.push(resData[invoice]);
-          }
-
-        let contactList :any = await getContactById(accessToken, contact_idList);
-        
-        if (!contactList) {
-          return res.status(500).send({
-              status: 500,
-              data: []
-          });
-        }
-        
-        // Fetch the contact group list using the provided access token
-        let contactGroupList: any = await getContactGroupList(accessToken);
-
-        // If contact group list could not be retrieved, return 500 error response
-        if (!contactGroupList) {
-          return res.status(500).send({
-              status: 500,
-              data: []
-          });
-        }
-                // Build lookup maps for fast enrichment
-                const contactNameMap = new Map(contactList.map(e => [e.id, `${e.name_1 || ''}${e.name_2 ? ' ' + e.name_2 : ''}`]));
-                const contactEmailMap = new Map(contactList.map(e => [e.id, e.mail || '']));
-                const contactAddressExistMap = new Map(contactList.map(e => [e.id, !!(e?.name_1 && e?.street_name && e?.city && e?.country_id && e?.postcode)]));
-                const contactGroupMap = new Map(
-                  contactList.map(e => [
-                    e.id,
-                    e.contact_group_ids
-                      ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(Boolean)
-                      : []
-                  ])
-                );
-          const currencyArr: any[] = await getAllCurrency(accessToken) as any[];
-          const currencyMap = new Map(currencyArr.map(e => [e.id, e.name]));
-          const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
-          const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
-
-                // Enrich resultData efficiently
-                resultData = resultData.map(second => {
-                  const contactId = second["contact_id"];
-                  const currencyId = second["currency_id"];
-                  const groupNamesRaw = contactGroupMap.get(contactId);
-                  const groupNames: string[] = Array.isArray(groupNamesRaw) ? groupNamesRaw : [];
-                  let invoiceType = second.invoice_type;
-                  let autoTag = second.auto_tag;
-
-                  // Auto-tag logic
-                  if (!invoiceType && groupNames.length) {
-                    if (groupNames.includes('ebill')) invoiceType = 'ebill';
-                    else if (groupNames.includes('email')) invoiceType = 'email';
-                    else if (groupNames.includes('print') || groupNames.includes('post')) invoiceType = 'print';
-                    autoTag = true;
-                  }
-
-                  return {
-                    ...second,
-                    companyName: contactNameMap.get(contactId) || '',
-                    currency: currencyMap.get(currencyId) || '',
-                    email: contactEmailMap.get(contactId) || '',
-                    recipient_id: recipientMap.get(contactId) || '',
-                    address_exist: contactAddressExistMap.get(contactId) || false,
-                    invoice_type: invoiceType || '',
-                    auto_tag: autoTag || false
-                  };
-                });
-
-          let redisKey = req.body.partyId + "_" + req.url + "_";
-        let keys = Object.keys(req.body);
-          keys.forEach(element => {
-          redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey;
-          });
-        
-          await redisClient.set(redisKey, JSON.stringify({
-            status: 200,
-            data: resultData,
-            configStatus:configData,
-            totalCount: totalCount
-          }), {
-          EX: 24 * 60 * 60 * 2
-          });
-
-        return res.send({
-            status: 200,
-            data: resultData,
-            totalCount: totalCount,
-            configStatus:configData,
-        });
-      }else if(resultData.length === 0){
-        
-        return res.status(200).json({
-            status: true,
-            data: [],
-            totalCount: totalCount
-        });
-      }else{
-        throw new Error("resultData undefined")
-      } 
-    } catch (error) {
-      commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
-      warningMessage(commonErrors, error);
-
-      return res.status(500).json({ 
-        status: 500, 
-        message: 'something_went_wrong' 
-      });
-    }
-  }
 
   async getInvoiceV2(req: Request, res: Response): Promise<any> {
     let data = req.body;
     let partyId = data.partyId;
     let netcomId = data.netcomId;
-    let arrayContactIds:number[] = [],configData = {}; 
+    let arrayContactIds: number[] = [], configData = {};
+    let invoiceListTemp: any[] = [];
 
     try {
       // -----------------------------------------------------------------------------------------
       // 1. AUTHENTICATION & CONFIGURATION
       // -----------------------------------------------------------------------------------------
-      
+
       // Step 1.1: Retrieve the signed cookie containing the user's session token.
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
       if (!cookieData) {
@@ -718,11 +57,11 @@ export class DebtorsService {
       // Helper Function: getOctConfig(netcomId)
       // Purpose: Retrieves configuration settings specific to the 'netcomId' (Tenant).
       // We check 'serviceStatus' to see if the service is active or has specific flags.
-      let configDetails:any = await getOctConfig(netcomId);
-      console.log("configdetails:",configDetails);
-      
-      if(configDetails.status && configDetails.records.length > 0){
-        configData =  configDetails.records[0].config.serviceStatus
+      let configDetails: any = await getOctConfig(netcomId);
+      console.log("configdetails:", configDetails);
+
+      if (configDetails.status && configDetails.records.length > 0) {
+        configData = configDetails.records[0].config.serviceStatus
       }
 
       // Step 1.3: Decrypt Cookie
@@ -753,7 +92,7 @@ export class DebtorsService {
       let sortType = data.sort || 'asc';
 
       let showFrom = data.records_per_page * (data.page_number - 1);
-      let showTo = data.page_number==1 ? 2000: data.records_per_page ;
+      let showTo = data.page_number == 1 ? 2000 : data.records_per_page;
       console.log('showFrom', showFrom);
       console.log('showTo', showTo);
       let resultArray: any[] = [];
@@ -780,58 +119,58 @@ export class DebtorsService {
       // Goal: Identify which contacts are capable of receiving 'EDI' (Electronic Data Interchange) invoices.
       // This is a complex relationship involving 'Party Accounts', 'Business Connections' (BC), and 'Connection Types'.
 
-        // Step 4.1: Get Company IDs (cid) linked to this party.
-        const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
-          Prisma.sql`
+      // Step 4.1: Get Company IDs (cid) linked to this party.
+      const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
+        Prisma.sql`
                     SELECT array_agg(pa.cid) AS cid 
                     FROM party_account pa 
                     WHERE pa.fk_party = ${Number(partyId)}
                   `
-        );
-        console.log('getInviteCompanyId',getInviteCompanyId,);
-        console.log('getInviteCompanyId',netcomId);
+      );
+      console.log('getInviteCompanyId', getInviteCompanyId,);
+      console.log('getInviteCompanyId', netcomId);
 
-        // Step 4.2: Find connections in 'contact_bc' that are of type 'EDI'.
-        const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
-          Prisma.sql`
+      // Step 4.2: Find connections in 'contact_bc' that are of type 'EDI'.
+      const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
+        Prisma.sql`
                   SELECT array_agg(rk_businessconnection) AS "bcConnection"
                   FROM contact_bc cb
                   WHERE cb.rk_party_account = ANY(${Prisma.sql`ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}]`})
                   AND cb.type = 'EDI'
                   AND cb.rk_businessconnection IS NOT NULL
                 `
-        );
+      );
 
-        const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
-        let bcDetails;
+      const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
+      let bcDetails;
 
-        // Step 4.3: Fetch details for these Business Connections.
-        // Helper Function: getBcDetails(bcConnectionIds, netcomId)
-        // Purpose: Calls an external service (or internal module) to get full metadata for the BC IDs.
-        bcDetails = await getBcDetails(bcConnectionIds, netcomId);
+      // Step 4.3: Fetch details for these Business Connections.
+      // Helper Function: getBcDetails(bcConnectionIds, netcomId)
+      // Purpose: Calls an external service (or internal module) to get full metadata for the BC IDs.
+      bcDetails = await getBcDetails(bcConnectionIds, netcomId);
 
-        let tempBc = [0];
-        if (bcDetails?.data?.length) {
-          for (const element of bcDetails.data) {
-            // Filter only those that support 'Invoice' document type.
-            if (element?.company_details?.doc_type?.data === 'Invoice') {
-              tempBc.push(element.bc_id);
-            }
+      let tempBc = [0];
+      if (bcDetails?.data?.length) {
+        for (const element of bcDetails.data) {
+          // Filter only those that support 'Invoice' document type.
+          if (element?.company_details?.doc_type?.data === 'Invoice') {
+            tempBc.push(element.bc_id);
           }
         }
-        // Explanation:
-        // We need to resolve "EDI" connections. EDI (Electronic Data Interchange) is a special channel.
-        // It relies on "Business Connections" (BC) established between companies.
-        // 1. We find all Company IDs (cid) linked to this party account.
-        // 2. We query 'contact_bc' table to see if any of these companies have an 'EDI' connection type.
-        // 3. We filter these connections to ensure they support 'Invoice' document type.
-        // 4. Ideally, 'resultArray' will contain the Contact IDs that are valid for EDI.
-        
-        // Helper Function: getConnectionBc(cids, tempBc)
-        // Purpose: Final DB query to get the Contact IDs associated with the valid BCs.
-        const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
-        resultArray = getConnectionBcResult[0]?.array_agg;
-     
+      }
+      // Explanation:
+      // We need to resolve "EDI" connections. EDI (Electronic Data Interchange) is a special channel.
+      // It relies on "Business Connections" (BC) established between companies.
+      // 1. We find all Company IDs (cid) linked to this party account.
+      // 2. We query 'contact_bc' table to see if any of these companies have an 'EDI' connection type.
+      // 3. We filter these connections to ensure they support 'Invoice' document type.
+      // 4. Ideally, 'resultArray' will contain the Contact IDs that are valid for EDI.
+
+      // Helper Function: getConnectionBc(cids, tempBc)
+      // Purpose: Final DB query to get the Contact IDs associated with the valid BCs.
+      const getConnectionBcResult = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
+      resultArray = getConnectionBcResult[0]?.array_agg;
+
 
       // -----------------------------------------------------------------------------------------
       // 5. FILTER BY INVOICE STATUS (Sent/Failed/Draft)
@@ -844,16 +183,16 @@ export class DebtorsService {
       if (data['invoiceStatus']) {
         // Helper Function: getSendInvoiceList(partyId, status)
         // Purpose: returns lists of invoice IDs from our local DB that match 'success', 'pending', or 'failed' states.
-        getSendInvoiceListResult = await getSendInvoiceList(Number(partyId),data['invoiceStatus']);
+        getSendInvoiceListResult = await getSendInvoiceList(Number(partyId), data['invoiceStatus']);
         console.log('getSendInvoiceListResult', getSendInvoiceListResult);
-        
-        if(getSendInvoiceListResult.length > 0) {
-          
+
+        if (getSendInvoiceListResult.length > 0) {
+
           // Case: Status = 'sent'
           // We want invoices that are marked 'Sent' (kb_item_status_id 8 or 9) in Bexio DO we?
           // OR invoices that we locally tracked as sent.
           if (data['invoiceStatus'] == 'sent') {
-           // console.log("invoiceStatus", data['invoiceStatus']);
+            // console.log("invoiceStatus", data['invoiceStatus']);
             const sentJson = [
               {
                 field: 'kb_item_status_id',
@@ -864,16 +203,16 @@ export class DebtorsService {
 
             // Helper Function: getInvoiceSearch(accessToken, sentJson)
             // Purpose: Queries Bexio API to find invoices matching the above status IDs.
-            const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken,sentJson);
+            const paidOrPendingBexioInvoices: any = await getInvoiceSearch(accessToken, sentJson);
             const paidOrPendingBexioInvoicesIds = (paidOrPendingBexioInvoices) && (paidOrPendingBexioInvoices.length > 0) ? paidOrPendingBexioInvoices.map((inv) => inv.id) : [];
-            console.log('invoiceContactListIds',paidOrPendingBexioInvoicesIds);
-           
-              if (!getSendInvoiceListResult[0].successOrPending[0].invoiceId) {
-                getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
-              }
+            console.log('invoiceContactListIds', paidOrPendingBexioInvoicesIds);
 
-              // Merge Bexio 'Sent' invoices with our Local 'Success/Pending' invoices.
-              getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
+            if (!getSendInvoiceListResult[0].successOrPending[0].invoiceId) {
+              getSendInvoiceListResult[0].successOrPending[0].invoiceId = [];
+            }
+
+            // Merge Bexio 'Sent' invoices with our Local 'Success/Pending' invoices.
+            getSendInvoiceListResult[0].successOrPending[0].invoiceId.push(...paidOrPendingBexioInvoicesIds);
 
 
             searchJson.push(
@@ -884,7 +223,7 @@ export class DebtorsService {
               },
               {
                 field: 'id',
-                value: getSendInvoiceListResult?.[1]?.failedGate2b?.[0]?.invoiceId|| '',
+                value: getSendInvoiceListResult?.[1]?.failedGate2b?.[0]?.invoiceId || '',
                 criteria: 'not_in',
               },
             );
@@ -893,37 +232,37 @@ export class DebtorsService {
           // We only look at our local DB for failed attempts.
           if (data['invoiceStatus'] == 'failed') {
             searchJson.push(
-            {
-              "field": "id",
-              "value": getSendInvoiceListResult?.[0]?.invoiceId || "",
-              "criteria": "in"
-            });
+              {
+                "field": "id",
+                "value": getSendInvoiceListResult?.[0]?.invoiceId || "",
+                "criteria": "in"
+              });
           }
           // Case: Status = 'draft'
           // Draft implies kb_item_status_id = 7 (Concept/Draft).
           // We also exclude invoices we know are already sent/processing.
           if (data['invoiceStatus'] == 'draft') {
             console.log("invoiceStatus no", data['invoiceStatus']);
-    
+
             searchJson.push(
-            {
-              "field": "id",
-              "value": getSendInvoiceListResult?.[0]?.invoiceId ||"", // Exclude Sent/Pending
-              "criteria": "not_in"
-            },
-            {
-              "field": "kb_item_status_id",
-              "value": 7, // 7 = Draft in Bexio
-              "criteria": "equal"
-            },
-          );
+              {
+                "field": "id",
+                "value": getSendInvoiceListResult?.[0]?.invoiceId || "", // Exclude Sent/Pending
+                "criteria": "not_in"
+              },
+              {
+                "field": "kb_item_status_id",
+                "value": 7, // 7 = Draft in Bexio
+                "criteria": "equal"
+              },
+            );
           }
         }
-        
+
       }
 
-      console.log("Query Datas",data);
-      
+      console.log("Query Datas", data);
+
       // -----------------------------------------------------------------------------------------
       // 6. GENERIC FILTERS (Document No, Title, Date, Customer)
       // -----------------------------------------------------------------------------------------
@@ -964,202 +303,213 @@ export class DebtorsService {
           "criteria": "="
         });
       }
-    console.log('channel',data);
-    
-       // -----------------------------------------------------------------------------------------
-       // 7. CHANNEL FILTER LOGIC (THE CORE LOGIC)
-       // -----------------------------------------------------------------------------------------
-       // Goal: Find all invoices that belong to the selected channel (Print, Email, EDI, eBill).
-       // Problem: A contact might be in the 'Print' group (Implicit), but a specific invoice 
-       // might be overridden to 'Email' (Explicit). We must handle both.
+      console.log('channel', data);
 
-      if("channel" in data) {
-         
-         const channel = String(data.channel).toLowerCase();
-         // Helper Function: getInvoicesQuery(channel, netcomId, true)
-         // Purpose: Queries 'documents_invoice_send' (Local DB) to find invoices explicitly marked with 'channel'.
-         // Returns: List of invoice IDs.
-         const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
-         
-         console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
+      // -----------------------------------------------------------------------------------------
+      // 7. CHANNEL FILTER LOGIC (THE CORE LOGIC)
+      // -----------------------------------------------------------------------------------------
+      // Goal: Find all invoices that belong to the selected channel (Print, Email, EDI, eBill).
+      // Problem: A contact might be in the 'Print' group (Implicit), but a specific invoice 
+      // might be overridden to 'Email' (Explicit). We must handle both.
 
-       // STEP A: Explicit Invoices
-       // Query our local DB (documents_invoice_send) to find invoices explicitly tagged with this channel.
-       // E.g., If Channel is 'Print', find all invoices where invoice_type = 'PRINT'.
-       const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
-       console.log("Include - Invoices for channel:", invoices);
+      if ("channel" in data) {
 
-      // STEP B: Resolve Contacts for Explicit Invoices
-      // Even if we have the invoice ID, we need the Contact IDs for merging later.
-      let invoiceContactListIds: number[] = [];
-      if (invoices.length > 0) {
-        // Helper Function: getInvoiceSearch(accessToken, filters)
-        // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
-        const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
-        invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
-            .map((inv: any) => inv?.contact_id)
-            .filter(Boolean);
-        console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
-      }
+        const channel = String(data.channel).toLowerCase();
+        // Helper Function: getInvoicesQuery(channel, netcomId, true)
+        // Purpose: Queries 'documents_invoice_send' (Local DB) to find invoices explicitly marked with 'channel'.
+        // Returns: List of invoice IDs.
+        const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
+        console.log("getInvoiceIdRslt:", getInvoiceIdRslt);
+        console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
-      // STEP C: Resolve Implicit Contacts (Group-based)
-      // Logic: A contact belongs to a channel primarily if they are in the corresponding Bexio Contact Group (e.g. "Invoice via Mail").
-      // Helper Function: getContactIdsByChannel(accessToken, channel)
-      // Purpose: Fetches the 'Contact Group List' from Bexio, filters for the target channel's group ID, 
-      //          and then searches all contacts that are members of that group.
-      if (channel === "edi") {
-         // EDI is special; we rely on the 'resultArray' we calculated in Step 4 (EDI Resolution).
-         arrayContactIds = [...(resultArray || [])]; 
-         console.log("arrayContactIds :::",arrayContactIds);
-         console.log("resultArray :::",resultArray);
-      } else if (channel === "print") {
-       let printContactIds = await getContactIdsByChannel(accessToken, "print");
-        let postContactIds = await getContactIdsByChannel(accessToken, "post");
-        // Print often includes both 'Print' and 'Post' groups.
-        arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
-        console.log("printContactIds", printContactIds);
-        console.log("postContactIds", postContactIds);
-        console.log("arrayContactIds :::",arrayContactIds);
-      } else if (channel === "email") {
-        arrayContactIds = await getContactIdsByChannel(accessToken, "email");
-      } else if (channel === "ebill") {
-        arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
-      }
-      console.log("Implicit/Group contacts:", arrayContactIds);
+        // STEP A: Explicit Invoices
+        // Query our local DB (documents_invoice_send) to find invoices explicitly tagged with this channel.
+        // E.g., If Channel is 'Print', find all invoices where invoice_type = 'PRINT'.
+        const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
+        const contactIds = (getInvoiceIdRslt?.[0]?.contacts ?? []).filter(Boolean);
+        console.log("Include - Invoices for channel:", invoices);
+        console.log("Include - Contacts for channel:", contactIds);
 
-      // STEP D: Merge Contacts
-      // Combine Explicit Contact IDs (from specific invoice overrides) and Implicit Contact IDs (from Groups).
-      const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
-      console.log("Final merged contacts:", mergedContacts);
+        // STEP B: Resolve Contacts for Explicit Invoices
+        // Even if we have the invoice ID, we need the Contact IDs for merging later.
+        let invoiceContactListIds: number[] = [];
+        if (invoices.length > 0 && contactIds.length > 0) {
+          // Helper Function: getInvoiceSearch(accessToken, filters)
+          // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
+          // const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
+          // invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
+          //     .map((inv: any) => inv?.contact_id)
+          //     .filter(Boolean);
+          // invoiceContactListIds = [...contactIds];
+          // console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
+        }
+        const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
+        invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
 
-      // STEP E: Apply Filter to Search
-      // Now we have a master list of "Contacts who should receive invoices via this channel".
-      // We explicitly check: Does the invoice belong to one of these contacts?
-      if (mergedContacts.length > 0) {
-        searchJson.push({
-          field: "contact_id",
-          value: mergedContacts,
-          criteria: "in"
-        });
-        
-        // Specially for this view, we might also filter by 'kb_item_status_id' (e.g. Draft) 
-        // if that's a hard requirement for this specific view (implied by previous user request).
-        searchJson.push({
-              "field": "kb_item_status_id",
-              "value": [7,8,9,16,31],
-              "criteria": "in"
-            });
-      } else {
-         console.log("No contacts found for channel. Forcing empty result.");
-         searchJson.push({
+
+        // STEP C: Resolve Implicit Contacts (Group-based)
+        // Logic: A contact belongs to a channel primarily if they are in the corresponding Bexio Contact Group (e.g. "Invoice via Mail").
+        // Helper Function: getContactIdsByChannel(accessToken, channel)
+        // Purpose: Fetches the 'Contact Group List' from Bexio, filters for the target channel's group ID, 
+        //          and then searches all contacts that are members of that group.
+        if (channel === "edi") {
+          // EDI is special; we rely on the 'resultArray' we calculated in Step 4 (EDI Resolution).
+          arrayContactIds = [...(resultArray || [])];
+          console.log("arrayContactIds :::", arrayContactIds);
+          console.log("resultArray :::", resultArray);
+        } else if (channel === "print") {
+          let printContactIds = await getContactIdsByChannel(accessToken, "print");
+          let postContactIds = await getContactIdsByChannel(accessToken, "post");
+          // Print often includes both 'Print' and 'Post' groups.
+          arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+          console.log("printContactIds", printContactIds);
+          console.log("postContactIds", postContactIds);
+          console.log("arrayContactIds :::", arrayContactIds);
+        } else if (channel === "email") {
+          arrayContactIds = await getContactIdsByChannel(accessToken, "email");
+        } else if (channel === "ebill") {
+          arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
+        }
+        console.log("Implicit/Group contacts:", arrayContactIds);
+
+        // STEP D: Merge Contacts
+        // Combine Explicit Contact IDs (from specific invoice overrides) and Implicit Contact IDs (from Groups).
+        const mergedContacts = [...(arrayContactIds || [])];
+        // const mergedContacts = [...new Set([...(arrayContactIds || []), ...(invoiceContactListIds || [])])];
+        console.log("Final merged contacts:", mergedContacts);
+
+        // STEP E: Apply Filter to Search
+        // Now we have a master list of "Contacts who should receive invoices via this channel".
+        // We explicitly check: Does the invoice belong to one of these contacts?
+        if (mergedContacts.length > 0) {
+          searchJson.push({
+            field: "contact_id",
+            value: mergedContacts,
+            criteria: "in"
+          });
+
+          // Specially for this view, we might also filter by 'kb_item_status_id' (e.g. Draft) 
+          // if that's a hard requirement for this specific view (implied by previous user request).
+          searchJson.push({
+            "field": "kb_item_status_id",
+            "value": [7, 8, 9, 16, 31],
+            "criteria": "in"
+          });
+        } else {
+          console.log("No contacts found for channel. Forcing empty result.");
+          searchJson.push({
             "field": "id",
             "value": -1,
             "criteria": "equal"
-         });
+          });
+        }
+
+        // STEP F: Exclude Explicit Overrides
+        // Problem: We found all invoices for "Print Contacts". 
+        // But some of those invoices might have been manually changed to "Email" (Explicit override).
+        // Solution: Find invoices explicitly tagged with OTHER channels (via getInvoicesQuery again, but for exclusion) and exclude them.
+
+        // Helper Function: getInvoicesQuery(data.channel, netcomId, false)
+        // Purpose: returns invoices that match OTHER channels (NOT the current one).
+        const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
+
+        console.log("getNotInvoiceIdRslt invoices:", getNotInvoiceIdRslt?.[0]?.['invoices']);
+
+        const excludeInvoices = (getNotInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
+
+        console.log("Exclude - Invoice IDs:", excludeInvoices);
+
+        if (excludeInvoices.length > 0) {
+          searchJson.push({
+            field: "id",
+            value: excludeInvoices,
+            criteria: "not_in"
+          });
+        }
+
+        console.log("Final searchJson invoice filter test endpoint", JSON.stringify(searchJson, null, 2));
       }
-
-      // STEP F: Exclude Explicit Overrides
-      // Problem: We found all invoices for "Print Contacts". 
-      // But some of those invoices might have been manually changed to "Email" (Explicit override).
-      // Solution: Find invoices explicitly tagged with OTHER channels (via getInvoicesQuery again, but for exclusion) and exclude them.
-      
-      // Helper Function: getInvoicesQuery(data.channel, netcomId, false)
-      // Purpose: returns invoices that match OTHER channels (NOT the current one).
-      const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
-
-      console.log("getNotInvoiceIdRslt invoices:", getNotInvoiceIdRslt?.[0]?.['invoices']);
-      
-      const excludeInvoices = (getNotInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
-
-      console.log("Exclude - Invoice IDs:", excludeInvoices);
-
-      if (excludeInvoices.length > 0) {
-        searchJson.push({
-          field: "id",
-          value: excludeInvoices,
-          criteria: "not_in"
-        });
-      }
-
-      console.log("Final searchJson invoice filter test endpoint", JSON.stringify(searchJson, null, 2));
-    }
 
       let resData: any[] = [];
-      console.log('searchJson 2:::',searchJson);
-      const isSearch=searchJson.length > 0
-      
+      console.log('searchJson 2:::', searchJson);
+      const isSearch = searchJson.length > 0
+
       // -----------------------------------------------------------------------------------------
       // 8. FETCH INVOICES FROM BEXIO API
       // -----------------------------------------------------------------------------------------
       // Determine if we need to use the 'search' endpoint (if we have filters) or the standard 'list' endpoint.
       let url = isSearch
-                ? `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`
-                : `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`;
+        ? `${config.BEXIO_API}2.0/kb_invoice/search/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`
+        : `${config.BEXIO_API}2.0/kb_invoice/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`;
 
       options = {
-            'method': isSearch?'POST' :'GET',
-            'url': url,
-            'headers': {
-              'Accept': 'application/json',
-              'Authorization': 'Bearer ' + accessToken
-            },
-          };
-          console.log("invoice filter test endpoint options ",options);
+        'method': isSearch ? 'POST' : 'GET',
+        'url': url,
+        'headers': {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + accessToken
+        },
+      };
+      console.log("invoice filter test endpoint options ", options);
 
       // If searching, attach the filter payload
       if (isSearch) {
-       options.body = JSON.stringify(searchJson);
+        options.body = JSON.stringify(searchJson);
       }
-      
+
       // Execute the request to Bexio
       const response = await new Promise<any>((resolve, reject) => {
-          request(options, (error, response) => {
-            if (error) reject(error);
-            else resolve(response);
-          });
+        request(options, (error, response) => {
+          if (error) reject(error);
+          else resolve(response);
         });
+      });
 
-        console.log("response invoice filter test endpoint",response);
-        
-      
-      if(response.statusCode==401){
+      // console.log("response invoice filter test endpoint",response);
+
+
+      if (response.statusCode == 401) {
         return res.status(401).json({
-                status: true,
-                data: [],
-                message: 'unauthorized',
-              });
-      }else if(response.statusCode==200){       
-          const parsed=JSON.parse(response.body)as any[]
-          const perPage = Number(data.records_per_page);
-          console.log('parsed------', parsed);
-        console.log('perPage========', perPage);
+          status: true,
+          data: [],
+          message: 'unauthorized',
+        });
+      } else if (response.statusCode == 200) {
+        let parsed = JSON.parse(response.body) as any[]
+        if (invoiceListTemp && invoiceListTemp.length > 0) {
+          parsed = [...parsed, ...invoiceListTemp];
+          parsed = Array.from(new Map(parsed.map(item => [item['id'], item])).values());
+        }
+        const perPage = Number(data.records_per_page);
+        //   console.log('parsed------', parsed);
+        // console.log('perPage========', perPage);
 
         // Handle Pagination logic (totalCount)
-        if(Array.isArray(parsed) && parsed.length>perPage){
-          console.log('entered in if',totalCount);
+        if (Array.isArray(parsed) && parsed.length > perPage) {
+          // console.log('entered in if',totalCount);
           totalCount = parsed.length;
           // Helper Function: parseResponse(data)
           // Purpose: Basic validation of the response data structure.
           resData = parseResponse(parsed.slice(0, perPage));
-        }else {
-          console.log('entered in else',totalCount);
+        } else {
+          // console.log('entered in else',totalCount);
           resData = parseResponse(parsed.slice(0, perPage));
           totalCount =
-          data.page_number != 1
-                ? Number(data.totalCount)
-                : parsed.length | 0;
+            data.page_number != 1
+              ? Number(data.totalCount)
+              : parsed.length | 0;
         }
-      
+
       } else {
-          // Pass through errors from Bexo
-          console.log('getResponse', response);
-          console.log('response body', response.body);
-          console.log('response status', response.statusCode);
-          return res.status(response.statusCode).json({
-            status: true,
-            data: response.body,
-            message: response.statusMessage,
-          });
+        // Pass through errors from Bexo
+        console.log('getResponse', response);
+        console.log('response body', response.body);
+        console.log('response status', response.statusCode);
+        return res.status(response.statusCode).json({
+          status: true,
+          data: response.body,
+          message: response.statusMessage,
+        });
 
       }
 
@@ -1175,60 +525,60 @@ export class DebtorsService {
       // - Validation flags (address_exist, allowSend, etc.).
 
       if (resData && resData.length > 0) {
-          let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
-          let contact_idList: any = [];
-          console.log('resultArrayresultArrayresultArray',resultArray);
-        
-          for (let invoice in resData) {
-          resData[invoice]['allowSend'] =  true;
-          
-            contact_idList.push((resData[invoice].contact_id));
-            resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
-            resData[invoice]['timestamp'] = '';
-            resData[invoice]['rk_globaltransaction'] = '';
-            resData[invoice]['status'] = '';
-            resData[invoice]['statusLabelInvoice'] = '';
-            // Default EDI check based on resolution map
-            resData[invoice]['invoice_type'] = resultArray?.includes(resData[invoice].contact_id) ? 'EDI' : ''; 
-            
-            // Merge with local 'documents_invoice_send' data to check for previous sending attempts
-            for (let qryInvoice in invoiceList) {
-              if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
-                resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
-                resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
-                resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS || '')[invoiceList[qryInvoice]['status'] || ''];
-                resData[invoice]['timestamp'] = invoiceList[qryInvoice]['time_stamp'];
-                resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
-                resData[invoice]['response'] = invoiceList[qryInvoice]['response'];
-                resData[invoice]['invoice_type'] = invoiceList[qryInvoice]['invoice_type']; // Add invoice_type
-                
-                if (invoiceList[qryInvoice]?.status === 2) {
-                  resData[invoice]['allowSend'] = false;
-                }
-                 if (invoiceList[qryInvoice]?.status === 0) {
-                  resData[invoice]['failed_invoice_type'] = invoiceList[qryInvoice]['invoice_type'];
-                }
-                break;
+        let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
+        let contact_idList: any = [];
+        // console.log('resultArrayresultArrayresultArray',resultArray);
+
+        for (let invoice in resData) {
+          resData[invoice]['allowSend'] = true;
+
+          contact_idList.push((resData[invoice].contact_id));
+          resData[invoice]['statusLabel'] = status[resData[invoice].kb_item_status_id];
+          resData[invoice]['timestamp'] = '';
+          resData[invoice]['rk_globaltransaction'] = '';
+          resData[invoice]['status'] = '';
+          resData[invoice]['statusLabelInvoice'] = '';
+          // Default EDI check based on resolution map
+          resData[invoice]['invoice_type'] = resultArray?.includes(resData[invoice].contact_id) ? 'EDI' : '';
+
+          // Merge with local 'documents_invoice_send' data to check for previous sending attempts
+          for (let qryInvoice in invoiceList) {
+            if (invoiceList[qryInvoice]['rk_invoice'] == resData[invoice]['id']) {
+              resData[invoice]['rk_globaltransaction'] = invoiceList[qryInvoice]['rk_globaltransaction'];
+              resData[invoice]['status'] = invoiceList[qryInvoice]['status'];
+              resData[invoice]['statusLabelInvoice'] = JSON.parse(config.INVOICE_STATUS || '')[invoiceList[qryInvoice]['status'] || ''];
+              resData[invoice]['timestamp'] = invoiceList[qryInvoice]['time_stamp'];
+              resData[invoice]['type'] = invoiceList[qryInvoice]['type'];
+              resData[invoice]['response'] = invoiceList[qryInvoice]['response'];
+              resData[invoice]['invoice_type'] = invoiceList[qryInvoice]['invoice_type']; // Add invoice_type
+
+              if (invoiceList[qryInvoice]?.status === 2) {
+                resData[invoice]['allowSend'] = false;
               }
+              if (invoiceList[qryInvoice]?.status === 0) {
+                resData[invoice]['failed_invoice_type'] = invoiceList[qryInvoice]['invoice_type'];
+              }
+              break;
+            }
           }
-            resultData.push(resData[invoice]);
-          }
-          
-          console.log("resData id ", resData.map(item=>item.id));
-          
-        
+          resultData.push(resData[invoice]);
+        }
+
+        // console.log("resData id ", resData.map(item=>item.id));
+
+
         // Step 9.1: Fetch Contact Details (Batch)
         // Helper Function: getContactById(accessToken, contact_idList)
         // Purpose: Retrieves full contact details (Name, Address, Email) for display.
-        let contactList :any = await getContactById(accessToken, contact_idList);
-        
+        let contactList: any = await getContactById(accessToken, contact_idList);
+
         if (!contactList) {
           return res.status(500).send({
-              status: 500,
-              data: []
+            status: 500,
+            data: []
           });
         }
-        
+
         // Step 9.2: Fetch Contact Groups
         // Helper Function: getContactGroupList(accessToken)
         // Purpose: Needed to determine the "Implicit" channel/type of the contact (e.g. are they in 'E-Bill' group?).
@@ -1236,62 +586,62 @@ export class DebtorsService {
 
         if (!contactGroupList) {
           return res.status(500).send({
-              status: 500,
-              data: []
+            status: 500,
+            data: []
           });
         }
-                // Build lookup maps for fast enrichment O(1)
-                const contactNameMap = new Map(contactList.map(e => [e.id, `${e.name_1 || ''}${e.name_2 ? ' ' + e.name_2 : ''}`]));
-                const contactEmailMap = new Map(contactList.map(e => [e.id, e.mail || '']));
-                // Check if address fields are complete
-                const contactAddressExistMap = new Map(contactList.map(e => [e.id, !!(e?.name_1 && e?.street_name && e?.city && e?.country_id && e?.postcode)]));
-                
-                // Map contact to its groups
-                const contactGroupMap = new Map(
-                  contactList.map(e => [
-                    e.id,
-                    e.contact_group_ids
-                      ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(Boolean)
-                      : []
-                  ])
-                );
-          
-          // Helper Function: getAllCurrency(accessToken)
-          const currencyArr: any[] = await getAllCurrency(accessToken) as any[];
-          const currencyMap = new Map(currencyArr.map(e => [e.id, e.name]));
-          
-          // Helper Function: getRecipientList(...)
-          const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
-          const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
+        // Build lookup maps for fast enrichment O(1)
+        const contactNameMap = new Map(contactList.map(e => [e.id, `${e.name_1 || ''}${e.name_2 ? ' ' + e.name_2 : ''}`]));
+        const contactEmailMap = new Map(contactList.map(e => [e.id, e.mail || '']));
+        // Check if address fields are complete
+        const contactAddressExistMap = new Map(contactList.map(e => [e.id, !!(e?.name_1 && e?.street_name && e?.city && e?.country_id && e?.postcode)]));
 
-                // Step 9.3: Final Enrichment Loop
-                resultData = resultData.map(second => {
-                  const contactId = second["contact_id"];
-                  const currencyId = second["currency_id"];
-                  const groupNamesRaw = contactGroupMap.get(contactId);
-                  const groupNames: string[] = Array.isArray(groupNamesRaw) ? groupNamesRaw : [];
-                  let invoiceType = second.invoice_type;
-                  let autoTag = second.auto_tag;
+        // Map contact to its groups
+        const contactGroupMap = new Map(
+          contactList.map(e => [
+            e.id,
+            e.contact_group_ids
+              ? e.contact_group_ids.split(',').map(id => contactGroupList.find(role => role.id === Number(id))?.name.toLowerCase()).filter(Boolean)
+              : []
+          ])
+        );
 
-                  // Auto-tag logic: If no specific type is set, deduce it from the Contact's Group
-                  if ((!invoiceType && groupNames.length)||(second.status === 0 && groupNames.length)) {
-                    if (groupNames.includes('ebill')) invoiceType = 'ebill';
-                    else if (groupNames.includes('email')) invoiceType = 'email';
-                    else if (groupNames.includes('print') || groupNames.includes('post')) invoiceType = 'print';
-                    autoTag = true;
-                  }
+        // Helper Function: getAllCurrency(accessToken)
+        const currencyArr: any[] = await getAllCurrency(accessToken) as any[];
+        const currencyMap = new Map(currencyArr.map(e => [e.id, e.name]));
 
-                  return {
-                    ...second,
-                    companyName: contactNameMap.get(contactId) || '',
-                    currency: currencyMap.get(currencyId) || '',
-                    email: contactEmailMap.get(contactId) || '',
-                    recipient_id: recipientMap.get(contactId) || '',
-                    address_exist: contactAddressExistMap.get(contactId) || false,
-                    invoice_type: invoiceType || '',
-                    auto_tag: autoTag || false
-                  };
-                });
+        // Helper Function: getRecipientList(...)
+        const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
+        const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
+
+        // Step 9.3: Final Enrichment Loop
+        resultData = resultData.map(second => {
+          const contactId = second["contact_id"];
+          const currencyId = second["currency_id"];
+          const groupNamesRaw = contactGroupMap.get(contactId);
+          const groupNames: string[] = Array.isArray(groupNamesRaw) ? groupNamesRaw : [];
+          let invoiceType = second.invoice_type;
+          let autoTag = second.auto_tag;
+
+          // Auto-tag logic: If no specific type is set, deduce it from the Contact's Group
+          if ((!invoiceType && groupNames.length) || (second.status === 0 && groupNames.length)) {
+            if (groupNames.includes('ebill')) invoiceType = 'ebill';
+            else if (groupNames.includes('email')) invoiceType = 'email';
+            else if (groupNames.includes('print') || groupNames.includes('post')) invoiceType = 'print';
+            autoTag = true;
+          }
+
+          return {
+            ...second,
+            companyName: contactNameMap.get(contactId) || '',
+            currency: currencyMap.get(currencyId) || '',
+            email: contactEmailMap.get(contactId) || '',
+            recipient_id: recipientMap.get(contactId) || '',
+            address_exist: contactAddressExistMap.get(contactId) || false,
+            invoice_type: invoiceType || '',
+            auto_tag: autoTag || false
+          };
+        });
 
         // -----------------------------------------------------------------------------------------
         // 10. REDIS CACHING
@@ -1299,43 +649,43 @@ export class DebtorsService {
         // Cache the final enriched result to speed up subsequent requests.
         let redisKey = req.body.partyId + "_" + req.url + "_";
         let keys = Object.keys(req.body);
-          keys.forEach(element => {
+        keys.forEach(element => {
           redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey;
-          });
-        
-          await redisClient.set(redisKey, JSON.stringify({
-            status: 200,
-            data: resultData,
-            configStatus:configData,
-            totalCount: totalCount
-          }), {
+        });
+
+        await redisClient.set(redisKey, JSON.stringify({
+          status: 200,
+          data: resultData,
+          configStatus: configData,
+          totalCount: totalCount
+        }), {
           EX: 24 * 60 * 60 * 2
-          });
+        });
 
         return res.send({
-            status: 200,
-            data: resultData,
-            totalCount: totalCount,
-            configStatus:configData,
+          status: 200,
+          data: resultData,
+          totalCount: totalCount,
+          configStatus: configData,
         });
-      }else if(resultData.length === 0){
-        
+      } else if (resultData.length === 0) {
+
         return res.status(200).json({
-            status: true,
-            data: [],
-            totalCount: totalCount
+          status: true,
+          data: [],
+          totalCount: totalCount
         });
-      }else{
+      } else {
         throw new Error("resultData undefined")
-      } 
+      }
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString();
       warningMessage(commonErrors, error);
 
-      return res.status(500).json({ 
-        status: 500, 
-        message: 'something_went_wrong' 
+      return res.status(500).json({
+        status: 500,
+        message: 'something_went_wrong'
       });
     }
   }
@@ -1343,9 +693,9 @@ export class DebtorsService {
   async getOrderList(req: Request, res: Response,): Promise<any> {
     let cookie = null
     let data = req.body;
-  
+
     try {
-   let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+      let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
       if (!cookieData) {
         return res.status(500).send({
@@ -1356,115 +706,112 @@ export class DebtorsService {
       }
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
-      console.log('accessToken',accessToken);
-      
+      console.log('accessToken', accessToken);
+
       let isBexioUser = cookie.isBexioUser;
       let contacts;
-      let showTo:number;
-      let showFrom:number = parseInt(data.records_per_page)*(parseInt(data.page_number)-1) + 1;
+      let showTo: number;
+      let showFrom: number = parseInt(data.records_per_page) * (parseInt(data.page_number) - 1) + 1;
       showTo = showFrom + parseInt(data.records_per_page) - 1;
-      console.log('showFrom',showFrom);
-      console.log('showTo',showTo);
-      if(isBexioUser)
-      {
-       
-           var options = {
+      console.log('showFrom', showFrom);
+      console.log('showTo', showTo);
+      if (isBexioUser) {
+
+        var options = {
           'method': 'GET',
           'url': `${config.BEXIO_API}2.0/contact`,
           'headers': {
             'Accept': 'application/json',
-            'Authorization': 'Bearer '+accessToken
+            'Authorization': 'Bearer ' + accessToken
           }
         };
         request(options, async function (error, response) {
-          if (error){
+          if (error) {
             console.log(error);
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+accessToken;
-            warningMessage(commonErrors,error);
-              return res.status(200).json({
-                status: false,
-                message: 'something_went_wrong',
-             });
-  
-            } 
-
-            console.log("Deptors Order response--------------",response);
-            
-            if(response.statusCode === 401)
-            {
-              return res.status(401).json({
-                status: 'fail',
-                message: 'unauthorized',
-              })
-            }
-
-
-            if(response.statusCode != 200)
-            {
-              return res.status(200).json({
-                data:[],
-                totalCount:0
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + accessToken;
+            warningMessage(commonErrors, error);
+            return res.status(200).json({
+              status: false,
+              message: 'something_went_wrong',
             });
-            }
-            contacts = JSON.parse(response.body);
-           console.log('contacts',contacts);
-            
-            const getRegisteredId = await connectBexio.companyregistered.findMany({
-              where: {
-                rk_party: Number(data.partyId), // Equivalent to `WHERE rk_party = $1`
-              },
-              select: {
-                cid: true, // Selects only `cid`
-              },
-            });
-             console.log('getRegisteredId',getRegisteredId);
-            const orderList = await connectBexio.documents_order_receive.findMany({
-              where: {
-                fk_companyregistered: getRegisteredId[0]?.cid,
-                created_date: {
-                  gte: validDate(data.startDate),
-                  lte: validDate(data.endDate,true),
-                },
-                rk_order: data.documentNo?.trim()
-                  ? { contains: data.documentNo.trim(), mode: "insensitive" }
-                  : undefined,
-              },
-              orderBy: {
-                created_date: "desc",
-              },
-              skip: Number(showFrom) - 1,
-              take: Number(showTo) - Number(showFrom) + 1,
-            });
-            console.log("end Date converted",validDate(data.endDate));
-            
-           console.log("orderList:", orderList);
-            const orderListCount = await connectBexio.documents_order_receive.count({
-              where: {
-                fk_companyregistered: getRegisteredId[0]?.cid,
-                created_date: {
-                  gte: validDate(data.startDate),
-                  lte: validDate(data.endDate,true),
-                },
-                rk_order: data.documentNo?.trim()
-                  ? { contains: data.documentNo.trim(), mode: "insensitive" }
-                  : undefined,
-                ...(data.orderStatus === "Yes" ? { rk_order: { not: null } } : {}),
-                ...(data.orderStatus === "No" ? { rk_order: null } : {}),
-              },
-            });
-            
-            console.log("Total Orders:", orderListCount);
-            const totalOrders = Number(orderListCount); // Convert BigInt to Number
-            
-            console.log("Total Orders:", totalOrders);
 
-  
-            for (let index = 0; index < orderList.length; index++) {
-              const element = orderList[index];
-              element['companyName'] = '';
-              element['netcomId'] = '';
-              const getBc = await connectNewGate2b.$queryRaw<any>`
+          }
+
+          console.log("Deptors Order response--------------", response);
+
+          if (response.statusCode === 401) {
+            return res.status(401).json({
+              status: 'fail',
+              message: 'unauthorized',
+            })
+          }
+
+
+          if (response.statusCode != 200) {
+            return res.status(200).json({
+              data: [],
+              totalCount: 0
+            });
+          }
+          contacts = JSON.parse(response.body);
+          console.log('contacts', contacts);
+
+          const getRegisteredId = await connectBexio.companyregistered.findMany({
+            where: {
+              rk_party: Number(data.partyId), // Equivalent to `WHERE rk_party = $1`
+            },
+            select: {
+              cid: true, // Selects only `cid`
+            },
+          });
+          console.log('getRegisteredId', getRegisteredId);
+          const orderList = await connectBexio.documents_order_receive.findMany({
+            where: {
+              fk_companyregistered: getRegisteredId[0]?.cid,
+              created_date: {
+                gte: validDate(data.startDate),
+                lte: validDate(data.endDate, true),
+              },
+              rk_order: data.documentNo?.trim()
+                ? { contains: data.documentNo.trim(), mode: "insensitive" }
+                : undefined,
+            },
+            orderBy: {
+              created_date: "desc",
+            },
+            skip: Number(showFrom) - 1,
+            take: Number(showTo) - Number(showFrom) + 1,
+          });
+          console.log("end Date converted", validDate(data.endDate));
+
+          console.log("orderList:", orderList);
+          const orderListCount = await connectBexio.documents_order_receive.count({
+            where: {
+              fk_companyregistered: getRegisteredId[0]?.cid,
+              created_date: {
+                gte: validDate(data.startDate),
+                lte: validDate(data.endDate, true),
+              },
+              rk_order: data.documentNo?.trim()
+                ? { contains: data.documentNo.trim(), mode: "insensitive" }
+                : undefined,
+              ...(data.orderStatus === "Yes" ? { rk_order: { not: null } } : {}),
+              ...(data.orderStatus === "No" ? { rk_order: null } : {}),
+            },
+          });
+
+          console.log("Total Orders:", orderListCount);
+          const totalOrders = Number(orderListCount); // Convert BigInt to Number
+
+          console.log("Total Orders:", totalOrders);
+
+
+          for (let index = 0; index < orderList.length; index++) {
+            const element = orderList[index];
+            element['companyName'] = '';
+            element['netcomId'] = '';
+            const getBc = await connectNewGate2b.$queryRaw<any>`
               SELECT l.companyname, 
                      gc."netcomId", 
                      json_extract_path("ot_updator"::json, 'in_custom_id') as sender_custom_id, 
@@ -1475,75 +822,73 @@ export class DebtorsService {
               INNER JOIN legalParty l ON l.fk_ediparty = e.cid
               WHERE bc.id = ${element.rk_businessconnection};
             `;
-            
+
             console.log(getBc);
-             
-              if(getBc.length != 0)
-              {
-                element['companyName'] = getBc[0].companyname;
-                element['netcomId'] = getBc[0].netcomId;
-                if(!element['rk_order'])
-                {
-                  let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
-                  element['contactName'] = temp.length != 0 ? temp[0].name_1:'';
-                  element['contactId'] = temp.length != 0 ? getBc[0].sender_custom_id:'';
-                  element['connectioStatus'] = 'active';
-                }else{
-                  element['contactId'] = '';
-                  let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
-                  element['contactName'] = temp.length != 0 ? temp[0].name_1:'';
-                  element['connectioStatus'] = 'done';
-                }
-               
-              }else{
+
+            if (getBc.length != 0) {
+              element['companyName'] = getBc[0].companyname;
+              element['netcomId'] = getBc[0].netcomId;
+              if (!element['rk_order']) {
+                let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
+                element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
+                element['contactId'] = temp.length != 0 ? getBc[0].sender_custom_id : '';
+                element['connectioStatus'] = 'active';
+              } else {
                 element['contactId'] = '';
-                element['contactName'] ='';
-                element['connectioStatus'] ='';
-  
+                let temp = contacts.filter(e => e.id == getBc[0].sender_custom_id);
+                element['contactName'] = temp.length != 0 ? temp[0].name_1 : '';
+                element['connectioStatus'] = 'done';
               }
-            } 
+
+            } else {
+              element['contactId'] = '';
+              element['contactName'] = '';
+              element['connectioStatus'] = '';
+
+            }
+          }
           res.send({
-              status: 200,
-              data:orderList,
-               totalCount:totalOrders
+            status: 200,
+            data: orderList,
+            totalCount: totalOrders
           })
-        // res.send(orderList.rows);
+          // res.send(orderList.rows);
         });
-  
-      }else{
+
+      } else {
         return res.status(401).json({
           status: 'fail',
           message: 'unauthorized',
-      });
+        });
       }
-     
+
     } catch (error) {
-   
- 
+
+
       console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-      warningMessage(commonErrors,error);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie;
+      warningMessage(commonErrors, error);
       return res
-      .status(200)
-      .json({ status: 500, message: 'something_went_wrong' });
-        
+        .status(200)
+        .json({ status: 500, message: 'something_went_wrong' });
+
     }
   }
   async getDeliveryNotesList(req: Request, res: Response,): Promise<any> {
 
-    console.log("getDeliveryNotesList");  
+    console.log("getDeliveryNotesList");
     let cookie = null;
     let data = req.body;
     let partyId = req.body.partyId;
-    
+
     let netcomId;
-    console.log("req.body ",req.body);  
+    console.log("req.body ", req.body);
     try {
       let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
 
       if (!cookieData) {
-       return res.status(500).send({
+        return res.status(500).send({
           status_code: 500,
           message: 'Missing_cookie',
           status: false,
@@ -1553,12 +898,12 @@ export class DebtorsService {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
       let accessToken = cookie.access_Token;
       let isBexioUser = cookie.isBexioUser;
-  
-  let resultData: any[] = [],tempStatus = false;
+
+      let resultData: any[] = [], tempStatus = false;
       let totalCount;
-      let showFrom = req.body.records_per_page * (req.body.page_number-1);
+      let showFrom = req.body.records_per_page * (req.body.page_number - 1);
       let showTo = req.body.records_per_page;
-  
+
       const deliveryNotesList = await connectBexio.documents_dispatchnotification_send.findMany({
         where: {
           fk_companyregistered: {
@@ -1572,20 +917,20 @@ export class DebtorsService {
           deliverynotes_type: "EDI",
         },
         include: {
-          companyregistered : true, // Includes related company details if needed
+          companyregistered: true, // Includes related company details if needed
         },
       });
-       console.log('deliveryNotesList',deliveryNotesList);
-            
+      console.log('deliveryNotesList', deliveryNotesList);
+
 
       const getNetcomId = await connectBexio.$queryRaw<any>(
         Prisma.sql`
         SELECT * FROM companyregistered WHERE rk_party = ${Number(partyId)}
       `
       );
-      console.log('getNetcomId',getNetcomId);
+      console.log('getNetcomId', getNetcomId);
 
-      
+
 
       const getInviteCompanyId = await connectLibrary.$queryRaw<{ cid: number[] }[]>(
         Prisma.sql`
@@ -1594,628 +939,641 @@ export class DebtorsService {
         WHERE pa.fk_party = ${Number(partyId)}
       `
       );
-      console.log('getInviteCompanyId.rows[0].cid',getInviteCompanyId);
+      console.log('getInviteCompanyId.rows[0].cid', getInviteCompanyId);
       const getConnectionStatusList = await connectBexio.$queryRaw<{ bcConnection: string[] }[]>(
         Prisma.sql`
         SELECT array_agg(rk_businessconnection) AS "bcConnection"
         FROM contact_bc cb
-        WHERE ${getInviteCompanyId[0]?.cid?.length ? 
-          Prisma.sql`cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0].cid)}])` : 
-          Prisma.sql`FALSE`}
+        WHERE ${getInviteCompanyId[0]?.cid?.length ?
+            Prisma.sql`cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0].cid)}])` :
+            Prisma.sql`FALSE`}
         AND cb.type = 'EDI'
         AND cb.rk_businessconnection IS NOT NULL
       `
       );
-     console.log('getConnectionStatusList',getConnectionStatusList);
+      console.log('getConnectionStatusList', getConnectionStatusList);
       const bcConnectionIds = getConnectionStatusList[0]?.bcConnection || [];
       let bcDetails;
       bcDetails = await getBcDetails(bcConnectionIds, getNetcomId[0].netcomid);
 
-      console.log('bcDetails',bcDetails);
+      console.log('bcDetails', bcDetails);
 
       let tempBc = [0];
-    
-      if(bcDetails?.data?.length){
+
+      if (bcDetails?.data?.length) {
         for (let index = 0; index < bcDetails['data'].length; index++) {
           const element = bcDetails['data'][index];
-          console.log("element :: ",element);      
-          if(element['company_details']['doc_type']['data'] == 'DispatchNotification'){
+          console.log("element :: ", element);
+          if (element['company_details']['doc_type']['data'] == 'DispatchNotification') {
             tempBc.push(element['bc_id'])
-          }      
+          }
         }
       }
-      
-     
 
-    //   const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
-    //   SELECT array_agg(rk_sendercontactid::int)
-    //   FROM contact_bc cb
-    //   WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
-    //   AND cb.type = 'EDI'
-    //   ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
-    //   AND cb.rk_businessconnection IS NOT NULL
-    // `);
-    // console.log('getConnectionBc',getConnectionBc);
-    // let resultArray = getConnectionBc[0]?.array_agg;
-    let resultArray=await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
-  console.log('resultArray',resultArray);
 
-      if(isBexioUser){
-         var options
-        totalCount = await deliveryNotesListCountSearch(accessToken,0,2000);
-        console.log('totalCount',totalCount);
-        if(data.documentNo){
-            let docNumber = data.documentNo;
+
+      //   const getConnectionBc = await connectBexio.$queryRaw<{array_agg: number[]}[]>(Prisma.sql`
+      //   SELECT array_agg(rk_sendercontactid::int)
+      //   FROM contact_bc cb
+      //   WHERE cb.rk_party_account = ANY(ARRAY[${Prisma.join(getInviteCompanyId[0]?.cid || [])}])
+      //   AND cb.type = 'EDI'
+      //   ${tempBc.length ? Prisma.sql`AND cb.rk_businessconnection = ANY(ARRAY[${Prisma.join(tempBc)}])` : Prisma.empty}
+      //   AND cb.rk_businessconnection IS NOT NULL
+      // `);
+      // console.log('getConnectionBc',getConnectionBc);
+      // let resultArray = getConnectionBc[0]?.array_agg;
+      let resultArray = await getConnectionBc(getInviteCompanyId[0]?.cid || [], tempBc);
+      console.log('resultArray', resultArray);
+
+      if (isBexioUser) {
+        var options
+        totalCount = await deliveryNotesListCountSearch(accessToken, 0, 2000);
+        console.log('totalCount', totalCount);
+        if (data.documentNo) {
+          let docNumber = data.documentNo;
           if (docNumber.includes('-')) {
             docNumber = docNumber.split('-')[1]; // take part after '-'
           }
           options = {
-                    'method': 'GET',
-                    // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
-                    'url': `${config.BEXIO_API}2.0/kb_delivery/${docNumber}`,
-                    'headers': {
-                      'Accept': 'application/json',
-                      'Authorization': 'Bearer '+accessToken
-                    }
-            
-                  }; 
+            'method': 'GET',
+            // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
+            'url': `${config.BEXIO_API}2.0/kb_delivery/${docNumber}`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ' + accessToken
+            }
+
+          };
         }
-        else{
-         options = {
-          'method': 'GET',
-          // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
-          'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
-          'headers': {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer '+accessToken
-          }
-  
-        };   
-        } 
+        else {
+          options = {
+            'method': 'GET',
+            // 'url': `${config.BEXIO_API}2.0/kb_delivery`,
+            'url': `${config.BEXIO_API}2.0/kb_delivery/?limit=${showTo}&offset=${showFrom}&order_by=updated_at_desc`,
+            'headers': {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ' + accessToken
+            }
+
+          };
+        }
         request(options, async function (error, response) {
           if (error) {
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+showTo+' '+showFrom;
-            warningMessage(commonErrors,error);
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + showTo + ' ' + showFrom;
+            warningMessage(commonErrors, error);
             return res.status(500).json({
               status: false,
               message: 'something_went_wrong',
-          });
+            });
           }
-        let resData = Array.isArray(JSON.parse(response.body))?JSON.parse(response.body):[JSON.parse(response.body)];    
-        console.log('resData', resData);
+          let resData = Array.isArray(JSON.parse(response.body)) ? JSON.parse(response.body) : [JSON.parse(response.body)];
+          console.log('resData', resData);
 
-// console.log('resData', resData);
-          if(response.statusCode != 200)
+          // console.log('resData', resData);
+          if (response.statusCode != 200)
             return res.status(response.statusCode).json({
-            status: false,
-            message: 'unauthorized',
+              status: false,
+              message: 'unauthorized',
             });
           let status = JSON.parse(config.BEXIO_ITEM_STATUS);
           for (let deliveryNotes in resData) {
             // console.log('**********************',typeof resData[deliveryNotes])
             // console.log('**********************', resData[deliveryNotes].contact_id)
-             if (typeof resData[deliveryNotes] !== 'object' ) {
-    continue;
-  }
+            if (typeof resData[deliveryNotes] !== 'object') {
+              continue;
+            }
             tempStatus = false;
             // resData[deliveryNotes]['allowSend'] =  true;
-            console.log('resultArray deliveryNotes',resultArray);
-            console.log('test',resultArray?.includes((resData[deliveryNotes]?.contact_id)));
-              console.log('**********************', resData[deliveryNotes]?.contact_id)
-            resultArray?resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true:false:false;
+            console.log('resultArray deliveryNotes', resultArray);
+            console.log('test', resultArray?.includes((resData[deliveryNotes]?.contact_id)));
+            console.log('**********************', resData[deliveryNotes]?.contact_id)
+            resultArray ? resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true : false : false;
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];
             resData[deliveryNotes]['rk_globaltransaction'] = '';
             resData[deliveryNotes]['status'] = '';
-            resData[deliveryNotes]['statusLabelDeliveryNotes'] = '';        
-            for(let qryDeliveryNotes in deliveryNotesList){
-                if(deliveryNotesList[qryDeliveryNotes]['rk_deliverynotes'] == resData[deliveryNotes]['id']){
-                  resData[deliveryNotes]['rk_globaltransaction'] = deliveryNotesList[qryDeliveryNotes]['rk_globaltransaction'];
-                  resData[deliveryNotes]['status'] = deliveryNotesList[qryDeliveryNotes]['status'];
-                  resData[deliveryNotes]['statusLabelDeliveryNotes'] = JSON.parse(config.INVOICE_STATUS||'')[deliveryNotesList[qryDeliveryNotes]['status']||''];
-                  resData[deliveryNotes]['timestamp'] = deliveryNotesList[qryDeliveryNotes]['timestamp'];
-                  resData[deliveryNotes]['type'] = deliveryNotesList[qryDeliveryNotes]['type'];
-  
-                  if(deliveryNotesList[qryDeliveryNotes]['status'] == 2){
-                    resData[deliveryNotes]['allowSend'] = false;
-                  }
-                  if(!tempStatus && deliveryNotesList[qryDeliveryNotes]['type'] == 'EBILL'){
-                    tempStatus = true;
-                  }
-                  break;
+            resData[deliveryNotes]['statusLabelDeliveryNotes'] = '';
+            for (let qryDeliveryNotes in deliveryNotesList) {
+              if (deliveryNotesList[qryDeliveryNotes]['rk_deliverynotes'] == resData[deliveryNotes]['id']) {
+                resData[deliveryNotes]['rk_globaltransaction'] = deliveryNotesList[qryDeliveryNotes]['rk_globaltransaction'];
+                resData[deliveryNotes]['status'] = deliveryNotesList[qryDeliveryNotes]['status'];
+                resData[deliveryNotes]['statusLabelDeliveryNotes'] = JSON.parse(config.INVOICE_STATUS || '')[deliveryNotesList[qryDeliveryNotes]['status'] || ''];
+                resData[deliveryNotes]['timestamp'] = deliveryNotesList[qryDeliveryNotes]['timestamp'];
+                resData[deliveryNotes]['type'] = deliveryNotesList[qryDeliveryNotes]['type'];
+
+                if (deliveryNotesList[qryDeliveryNotes]['status'] == 2) {
+                  resData[deliveryNotes]['allowSend'] = false;
                 }
+                if (!tempStatus && deliveryNotesList[qryDeliveryNotes]['type'] == 'EBILL') {
+                  tempStatus = true;
+                }
+                break;
               }
-              if(!tempStatus){            
-                resData[deliveryNotes]['isEbill'] = false;
-              }else{
-                resData[deliveryNotes]['isEbill'] = true;
-                resData[deliveryNotes]['allowSend'] = false;
-              }
-              resultData.push(resData[deliveryNotes]);
+            }
+            if (!tempStatus) {
+              resData[deliveryNotes]['isEbill'] = false;
+            } else {
+              resData[deliveryNotes]['isEbill'] = true;
+              resData[deliveryNotes]['allowSend'] = false;
+            }
+            resultData.push(resData[deliveryNotes]);
           }
           let keys = Object.keys(req.body)
           // let redisKey = req.url+"_"+req.body.partyId+"_";
-          let redisKey = req.body.partyId+"_"+req.url+"_";
-          console.log('redisKey',redisKey);
+          let redisKey = req.body.partyId + "_" + req.url + "_";
+          console.log('redisKey', redisKey);
           keys.forEach(element => {
-              redisKey = req.body[element]? redisKey +element+':'+ req.body[element] + '_' : redisKey
+            redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey
           });
-         
-          await redisClient.set(redisKey, JSON.stringify( {status: 200,
-            data:resData,
-            totalCount:totalCount}), {
+
+          await redisClient.set(redisKey, JSON.stringify({
+            status: 200,
+            data: resData,
+            totalCount: totalCount
+          }), {
             EX: 24 * 60 * 60 * 2 // 2 days in seconds
-        });
-            
+          });
+
           res.send({
             status: 200,
-            data:resultData,
-            totalCount:totalCount
+            data: resultData,
+            totalCount: totalCount
           })
         });
       }
-      else{
-          return res.status(401).json({
-            status: 'fail',
-            message: 'unauthorized',
+      else {
+        return res.status(401).json({
+          status: 'fail',
+          message: 'unauthorized',
         });
       }
     } catch (error) {
-    
-     
+
+
       console.log(error);
       commonErrors['errorTitle'] = req.originalUrl;
-      commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-      warningMessage(commonErrors,error);
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + cookie;
+      warningMessage(commonErrors, error);
       return res
-      .status(500)
-      .json({ status: 500, message: 'something_went_wrong' });
-        
+        .status(500)
+        .json({ status: 500, message: 'something_went_wrong' });
+
     }
   }
-  
 
- private async processEbillInvoice(invoice, data,bodyData): Promise<any> {
-  const pool = await connectMssql;
-  const bexioClient = await bexioInterfaceClient();
-  const recipientToken = await connectBexio.companyregistered.findMany({
-    where: { netcomid: data.netcomId },
-    select: { refresh_token: true, rk_party: true }
-  });
-console.log('!invoice.allow',invoice.allow);
- if (!invoice.allow) {
-    await setInvoiceSendStatus(
-      recipientToken[0]?.rk_party,
-      invoice.doc_id,
-      invoice.documentNumber,
-      '0',
-      'no_subscription_found',
-      'EBILL',
-      invoice.contactId,
-      [invoice]
-    );
-    warningMessage({
-      messagetype: "406",
-      message:"Not Acceptable Receipient NotSubscribed",
-      netcomId: data.netcomId,
-      errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
-      errorTitle: "DebtorsService.processEbillInvoice",
-      process: "processEbillInvoice",
-      guid: "dummy-guid",
-      filename:invoice.documentNumber
-    }, "no_subscription_found");
-    console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
-    return null; //  stop here — skip rest of processing
-  }
-if (bodyData?.userId && !invoice.userId) {
-    invoice.userId = bodyData.userId;
-  }
-  // --- Continue normal processing ---
-  await setInvoiceSendStatus(
-    recipientToken[0]?.rk_party,
-    invoice.doc_id,
-    invoice.documentNumber,
-    '1',
-    '',
-    'EBILL',
-    invoice.contactId,
-    [invoice]
-  );
-  const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token||'');
-  invoice.accessToken = tokenSet.access_token;
-  invoice.refreshToken = tokenSet.refresh_token;
 
-  const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
-  await connectBexio.companyregistered.updateMany({
-    where: { rk_csn },
-    data: { refresh_token: tokenSet.refresh_token }
-  });
+  private async processEbillInvoice(invoice, data, bodyData): Promise<any> {
+    const pool = await connectMssql;
+    const bexioClient = await bexioInterfaceClient();
+    const recipientToken = await connectBexio.companyregistered.findMany({
+      where: { netcomid: data.netcomId },
+      select: { refresh_token: true, rk_party: true }
+    });
+    console.log('!invoice.allow', invoice.allow);
+    if (!invoice.allow) {
+      await setInvoiceSendStatus(
+        recipientToken[0]?.rk_party,
+        invoice.doc_id,
+        invoice.documentNumber,
+        '0',
+        'no_subscription_found',
+        'EBILL',
+        invoice.contactId,
+        [invoice]
+      );
+      warningMessage({
+        messagetype: "478",
+        netcomId: data.netcomId,
+        errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
+        errorTitle: "DebtorsService.processEbillInvoice",
+        process: "processEbillInvoice",
+        guid: "dummy-guid"
+      }, "no_subscription_found");
+      console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
+      return null; //  stop here — skip rest of processing
+    }
+    if (bodyData?.userId && !invoice.userId) {
+      invoice.userId = bodyData.userId;
 
-  const getBillerData = await pool.query(`
+      // --- Continue normal processing ---
+      await setInvoiceSendStatus(
+        recipientToken[0]?.rk_party,
+        invoice.doc_id,
+        invoice.documentNumber,
+        '1',
+        '',
+        'EBILL',
+        invoice.contactId,
+        [invoice]
+      );
+      warningMessage({
+        messagetype: "406",
+        message: "Not Acceptable Receipient NotSubscribed",
+        netcomId: data.netcomId,
+        errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
+        errorTitle: "DebtorsService.processEbillInvoice",
+        process: "processEbillInvoice",
+        guid: "dummy-guid",
+        filename: invoice.documentNumber
+      }, "no_subscription_found");
+      console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
+      return null; //  stop here — skip rest of processing
+
+    }
+    const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token || '');
+    invoice.accessToken = tokenSet.access_token;
+    invoice.refreshToken = tokenSet.refresh_token;
+
+    const rk_csn = jwt.decode(tokenSet.access_token)['company_id'];
+    await connectBexio.companyregistered.updateMany({
+      where: { rk_csn },
+      data: { refresh_token: tokenSet.refresh_token }
+    });
+
+    const getBillerData = await pool.query(`
       SELECT billerid FROM biller WHERE netcomid='${data.netcomId}' AND status='ACTIVE'
   `);
- const bodyParams = { partyId: recipientToken[0]?.rk_party,netcomId:data.netcomId};
-  if (getBillerData.recordset.length > 0) {
-    this.pushWorkerHost.run([invoice],bodyParams, {}, getBillerData.recordset[0].billerid, 'EBILL');
-  }
-
-  return invoice;
-}
-  private async processEbillInvoices(data,bodyParams): Promise<any[]> {
-  const results: any[] = [];
-  if (!data.ebillInvoices?.length) return results;
-
-  for (const invoice of data.ebillInvoices) {
-    try {
-      const result = await this.processEbillInvoice(invoice, data,bodyParams);
-       if (!result) {
-        console.log(`Invoice skipped )`);
-        results.push(invoice);
-        continue; // go to next invoice
-      }
-      result['tag'] = 'EBILL';
-      results.push(result);
-    } catch (error) {
-      console.error('Error processing eBill invoice:', error);
+    const bodyParams = { partyId: recipientToken[0]?.rk_party, netcomId: data.netcomId };
+    if (getBillerData.recordset.length > 0) {
+      this.pushWorkerHost.run([invoice], bodyParams, {}, getBillerData.recordset[0].billerid, 'EBILL');
     }
+
+    return invoice;
+  }
+  private async processEbillInvoices(data, bodyParams): Promise<any[]> {
+    const results: any[] = [];
+    if (!data.ebillInvoices?.length) return results;
+
+    for (const invoice of data.ebillInvoices) {
+      try {
+        const result = await this.processEbillInvoice(invoice, data, bodyParams);
+        if (!result) {
+          console.log(`Invoice skipped )`);
+          results.push(invoice);
+          continue; // go to next invoice
+        }
+        result['tag'] = 'EBILL';
+        results.push(result);
+      } catch (error) {
+        console.error('Error processing eBill invoice:', error);
+      }
+    }
+
+    return results;
   }
 
-  return results;
-}
 
- 
   private async processInvoices(obj: any | any[], bodyData, tag: string): Promise<any[]> {
     const invoices = Array.isArray(obj) ? obj : [obj];
     const results: any[] = [];
-    console.log('invoices',invoices);
-    console.log('bodyData',bodyData);
-    console.log('tag',tag);
+    console.log('invoices', invoices);
+    console.log('bodyData', bodyData);
+    console.log('tag', tag);
 
     for (const inv of invoices) {
-      console.log('inv',inv);
-      console.log('tag',tag);
-      console.log('bodyData',bodyData);
-      console.log('bodyData.partyId',bodyData.partyId);
+      console.log('inv', inv);
+      console.log('tag', tag);
+      console.log('bodyData', bodyData);
+      console.log('bodyData.partyId', bodyData.partyId);
       const docNumber = inv.documentNumber || '';
       const invoiceId = tag == 'EDI' ? inv.invoiceId : inv.doc_id;
-       console.log('inv.invoiceId',inv.invoiceId);
-        console.log('inv.doc_id',inv.doc_id);
-         console.log('docNumber',docNumber);
-      console.log('bodyData.partyId, invoiceId, docNumber',bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
+      console.log('inv.invoiceId', inv.invoiceId);
+      console.log('inv.doc_id', inv.doc_id);
+      console.log('docNumber', docNumber);
+      console.log('bodyData.partyId, invoiceId, docNumber', bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId);
       if (bodyData?.userId && !inv.userId) {
-       inv.userId = bodyData.userId;
-        }
-       console.log('inv',inv);
-      const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId,inv);
+        inv.userId = bodyData.userId;
+      }
+      console.log('inv', inv);
+      const result = await setInvoiceSendStatus(bodyData.partyId, invoiceId, docNumber, '1', '', tag, inv.contactId, inv);
       results.push(result);
     }
     console.log("processInvoices", results);
     return results;
   }
-async sendInvoice(req: Request, res: Response): Promise<any> {
-  const data = req.body;
+  async sendInvoice(req: Request, res: Response): Promise<any> {
+    const data = req.body;
 
-const decryptedCookie = encryptionControl.decryptCookie(
-  JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
-);
+    const decryptedCookie = encryptionControl.decryptCookie(
+      JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])
+    );
 
-const parsedCookie = JSON.parse(decryptedCookie);
-console.log('parsedCookie',parsedCookie);
-const userId = jwt.decode(parsedCookie.access_Token).company_user_id;
-console.log('userId',userId);
+    const parsedCookie = JSON.parse(decryptedCookie);
+    console.log('parsedCookie', parsedCookie);
+    const userId = jwt.decode(parsedCookie.access_Token).company_user_id;
+    console.log('userId', userId);
 
 
-  const combinedResponse: any = {
-    otherInvoiceResults: [],
-    emailInvoice: [],
-    ediResults: [],
-    ebillResults: []
-  };
-
-  try {
-    // Ensure all arrays
-    let autoTag = false;
-    const ebillProcessed: any[] = [];
-
-    data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
-    data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
-    data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
-    data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
-    data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
-    console.log('data.invoices',data.invoices);
-    console.log('data.printInvoices',data.printInvoices);
-    console.log('data.otherInvoice',data.otherInvoice);
-    console.log('data.emailInvoices',data.emailInvoices);
-    console.log('data.ebillInvoices',data.ebillInvoices);
-    const bodyParams = {
-      partyId: data.partyId,
-      accountId: data.accountId,
-      netcomId: data.netcomId,
-      userId:userId
+    const combinedResponse: any = {
+      otherInvoiceResults: [],
+      emailInvoice: [],
+      ediResults: [],
+      ebillResults: []
     };
 
-    // ------------------------------
-    // 1. Process Print Invoices
-    // ------------------------------
-    if (data.printInvoices.length) {
-      const printResults = await Promise.all(
-        data.printInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))
-      );
+    try {
+      // Ensure all arrays
+      let autoTag = false;
+      const ebillProcessed: any[] = [];
 
-      data.printInvoices.forEach((inv, i) => {
-        inv['invoice_uuid'] = printResults[i][0];
-        inv['tag'] = 'print';
-        combinedResponse.otherInvoiceResults.push(inv);
-        console.log('print auto combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
-      });
-//       logMessage({
-//   messagetype: 200,
-//   tenant: COMPANY_NAME,
-//   message: 'OK',
-//   service: DOCKER_NAME,
-//   process: PROCESS_NAME,
-//   filename: FILE_NAME,
-//   uniqueid: uniqueId,
-//   guid: parentTransactionId
-// });
-    }
+      data.invoices = data.invoices ? JSON.parse(data.invoices) : [];
+      data.printInvoices = data.printInvoices ? JSON.parse(data.printInvoices) : [];
+      data.otherInvoice = data.otherInvoice ? JSON.parse(data.otherInvoice) : [];
+      data.emailInvoices = data.emailInvoices ? JSON.parse(data.emailInvoices) : [];
+      data.ebillInvoices = data.ebillInvoices ? JSON.parse(data.ebillInvoices) : [];
+      console.log('data.invoices', data.invoices);
+      console.log('data.printInvoices', data.printInvoices);
+      console.log('data.otherInvoice', data.otherInvoice);
+      console.log('data.emailInvoices', data.emailInvoices);
+      console.log('data.ebillInvoices', data.ebillInvoices);
+      const bodyParams = {
+        partyId: data.partyId,
+        accountId: data.accountId,
+        netcomId: data.netcomId,
+        userId: userId
+      };
 
-    // ------------------------------
-    // 2. Process Other Invoices (email, print, ebill)
-    // ------------------------------
-    if (data.otherInvoice.length) {
-      const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
-      console.log('getTag',getTag);
-          data.otherInvoice.forEach(inv => {
-      const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
-      console.log('tagItem',tagItem);
-      if (tagItem) {
-        inv.allow = tagItem.allow;
-      } 
-    });
+      // ------------------------------
+      // 1. Process Print Invoices
+      // ------------------------------
+      if (data.printInvoices.length) {
+        const printResults = await Promise.all(
+          data.printInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))
+        );
 
-      console.log('data.otherInvoice',data.otherInvoice);
-      const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
-      const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
-      const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'ebill'));
-      console.log('otherEmailInvoices',otherEmailInvoices);
-      console.log('otherEmailInvoices',otherPrintInvoices);
-      console.log('otherEmailInvoices',otherEbillInvoices);
-      
-      const [emailResults, printResults, ebillResults] = await Promise.all([
-        Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))),
-        Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))),
-        Promise.all(otherEbillInvoices.map(inv => this.processEbillInvoice(inv, data,bodyParams)))
-      ]);
-      console.log('emailResults',emailResults);
-      console.log('printResults',printResults);
-      console.log('ebillResults',ebillResults);
-      otherEmailInvoices.forEach((inv, i) => {
-        inv['invoice_uuid'] = emailResults[i][0];
-        inv['tag'] = 'email';
-           console.log('email inv',inv);
-        combinedResponse.otherInvoiceResults.push(inv);
-        console.log('email combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
-      });
+        data.printInvoices.forEach((inv, i) => {
+          inv['invoice_uuid'] = printResults[i][0];
+          inv['tag'] = 'print';
+          combinedResponse.otherInvoiceResults.push(inv);
+          console.log('print auto combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+          this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
+        });
+      }
+      // ------------------------------
+      // 2. Process Other Invoices (email, print, ebill)
+      // ------------------------------
+      if (data.otherInvoice.length) {
+        const getTag: any = await getTagName(data.netcomId, data.otherInvoice, autoTag);
+        console.log('getTag', getTag);
+        data.otherInvoice.forEach(inv => {
+          const tagItem = getTag?.data?.find(t => t.doc_id === inv.doc_id);
+          console.log('tagItem', tagItem);
+          if (tagItem) {
+            inv.allow = tagItem.allow;
+          }
+        });
 
-      otherPrintInvoices.forEach((inv, i) => {
-        inv['invoice_uuid'] = printResults[i][0];
-        inv['tag'] = 'print';
-        console.log('print inv',inv);
-        
-        combinedResponse.otherInvoiceResults.push(inv);
-        console.log('print combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
-      });
+        console.log('data.otherInvoice', data.otherInvoice);
+        const otherEmailInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'email'));
+        const otherPrintInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'print'));
+        const otherEbillInvoices = data.otherInvoice.filter(inv => getTag?.data?.find(t => t.doc_id == inv.doc_id && t.tag == 'ebill'));
+        console.log('otherEmailInvoices', otherEmailInvoices);
+        console.log('otherEmailInvoices', otherPrintInvoices);
+        console.log('otherEmailInvoices', otherEbillInvoices);
 
-      ebillResults.forEach(inv => {
-        if (!inv) return;
-        inv['tag'] = 'EBILL';
-          console.log('EBILL inv',inv);
-        combinedResponse.otherInvoiceResults.push(inv);
-        console.log('EBILL combinedResponse.otherInvoiceResults',combinedResponse.otherInvoiceResults);
-        ebillProcessed.push(inv);
-      });
-       for (const inv of data.otherInvoice) {
-        if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
+        const [emailResults, printResults, ebillResults] = await Promise.all([
+          Promise.all(otherEmailInvoices.map(inv => this.processInvoices(inv, bodyParams, 'email'))),
+          Promise.all(otherPrintInvoices.map(inv => this.processInvoices(inv, bodyParams, 'print'))),
+          Promise.all(otherEbillInvoices.map(inv => this.processEbillInvoice(inv, data, bodyParams)))
+        ]);
+        console.log('emailResults', emailResults);
+        console.log('printResults', printResults);
+        console.log('ebillResults', ebillResults);
+        otherEmailInvoices.forEach((inv, i) => {
+          inv['invoice_uuid'] = emailResults[i][0];
+          inv['tag'] = 'email';
+          console.log('email inv', inv);
+          combinedResponse.otherInvoiceResults.push(inv);
+          console.log('email combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+          this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'email');
+        });
 
+        otherPrintInvoices.forEach((inv, i) => {
+          inv['invoice_uuid'] = printResults[i][0];
+          inv['tag'] = 'print';
+          console.log('print inv', inv);
+
+          combinedResponse.otherInvoiceResults.push(inv);
+          console.log('print combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+          this.pushWorkerHost.run(inv, bodyParams, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'print');
+        });
+
+        ebillResults.forEach(inv => {
+          if (!inv) return;
+          inv['tag'] = 'EBILL';
+          console.log('EBILL inv', inv);
+          combinedResponse.otherInvoiceResults.push(inv);
+          console.log('EBILL combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+          ebillProcessed.push(inv);
+        });
+        for (const inv of data.otherInvoice) {
+          if (!combinedResponse.otherInvoiceResults.find(x => x.doc_id === inv.doc_id)) {
+
+            await setInvoiceSendStatus(
+              data.partyId,
+              inv.doc_id,
+              inv.documentNumber,
+              '0',
+              'no_channel',
+              '',
+              inv.contactId,
+              inv
+            );
+            warningMessage({
+              messagetype: "406",
+              message: "Not Acceptable Channel Missing",
+              netcomId: data.netcomId,
+              errorDescription: `From:${path.basename(__filename)} no_channel for invoice ${inv.doc_id}`,
+              errorTitle: "DebtorsService.sendInvoice",
+              process: "sendInvoice",
+              guid: "dummy-guid",
+              filename: inv.documentNumber
+            }, "no_channel");
+
+            combinedResponse.otherInvoiceResults.push(inv);
+          }
+        }
+
+      }
+
+      // ------------------------------
+      // 3. Process Email Invoices
+      // ------------------------------
+
+      if (data.emailInvoices.length) {
+
+        // Filter invoices with missing email
+        const invalidEmailInvoices = data.emailInvoices.filter(
+          inv => !inv.bill_recipient_email?.trim()
+        );
+        console.log("invalidEmailInvoices", invalidEmailInvoices);
+
+        // Handle invalid invoices (set status + push)
+        for (const inv of invalidEmailInvoices) {
+          console.log("email inv----", inv);
+          inv.userId = userId;
           await setInvoiceSendStatus(
             data.partyId,
             inv.doc_id,
             inv.documentNumber,
             '0',
-            'no_channel',
-            '',
+            'email_id_not_found',
+            'email',
             inv.contactId,
             inv
           );
           warningMessage({
             messagetype: "406",
-            message:"Not Acceptable Channel Missing",
+            message: "Not Acceptable Channel Missing",
             netcomId: data.netcomId,
             errorDescription: `From:${path.basename(__filename)} no_channel for invoice ${inv.doc_id}`,
             errorTitle: "DebtorsService.sendInvoice",
             process: "sendInvoice",
             guid: "dummy-guid",
-            filename:inv.documentNumber
+            filename: inv.documentNumber
           }, "no_channel");
 
           combinedResponse.otherInvoiceResults.push(inv);
         }
-      }
 
-    }
-
-    // ------------------------------
-    // 3. Process Email Invoices
-    // ------------------------------
-
-    if (data.emailInvoices.length) {
-
-      // Filter invoices with missing email
-      const invalidEmailInvoices = data.emailInvoices.filter(
-        inv => !inv.bill_recipient_email?.trim()
-      );
-      console.log("invalidEmailInvoices",invalidEmailInvoices);
-      
-      // Handle invalid invoices (set status + push)
-      for (const inv of invalidEmailInvoices) {
-        console.log("email inv----",inv);
-        inv.userId = userId;
-        await setInvoiceSendStatus(
-          data.partyId,
-          inv.doc_id,
-          inv.documentNumber,
-          '0',
-          'email_id_not_found',
-          'email',
-          inv.contactId,
-          inv
-        );
-        inv.tag="email"
-        combinedResponse.otherInvoiceResults.push(inv);
-      }
-
-      // Filter valid invoices (email exists)
-      const validEmailInvoices = data.emailInvoices.filter(
-        inv => inv.bill_recipient_email?.trim()
-      );
-
-      // If valid invoices exist → process them
-      if (validEmailInvoices.length) {
-
-        const emailResults = await Promise.all(
-          validEmailInvoices.map(inv =>
-            this.processInvoices(inv, bodyParams, 'email')
-          )
+        // Filter valid invoices (email exists)
+        const validEmailInvoices = data.emailInvoices.filter(
+          inv => inv.bill_recipient_email?.trim()
         );
 
-        validEmailInvoices.forEach((inv, i) => {
-          inv.invoice_uuid = emailResults[i][0];
-          inv.tag = 'email';
+        // If valid invoices exist → process them
+        if (validEmailInvoices.length) {
 
-          combinedResponse.otherInvoiceResults.push(inv);
-
-          this.pushWorkerHost.run(
-            inv,
-            bodyParams,
-            { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url },
-            '',
-            'email'
+          const emailResults = await Promise.all(
+            validEmailInvoices.map(inv =>
+              this.processInvoices(inv, bodyParams, 'email')
+            )
           );
-        });
+
+          validEmailInvoices.forEach((inv, i) => {
+            inv.invoice_uuid = emailResults[i][0];
+            inv.tag = 'email';
+
+            combinedResponse.otherInvoiceResults.push(inv);
+
+            this.pushWorkerHost.run(
+              inv,
+              bodyParams,
+              { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url },
+              '',
+              'email'
+            );
+          });
+        }
       }
-    }
 
 
-    // ------------------------------
-    // 4. Process eBill Invoices
-    // ------------------------------
-    if (data.ebillInvoices.length) {
-      autoTag = true;
+      // ------------------------------
+      // 4. Process eBill Invoices
+      // ------------------------------
+      if (data.ebillInvoices.length) {
+        autoTag = true;
 
-      const invalidEbillInvoices = data.ebillInvoices.filter(
-        inv => !inv.bill_recipient_email?.trim()
-      );
-
-      // Handle invalid invoices (set status + push)
-      for (const inv of invalidEbillInvoices) {
-        inv.userId = userId;
-        await setInvoiceSendStatus(
-          data.partyId,
-          inv.doc_id,
-          inv.documentNumber,
-          '0',
-          'email_id_not_found',
-          'EBILL',
-          inv.contactId,
-          inv
+        const invalidEbillInvoices = data.ebillInvoices.filter(
+          inv => !inv.bill_recipient_email?.trim()
         );
-         inv.tag="EBILL"
-        combinedResponse.otherInvoiceResults.push(inv);
-      }
 
-      // Filter valid invoices (email exists)
-      const validEbillnvoices = data.ebillInvoices.filter(
-        inv => inv.bill_recipient_email?.trim()
-      );
-
-      if (validEbillnvoices.length) {
-        const getTag: any = await getTagName(data.netcomId, validEbillnvoices, autoTag);
-        const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
-        if (billTagItem) validEbillnvoices.forEach(inv => inv.allow = billTagItem.allow);
-
-        const ebillResults = await this.processEbillInvoices(data,bodyParams);
-        ebillResults.forEach(inv => {
-          if (!inv) return;
-          inv['tag'] = 'EBILL';
-          console.log('ebillResults inv', inv)
+        // Handle invalid invoices (set status + push)
+        for (const inv of invalidEbillInvoices) {
+          inv.userId = userId;
+          await setInvoiceSendStatus(
+            data.partyId,
+            inv.doc_id,
+            inv.documentNumber,
+            '0',
+            'email_id_not_found',
+            'EBILL',
+            inv.contactId,
+            inv
+          );
+          inv.tag = "EBILL"
           combinedResponse.otherInvoiceResults.push(inv);
-          console.log('EBILL auto combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
-          //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
-          ebillProcessed.push(inv);
-        });
+        }
 
+        // Filter valid invoices (email exists)
+        const validEbillnvoices = data.ebillInvoices.filter(
+          inv => inv.bill_recipient_email?.trim()
+        );
+
+        if (validEbillnvoices.length) {
+          const getTag: any = await getTagName(data.netcomId, validEbillnvoices, autoTag);
+          const billTagItem = getTag?.data?.find((item: any) => item.tag === 'ebill');
+          if (billTagItem) validEbillnvoices.forEach(inv => inv.allow = billTagItem.allow);
+
+          const ebillResults = await this.processEbillInvoices(data, bodyParams);
+          ebillResults.forEach(inv => {
+            if (!inv) return;
+            inv['tag'] = 'EBILL';
+            console.log('ebillResults inv', inv)
+            combinedResponse.otherInvoiceResults.push(inv);
+            console.log('EBILL auto combinedResponse.otherInvoiceResults', combinedResponse.otherInvoiceResults);
+            //this.pushWorkerHost.run([inv], bodyParams, {}, '', 'EBILL');
+            ebillProcessed.push(inv);
+          });
+
+        }
       }
-    }
 
-    // ------------------------------
-    // 5. Process EDI Invoices
-    // ------------------------------
-    if (data.invoices.length) {
-      const ediResults = await Promise.all(
-        data.invoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId }, 'EDI'))
-      );
-      data.invoices.forEach(inv => combinedResponse.ediResults.push(inv));
-      this.pushWorkerHost.run(data.invoices, { partyId: data.partyId, accountId: data.accountId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'EDI');
-    }
+      // ------------------------------
+      // 5. Process EDI Invoices
+      // ------------------------------
+      if (data.invoices.length) {
+        const ediResults = await Promise.all(
+          data.invoices.map(inv => this.processInvoices(inv, { partyId: data.partyId, accountId: data.accountId }, 'EDI'))
+        );
+        data.invoices.forEach(inv => combinedResponse.ediResults.push(inv));
+        this.pushWorkerHost.run(data.invoices, { partyId: data.partyId, accountId: data.accountId }, { cookies: req.cookies, signedCookies: req.signedCookies, url: req.url }, '', 'EDI');
+      }
 
-    // ------------------------------
-    // 6. Set Bexio token cookie if any eBill processed
-    // ------------------------------
-    const validEbill = ebillProcessed.filter(inv => inv?.accessToken && inv?.refreshToken);
-       console.log('validEbill',validEbill)
-    if (validEbill.length > 0) {
-      const latestEbill = validEbill[validEbill.length - 1];
-      const bexioTokenCookie = {
-        access_Token: latestEbill.accessToken,
-        refresh_Token: latestEbill.refreshToken,
-        isBexioUser: true
-      };
-      res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
-        domain: config.SESSION_DOMAIN,
-        maxAge: config.SESSION_EXPIRY,
-        httpOnly: true,
-        signed: true,
-        secure: true
+      // ------------------------------
+      // 6. Set Bexio token cookie if any eBill processed
+      // ------------------------------
+      const validEbill = ebillProcessed.filter(inv => inv?.accessToken && inv?.refreshToken);
+      console.log('validEbill', validEbill)
+      if (validEbill.length > 0) {
+        const latestEbill = validEbill[validEbill.length - 1];
+        const bexioTokenCookie = {
+          access_Token: latestEbill.accessToken,
+          refresh_Token: latestEbill.refreshToken,
+          isBexioUser: true
+        };
+        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), {
+          domain: config.SESSION_DOMAIN,
+          maxAge: config.SESSION_EXPIRY,
+          httpOnly: true,
+          signed: true,
+          secure: true
+        });
+      }
+
+      return res.status(200).json({
+        status_code: 200,
+        message: 'common_success',
+        status: true,
+        data: combinedResponse
       });
+
+    } catch (error) {
+      console.error("sendInvoices error:", error);
+      return res.status(500).json({ status: 500, message: 'something_went_wrong' });
     }
-
-    return res.status(200).json({
-      status_code: 200,
-      message: 'common_success',
-      status: true,
-      data: combinedResponse
-    });
-
-  } catch (error) {
-    console.error("sendInvoices error:", error);
-    return res.status(500).json({ status: 500, message: 'something_went_wrong' });
   }
-}
 
 
   async sendOrder(req: Request, res: Response,): Promise<any> {
-    let formData ;
+    let formData;
     console.log("xmlToJsonOrder ");
     const reqData = req.body;
     console.log(reqData);
     try {
-      let transaction_id = req.body.globaltransaction,taxList,orderTitle = '';
+      let transaction_id = req.body.globaltransaction, taxList, orderTitle = '';
       let bc_id = req.body.bcId;
       let file_path = req.body.file_path;
       let id = req.body.id;
@@ -2223,7 +1581,7 @@ console.log('userId',userId);
       let cookie, access_token;
       cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       access_token = cookie.access_Token;
-      console.log('access_token',access_token);
+      console.log('access_token', access_token);
       const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
         where: {
           netcomid: netcomId,
@@ -2233,31 +1591,31 @@ console.log('userId',userId);
           settings: true,
         },
       });
-     
+
 
       taxList = await getTaxListActive(access_token);
       console.log(taxList);
-      console.log("typeof ",typeof(taxList));
-    
+      console.log("typeof ", typeof (taxList));
+
       formData = {
-        transaction_id:transaction_id,
-        virtual_filename:JSON.parse(file_path).output,
-        filetype:'output',
-        data_format:'base64'
+        transaction_id: transaction_id,
+        virtual_filename: JSON.parse(file_path).output,
+        filetype: 'output',
+        data_format: 'base64'
       }
-  var options = {
-    'method': 'POST',
-        'url': config.PYTHON_API+'file-download',
+      var options = {
+        'method': 'POST',
+        'url': config.PYTHON_API + 'file-download',
         formData: formData
       };
-      console.log('formData',formData);
+      console.log('formData', formData);
       request(options, async function (error, response) {
-        if (error) {  
-          console.log("python error",error);
-          
+        if (error) {
+          console.log("python error", error);
+
           commonErrors['errorTitle'] = 'xmlToJson';
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+formData;
-          warningMessage(commonErrors,error);
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + formData;
+          warningMessage(commonErrors, error);
           console.log("Error Occure in python api");
           res.send({
             status_code: 500,
@@ -2266,362 +1624,357 @@ console.log('userId',userId);
           });
           return
         }
-      let customerIds = await constGetContactId(bc_id);
-   
-      let title;
-     console.log('response',response.body);
-     if (JSON.parse(response.body).message == "something_went_wrong") {
-     console.log('response.body log',response.body);
-     console.log("Error Occure Response body message condition");
+        let customerIds = await constGetContactId(bc_id);
 
-        return res.status(500).json({
-          status: false,
-          message: 'something_went_wrong',
-        });
-      }
-      let data = JSON.parse(response.body).data;
-      let xml = Buffer.from(data, 'base64').toString();
-              let contact,contryName;
-           
-      xml2js.parseString(xml, async (err, result) => {
-        if (err) {
-          console.log("error XML");
-  
-          throw err;
+        let title;
+        console.log('response', response.body);
+        if (JSON.parse(response.body).message == "something_went_wrong") {
+          console.log('response.body log', response.body);
+          console.log("Error Occure Response body message condition");
+
+          return res.status(500).json({
+            status: false,
+            message: 'something_went_wrong',
+          });
         }
-  
-        let header, itemList, summary,orderId;
-        header = result.OPENTRANS.ORDER[0]?.ORDER_HEADER[0];
-        itemList = result.OPENTRANS.ORDER[0]?.ORDER_ITEM_LIST;
-        summary = result.OPENTRANS.ORDER[0]?.ORDER_SUMMARY;
-        let tempDeliveryAddress = header?.ORDER_INFO?.[0]?.PARTIES?.[0]?.PARTY?.filter(
-          e => Array.isArray(e?.PARTY_ROLE) && e.PARTY_ROLE[0] === "delivery"
-        ) || [];
-        // let tempDeliveryAddress = header['ORDER_INFO'][0]['PARTIES'][0]['PARTY'].filter((e)=> isArray(e.PARTY_ROLE) && e.PARTY_ROLE[0] == "delivery");
-        let deliveryAddress = "";
-        if(tempDeliveryAddress.length != 0){
-          
-          let tempAddress = tempDeliveryAddress[0]['ADDRESS'][0];
-        
-          deliveryAddress = await getAddress(tempAddress);
-          console.log('12345',deliveryAddress);
-        }
-       function getAddress(tempAddress){
-        for (const key in tempAddress) {
-          if (Array.isArray(tempAddress[key])) {
-            if(typeof(tempAddress[key][0]) == 'object'){
-              deliveryAddress =  getAddress(tempAddress[key][0])
-            }else{
-              deliveryAddress += tempAddress[key][0] + '\n';  
-  
-            }
+        let data = JSON.parse(response.body).data;
+        let xml = Buffer.from(data, 'base64').toString();
+        let contact, contryName;
+
+        xml2js.parseString(xml, async (err, result) => {
+          if (err) {
+            console.log("error XML");
+
+            throw err;
           }
-        }
-        return deliveryAddress;
-  
-       } 
-      
-        console.log(JSON.stringify(result));
-     
-      if('REMARKS' in header.ORDER_INFO[0])
-      {
-      
-        orderTitle = header.ORDER_INFO[0]['REMARKS'][0];
-  
-      }
-  
-  
-       console.log('orderTitle',orderTitle);
-  
-        console.log({ header,itemList,summary,orderId});
-       
-  
-        if ('ORDER_ID' in header.ORDER_INFO[0]) {
-         
-          orderId = header.ORDER_INFO[0]['ORDER_ID'][0]
 
-       }
-          
-        console.log('orderIdorderId',orderId);
-   
-        if('REMARKS' in header.ORDER_INFO[0])
-        {
-         
+          let header, itemList, summary, orderId;
+          header = result.OPENTRANS.ORDER[0]?.ORDER_HEADER[0];
+          itemList = result.OPENTRANS.ORDER[0]?.ORDER_ITEM_LIST;
+          summary = result.OPENTRANS.ORDER[0]?.ORDER_SUMMARY;
+          let tempDeliveryAddress = header?.ORDER_INFO?.[0]?.PARTIES?.[0]?.PARTY?.filter(
+            e => Array.isArray(e?.PARTY_ROLE) && e.PARTY_ROLE[0] === "delivery"
+          ) || [];
+          // let tempDeliveryAddress = header['ORDER_INFO'][0]['PARTIES'][0]['PARTY'].filter((e)=> isArray(e.PARTY_ROLE) && e.PARTY_ROLE[0] == "delivery");
+          let deliveryAddress = "";
+          if (tempDeliveryAddress.length != 0) {
+
+            let tempAddress = tempDeliveryAddress[0]['ADDRESS'][0];
+
+            deliveryAddress = await getAddress(tempAddress);
+            console.log('12345', deliveryAddress);
+          }
+          function getAddress(tempAddress) {
+            for (const key in tempAddress) {
+              if (Array.isArray(tempAddress[key])) {
+                if (typeof (tempAddress[key][0]) == 'object') {
+                  deliveryAddress = getAddress(tempAddress[key][0])
+                } else {
+                  deliveryAddress += tempAddress[key][0] + '\n';
+
+                }
+              }
+            }
+            return deliveryAddress;
+
+          }
+
+          console.log(JSON.stringify(result));
+
+          if ('REMARKS' in header.ORDER_INFO[0]) {
+
             orderTitle = header.ORDER_INFO[0]['REMARKS'][0];
-         
-        }
-        let itemArray = [];
-        let dueDate;
-        if ('PAYMENT' in header.ORDER_INFO[0]) {
-          if (JSON.stringify(header.ORDER_INFO[0].PAYMENT).indexOf('VALUE_DATE') != -1) {
-            dueDate = header.ORDER_INFO[0]?.PAYMENT[0]?.PAYMENT_TERMS[0]?.VALUE_DATE[0];
-  
+
+          }
+
+
+          console.log('orderTitle', orderTitle);
+
+          console.log({ header, itemList, summary, orderId });
+
+
+          if ('ORDER_ID' in header.ORDER_INFO[0]) {
+
+            orderId = header.ORDER_INFO[0]['ORDER_ID'][0]
+
+          }
+
+          console.log('orderIdorderId', orderId);
+
+          if ('REMARKS' in header.ORDER_INFO[0]) {
+
+            orderTitle = header.ORDER_INFO[0]['REMARKS'][0];
+
+          }
+          let itemArray = [];
+          let dueDate;
+          if ('PAYMENT' in header.ORDER_INFO[0]) {
+            if (JSON.stringify(header.ORDER_INFO[0].PAYMENT).indexOf('VALUE_DATE') != -1) {
+              dueDate = header.ORDER_INFO[0]?.PAYMENT[0]?.PAYMENT_TERMS[0]?.VALUE_DATE[0];
+
+            } else {
+              var date = new Date(header.ORDER_INFO[0].ORDER_DATE);
+              console.log(date.getDate());
+
+              date.setDate(date.getDate() + 30);
+
+              var d = new Date(date),
+                month = '' + (d.getMonth() + 1),
+                day = '' + d.getDate(),
+                year = d.getFullYear();
+
+              if (month.length < 2)
+                month = '0' + month;
+              if (day.length < 2)
+                day = '0' + day;
+              dueDate = [year, month, day].join('-');
+            }
           } else {
             var date = new Date(header.ORDER_INFO[0].ORDER_DATE);
             console.log(date.getDate());
-  
+
             date.setDate(date.getDate() + 30);
-  
+
             var d = new Date(date),
               month = '' + (d.getMonth() + 1),
               day = '' + d.getDate(),
               year = d.getFullYear();
-  
+
             if (month.length < 2)
               month = '0' + month;
             if (day.length < 2)
               day = '0' + day;
             dueDate = [year, month, day].join('-');
+
           }
-        } else {
-          var date = new Date(header.ORDER_INFO[0].ORDER_DATE);
-          console.log(date.getDate());
-  
-          date.setDate(date.getDate() + 30);
-  
-          var d = new Date(date),
-            month = '' + (d.getMonth() + 1),
-            day = '' + d.getDate(),
-            year = d.getFullYear();
-  
-          if (month.length < 2)
-            month = '0' + month;
-          if (day.length < 2)
-            day = '0' + day;
-          dueDate = [year, month, day].join('-');
-  
-        }
-        let iteamArray:any = [];
-        let taxId:any = [];
-        let taxStatus = true;
-        let tempTaxIdTmp = taxList?.filter((e) =>  (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
-        console.log('tempTaxIdTmp[0]',tempTaxIdTmp[0].id);
-  
-        itemList[0].ORDER_ITEM.forEach(element => {
-          console.log(element.LINE_ITEM_ID[0]);
-          let items:any = {};
-          let discounts = {};
-     
+          let iteamArray: any = [];
+          let taxId: any = [];
+          let taxStatus = true;
+          let tempTaxIdTmp = taxList?.filter((e) => (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
+          console.log('tempTaxIdTmp[0]', tempTaxIdTmp[0].id);
+
+          itemList[0].ORDER_ITEM.forEach(element => {
+            console.log(element.LINE_ITEM_ID[0]);
+            let items: any = {};
+            let discounts = {};
+
             console.log(typeof (element.PRODUCT_ID[0]));
-  
-          if (typeof (element.PRODUCT_ID[0]) == 'object') {
-            if ('bmecat:DESCRIPTION_SHORT' in element.PRODUCT_ID[0]) {
-              title = element.PRODUCT_ID[0]['bmecat:DESCRIPTION_SHORT'][0];
+
+            if (typeof (element.PRODUCT_ID[0]) == 'object') {
+              if ('bmecat:DESCRIPTION_SHORT' in element.PRODUCT_ID[0]) {
+                title = element.PRODUCT_ID[0]['bmecat:DESCRIPTION_SHORT'][0];
+              } else {
+                title = ' ';
+              }
             } else {
               title = ' ';
             }
-          } else {
-            title = ' ';
-          }
-      
-          console.log('123');
-  
-          items['amount'] = element.QUANTITY[0];
 
-          items['unit_price'] = parseFloat(element.PRODUCT_PRICE_FIX[0]['bmecat:PRICE_AMOUNT'][0]).toFixed(2);
-         
-          let desc = '',tempDesc = '';
-          
-          if('bmecat:SUPPLIER_PID' in element.PRODUCT_ID[0]){ 
-            if(typeof(element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0]) == 'object')
-            {
-              
-              desc = element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0]["_"];
-            }else{
-              desc = element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0];
-            }
-          }
-            
-          if('bmecat:INTERNATIONAL_PID' in element.PRODUCT_ID[0])
-          {
-            if(typeof(element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0]) == 'object')
-            {
-              tempDesc = element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0]["_"];
-            }else{
-              tempDesc = element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0];
-            }
-          }
-       
-          desc != '' ? desc = desc + '<br>' : ''
-          console.log('desc',desc);
-  
-          if(element.PRODUCT_ID[0]['bmecat:DESCRIPTION_LONG']){
-            desc = desc + element.PRODUCT_ID[0]['bmecat:DESCRIPTION_LONG'][0]
-          }
-          console.log('tempDesc',tempDesc);
-          
-          'bmecat:INTERNATIONAL_PID' in element.PRODUCT_ID[0] ? desc = desc + '<br>EAN:'+ tempDesc : '';
-          items['text'] = desc;
-          console.log('descdesc',desc);
-          
-        
-         
-          console.log(items);
-         
-          console.log(getCompanyIdQryResult[0]);
-            console.log('99988887777');
-            
-            if ('TAX_DETAILS_FIX' in element.PRODUCT_PRICE_FIX[0]) {
-             
-    
-                if ('bmecat:TAX_TYPE' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]) {
-                  if ('bmecat:TAX' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]) {
-                    
-                    let tempTaxId,tempTaxType;
-                   
-                    tempTaxType = getCompanyIdQryResult[0].tax_type? getCompanyIdQryResult[0].tax_type :'sales_tax';
-    
-                    console.log('tempTaxType',tempTaxType);
-                    tempTaxId = taxList.filter((e) =>  (e.type == tempTaxType && e.value == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0]) || (e.type == tempTaxType && e.value == (element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0] * 100)));
-                    tempTaxId != '' ? items['tax_id'] = tempTaxId[0]['id']:taxStatus = false;
-                    taxId.push(tempTaxId)
-                  }else{
-                    taxStatus = false;
-    
-                  }
-                }else{
-                  taxStatus = false;
-                }
-               
-          }
-          else{
-    
-                items['tax_id'] = tempTaxIdTmp[0].id;            
+            console.log('123');
+
+            items['amount'] = element.QUANTITY[0];
+
+            items['unit_price'] = parseFloat(element.PRODUCT_PRICE_FIX[0]['bmecat:PRICE_AMOUNT'][0]).toFixed(2);
+
+            let desc = '', tempDesc = '';
+
+            if ('bmecat:SUPPLIER_PID' in element.PRODUCT_ID[0]) {
+              if (typeof (element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0]) == 'object') {
+
+                desc = element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0]["_"];
+              } else {
+                desc = element.PRODUCT_ID[0]['bmecat:SUPPLIER_PID'][0];
               }
-         
-          items['type'] = 'KbPositionCustom';
-          iteamArray.push(items)
-          console.log(items);
-        });
-       
-        console.log('customerIds',customerIds);
-        
-        contact = await getContactDetails(access_token, customerIds[0].senderid);
-  
-        console.log("contact++ ",contact);
-        if (!contact) {
-       console.log("Error Occure in No contact Available");
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getContactDetails_not_found -req param,',JSON.stringify(req.body);
-          warningMessage(commonErrors,'getContactDetails_not_found');
-            res.send({
-            status_code: 500,
-            message: 'something_went_wrong',
-            status: false,
-  
+            }
+
+            if ('bmecat:INTERNATIONAL_PID' in element.PRODUCT_ID[0]) {
+              if (typeof (element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0]) == 'object') {
+                tempDesc = element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0]["_"];
+              } else {
+                tempDesc = element.PRODUCT_ID[0]['bmecat:INTERNATIONAL_PID'][0];
+              }
+            }
+
+            desc != '' ? desc = desc + '<br>' : ''
+            console.log('desc', desc);
+
+            if (element.PRODUCT_ID[0]['bmecat:DESCRIPTION_LONG']) {
+              desc = desc + element.PRODUCT_ID[0]['bmecat:DESCRIPTION_LONG'][0]
+            }
+            console.log('tempDesc', tempDesc);
+
+            'bmecat:INTERNATIONAL_PID' in element.PRODUCT_ID[0] ? desc = desc + '<br>EAN:' + tempDesc : '';
+            items['text'] = desc;
+            console.log('descdesc', desc);
+
+
+
+            console.log(items);
+
+            console.log(getCompanyIdQryResult[0]);
+            console.log('99988887777');
+
+            if ('TAX_DETAILS_FIX' in element.PRODUCT_PRICE_FIX[0]) {
+
+
+              if ('bmecat:TAX_TYPE' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]) {
+                if ('bmecat:TAX' in element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]) {
+
+                  let tempTaxId, tempTaxType;
+
+                  tempTaxType = getCompanyIdQryResult[0].tax_type ? getCompanyIdQryResult[0].tax_type : 'sales_tax';
+
+                  console.log('tempTaxType', tempTaxType);
+                  tempTaxId = taxList.filter((e) => (e.type == tempTaxType && e.value == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0]) || (e.type == tempTaxType && e.value == (element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0] * 100)));
+                  tempTaxId != '' ? items['tax_id'] = tempTaxId[0]['id'] : taxStatus = false;
+                  taxId.push(tempTaxId)
+                } else {
+                  taxStatus = false;
+
+                }
+              } else {
+                taxStatus = false;
+              }
+
+            }
+            else {
+
+              items['tax_id'] = tempTaxIdTmp[0].id;
+            }
+
+            items['type'] = 'KbPositionCustom';
+            iteamArray.push(items)
+            console.log(items);
           });
-          return
-        }
-       
-        if(!taxStatus){
-          console.log('TAX NOT FOUND');
-          commonErrors['errorTitle'] = req.originalUrl;
-          commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'tax_not_Found -req param,',JSON.stringify(req.body);
-          commonErrors['messagetype'] = "460";
-          warningMessage(commonErrors,'tax_not_Found');
-          res.send({
-            status_code: 500,
-            message: 'tax_not_Found',
-            status: false,
-          })
-          return
-        }
-        let currencyList:any = await getAllCurrency(access_token);
-        let cnyCurrency;
-        if( header.ORDER_INFO[0]['bmecat:CURRENCY'] ){
-          cnyCurrency = currencyList.find(currency => currency.name === header.ORDER_INFO[0]['bmecat:CURRENCY'][0]);
-        }
-        console.log('getCompanyIdQryResult.rows[0].settings',getCompanyIdQryResult[0].settings);
-        let mwstType;
-        if('HEADER_UDX' in header.ORDER_INFO[0]){
-          if('IS_TAX_INCLUSIVE' in header.ORDER_INFO[0]['HEADER_UDX'][0]){
-            if(header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0] == "true"){
-              mwstType = "false";
-            }else{
-              mwstType = "true";
-            }
-            console.log("header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0]",header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0]);
-          }
-        }
-        console.log('mwstTypemwstType',mwstType);
-        console.log("cnyCurrency :: ",cnyCurrency);
-        let order = {
-          "contact_id": customerIds[0].senderid ,
-          "user_id": contact.user_id,
-          "currency_id": cnyCurrency ? cnyCurrency.id : '',
-          "mwst_type": taxId.length != 0 ? 0 : 1,
-          "mwst_is_net": taxId.length != 0 ? (mwstType ? mwstType :true) : false,
-          "is_valid_from": formatDate(header.ORDER_INFO[0].ORDER_DATE),
-          "positions": iteamArray,
-          "title": orderTitle,
-           "delivery_address_type": deliveryAddress != "" ? "1" : undefined,
-           "delivery_address_manual": deliveryAddress != "" ? deliveryAddress : undefined,
-        }
-        console.log("order :: ",order);
-        var options = {
-          'method': 'POST',
-          'url': `${config.BEXIO_API}2.0/kb_order`,
-          'headers': {
-            'Accept': 'application/json',
-            "Content-Type": "application/json",
-            'Authorization': 'Bearer '+access_token
-          },
-          body:JSON.stringify(order)
-  
-        };
-        request(options, async function (error, response) {
-          console.log("create order:::");
-          console.log(JSON.stringify(response.body));
-          
-          if (error){
-            console.log(error);
-            return res.send({
-              status_code: 500,
-              message: JSON.stringify(error),
-              status: false,
-            })
-          }
-          console.log("create order response:", response );
-          
-          if(response.statusCode==201){
-            let footer = JSON.parse(response.body)['footer'];
-            if(orderId != ' '){
-            footer = `Bestellnummer: ${orderId} <br><br>` + footer 
-            await setOrderId(id,JSON.parse(response.body)['document_nr'])
-            if('customer-output' in JSON.parse(file_path)){
-              await moveFile(netcomId,JSON.parse(file_path)["customer-output"]);
-            }
-            }
-            return res.send({
-              status_code: 200,
-              message: 'common_sucess',
-              status: true,
-              data: [],
-            });
-          }else{
+
+          console.log('customerIds', customerIds);
+
+          contact = await getContactDetails(access_token, customerIds[0].senderid);
+
+          console.log("contact++ ", contact);
+          if (!contact) {
+            console.log("Error Occure in No contact Available");
             commonErrors['errorTitle'] = req.originalUrl;
-            commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'SEND_G2B_ORDER -req param,',JSON.stringify(req.body);
-            warningMessage(commonErrors,'SEND_G2B_ORDER');
-            console.log("Error Occure in Status code not 201");
-           return res.send({
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'getContactDetails_not_found -req param,', JSON.stringify(req.body);
+            warningMessage(commonErrors, 'getContactDetails_not_found');
+            res.send({
               status_code: 500,
               message: 'something_went_wrong',
               status: false,
-            })
+
+            });
+            return
           }
+
+          if (!taxStatus) {
+            console.log('TAX NOT FOUND');
+            commonErrors['errorTitle'] = req.originalUrl;
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'tax_not_Found -req param,', JSON.stringify(req.body);
+            commonErrors['messagetype'] = "460";
+            warningMessage(commonErrors, 'tax_not_Found');
+            res.send({
+              status_code: 500,
+              message: 'tax_not_Found',
+              status: false,
+            })
+            return
+          }
+          let currencyList: any = await getAllCurrency(access_token);
+          let cnyCurrency;
+          if (header.ORDER_INFO[0]['bmecat:CURRENCY']) {
+            cnyCurrency = currencyList.find(currency => currency.name === header.ORDER_INFO[0]['bmecat:CURRENCY'][0]);
+          }
+          console.log('getCompanyIdQryResult.rows[0].settings', getCompanyIdQryResult[0].settings);
+          let mwstType;
+          if ('HEADER_UDX' in header.ORDER_INFO[0]) {
+            if ('IS_TAX_INCLUSIVE' in header.ORDER_INFO[0]['HEADER_UDX'][0]) {
+              if (header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0] == "true") {
+                mwstType = "false";
+              } else {
+                mwstType = "true";
+              }
+              console.log("header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0]", header.ORDER_INFO[0]['HEADER_UDX'][0]['IS_TAX_INCLUSIVE'][0]);
+            }
+          }
+          console.log('mwstTypemwstType', mwstType);
+          console.log("cnyCurrency :: ", cnyCurrency);
+          let order = {
+            "contact_id": customerIds[0].senderid,
+            "user_id": contact.user_id,
+            "currency_id": cnyCurrency ? cnyCurrency.id : '',
+            "mwst_type": taxId.length != 0 ? 0 : 1,
+            "mwst_is_net": taxId.length != 0 ? (mwstType ? mwstType : true) : false,
+            "is_valid_from": formatDate(header.ORDER_INFO[0].ORDER_DATE),
+            "positions": iteamArray,
+            "title": orderTitle,
+            "delivery_address_type": deliveryAddress != "" ? "1" : undefined,
+            "delivery_address_manual": deliveryAddress != "" ? deliveryAddress : undefined,
+          }
+          console.log("order :: ", order);
+          var options = {
+            'method': 'POST',
+            'url': `${config.BEXIO_API}2.0/kb_order`,
+            'headers': {
+              'Accept': 'application/json',
+              "Content-Type": "application/json",
+              'Authorization': 'Bearer ' + access_token
+            },
+            body: JSON.stringify(order)
+
+          };
+          request(options, async function (error, response) {
+            console.log("create order:::");
+            console.log(JSON.stringify(response.body));
+
+            if (error) {
+              console.log(error);
+              return res.send({
+                status_code: 500,
+                message: JSON.stringify(error),
+                status: false,
+              })
+            }
+            console.log("create order response:", response);
+
+            if (response.statusCode == 201) {
+              let footer = JSON.parse(response.body)['footer'];
+              if (orderId != ' ') {
+                footer = `Bestellnummer: ${orderId} <br><br>` + footer
+                await setOrderId(id, JSON.parse(response.body)['document_nr'])
+                if ('customer-output' in JSON.parse(file_path)) {
+                  await moveFile(netcomId, JSON.parse(file_path)["customer-output"]);
+                }
+              }
+              return res.send({
+                status_code: 200,
+                message: 'common_sucess',
+                status: true,
+                data: [],
+              });
+            } else {
+              commonErrors['errorTitle'] = req.originalUrl;
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'SEND_G2B_ORDER -req param,', JSON.stringify(req.body);
+              warningMessage(commonErrors, 'SEND_G2B_ORDER');
+              console.log("Error Occure in Status code not 201");
+              return res.send({
+                status_code: 500,
+                message: 'something_went_wrong',
+                status: false,
+              })
+            }
+          });
+          console.log('SEND_G2B_ORDER1SEND_G2B_ORDER1');
         });
-        console.log('SEND_G2B_ORDER1SEND_G2B_ORDER1');
       });
-    });
     } catch (error) {
-       commonErrors['errorTitle'] = req.originalUrl;
-       commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+formData;
-       warningMessage(commonErrors,error);
-       return res.send({
-         status_code: 500,
-         message: JSON.stringify(error),
-         status: false,
-       })
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + formData;
+      warningMessage(commonErrors, error);
+      return res.send({
+        status_code: 500,
+        message: JSON.stringify(error),
+        status: false,
+      })
     }
   }
   async sendDeliveryNotes(req: Request, res: Response,): Promise<any> {
@@ -2631,12 +1984,12 @@ console.log('userId',userId);
         "partyId": bodyData.partyId,
         "accountId": bodyData.accountId,
       }
-      let deliveryItems = bodyData.deliveryItems;  
-    
-       
+      let deliveryItems = bodyData.deliveryItems;
+
+
       let obj = JSON.parse(deliveryItems);
-      console.log('objobjobjobj',obj);
-      
+      console.log('objobjobjobj', obj);
+
       async function processInvoices(obj, bodyData) {
         for (let index = 0; index < obj.length; index++) {
           const element = obj[index];
@@ -2644,16 +1997,16 @@ console.log('userId',userId);
         }
       }
       await processInvoices(obj, bodyData);
-      console.log('deliveryItems',deliveryItems);
-      
+      console.log('deliveryItems', deliveryItems);
+
       this.sendDeliveryNotesHost.run(deliveryItems, bodyParams, {
         cookies: req.cookies, // Include cookies
         signedCookies: req.signedCookies, // Include signed cookies
         url: req.url,
-    });
-      
+      });
+
     } catch (error) {
-      console.log("error in sendBulkDeliveryNotes :: ",error);      
+      console.log("error in sendBulkDeliveryNotes :: ", error);
       let responseValue = req.body.invoiceId;
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -2664,11 +2017,11 @@ console.log('userId',userId);
         status: false,
       });
     }
-   return res.send({
-              status_code: 200,
-              message: 'common_sucess',
-              status: true,
-            });
+    return res.send({
+      status_code: 200,
+      message: 'common_sucess',
+      status: true,
+    });
 
   }
 
@@ -2676,48 +2029,48 @@ console.log('userId',userId);
     try {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
-      let invoiceId =req.body.invoice_id;
-      let pdf,fileName,pdfContent;
-      pdf = await getInvoicePdf(accessToken,invoiceId);
-      if(pdf.response == 401){
-        
-      
+      let invoiceId = req.body.invoice_id;
+      let pdf, fileName, pdfContent;
+      pdf = await getInvoicePdf(accessToken, invoiceId);
+      if (pdf.response == 401) {
+
+
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'error_getInvoicePdf ');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_getInvoicePdf ');
         //return resolve('unauthorized');
 
         return res.status(status_code.UNAUTHORISED).json({
           status_code: 401,
           message: 'common_error',
         });
-  
+
       }
-      if(!pdf){
-       
+      if (!pdf) {
+
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'error_getInvoicePdf ');
-      //  return resolve('pdf_not_found');
-      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-        status_code: 500,
-        message: 'pdf_not_found',
-      });
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_getInvoicePdf ');
+        //  return resolve('pdf_not_found');
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+          status_code: 500,
+          message: 'pdf_not_found',
+        });
       }
       let pdf_parsed = JSON.parse(pdf);
       pdfContent = pdf_parsed.content;
       fileName = pdf_parsed.name;
-      
+
       return res.status(status_code.OK).json({
         status_code: 200,
         message: 'common_success',
         status: true,
-        data:{pdf_parsed,pdfContent,fileName},
+        data: { pdf_parsed, pdfContent, fileName },
       });
 
-      
+
     } catch (error) {
-      console.log("error in viewInvoicePdf :: ",error);      
+      console.log("error in viewInvoicePdf :: ", error);
       let responseValue = req.body.invoiceId;
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -2728,47 +2081,47 @@ console.log('userId',userId);
         status: false,
       });
     }
-   
+
   }
 
-async invoiceDetails(req: Request, res: Response,): Promise<any> {
+  async invoiceDetails(req: Request, res: Response,): Promise<any> {
     try {
 
       console.log("Invoice details called");
-      
+
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
-      let invoiceId =req.body.invoice_id;
+      let invoiceId = req.body.invoice_id;
       let netcomid = req.body.netcomid;
-      let pdf,fileName,pdfContent;
-      pdf = await getInvoicePdf(accessToken,invoiceId);
-      if(pdf.response == 401){
+      let pdf, fileName, pdfContent;
+      pdf = await getInvoicePdf(accessToken, invoiceId);
+      if (pdf.response == 401) {
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'error_getInvoicePdf ');
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_getInvoicePdf ');
         return res.status(status_code.UNAUTHORISED).json({
           status_code: 401,
           message: 'common_error',
         });
-  
+
       }
-      if(!pdf){
+      if (!pdf) {
         commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'error_getInvoicePdf -req param,',JSON.stringify(req.body);
-        warningMessage(commonErrors,'error_getInvoicePdf ');
-      return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-        status_code: 500,
-        message: 'pdf_not_found',
-      });
+        commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + 'error_getInvoicePdf -req param,', JSON.stringify(req.body);
+        warningMessage(commonErrors, 'error_getInvoicePdf ');
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+          status_code: 500,
+          message: 'pdf_not_found',
+        });
       }
       let pdf_parsed = JSON.parse(pdf);
 
-      console.log("invoiceId",invoiceId);
+      console.log("invoiceId", invoiceId);
       const invoiceIdNumber = Number(invoiceId);
-      console.log("invoiceIdNumber",invoiceIdNumber);
+      console.log("invoiceIdNumber", invoiceIdNumber);
       // const userDetails=await getUser(accessToken,)
-      const result=await connectBexio.$queryRaw<InvoiceChannelChangeResult[]>(
-                Prisma.sql`
+      const result = await connectBexio.$queryRaw<InvoiceChannelChangeResult[]>(
+        Prisma.sql`
                     SELECT
                       ds.invoice_params->'channel_change_logs' AS channel_change_logs
                     FROM documents_invoice_send AS ds
@@ -2776,36 +2129,36 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
                       ON ds.fk_companyregistered = c.cid
                     WHERE c.netcomid = ${netcomid}
                     AND ds.rk_invoice = ${invoiceIdNumber}`
-              )
-              console.log("result",result);
-              let logs:ChannelChangeLog[]=result[0]?.channel_change_logs
-              let userUpdatedLogs
-              if(logs && logs.length>0){  
-               userUpdatedLogs = await Promise.all(logs.map(async (log) => {
-                const user:any = await getUser(accessToken, log.user)
-                console.log("user Details", user);
-                return {
-                  ...log,
-                  user:{
-                    id:user?.id,
-                    firstname:user?.firstname,
-                    lastname:user?.lastname,
-                    email:user?.email,
-                  }
-                }
-              }));
-              console.log('resultresultresultresult', userUpdatedLogs);
-              } 
+      )
+      console.log("result", result);
+      let logs: ChannelChangeLog[] = result[0]?.channel_change_logs
+      let userUpdatedLogs
+      if (logs && logs.length > 0) {
+        userUpdatedLogs = await Promise.all(logs.map(async (log) => {
+          const user: any = await getUser(accessToken, log.user)
+          console.log("user Details", user);
+          return {
+            ...log,
+            user: {
+              id: user?.id,
+              firstname: user?.firstname,
+              lastname: user?.lastname,
+              email: user?.email,
+            }
+          }
+        }));
+        console.log('resultresultresultresult', userUpdatedLogs);
+      }
       pdfContent = pdf_parsed.content;
-      fileName = pdf_parsed.name;      
+      fileName = pdf_parsed.name;
       return res.status(status_code.OK).json({
         status_code: 200,
         message: 'common_success',
         status: true,
-        data:{pdf_parsed,pdfContent,fileName,channelLogs:userUpdatedLogs || []},
+        data: { pdf_parsed, pdfContent, fileName, channelLogs: userUpdatedLogs || [] },
       });
     } catch (error) {
-      console.log("error in invoiceDetails :: ",error);      
+      console.log("error in invoiceDetails :: ", error);
       let responseValue = req.body.invoiceId;
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
@@ -2816,14 +2169,14 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
         status: false,
       });
     }
-}
+  }
 
   async changeInvoiceSendStatus(req: Request, res: Response,): Promise<any> {
-  
-    let formData 
+
+    let formData
     formData = req.body;
     try {
-       const referenceId = formData?.referenceId;
+      const referenceId = formData?.referenceId;
       const transactionId = formData?.transactionId;
       let status, response;
 
@@ -2833,99 +2186,100 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
       console.log('formData', formData);
       console.log('JSON.parse(formData.message)', JSON.parse(formData.message || '{}'));
 
-          if (service === 'ebill') {
-            switch (formData.status.trim()) {
-              case 'ERROR':
-                status = 0;
-                response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'ERROR';
-                break;
-              case 'INCORRECT':
-                status = 0;
-                response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'INCORRECT';
-                break;
-              case 'REJECTED':
-                status = 0;
-                response = 'rejected';
-                break;
-              case 'COMPLETED':
-                status = 2;
-                response = 'completed';
-                break;
-              case 'OPEN':
-                status = 1;
-                response = 'open';
-                break;
-              case 'APPROVED':
-                status = 1;
-                response = 'approved';
-                break;
-              default:
-                status = 1;
-                break;
-            }
-          } else if (service === 'print') {
-            switch (formData.status.trim()) {
-              case 'ERROR':
-                status = 0;
-                response = 'print_rejected';
-                break;
-              case 'SENT':
-                status = 2;
-                response = 'completed';
-                break;
-              case 'INPROGRESS':
-                status = 1;
-                response = 'process_in_print_partner';
-                break;
-              default:
-                status = 1;
-                break;
-            }
-          }
-          const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
-            where: {
+      if (service === 'ebill') {
+        switch (formData.status.trim()) {
+          case 'ERROR':
+            status = 0;
+            response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'ERROR';
+            break;
+          case 'INCORRECT':
+            status = 0;
+            response = (JSON.parse(formData.message || '{}'))?.technicalReason || 'INCORRECT';
+            break;
+          case 'REJECTED':
+            status = 0;
+            response = 'rejected';
+            break;
+          case 'COMPLETED':
+            status = 2;
+            response = 'completed';
+            break;
+          case 'OPEN':
+            status = 1;
+            response = 'open';
+            break;
+          case 'APPROVED':
+            status = 1;
+            response = 'approved';
+            break;
+          default:
+            status = 1;
+            break;
+        }
+      } else if (service === 'print') {
+        switch (formData.status.trim()) {
+          case 'ERROR':
+            status = 0;
+            response = 'print_rejected';
+            break;
+          case 'SENT':
+            status = 2;
+            response = 'completed';
+            break;
+          case 'INPROGRESS':
+            status = 1;
+            response = 'process_in_print_partner';
+            break;
+          default:
+            status = 1;
+            break;
+        }
+      }
+      const refDataQueryResult = await connectBexio.documents_invoice_send.findMany({
+        where: {
+          OR: [
+            { reference_id: referenceId },
+            { rk_globaltransaction: transactionId },
+          ],
+        },
+        include: {
+          companyregistered: true,
+        },
+      });
+
+      if (refDataQueryResult.length > 0) {
+        // Update status and fetch updated invoice(s) to get rk_invoice
+        await connectBexio.documents_invoice_send.updateMany({
+          where: {
             OR: [
               { reference_id: referenceId },
               { rk_globaltransaction: transactionId },
             ],
           },
-            include: {
-              companyregistered: true,
-            },
-          });          
-          
-        if(refDataQueryResult.length>0){
-          // Update status and fetch updated invoice(s) to get rk_invoice
-          await connectBexio.documents_invoice_send.updateMany({
-            where: {
-                OR: [
+          data: {
+            status: status,
+            is_notifyed: true,
+            response: response
+          },
+        });
+
+        // Fetch the updated record to get rk_invoice as a number
+        const updatedInvoice = await connectBexio.documents_invoice_send.findFirst({
+          where: {
+            OR: [
               { reference_id: referenceId },
               { rk_globaltransaction: transactionId },
             ],
-            },
-            data: {
-              status: status,
-              is_notifyed: true,
-              response:response
-            },
-          });
+          },
+          select: { rk_invoice: true },
+        });
+        const rkInvoice = updatedInvoice?.rk_invoice ? Number(updatedInvoice.rk_invoice) : undefined;
+        const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
 
-            // Fetch the updated record to get rk_invoice as a number
-            const updatedInvoice = await connectBexio.documents_invoice_send.findFirst({
-              where: {   OR: [
-                  { reference_id: referenceId },
-                  { rk_globaltransaction: transactionId },
-                ],
-              },
-              select: { rk_invoice: true },
-            });
-            const rkInvoice = updatedInvoice?.rk_invoice ? Number(updatedInvoice.rk_invoice) : undefined;
-          const bankId = (refDataQueryResult[0]?.invoice_params as any)?.bank_id
+        console.log('rkInvoice', rkInvoice);
 
-            console.log('rkInvoice',rkInvoice);
-        
-          if (
-          (service === 'edi' && formData.status?.trim() === 'COMPLETED')||
+        if (
+          (service === 'edi' && formData.status?.trim() === 'COMPLETED') ||
           (service === 'ebill' && formData.status?.trim() === 'COMPLETED') ||
           (service === 'print' && formData.status?.trim() === 'SENT') ||
           (service === 'email' && formData.status?.trim() === 'SENT')
@@ -2935,151 +2289,42 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
             rkInvoice
           );
         }
-          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId, service);
+        await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId, service);
 
-          return res.status(200).json({
-            status_code: 200,
-            message: 'success',
-            status: true
-          });
-        }else{
-          console.log('errorr','error_refDataQueryResult');
-          
-          return res.status(200).json({
-            status_code: 200,
-            message: 'something_went_wrong',
-            status: false
-          });
-        }
-        
+        return res.status(200).json({
+          status_code: 200,
+          message: 'success',
+          status: true
+        });
+      } else {
+        console.log('errorr', 'error_refDataQueryResult');
+
+        return res.status(200).json({
+          status_code: 200,
+          message: 'something_went_wrong',
+          status: false
+        });
+      }
+
     } catch (error) {
-      
-        console.log(error);
-        let responseValue = JSON.stringify(formData)
-        commonErrors['errorTitle'] = req.originalUrl;
-        commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+responseValue;
-        warningMessage(commonErrors,error);
-         return res.status(500).json({
-              status_code: 500,
-              message: 'something_went_wrong',
-              status: false,
-              error:error.toString()
-            }); 
+
+      console.log(error);
+      let responseValue = JSON.stringify(formData)
+      commonErrors['errorTitle'] = req.originalUrl;
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
+      warningMessage(commonErrors, error);
+      return res.status(500).json({
+        status_code: 500,
+        message: 'something_went_wrong',
+        status: false,
+        error: error.toString()
+      });
     }
   }
-  // async markAsIssued(req: Request, res: Response,): Promise<any> {
-  //   console.log('markAsIssued',req.body)
-  //   try {
-  //     let invoiceId = req.body.id,tokenSet,invoice;
-  //     const bexioClient = await bexioInterfaceClient();
 
-  //     const getInvoiceIdRslt = await connectBexio.$queryRaw<{ cid: number[] }[]>(
-  //       Prisma.sql`
-  //       SELECT * FROM documents_invoice_send ds 
-  //       INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
-  //       WHERE ds.cid = ${invoiceId}::bigint
-  //       `
-  //       );
-  //        console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
-  //       if(getInvoiceIdRslt.length != 0){
-
-  //       console.log('getInvoiceIdRslt',getInvoiceIdRslt[0]["refresh_token"]);
-
-  //       console.log(getInvoiceIdRslt);
-  //         try {
-  //         tokenSet = await bexioClient.refresh(getInvoiceIdRslt[0]["refresh_token"]);
-  //         invoice = getInvoiceIdRslt[0]['rk_invoice'];
-  //         console.log('invoice',invoice);
-          
-  //         } catch (error) {
-  //           console.log('error',error);
-            
-  //           commonErrors['errorTitle'] = 'markAsIssues_token_issue';
-  //           commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;
-  //           warningMessage(commonErrors,error);
-
-  //           return res.status(500).json({
-  //             status_code: 500,
-  //             message: 'something_went_wrong',
-  //             status: false,
-  //             error:'token_issue'
-  //           }); 
-  //         }
-          
-  //         return new Promise(async(resolve, reject) => {
-  //           var options = {
-  //             'method': 'POST',
-  //             'url': `https://api.bexio.com/2.0/kb_invoice/${invoice}/mark_as_sent`,
-  //             'headers': {
-  //               'Accept': 'application/json',
-  //               'Authorization': 'Bearer '+tokenSet.access_token
-  //             }
-  //           };
-  //           request(options, async function (error, response) {
-  //             if (error) {  
-  //               commonErrors['errorTitle'] = 'markAsIssues';
-  //               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+invoiceId;;
-  //               warningMessage(commonErrors,error);
-  //               return res.status(500).json({
-  //                 status_code: 500,
-  //                 message: 'something_went_wrong',
-  //                 status: false,
-  //                 error:error.toString()
-  //               });
-  //             }
-  //             // res.send(response.body)
-  //             console.log(response.body);
-  //             if(response.statusCode==200)
-  //             {
-  //               await markAsPending(tokenSet.access_token,invoice)
-  //               return res.status(200).json({
-  //                 status_code: 200,
-  //                 status: true
-  //               });
-  //             }
-  //             else
-  //             {
-  //               commonErrors['errorTitle'] = 'markAsIssues';
-  //               commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'server error'+'-bexio param,'+invoiceId;;
-  //               warningMessage(commonErrors,error);
-  //               return res.status(500).json({
-  //                 status_code: 500,
-  //                 message: 'something_went_wrong',
-  //                 status: false,
-  //                 error:'server error'
-  //               });
-  //             }
-  //           });
-  //         });
-  //       }else{
-  //         let error = 'id missing'
-  //         commonErrors['errorTitle'] = 'markAsIssues';
-  //         commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'-bexio param,'+req.body.id;;
-  //         warningMessage(commonErrors,error);
-  //         return res.status(500).json({
-  //           status_code: 500,
-  //           message: 'something_went_wrong',
-  //           status: false,
-  //           error:error
-  //         });
-  //       }  
-  //   } catch (error) {
-  //     console.log('error',error);
-  //     commonErrors['errorTitle'] = 'markAsIssues';
-  //     commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-bexio param,'+req.body.id;;
-  //     warningMessage(commonErrors,error);
-  //     return res.status(500).json({
-  //       status_code: 500,
-  //       message: 'something_went_wrong',
-  //       status: false,
-  //       error:error.toString()
-
-  //     });
-  //   }
-  // }
 
 }
-  const markAsSentToken = async (refresh_token,rk_invoice)=>{
+const markAsSentToken = async (refresh_token, rk_invoice) => {
 
   try {
     const bexioClient = await bexioInterfaceClient();
@@ -3091,11 +2336,11 @@ async invoiceDetails(req: Request, res: Response,): Promise<any> {
     // await markAsPending(tokenSet.access_token, invoice);
   } catch (error: any) {
     warningMessage(commonErrors, error);
-    
+
   }
 }
 
-const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount?, bankId?,service?) => {
+const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount?, bankId?, service?) => {
   console.log('notifiBexio:::', id, status, message, netcomId, amount, bankId);
 
   const bexioClient = await bexioInterfaceClient();
@@ -3215,7 +2460,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
         } else {
           return resolve(false)
         }
-      } else if (service=='ebill' && (status == 'ERROR' || status == 'INCORRECT'|| status == 'ERROR-INTERNAL')) {
+      } else if (service == 'ebill' && (status == 'ERROR' || status == 'INCORRECT' || status == 'ERROR-INTERNAL')) {
         options = {
           'method': 'POST',
           'url': `https://office.bexio.com/api.php/kb_invoice/${id}/mark_as_ebill_failed`,
@@ -3381,7 +2626,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
           console.log('response', response.body);
 
           if (response.statusCode == 201) {
-             resolve(JSON.parse(response.body));
+            resolve(JSON.parse(response.body));
             console.log('JSON.parse(response.body)', JSON.parse(response.body));
             return;
           }
@@ -3413,88 +2658,3 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
 
 }
 
-
-
-
-
-// if("channel" in data) {
-         
-//          const channel = String(data.channel).toLowerCase();
-//          const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
-         
-//          console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
-
-//       const invoices = (getInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
-//       console.log("Include - Invoices for channel:", invoices);
-
-//       // 2. Resolve Contacts for these invoices (Explicit Contacts)
-//       let invoiceContactListIds: number[] = [];
-//       if (invoices.length > 0) {
-//         searchJson.push({
-//           field: "id",
-//           value: invoices,
-//           criteria: "in"
-//         });
-
-//         // Fetch contacts for these invoices from Bexio
-//         const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
-//         invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
-//             .map((inv: any) => inv?.contact_id)
-//             .filter(Boolean);
-//         console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
-//       }
-
-//       // 3. Resolve Implicit Contacts (Group-based)
-//       if (channel === "edi") {
-//          // EDI relies on Explicit Contacts (resolved above) or previously 'contacts' from DB which is broken.
-//          // We rely on invoiceContactListIds.
-//          arrayContactIds = []; 
-//       } else if (channel === "print") {
-//        let printContactIds = await getContactIdsByChannel(accessToken, "print");
-//         let postContactIds = await getContactIdsByChannel(accessToken, "post");
-//         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
-
-//       } else if (channel === "email") {
-//         arrayContactIds = await getContactIdsByChannel(accessToken, "email");
-//       } else if (channel === "ebill") {
-//         arrayContactIds = await getContactIdsByChannel(accessToken, "ebill");
-//       }
-//       console.log("Implicit/Group contacts:", arrayContactIds);
-
-//       // 4. Merge Contacts
-//       const mergedContacts = [...(arrayContactIds || []), ...(invoiceContactListIds || [])]
-//       console.log("Final merged contacts:", mergedContacts);
-
-//       if (mergedContacts.length > 0) {
-//         searchJson.push({
-//           field: "contact_id",
-//           value: mergedContacts,
-//           criteria: "in"
-//         });
-//       } else {
-//          console.log("No contacts found for channel. Forcing empty result.");
-//          searchJson.push({
-//             "field": "id",
-//             "value": -1,
-//             "criteria": "equal"
-//          });
-//       }
-
-//       const getNotInvoiceIdRslt = await getInvoicesQuery(data.channel, netcomId, false);
-
-//       console.log("getNotInvoiceIdRslt invoices:", getNotInvoiceIdRslt?.[0]?.['invoices']);
-      
-//       const excludeInvoices = (getNotInvoiceIdRslt?.[0]?.invoices ?? []).filter(Boolean);
-
-//       console.log("Exclude - Invoice IDs:", excludeInvoices);
-
-//       if (excludeInvoices.length > 0) {
-//         searchJson.push({
-//           field: "id",
-//           value: excludeInvoices,
-//           criteria: "not_in"
-//         });
-//       }
-
-//       console.log("Final searchJson invoice filter test endpoint", JSON.stringify(searchJson, null, 2));
-//     }
