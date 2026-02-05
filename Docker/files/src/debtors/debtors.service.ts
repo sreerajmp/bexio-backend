@@ -1803,7 +1803,8 @@ console.log('!invoice.allow',invoice.allow);
       errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
       errorTitle: "DebtorsService.processEbillInvoice",
       process: "processEbillInvoice",
-      guid: "dummy-guid"
+      guid: "dummy-guid",
+      filename:invoice.documentNumber
     }, "no_subscription_found");
     console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
     return null; //  stop here — skip rest of processing
@@ -1835,7 +1836,7 @@ if (bodyData?.userId && !invoice.userId) {
   const getBillerData = await pool.query(`
       SELECT billerid FROM biller WHERE netcomid='${data.netcomId}' AND status='ACTIVE'
   `);
- const bodyParams = { partyId: recipientToken[0]?.rk_party};
+ const bodyParams = { partyId: recipientToken[0]?.rk_party,netcomId:data.netcomId};
   if (getBillerData.recordset.length > 0) {
     this.pushWorkerHost.run([invoice],bodyParams, {}, getBillerData.recordset[0].billerid, 'EBILL');
   }
@@ -2039,7 +2040,8 @@ console.log('userId',userId);
             errorDescription: `From:${path.basename(__filename)} no_channel for invoice ${inv.doc_id}`,
             errorTitle: "DebtorsService.sendInvoice",
             process: "sendInvoice",
-            guid: "dummy-guid"
+            guid: "dummy-guid",
+            filename:inv.documentNumber
           }, "no_channel");
 
           combinedResponse.otherInvoiceResults.push(inv);
