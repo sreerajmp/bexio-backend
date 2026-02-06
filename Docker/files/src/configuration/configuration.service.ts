@@ -1329,7 +1329,7 @@ export class ConfigurationService {
             if (getPartyEbillResult.length <= 0) {
               await connectLibrary.$queryRaw<any>`INSERT INTO "ebillWallet" 
               (fk_party,"lastEntered","billerId") 
-              VALUES (${companyId},date_trunc('month', now()::timestamp) + interval '6 hour',${data.id})`
+              VALUES (${companyIdNumber},date_trunc('month', now()::timestamp) + interval '6 hour',${data.id})`
             }
             let updateconnection = await updateConnection(encrToken);
             const checkBexioCompanyResult = await connectBexio.companyregistered.findMany({
