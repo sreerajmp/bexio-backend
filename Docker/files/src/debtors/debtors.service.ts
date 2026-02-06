@@ -333,7 +333,7 @@ export class DebtorsService {
         // STEP B: Resolve Contacts for Explicit Invoices
         // Even if we have the invoice ID, we need the Contact IDs for merging later.
         let invoiceContactListIds: number[] = [];
-        if (invoices.length > 0 && contactIds.length > 0) {
+        // if (invoices.length > 0 && contactIds.length > 0) {
           // Helper Function: getInvoiceSearch(accessToken, filters)
           // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
           // const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
@@ -342,9 +342,11 @@ export class DebtorsService {
           //     .filter(Boolean);
           // invoiceContactListIds = [...contactIds];
           // console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
+        // }
+        if (data['invoiceStatus'] !== 'draft') {
+          const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
+          invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
         }
-        const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
-        invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
 
 
         // STEP C: Resolve Implicit Contacts (Group-based)
