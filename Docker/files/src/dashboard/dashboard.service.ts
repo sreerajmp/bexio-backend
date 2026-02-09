@@ -400,7 +400,7 @@ console.log('sdasssssssssssssssssssssssssssssssssssssssss');
                 };
                 // new Promise(function (resolve, reject) {
                     request(options, async function (error, response, body) {
-                        console.log('counts',response.body);
+                      //  console.log('counts',response);
                         
                         if (!error && response && response.body && JSON.parse(response.body).status == true) {
                             console.log("status true");
