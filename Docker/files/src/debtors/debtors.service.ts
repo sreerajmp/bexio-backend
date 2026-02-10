@@ -1050,7 +1050,15 @@ export class DebtorsService {
             console.log('resultArray deliveryNotes', resultArray);
             console.log('test', resultArray?.includes((resData[deliveryNotes]?.contact_id)));
             console.log('**********************', resData[deliveryNotes]?.contact_id)
-            resultArray ? resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true : false : false;
+            // resultArray ? resData[deliveryNotes]['allowSend'] = resultArray[0]?.array_agg.includes((resData[deliveryNotes].contact_id)) ? true : false : false;
+            if (Array.isArray(resultArray) &&
+              Array.isArray(resultArray[0]?.array_agg) &&
+              resultArray[0].array_agg.includes(resData[deliveryNotes]?.contact_id)
+            ) {
+              resData[deliveryNotes]['allowSend'] = true;
+            } else {
+              resData[deliveryNotes]['allowSend'] = false;
+            }
             resData[deliveryNotes]['statusLabel'] = status[resData[deliveryNotes].kb_item_status_id];
             resData[deliveryNotes]['timestamp'] = '';
             resData[deliveryNotes]['companyName'] = resData[deliveryNotes]['contact_address'].split("\n")[0];

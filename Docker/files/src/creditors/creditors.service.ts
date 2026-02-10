@@ -501,11 +501,19 @@ export class CreditorsService {
             tempStatus = false;
 
             console.log('resData1', resData[invoice].contact_id);
-            resData[invoice]['allowSend'] = resultArray
-              ? resultArray.includes(resData[invoice].contact_id)
-                ? true
-                : false
-              : false;
+            // resData[invoice]['allowSend'] = resultArray
+            //   ? resultArray.includes(resData[invoice].contact_id)
+            //     ? true
+            //     : false
+            //   : false;
+            if (
+              Array.isArray(resultArray) &&
+              resultArray.includes(resData[invoice].contact_id)
+            ) {
+              resData[invoice]['allowSend'] = true;
+            } else {
+              resData[invoice]['allowSend'] = false;
+            }
             contact_idList.push(resData[invoice].contact_id);
 
             order = await getOrderOT(accessToken, resData[invoice].id);
