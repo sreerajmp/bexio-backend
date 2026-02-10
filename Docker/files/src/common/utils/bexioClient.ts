@@ -1,6 +1,8 @@
 import { Issuer, generators } from 'openid-client';
-import { connectLibrary } from '../../db/prisma-clients';
+import { PrismaClientsService } from '../../db/prisma-clients.service';
 import config from '../config';
+
+const { connectLibrary } = PrismaClientsService.getClients();
 
 export const bexioInterfaceClient = async () => {
   const code ='BEXIO_INTERFACE';

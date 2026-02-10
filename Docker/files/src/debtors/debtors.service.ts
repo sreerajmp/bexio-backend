@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
+import { PrismaClientsService } from '../db/prisma-clients.service';
 import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
@@ -26,9 +26,15 @@ import status_code from 'src/common/utils/statusCodes';
 import { ChannelChangeLog, InvoiceChannelChangeResult, UserDetails } from 'src/common/utils/types';
 // const { logMessage } = require('./logger');
 
+const { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } =
+  PrismaClientsService.getClients();
+
 @Injectable()
 export class DebtorsService {
-  constructor(private readonly pushWorkerHost: PushWorkerHost, private readonly sendDeliveryNotesHost: SendDeliveryNotesHost) { }
+  constructor(
+    private readonly pushWorkerHost: PushWorkerHost,
+    private readonly sendDeliveryNotesHost: SendDeliveryNotesHost,
+  ) {}
 
 
   async getInvoiceV2(req: Request, res: Response): Promise<any> {
@@ -2667,4 +2673,3 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
 
 
 }
-

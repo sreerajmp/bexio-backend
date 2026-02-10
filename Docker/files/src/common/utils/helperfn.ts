@@ -2,7 +2,7 @@ const encryptionControl = require("../utils/jwt-decode");
 import * as request from 'request';
 import config from '../config/index';
 const path = require('path')
-import { connectNewGate2b, connectBexio, connectLibrary } from '../../db/prisma-clients';
+import { PrismaClientsService } from '../../db/prisma-clients.service';
 import { Prisma } from '@prisma/client';
 import { bexioInterfaceClient } from './bexioClient';
 const fs = require('fs')
@@ -15,6 +15,9 @@ import commonErrors from '../utils/commonError'
 import warningMessage from '../utils/warningMessage'
 const { DynamoDBService } = require('../../contact-import/dynamodb/dynamodb.service');
 const { SalesforceService } = require('../../contact-import/salesforce/salesforce.service');
+
+const { connectNewGate2b, connectBexio, connectLibrary } =
+  PrismaClientsService.getClients();
 export const getContactById = async (accessToken, contact_idList) => {
 
   return new Promise(async (resolve, reject) => {

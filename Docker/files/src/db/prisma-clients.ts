@@ -2,12 +2,17 @@
 import { PrismaClient } from '@prisma/client';
 import { isMainThread } from 'worker_threads';
 
+const hasConnectionLimit = (url: string) => /[?&]connection_limit=/.test(url);
 const getDatabaseUrl = (url: string | undefined) => {
   if (!url) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  const limitFromEnv = process.env.PRISMA_CONN_LIMIT;
   if (!isMainThread) {
-    const separator = url.includes('?') ? '&' : '?';
     console.log(`[Worker] Limiting connection pool for: ${url.split('@')[1] || 'db'}`); // Masked log
-    return `${url}${separator}connection_limit=1`;
+    return hasConnectionLimit(url) ? url : `${url}${separator}connection_limit=1`;
+  }
+  if (limitFromEnv && !hasConnectionLimit(url)) {
+    return `${url}${separator}connection_limit=${limitFromEnv}`;
   }
   return url;
 };
