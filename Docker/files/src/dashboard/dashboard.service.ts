@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
+import { PrismaClientsService } from '../db/prisma-clients.service';
 import config from '../common/config/index';
 import * as request from 'request';
 import { Request, Response } from 'express';
@@ -14,10 +14,11 @@ import warningMessage from '../common/utils/warningMessage'
 import { log } from 'node:console';
 const path = require('path')
 
+const { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } =
+  PrismaClientsService.getClients();
 
 @Injectable()
 export class DashboardService {
- 
   async getTransactionList(req: Request, res: Response): Promise<any> {
     try {
       const formData = req.body;

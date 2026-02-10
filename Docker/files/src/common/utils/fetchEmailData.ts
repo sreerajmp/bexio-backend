@@ -1,8 +1,10 @@
 import config from '../config/index';
-import {connectLibrary} from '../../db/prisma-clients';
+import { PrismaClientsService } from '../../db/prisma-clients.service';
 const fs = require('fs');
 const path =require('path')
 import { Prisma } from '@prisma/client';
+
+const { connectLibrary } = PrismaClientsService.getClients();
 const fetchEmailContent = async(subjectkey, language,keyDatas:any = null,partyConfig = null) =>{
     console.log({
       subjectkey,keyDatas,language

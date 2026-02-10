@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
+import { PrismaClientsService } from '../db/prisma-clients.service';
 import { generators } from 'openid-client'
 const code_verifier = generators.codeVerifier();
 const code_challenge = generators.codeChallenge(code_verifier);
@@ -15,10 +15,13 @@ const jwt = require('jsonwebtoken');
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 import { Prisma } from '@prisma/client';
 import redisClient from '../common/utils/redisDB';
-import {setEbillRole,partyServiceUpdate} from 'src/common/utils/helperfn';
+import { setEbillRole, partyServiceUpdate } from 'src/common/utils/helperfn';
 import connectMssql from '../db/mssql-client'
 import commonErrors from '../common/utils/commonError'
 import warningMessage from '../common/utils/warningMessage'
+
+const { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } =
+  PrismaClientsService.getClients();
 
 @Injectable()
 export class BexioUserService {

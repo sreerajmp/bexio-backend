@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  connectBexio,
-  connectLibrary,
-  connectGate2b,
-  connectNewGate2b,
-} from '../db/prisma-clients';
+import { PrismaClientsService } from '../db/prisma-clients.service';
 import config from '../common/config/index';
 import * as request from 'request';
 import { Request, Response } from 'express';
@@ -26,9 +21,14 @@ import { bexioInterfaceClient } from '../common/utils/bexioClient';
 import fetchEmailContent from '../common/utils/fetchEmailData';
 import { escapeLikeChars, getAllCurrency, getBcDetails, getContactById, getContactDetails, getOrderOT, getStatusLabel, moveFile } from 'src/common/utils/helperfn';
 
+const { connectBexio, connectNewGate2b, connectLibrary } =
+  PrismaClientsService.getClients();
+
 @Injectable()
 export class CreditorsService {
-  constructor(private readonly sendOrderWorkerHost: SendOrderWorkerHost) { }
+  constructor(
+    private readonly sendOrderWorkerHost: SendOrderWorkerHost,
+  ) {}
   async getInvoice(req: Request, res: Response): Promise<any> {
     let cookie = null;
     let data = req.body;

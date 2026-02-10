@@ -9,10 +9,12 @@ import { CreditorsModule } from './creditors/creditors.module';
 import { ConfigurationModule } from './configuration/configuration.module';
 import {DashboardModule} from './dashboard/dashboard.module'
 import { ContactImportModule } from './contact-import/contact-import.module';
+import { DatabaseModule } from './db/database.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
     // PrismaModule
+    DatabaseModule,
     BexioUserModule,
     DebtorsModule,
     CreditorsModule,

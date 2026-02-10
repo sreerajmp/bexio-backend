@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } from '../db/prisma-clients';
+import { PrismaClientsService } from '../db/prisma-clients.service';
 import config from '../common/config/index';
 import * as request from 'request';
 import { Request, Response } from 'express';
@@ -20,9 +20,11 @@ import { resolve } from 'path';
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
 import { setEbillRole, partyServiceUpdate, getUnitList, getActiveAccounts, getActiveArticle, getActiveSalesTaxBexio, getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
+
+const { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } =
+  PrismaClientsService.getClients();
 @Injectable()
 export class ConfigurationService {
-
   async setConfiguration(req: Request, res: Response,): Promise<any> {
 
     try {
