@@ -770,7 +770,24 @@ export const pushEDIInvoice = async (req, res, channel) => {
             warningMessage(logData, 'xml_not_found');
             return resolve('xml_not_found');
           }
-          let invoiceFilePushD = await invoiceFilePush(invitionData[0].rk_netcomidsender, 'WS', xml, invoice['document_nr'], channel.toUpperCase());
+          let invoiceFilePushD:any = await invoiceFilePush(invitionData[0].rk_netcomidsender, 'WS', xml, invoice['document_nr'], channel.toUpperCase());
+           if (invoiceFilePushD?.message=='no_active_interface') {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'no_active_interface', channel);
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'no_active_interface ' + '-invoices param,' + JSON.stringify(invoice),
+              netcomId:decryptData?.body?.netcomId,
+              channel: channel,
+              messagetype: "503",
+              message:"Service Unavailable Filepush",
+              filename:invoice['document_nr']
+            };
+            warningMessage(logData, 'no_active_interface');
+            resolve(invoiceCid);
+            return;
+          }
+         
           if (!invoiceFilePushD) {
             let invoiceCid = await setInvoiceSendStatus(partyId, invoiceId, '', '0', 'file_push_error', channel);
                const logData = {
@@ -1473,6 +1490,8 @@ export async function invoiceFilePush(netcomId, service, data, filename, type) {
     };
     request(options, function (error, response) {
       try {
+        console.log('response1python',response)
+        console.log('response1python1',error)
         if (error) {
           const logData = {
             ...commonErrors,
@@ -1487,7 +1506,7 @@ export async function invoiceFilePush(netcomId, service, data, filename, type) {
           warningMessage(logData, error);
           return resolve(false)
         }
-        return resolve(response?.body)
+        return resolve(JSON.parse(response?.body))
       } catch (error) {
         reject(error)
       }
@@ -1684,9 +1703,26 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return;
       }
 
-      let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+      let filePush: any = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
       console.log('filePush::::', filePush, channel);
-
+      console.log('type:', typeof filePush);
+        console.log('filePush?.message', filePush?.message);
+    if (filePush?.message=='no_active_interface') {
+        let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_active_interface', channel);
+        const logData = {
+          ...commonErrors,
+          errorTitle: invoices.originalUrl,
+          errorDescription: 'From:' + path.basename(__filename) + ' no_active_interface' + '-invoices param,' + JSON.stringify(decryptData),
+          netcomId: bodyValues?.netcomId,
+          channel: channel,
+          messagetype: "503",
+          message:"Service Unavailable Filepush",
+          filename:invoice['document_nr']
+        };
+        warningMessage(logData, 'no_active_interface');
+        resolve(invoiceCid);
+        return;
+      }
       if (filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '1', '', channel);
         console.log('invoiceCid::::', invoiceCid);
@@ -2173,7 +2209,24 @@ export const pushEbillInvoice = async (req, res) => {
         warningMessage(logData, 'xml_not_found');
         return resolve('xml_not_found');
       }
-      let filePush = await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
+      let filePush:any = await invoiceFilePush(getBillerResult.recordset[0].netcomid, 'WS', xml, invoice['document_nr'], 'EBILL');
+      if (filePush?.message=='no_active_interface') {
+            let invoiceCid = await setInvoiceSendStatus(partyId,decryptData.invoice_id, '', '0', 'no_active_interface', 'EBILL');
+            const logData = {
+              ...commonErrors,
+              errorTitle: req.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'no_active_interface' + '-req param,' + JSON.stringify(decryptData),
+              netcomId:getBillerResult.recordset[0].netcomid,
+              channel: 'EBILL',
+              messagetype: "503",
+              message:"Service Unavailable Filepush",
+              filename:invoice['document_nr']
+            };
+            warningMessage(logData, 'no_active_interface');
+            resolve(invoiceCid);
+            return;
+          }
+      
       if (!filePush) {
         let invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'file_push_error', 'EBILL');
           const logData = {
@@ -5378,8 +5431,23 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
            return
           }
 
-          let filePush = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
-
+          let filePush:any = await invoiceFilePush(bodyValues.netcomId, 'WS', xml, invoice.document_nr, channel);
+           if (filePush?.message=='no_active_interface') {
+            let invoiceCid = await setInvoiceSendStatus(partyId, invoice_id, '', '0', 'no_active_interface', channel);
+            const logData = {
+              ...commonErrors,
+              errorTitle:  invoices.originalUrl,
+              errorDescription: 'From:' + path.basename(__filename) + 'no_active_interface' + '-invoices param,' + JSON.stringify(decryptData),
+              netcomId:bodyValues?.netcomId,
+              channel: channel,
+              messagetype: "503",
+              message:"Service Unavailable Filepush",
+              filename:invoice['document_nr']
+            };
+            warningMessage(logData, 'no_active_interface');
+            resolve(invoiceCid);
+            return;
+          }
           console.log('filePush::::', filePush, channel);
 
           if (filePush) {

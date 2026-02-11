@@ -12,6 +12,8 @@ import { schedulerContactimportWorkerHost } from '../common/utils/schedulerconta
 import commonErrors from 'src/common/utils/commonError';
 const path = require('path');
 import warningMessage from 'src/common/utils/warningMessage';
+import { connectBexio} from '../db/prisma-clients';
+import { Prisma } from '@prisma/client';
 import {
   getContactGroupList,
   getContactIdsByChannel,
@@ -83,13 +85,15 @@ export class ContactImportService {
       const page=parseInt(req.body?.page)
       const limit=parseInt(req.body?.limit)
       const total_count=parseInt(req.body?.total_count)
+      const partyId=req.body?.partyId
+      const netcomId=req.body?.netcomId
 
       // Prepare search array only if name exists
       console.log('accessToken', accessToken);
 
       const countryList = await getCountryLists(accessToken);
 
-      const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit);
+      const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit,partyId,netcomId);
       
       console.log('searchContact result:', JSON.stringify(contactList));
 
@@ -150,7 +154,7 @@ export class ContactImportService {
         total_count: page!=1 ? total_count : contactList.length,
       });
     } catch (err: any) {
-      commonErrors['errorTitle'] = 'getContactById';
+      commonErrors['errorTitle'] = 'contactImportSearch';
       commonErrors['errorDescription'] =
         'From:' + path.basename(__filename) + '-bexio param,';
       warningMessage(commonErrors, err);
@@ -164,8 +168,8 @@ export class ContactImportService {
 }
 
 
-const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string},page:number,limit:number ) => {
-  console.log('searchContact called with:', { name, channel, email });
+const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string},page:number,limit:number,partyId,netcomId ) => {
+  //console.log('searchContact called with:', { name, channel, email });
   let optionsContact: any;
   let searchJson:any[]=[]
   let arrayContactIds:any[]=[]
@@ -186,9 +190,25 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         criteria: 'like',
       })
   }
+const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
+          Prisma.sql`
+            SELECT array_agg(rk_contact) AS "bcConnection"
+            FROM contact_bc cb
+            WHERE cb.rk_netcomidsender = ${netcomId}
+            AND cb.type = 'EDI'
+            AND cb.rk_businessconnection IS NOT NULL
+          `
+        );
 
+      const ediIds = ediIdsResult[0]?.bcConnection || [];
+      console.log('ediIds',ediIds);
+      
   if(channel){
-       if (channel === "print") {
+
+     if (channel === "edi") {
+      arrayContactIds=ediIds
+    }
+       else if (channel === "print") {
         let printContactIds = await getContactIdsByChannel(accessToken, "print");
         let postContactIds = await getContactIdsByChannel(accessToken, "post")
         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
@@ -242,7 +262,7 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
 
   // 3. Execute Request (Wrapped in Promise)
   return new Promise((resolve) => {
-    request(optionsContact, (error, response) => {
+    request(optionsContact,async(error, response) => {
       if (error) {
         commonErrors['errorTitle'] = 'searchContact';
         commonErrors['errorDescription'] =
@@ -255,8 +275,29 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
       console.log("Contact response",response);
       if (response?.statusCode === 200) {
         try {
-          console.log('contact data', JSON.parse(response.body));
-          return resolve(JSON.parse(response.body));
+          //console.log('contact data', JSON.parse(response.body));
+           const data = JSON.parse(response.body);
+
+
+          let finalContacts;
+
+
+          finalContacts = data.map((c: any) => {
+            if (ediIds.includes(c.id)) {
+              return {
+                ...c,
+                contact_group_list: [
+                  ...(c.contact_group_list || []),
+                  { id: c.contact_group_ids, name: "edi" }
+                ]
+              };
+            }
+            return c;
+          });
+
+
+          return resolve(finalContacts);
+
         } catch {
              // Return error on parse failure
           return resolve({ error: true, message: 'JSON Parse Error', statusCode: 500 });
@@ -267,4 +308,5 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
       return resolve({ error: true, statusCode: response?.statusCode || 500, message: 'API Error' });
     });
   });
-};
+}
+
