@@ -1766,8 +1766,13 @@ export class DebtorsService {
           let iteamArray: any = [];
           let taxId: any = [];
           let taxStatus = true;
-          let tempTaxIdTmp = taxList?.filter((e) => (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
-          console.log('tempTaxIdTmp[0]', tempTaxIdTmp[0].id);
+          const normalizedTaxList = Array.isArray(taxList) ? taxList : [];
+          let tempTaxIdTmp = normalizedTaxList.filter((e) => (e.type == 'not_taxable_turnover' && e.value == 0) || (e.type == 'not_taxable_turnover' && e.value == (0 * 100)));
+          if (tempTaxIdTmp.length == 0) {
+            taxStatus = false;
+          } else {
+            console.log('tempTaxIdTmp[0]', tempTaxIdTmp[0].id);
+          }
 
           itemList[0].ORDER_ITEM.forEach(element => {
             console.log(element.LINE_ITEM_ID[0]);
@@ -1841,8 +1846,12 @@ export class DebtorsService {
                   tempTaxType = getCompanyIdQryResult[0].tax_type ? getCompanyIdQryResult[0].tax_type : 'sales_tax';
 
                   console.log('tempTaxType', tempTaxType);
-                  tempTaxId = taxList.filter((e) => (e.type == tempTaxType && e.value == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0]) || (e.type == tempTaxType && e.value == (element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0] * 100)));
-                  tempTaxId != '' ? items['tax_id'] = tempTaxId[0]['id'] : taxStatus = false;
+                  tempTaxId = normalizedTaxList.filter((e) => (e.type == tempTaxType && e.value == element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0]) || (e.type == tempTaxType && e.value == (element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]['bmecat:TAX'][0] * 100)));
+                  if (tempTaxId.length > 0) {
+                    items['tax_id'] = tempTaxId[0]['id'];
+                  } else {
+                    taxStatus = false;
+                  }
                   taxId.push(tempTaxId)
                 } else {
                   taxStatus = false;
@@ -1855,7 +1864,11 @@ export class DebtorsService {
             }
             else {
 
-              items['tax_id'] = tempTaxIdTmp[0].id;
+              if (tempTaxIdTmp.length > 0) {
+                items['tax_id'] = tempTaxIdTmp[0].id;
+              } else {
+                taxStatus = false;
+              }
             }
 
             items['type'] = 'KbPositionCustom';

@@ -867,6 +867,7 @@ export class CreditorsService {
             if (day.length < 2) day = '0' + day;
             dueDate = [year, month, day].join('-');
           }
+          const normalizedTaxList = Array.isArray(taxList) ? taxList : [];
           itemList[0].INVOICE_ITEM.forEach((element) => {
             console.log(element.LINE_ITEM_ID);
             let items = {};
@@ -904,7 +905,7 @@ export class CreditorsService {
               'PRICE_AMOUNT',
               element.PRODUCT_PRICE_FIX[0]['bmecat:PRICE_AMOUNT'],
             );
-            let taxId = '';
+            let taxId: any[] = [];
             if ('TAX_DETAILS_FIX' in element.PRODUCT_PRICE_FIX[0]) {
               if (
                 'bmecat:TAX_TYPE' in
@@ -914,7 +915,7 @@ export class CreditorsService {
                   'bmecat:TAX' in
                   element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0]
                 ) {
-                  taxId = taxList?.filter(
+                  taxId = normalizedTaxList.filter(
                     (e) =>
                       e.type ==
                       element.PRODUCT_PRICE_FIX[0]['TAX_DETAILS_FIX'][0][
@@ -925,7 +926,9 @@ export class CreditorsService {
                       'bmecat:TAX'
                       ],
                   );
-                  taxId != '' ? (items['tax_id'] = taxId[0]['id']) : '';
+                  if (taxId.length > 0) {
+                    items['tax_id'] = taxId[0]['id'];
+                  }
                 }
               }
             }
