@@ -484,13 +484,23 @@ export class CreditorsService {
           }
           let resData = JSON.parse(response.body);
 
-          if (response.statusCode != 200)
+          if (response.statusCode == 401){
             return res.status(401).json({
               status: true,
               status_code: response.statusCode,
               data: ['test'],
               message: 'unauthorized',
             });
+          }
+
+          if (response.statusCode != 200){
+            return res.status(500).json({
+              status: true,
+              status_code: response.statusCode,
+              data: response?.body,
+              message: 'something_went_wrong',
+            });
+          }
           //'url': `${config.BEXIO_API}2.0/kb_invoice?order_by=updated_at_desc`,
           let status = JSON.parse(config.BEXIO_PURCHASE_ORDER_STATUS);
           let contact_idList: any = [];
