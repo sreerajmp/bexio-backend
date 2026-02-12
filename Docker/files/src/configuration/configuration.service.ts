@@ -2248,9 +2248,10 @@ export class ConfigurationService {
     try {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
-
+      let decryptdata=req.body
+      let limit= decryptdata.limit?decryptdata?.limit:2000
       let data = [];
-      let totalCount: any = await getAllcontacts(accessToken, 0, 2000, data);
+      let totalCount: any = await getAllcontacts(accessToken, 0, limit, data);
       if (totalCount === "Unauthorized") {
         return res.status(401).send({
           status_code: 401,
