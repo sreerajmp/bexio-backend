@@ -2277,7 +2277,7 @@ export class ConfigurationService {
           data: result,
         });
       }else {
-        let contactList: any = await getAllcontacts(accessToken, 0, limit, data);
+        let contactList: any = await getAllcontacts(accessToken, offset, limit, data);
         if (contactList === "Unauthorized") {
         return res.status(401).send({
           status_code: 401,
