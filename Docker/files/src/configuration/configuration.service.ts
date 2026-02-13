@@ -19,7 +19,9 @@ import { resolve } from 'path';
 // const fetchEmailContent = require('../common/utils/fetchEmailData');
 import fetchEmailContent from "../common/utils/fetchEmailData";
 const sendEmail = require('../common/utils/email');
-import { setEbillRole, partyServiceUpdate, getUnitList, getActiveAccounts, getActiveArticle, getActiveSalesTaxBexio, getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails } from 'src/common/utils/helperfn';
+import { setEbillRole, partyServiceUpdate, getUnitList, getActiveAccounts, getActiveArticle, getActiveSalesTaxBexio, getActiveItem, getBcDetails, getCountryLists, getContact, getContactDetails, contactListMapping } from 'src/common/utils/helperfn';
+import { searchContact } from 'src/contact-import/contact-import.service';
+import { ContactListTypes } from 'src/common/utils/types';
 
 const { connectBexio, connectLibrary, connectGate2b, connectNewGate2b } =
   PrismaClientsService.getClients();
@@ -2243,32 +2245,54 @@ export class ConfigurationService {
       //console.log("Error getActiveArticle :: ",error);
     }
   }
+
+ 
   async getContacts(req: Request, res: Response): Promise<any> {
 
     try {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
       let decryptdata=req.body
-      let limit= decryptdata.limit?decryptdata?.limit:2000
+      const { name, limit = 2000,offset = 0 } = req.body ?? {};
+      let result;
       let data = [];
-      let totalCount: any = await getAllcontacts(accessToken, 0, limit, data);
-      if (totalCount === "Unauthorized") {
+
+      console.log("decryptdata-------------",decryptdata);
+      console.log("name-------------",name);
+      if(name){ 
+        let contactList:any =await searchContact(accessToken,{name},offset,limit)
+        console.log("contactList-------------",contactList);
+        if(contactList?.error){
+          return res.status(500).send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          })
+        }
+        if(contactList?.length !== 0){  
+        result = contactListMapping(contactList) || []
+        }
+        return res.status(200).send({
+          status: 200,
+          data: result,
+        });
+      }else {
+        let contactList: any = await getAllcontacts(accessToken, 0, limit, data);
+        if (contactList === "Unauthorized") {
         return res.status(401).send({
           status_code: 401,
           message: 'Unauthorized',
           status: false,
         });
-      }
-      else {
+      }else {
         ////console.log("totalCount", totalCount);
-        let result = totalCount.map((contact) => ({
-          id: contact.id,
-          name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
-        }))
+        result = contactListMapping(contactList)
         return res.status(200).send({
           status: 200,
           data: result,
         });
+      }
+
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'Unauthorized') {

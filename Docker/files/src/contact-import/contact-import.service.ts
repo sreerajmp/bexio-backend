@@ -93,7 +93,7 @@ export class ContactImportService {
 
       const countryList = await getCountryLists(accessToken);
 
-      const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit,partyId,netcomId);
+      const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit,netcomId);
       
       console.log('searchContact result:', JSON.stringify(contactList));
 
@@ -168,7 +168,7 @@ export class ContactImportService {
 }
 
 
-const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string},page:number,limit:number,partyId,netcomId ) => {
+export const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string},page:number,limit:number,netcomId?:string ) :Promise<any> => {
   //console.log('searchContact called with:', { name, channel, email });
   let optionsContact: any;
   let searchJson:any[]=[]
@@ -190,18 +190,21 @@ const searchContact = async (accessToken: string, {name,channel,email}:{name?:st
         criteria: 'like',
       })
   }
-const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
-          Prisma.sql`
+  let ediIds:any;
+  if(netcomId){
+    const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
+      Prisma.sql`
             SELECT array_agg(rk_contact) AS "bcConnection"
             FROM contact_bc cb
             WHERE cb.rk_netcomidsender = ${netcomId}
             AND cb.type = 'EDI'
             AND cb.rk_businessconnection IS NOT NULL
-          `
-        );
-
-      const ediIds = ediIdsResult[0]?.bcConnection || [];
-      console.log('ediIds',ediIds);
+            `
+          );
+          
+           ediIds = ediIdsResult[0]?.bcConnection || [];
+          // console.log('ediIds',ediIds);
+        }
       
   if(channel){
 
@@ -212,12 +215,12 @@ const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
         let printContactIds = await getContactIdsByChannel(accessToken, "print");
         let postContactIds = await getContactIdsByChannel(accessToken, "post")
         arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
-        console.log("printContactIds", printContactIds);
-        console.log("postContactIds", postContactIds);
-        console.log("arrayContactIds :::",arrayContactIds);
+          // console.log("printContactIds", printContactIds);
+          // console.log("postContactIds", postContactIds);
+          // console.log("arrayContactIds :::",arrayContactIds);
       }else{
         arrayContactIds = await getContactIdsByChannel(accessToken, channel);
-        console.log(`arrayContactIds ${channel} :`, arrayContactIds);
+        // console.log(`arrayContactIds ${channel} :`, arrayContactIds);
     }
     
     console.log("arrayContactIds :::",arrayContactIds);
@@ -232,8 +235,8 @@ const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
   console.log('Constructed searchJson:', JSON.stringify(searchJson));
   const offset=(page-1)*limit
   const limitTo=page===1 ? 2000: limit
-  console.log("contact search offset",offset);
-  console.log("contact search limit",limit);
+  // console.log("contact search offset",offset);
+  // console.log("contact search limit",limit);
   
   
   if(searchJson.length > 0){
@@ -268,22 +271,24 @@ const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
         commonErrors['errorDescription'] =
           'From:' + path.basename(__filename) + '-bexio param,';
         warningMessage(commonErrors, error);
+
+        console.log("error-------------------------" , error);
+        
             // Return error object instead of false
         return resolve({ error: true, message: error.message, statusCode: 500 });
       }
-      console.log("optionsContact",optionsContact);
-      console.log("Contact response",response);
+      // console.log("optionsContact",optionsContact);
+      // console.log("Contact response",response);
       if (response?.statusCode === 200) {
         try {
           //console.log('contact data', JSON.parse(response.body));
            const data = JSON.parse(response.body);
 
-
           let finalContacts;
 
 
           finalContacts = data.map((c: any) => {
-            if (ediIds.includes(c.id)) {
+            if (ediIds?.includes(c.id)) {
               return {
                 ...c,
                 contact_group_list: [
@@ -304,7 +309,7 @@ const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
         }
       }
        // Return error object with status code
-      console.log('API Error Body:', response?.body); 
+      // console.log('API Error Body:', response?.body); 
       return resolve({ error: true, statusCode: response?.statusCode || 500, message: 'API Error' });
     });
   });

@@ -6362,3 +6362,11 @@ export const markAsIssued = async (access_token, id) => {
     });
   });
 };
+
+
+ export const contactListMapping = (contactList: any) => {
+    return contactList.map((contact) => ({
+      id: contact.id,
+      name: (contact.name_1 ? contact.name_1 : '') + ' ' + (contact.name_2 ? contact.name_2 : '')
+    }))
+  }
