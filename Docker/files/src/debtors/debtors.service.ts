@@ -34,7 +34,7 @@ export class DebtorsService {
   constructor(
     private readonly pushWorkerHost: PushWorkerHost,
     private readonly sendDeliveryNotesHost: SendDeliveryNotesHost,
-  ) {}
+  ) { }
 
 
   async getInvoiceV2(req: Request, res: Response): Promise<any> {
@@ -340,14 +340,14 @@ export class DebtorsService {
         // Even if we have the invoice ID, we need the Contact IDs for merging later.
         let invoiceContactListIds: number[] = [];
         // if (invoices.length > 0 && contactIds.length > 0) {
-          // Helper Function: getInvoiceSearch(accessToken, filters)
-          // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
-          // const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
-          // invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
-          //     .map((inv: any) => inv?.contact_id)
-          //     .filter(Boolean);
-          // invoiceContactListIds = [...contactIds];
-          // console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
+        // Helper Function: getInvoiceSearch(accessToken, filters)
+        // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
+        // const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
+        // invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
+        //     .map((inv: any) => inv?.contact_id)
+        //     .filter(Boolean);
+        // invoiceContactListIds = [...contactIds];
+        // console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
         // }
         if (data['invoiceStatus'] !== 'draft') {
           const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
@@ -2007,7 +2007,19 @@ export class DebtorsService {
     }
   }
   async sendDeliveryNotes(req: Request, res: Response,): Promise<any> {
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+    if (!cookieData) {
+      return res.status(401).send({
+        status_code: 401,
+        message: 'Missing_cookie',
+        status: false,
+      });
+    }
     try {
+      const cookie = JSON.parse(encryptionControl.decrypt(cookieData));
+      if (!cookie.access_Token) {
+        return res.status(401).json({ status: 'fail', message: 'unauthorized' });
+      }
       let bodyData = req.body;
       let bodyParams = {
         "partyId": bodyData.partyId,
@@ -2201,6 +2213,14 @@ export class DebtorsService {
   }
 
   async changeInvoiceSendStatus(req: Request, res: Response,): Promise<any> {
+    const internalSecret = req.headers['x-internal-secret'];
+    if (!internalSecret || internalSecret !== config.INTERNAL_SERVICE_SECRET) {
+      return res.status(401).json({
+        status_code: 401,
+        message: 'unauthorized',
+        status: false
+      });
+    }
 
     let formData
     formData = req.body;

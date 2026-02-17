@@ -12,7 +12,7 @@ import { schedulerContactimportWorkerHost } from '../common/utils/schedulerconta
 import commonErrors from 'src/common/utils/commonError';
 const path = require('path');
 import warningMessage from 'src/common/utils/warningMessage';
-import { connectBexio} from '../db/prisma-clients';
+import { connectBexio } from '../db/prisma-clients';
 import { Prisma } from '@prisma/client';
 import {
   getContactGroupList,
@@ -26,7 +26,7 @@ export class ContactImportService {
     private readonly dynamoDBService: DynamoDBService,
     private readonly contactImportWorkerHost: ContactImportWorkerHost,
     private readonly schedulerContactimportWorkerHost: schedulerContactimportWorkerHost,
-  ) {}
+  ) { }
 
   async importContacts(dto: any) {
     // Check for existing pending/in_progress job for this netcomid
@@ -45,7 +45,9 @@ export class ContactImportService {
     return { message: 'Contact import job created', jobId: job.cid };
   }
 
-  async getCurrentJobStatus(netcomid: string) {
+  async getCurrentJobStatus(netcomid: string, req: Request) {
+    const cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
+    if (!cookieData) throw new Error('Unauthorized');
     return this.dynamoDBService.getJobDataByNetcomid(netcomid);
   }
 
@@ -80,26 +82,26 @@ export class ContactImportService {
 
       const accessToken = cookie.access_Token;
       const name = req.body?.name;
-      const channel=req.body?.channel
-      const email=req.body?.email
-      const page=parseInt(req.body?.page)
-      const limit=parseInt(req.body?.limit)
-      const total_count=parseInt(req.body?.total_count)
-      const partyId=req.body?.partyId
-      const netcomId=req.body?.netcomId
+      const channel = req.body?.channel
+      const email = req.body?.email
+      const page = parseInt(req.body?.page)
+      const limit = parseInt(req.body?.limit)
+      const total_count = parseInt(req.body?.total_count)
+      const partyId = req.body?.partyId
+      const netcomId = req.body?.netcomId
 
       // Prepare search array only if name exists
       console.log('accessToken', accessToken);
 
       const countryList = await getCountryLists(accessToken);
 
-      const contactList: any = await searchContact(accessToken, {name,channel,email},page,limit,netcomId);
-      
+      const contactList: any = await searchContact(accessToken, { name, channel, email }, page, limit, netcomId);
+
       console.log('searchContact result:', JSON.stringify(contactList));
 
       if (contactList?.statusCode === 401) {
-         console.log('contactImportSearch: unauthorized (401) from bexio');
-         return res.status(401).send({
+        console.log('contactImportSearch: unauthorized (401) from bexio');
+        return res.status(401).send({
           status_code: 401,
           message: 'Unauthorized',
           status: false,
@@ -129,29 +131,29 @@ export class ContactImportService {
         }
       }
 
-      if(contactGroupId && Array.isArray(contactGroupId)){
-        if(contactList && Array.isArray(contactList)){
-          contactList.forEach((contact)=>{
-            if(contact.contact_group_ids){
-              const groupIds=contact.contact_group_ids.split(',')
-             const groupNames = groupIds
-              .map((id) => contactGroupId.find(g => g.id == id))          
-              contact["contact_group_list"]=groupNames || []
+      if (contactGroupId && Array.isArray(contactGroupId)) {
+        if (contactList && Array.isArray(contactList)) {
+          contactList.forEach((contact) => {
+            if (contact.contact_group_ids) {
+              const groupIds = contact.contact_group_ids.split(',')
+              const groupNames = groupIds
+                .map((id) => contactGroupId.find(g => g.id == id))
+              contact["contact_group_list"] = groupNames || []
             }
           })
         }
       }
 
-      const slicedContactList=contactList.slice((page-1)*limit,page*limit)
+      const slicedContactList = contactList.slice((page - 1) * limit, page * limit)
 
       console.log('contactList', contactList);
-      console.log("slicedContactList",slicedContactList);
-      
+      console.log("slicedContactList", slicedContactList);
+
       return res.status(200).send({
         status_code: 200,
-        data:page===1 ?slicedContactList:contactList,
+        data: page === 1 ? slicedContactList : contactList,
         status: true,
-        total_count: page!=1 ? total_count : contactList.length,
+        total_count: page != 1 ? total_count : contactList.length,
       });
     } catch (err: any) {
       commonErrors['errorTitle'] = 'contactImportSearch';
@@ -168,30 +170,30 @@ export class ContactImportService {
 }
 
 
-export const searchContact = async (accessToken: string, {name,channel,email}:{name?:string,channel?:string,email?:string},page:number,limit:number,netcomId?:string ) :Promise<any> => {
+export const searchContact = async (accessToken: string, { name, channel, email }: { name?: string, channel?: string, email?: string }, page: number, limit: number, netcomId?: string): Promise<any> => {
   //console.log('searchContact called with:', { name, channel, email });
   let optionsContact: any;
-  let searchJson:any[]=[]
-  let arrayContactIds:any[]=[]
+  let searchJson: any[] = []
+  let arrayContactIds: any[] = []
 
   // 1. Prepare Filter Data (Async operations MUST happen here, before the Promise)
   if (name && name.length > 0) {
-     searchJson.push({
-        field: 'name_1',
-        value: name,
-        criteria: 'like',
-      })
+    searchJson.push({
+      field: 'name_1',
+      value: name,
+      criteria: 'like',
+    })
   }
 
- if (email && email.length > 0) {
-     searchJson.push({
-        field: 'mail',
-        value: email,
-        criteria: 'like',
-      })
+  if (email && email.length > 0) {
+    searchJson.push({
+      field: 'mail',
+      value: email,
+      criteria: 'like',
+    })
   }
-  let ediIds:any;
-  if(netcomId){
+  let ediIds: any;
+  if (netcomId) {
     const ediIdsResult = await connectBexio.$queryRaw<{ bcConnection: number[] }[]>(
       Prisma.sql`
             SELECT array_agg(rk_contact) AS "bcConnection"
@@ -200,81 +202,81 @@ export const searchContact = async (accessToken: string, {name,channel,email}:{n
             AND cb.type = 'EDI'
             AND cb.rk_businessconnection IS NOT NULL
             `
-          );
-          
-           ediIds = ediIdsResult[0]?.bcConnection || [];
-          // console.log('ediIds',ediIds);
-        }
-      
-  if(channel){
+    );
 
-     if (channel === "edi") {
-      arrayContactIds=ediIds
+    ediIds = ediIdsResult[0]?.bcConnection || [];
+    // console.log('ediIds',ediIds);
+  }
+
+  if (channel) {
+
+    if (channel === "edi") {
+      arrayContactIds = ediIds
     }
-       else if (channel === "print") {
-        let printContactIds = await getContactIdsByChannel(accessToken, "print");
-        let postContactIds = await getContactIdsByChannel(accessToken, "post")
-        arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
-          // console.log("printContactIds", printContactIds);
-          // console.log("postContactIds", postContactIds);
-          // console.log("arrayContactIds :::",arrayContactIds);
-      }else{
-        arrayContactIds = await getContactIdsByChannel(accessToken, channel);
-        // console.log(`arrayContactIds ${channel} :`, arrayContactIds);
+    else if (channel === "print") {
+      let printContactIds = await getContactIdsByChannel(accessToken, "print");
+      let postContactIds = await getContactIdsByChannel(accessToken, "post")
+      arrayContactIds = [...new Set([...printContactIds, ...postContactIds])];
+      // console.log("printContactIds", printContactIds);
+      // console.log("postContactIds", postContactIds);
+      // console.log("arrayContactIds :::",arrayContactIds);
+    } else {
+      arrayContactIds = await getContactIdsByChannel(accessToken, channel);
+      // console.log(`arrayContactIds ${channel} :`, arrayContactIds);
     }
-    
-    console.log("arrayContactIds :::",arrayContactIds);
-      searchJson.push({
-        field: 'id',
-        value: arrayContactIds,
-        criteria: 'in'
-      });
+
+    console.log("arrayContactIds :::", arrayContactIds);
+    searchJson.push({
+      field: 'id',
+      value: arrayContactIds,
+      criteria: 'in'
+    });
   }
 
   // 2. Configure Options based on whether we have search criteria
   console.log('Constructed searchJson:', JSON.stringify(searchJson));
-  const offset=(page-1)*limit
-  const limitTo=page===1 ? 2000: limit
+  const offset = (page - 1) * limit
+  const limitTo = page === 1 ? 2000 : limit
   // console.log("contact search offset",offset);
   // console.log("contact search limit",limit);
-  
-  
-  if(searchJson.length > 0){
-      console.log('contact search using criteria');
-      optionsContact = {
-        method: 'POST',
-        url: `${config.BEXIO_API}2.0/contact/search?offset=${offset}&limit=${limitTo}`,
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(searchJson),
-      };
+
+
+  if (searchJson.length > 0) {
+    console.log('contact search using criteria');
+    optionsContact = {
+      method: 'POST',
+      url: `${config.BEXIO_API}2.0/contact/search?offset=${offset}&limit=${limitTo}`,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(searchJson),
+    };
   } else {
-      console.log('contact List (no criteria)');
-      optionsContact = {
-        method: 'GET',
-        url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limitTo}&order_by=updated_at_desc`,
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-      };
+    console.log('contact List (no criteria)');
+    optionsContact = {
+      method: 'GET',
+      url: `${config.BEXIO_API}2.0/contact?offset=${offset}&limit=${limitTo}&order_by=updated_at_desc`,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
   }
 
   // 3. Execute Request (Wrapped in Promise)
   return new Promise((resolve) => {
-    request(optionsContact,async(error, response) => {
+    request(optionsContact, async (error, response) => {
       if (error) {
         commonErrors['errorTitle'] = 'searchContact';
         commonErrors['errorDescription'] =
           'From:' + path.basename(__filename) + '-bexio param,';
         warningMessage(commonErrors, error);
 
-        console.log("error-------------------------" , error);
-        
-            // Return error object instead of false
+        console.log("error-------------------------", error);
+
+        // Return error object instead of false
         return resolve({ error: true, message: error.message, statusCode: 500 });
       }
       // console.log("optionsContact",optionsContact);
@@ -282,7 +284,7 @@ export const searchContact = async (accessToken: string, {name,channel,email}:{n
       if (response?.statusCode === 200) {
         try {
           //console.log('contact data', JSON.parse(response.body));
-           const data = JSON.parse(response.body);
+          const data = JSON.parse(response.body);
 
           let finalContacts;
 
@@ -304,11 +306,11 @@ export const searchContact = async (accessToken: string, {name,channel,email}:{n
           return resolve(finalContacts);
 
         } catch {
-             // Return error on parse failure
+          // Return error on parse failure
           return resolve({ error: true, message: 'JSON Parse Error', statusCode: 500 });
         }
       }
-       // Return error object with status code
+      // Return error object with status code
       // console.log('API Error Body:', response?.body); 
       return resolve({ error: true, statusCode: response?.statusCode || 500, message: 'API Error' });
     });
