@@ -1,63 +1,95 @@
 # Architecture
 
+## System Overview
+
+The `Docker-iom-bexio_interface_api` is a NestJS-based backend service that acts as an interface between Bexio (ERP) and various output channels (Gate2B, eBill, Email, Print). It handles invoice processing, contact synchronization, and dashboard analytics.
+
+### High-Level Architecture
+
+```mermaid
+graph TD
+    Client[Client / Frontend] -->|REST API / HTTPS| API_Gateway[NestJS API Gateway]
+    
+    subgraph "Application Core"
+        API_Gateway --> Auth[Auth & Session (Redis)]
+        API_Gateway --> Pipes[Global Validation Pipes]
+        Pipes --> Modules[Feature Modules]
+    end
+
+    subgraph "Feature Modules"
+        Modules --> UserMod[BexioUser Module]
+        Modules --> DebtorsMod[Debtors Module]
+        Modules --> CreditorsMod[Creditors Module]
+        Modules --> DashboardMod[Dashboard Module]
+    end
+
+    subgraph "Data & Background"
+        DebtorsMod -->|Jobs| Queue[Bull Queue / WorkerPool]
+        Queue --> PushWorker[Push Worker Host]
+        Queue --> DeliveryWorker[Delivery Notes Host]
+        Modules --> Prisma[Prisma Client]
+        Prisma --> DB[(Database)]
+        Auth --> Redis[(Redis Cache)]
+    end
+
+    subgraph "External Integrations"
+        UserMod -->|REST| BexioAPI[Bexio API]
+        PushWorker -->|SOAP/REST| Gate2B[Gate2B / IO-Market]
+        PushWorker -->|SMTP| Email[Email Service]
+    end
+```
+
 ## Application Structure
 
-Main module composition from `Docker/files/src/app.module.ts`:
+The application is modularized following NestJS best practices. The root module `AppModule` composes the following feature modules:
 
-- `BexioUserModule`
-- `DebtorsModule`
-- `CreditorsModule`
-- `ConfigurationModule`
-- `DashboardModule`
-- `ContactImportModule`
-- `DatabaseModule`
+-   **BexioUserModule**: Handles user authentication and synchronization with Bexio.
+-   **DebtorsModule**: Core logic for processing debtor invoices, including routing and status updates.
+-   **CreditorsModule**: Manages creditor workflows (if applicable).
+-   **DashboardModule**: Provides analytics and KPI data for the frontend dashboard.
+-   **ConfigurationModule**: Manages global configuration and environment variables.
+-   **ContactImportModule**: Import and synchronization of contacts.
+-   **DatabaseModule**: Encapsulates Prisma client for database access.
 
 ## Request Flow
 
-1. Client calls API endpoint under `api/v1/*`.
-2. Controller validates/transforms input via global `ValidationPipe`.
-3. Service executes business logic and calls DB/external APIs.
-4. Response is returned as JSON.
+1.  **Incoming Request**: Client triggers an API call (e.g., `POST /api/v1/debtors/invoice`).
+2.  **Middleware**: `cookie-parser` and `express-session` (backed by Redis) validate the session.
+3.  **Guards & Pipes**:
+    -   Global `ValidationPipe` ensures DTOs are valid.
+    -   Auth guards (if applied) check for valid user context.
+4.  **Controller**: Routes the request to the appropriate service method.
+5.  **Service Layer**: Executes business logic.
+    -   May query the database via Prisma.
+    -   May call external APIs (Bexio).
+    -   May offload heavy tasks to background workers.
+6.  **Response**: Returns standard JSON response to the client.
 
-## Runtime and Transport
+## Background Processing (Workers)
 
-- Server bootstraps in `Docker/files/src/main.ts`.
-- Listens on port `3001`.
-- Uses HTTPS options in development if local cert files exist.
-- Session middleware uses Redis store and signed cookies.
+The application uses a worker implementation (likely `workerpool` or `bull` based on dependencies) to handle long-running tasks asynchronously.
+
+-   **PushWorkerHost**: Handles the transmission of invoices to external systems (IO-Market/Gate2B, Email, etc.).
+-   **SendDeliveryNotesHost**: Processes delivery note generation and sending.
 
 ## Integrations
 
-- Bexio REST APIs (`BEXIO_API` in config)
-- Redis for session storage
-- Prisma-managed database connections
-- Additional connectors in codebase (Salesforce, DynamoDB)
+-   **Bexio**: Source of truth for contacts and invoices.
+-   **Redis**: Distributed session storage and potential caching.
+-   **Prisma**: ORM for type-safe database interactions.
+-   **IO-Market / Gate2B**: Target interface for EDI invoice delivery.
+
+## Security
+
+-   **Sessions**: Stored in Redis with `httpOnly` and `secure` flags (in production).
+-   **CORS**: Strict origin whitelist in production settings.
+-   **Validation**: Input sanitization via `class-validator`.
 
 ## Environment Boundaries
 
-- Local/Dev: Swagger enabled at `/api`
-- Non-dev: restricted CORS list (`BEXIO_APP_URL`, `BILLING_URL`)
-
-## Invoice Routing Flow (Debtors)
-
-Use this as the primary business flow for debtor invoice distribution:
-
-```mermaid
-flowchart LR
-    A[Bexio Invoice API] --> B[Debtors Module]
-    B --> C[Normalize + Validate Invoice Data]
-    C --> D[Apply Tags / Routing Rules]
-    D --> E{Target Channel}
-    E -->|EDI| F[Gate2B]
-    E -->|eBill| G[eBill Provider]
-    E -->|Email| H[Email Service]
-    E -->|Print| I[Print Queue / Provider]
-    F --> J[Delivery Status + Logging]
-    G --> J
-    H --> J
-    I --> J
-```
-
-## Diagram Placeholder (System-Wide)
-
-Add full system diagram file at `docs/assets/architecture-overview.png` and embed it here when ready.
+-   **Development**:
+    -   Swagger UI enabled at `/api`.
+    -   Relaxed CORS (allows localhost).
+-   **Production**:
+    -   Swagger disabled (typically).
+    -   Strict CORS allowed only for `BEXIO_APP_URL` and `BILLING_URL`.
