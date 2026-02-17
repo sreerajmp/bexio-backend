@@ -19,7 +19,7 @@ export class DebtorsController {
   @ApiBody({ type: GetInvoiceDto })
   @ApiResponse({ status: 200, description: 'List of invoices retrieved successfully.' })
   @UseInterceptors(AnyFilesInterceptor())
-  async getInvoice(@Req() req: Request, @Res() res: Response, @Body() body: GetInvoiceDto): Promise<any> {
+  async getInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
     console.log('controller getInvoice');
     return this.debtorsService.getInvoiceV2(req, res);
   }
@@ -30,7 +30,7 @@ export class DebtorsController {
   @ApiBody({ type: GetOrderListDto })
   @ApiResponse({ status: 200, description: 'List of orders retrieved successfully.' })
   @UseInterceptors(AnyFilesInterceptor())
-  async getOrderList(@Req() req: Request, @Res() res: Response, @Body() body: GetOrderListDto): Promise<any> {
+  async getOrderList(@Req() req: Request, @Res() res: Response): Promise<any> {
     // console.log('Received body:', req);
     return this.debtorsService.getOrderList(req, res);
   }
@@ -41,7 +41,7 @@ export class DebtorsController {
   @ApiBody({ type: GetDeliveryNotesListDto })
   @ApiResponse({ status: 200, description: 'List of delivery notes retrieved successfully.' })
   @UseInterceptors(AnyFilesInterceptor())
-  async getDeliveryNotesList(@Req() req: Request, @Res() res: Response, @Body() body: GetDeliveryNotesListDto): Promise<any> {
+  async getDeliveryNotesList(@Req() req: Request, @Res() res: Response): Promise<any> {
     // console.log('Received body:', req);
     return this.debtorsService.getDeliveryNotesList(req, res);
   }
@@ -51,7 +51,7 @@ export class DebtorsController {
   @ApiBody({ type: SendInvoiceDto })
   @ApiResponse({ status: 200, description: 'Invoice sent successfully.' })
   @UseInterceptors(AnyFilesInterceptor())
-  async sendInvoice(@Req() req: Request, @Res() res: Response, @Body() body: SendInvoiceDto): Promise<any> {
+  async sendInvoice(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.debtorsService.sendInvoice(req, res);
   }
 
@@ -60,7 +60,7 @@ export class DebtorsController {
   @ApiBody({ type: SendOrderDto })
   @ApiResponse({ status: 200, description: 'Order sent successfully.' })
   @UseInterceptors(AnyFilesInterceptor())
-  async sendOrder(@Req() req: Request, @Res() res: Response, @Body() body: SendOrderDto): Promise<any> {
+  async sendOrder(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.debtorsService.sendOrder(req, res);
   }
 
