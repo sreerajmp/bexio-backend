@@ -11,7 +11,7 @@ graph TD
     Client[Client / Frontend] -->|REST API / HTTPS| API_Gateway[NestJS API Gateway]
     
     subgraph "Application Core"
-        API_Gateway --> Auth[Auth & Session (Redis)]
+        API_Gateway --> Auth["Auth & Session (Redis)"]
         API_Gateway --> Pipes[Global Validation Pipes]
         Pipes --> Modules[Feature Modules]
     end
