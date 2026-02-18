@@ -41,23 +41,27 @@ export class ContactImportController {
 
   @Get('job-status')
   @ApiQuery({ name: 'netcomid', required: true, description: 'Company netcomid' })
-  async getJobStatus(@Query('netcomid') netcomid: string) {
+  async getJobStatus(@Query('netcomid') netcomid: string, @Req() req: Request) {
     if (!netcomid) {
       return { message: 'netcomid is required', status: 400 };
     }
-    const job = await this.contactImportService.getCurrentJobStatus(netcomid);
-    if (!job) {
-      return { message: 'No job found for this netcomid', status: 404 };
+    try {
+      const job = await this.contactImportService.getCurrentJobStatus(netcomid, req);
+      if (!job) {
+        return { message: 'No job found for this netcomid', status: 404 };
+      }
+      return { status: 200, job };
+    } catch (e) {
+      return { message: 'Unauthorized', status: 401 };
     }
-    return { status: 200, job };
   }
-  
+
   @Post('scheduler-contact')
   @UseInterceptors(AnyFilesInterceptor())
   async schedulercontact(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.contactImportService.schedulercontact(req, res);
   }
-   @Post('contactImportSearch')
+  @Post('contactImportSearch')
   @UseInterceptors(AnyFilesInterceptor())
   async contactImportSearch(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.contactImportService.contactImportSearch(req, res);
