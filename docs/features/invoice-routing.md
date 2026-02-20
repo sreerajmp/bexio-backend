@@ -24,7 +24,7 @@ flowchart TD
         Implicit -- "eBill Group" --> eBill[eBill Channel]
     end
     
-    EDI --> Validation[Validate BC (Business Connection)]
+    EDI --> Validation["Validate BC (Business Connection)"]
     Validation --> Filter[Filter List by Channel]
     Filter --> Display[Return to UI]
 ```

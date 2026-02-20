@@ -7,35 +7,41 @@ The `Docker-iom-bexio_interface_api` is a NestJS-based backend service that acts
 ### High-Level Architecture
 
 ```mermaid
-graph TD
-    Client[Client / Frontend] -->|REST API / HTTPS| API_Gateway[NestJS API Gateway]
+flowchart TD
+    Client["Client / Frontend"] -->|REST API / HTTPS| API_Gateway["NestJS API Gateway"]
     
     subgraph "Application Core"
         API_Gateway --> Auth["Auth & Session (Redis)"]
-        API_Gateway --> Pipes[Global Validation Pipes]
-        Pipes --> Modules[Feature Modules]
+        API_Gateway --> Pipes["Global Validation Pipes"]
+        Pipes --> Modules["Feature Modules"]
     end
 
     subgraph "Feature Modules"
-        Modules --> UserMod[BexioUser Module]
-        Modules --> DebtorsMod[Debtors Module]
-        Modules --> CreditorsMod[Creditors Module]
-        Modules --> DashboardMod[Dashboard Module]
+        Modules --> UserMod["BexioUser Module"]
+        Modules --> DebtorsMod["Debtors Module"]
+        Modules --> CreditorsMod["Creditors Module"]
+        Modules --> DashboardMod["Dashboard Module"]
+        Modules --> ContactMod["Contact Import Module"]
     end
 
     subgraph "Data & Background"
-        DebtorsMod -->|Jobs| Queue[Bull Queue / WorkerPool]
-        Queue --> PushWorker[Push Worker Host]
-        Queue --> DeliveryWorker[Delivery Notes Host]
-        Modules --> Prisma[Prisma Client]
-        Prisma --> DB[(Database)]
-        Auth --> Redis[(Redis Cache)]
+        DebtorsMod -->|Jobs| Queue["Bull Queue / WorkerPool"]
+        Queue --> PushWorker["Push Worker Host"]
+        Queue --> DeliveryWorker["Delivery Notes Host"]
+        Queue --> ContactWorker["Contact Import Host"]
+        ContactMod --> DynamoDB["DynamoDB - Jobs"]
+        Modules --> Prisma["Prisma Client"]
+        Prisma --> DB["Database"]
+        Auth --> Redis["Redis Cache"]
     end
 
     subgraph "External Integrations"
-        UserMod -->|REST| BexioAPI[Bexio API]
-        PushWorker -->|SOAP/REST| Gate2B[Gate2B / IO-Market]
-        PushWorker -->|SMTP| Email[Email Service]
+        UserMod -->|REST| BexioAPI["Bexio API"]
+        PushWorker -->|SOAP/REST| Gate2B["Gate2B / IO-Market"]
+        PushWorker -->|SMTP| Email["Email Service"]
+        ContactMod -->|REST| Salesforce["Salesforce"]
+        ContactWorker -->|REST| Salesforce
+        ContactWorker -->|REST| BexioAPI
     end
 ```
 
@@ -48,7 +54,7 @@ The application is modularized following NestJS best practices. The root module 
 -   **CreditorsModule**: Manages creditor workflows (if applicable).
 -   **DashboardModule**: Provides analytics and KPI data for the frontend dashboard.
 -   **ConfigurationModule**: Manages global configuration and environment variables.
--   **ContactImportModule**: Import and synchronization of contacts.
+-   **ContactImportModule**: Handles contact synchronization, specifically importing from Salesforce and pushing to Bexio, with state managed in DynamoDB.
 -   **DatabaseModule**: Encapsulates Prisma client for database access.
 
 ## Request Flow
@@ -71,11 +77,14 @@ The application uses a worker implementation (likely `workerpool` or `bull` base
 
 -   **PushWorkerHost**: Handles the transmission of invoices to external systems (IO-Market/Gate2B, Email, etc.).
 -   **SendDeliveryNotesHost**: Processes delivery note generation and sending.
+-   **ContactImportWorkerHost**: Processes contact import jobs asynchronously, fetching from Salesforce and updating Bexio.
 
 ## Integrations
 
 -   **Bexio**: Source of truth for contacts and invoices.
+-   **Salesforce**: External source for contact imports.
 -   **Redis**: Distributed session storage and potential caching.
+-   **DynamoDB**: Stores contact import job status and metadata.
 -   **Prisma**: ORM for type-safe database interactions.
 -   **IO-Market / Gate2B**: Target interface for EDI invoice delivery.
 
