@@ -40,7 +40,7 @@ export class BexioUserService {
 
 
   }
-  async bexioRedirect(req: Request, res: Response, ): Promise<any> {
+  async bexioRedirect(req: Request, res: Response,): Promise<any> {
     try {
       // Use prisma to access your DB, example:
       let params
@@ -54,13 +54,13 @@ export class BexioUserService {
       params = bexioClient.callbackParams(req);
       console.log('params', params);
       //console.log('config.API_URL', config.API_URL);
-      if(params.error){
+      if (params.error) {
         return res.redirect(`${config.BEXIO_APP_URL}/logout`);
       }
       //console.log('code_verifier', code_verifier);
       const tokenSet = await bexioClient.callback(`${config.API_URL}api/v1/bexio-user/bexio-redirect`, params, { code_verifier });
-      
-    //  console.log('tokenSet', tokenSet.access_token);
+
+      //  console.log('tokenSet', tokenSet.access_token);
       // //console.log(tokenSet);
 
       let companyDetails = await this.getloginUserCompanyDetails(tokenSet.access_token);
@@ -69,7 +69,7 @@ export class BexioUserService {
       //console.log('coutryCode',coutryCode);
       let userDetails = await this.getLoginUserInfo(tokenSet.access_token)
       //console.log('userDetails',userDetails);
-      
+
       if (!companyDetails || !coutryCode || !userDetails) {
         return res.status(500).send({
           status_code: 500,
@@ -92,7 +92,7 @@ export class BexioUserService {
         !tempJson['country_id']
       ) {
         console.log('unauthorized tempJson', tempJson);
-        
+
         return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized?error=address_not_found`);
       }
       //console.log('test',tempJson);
@@ -108,8 +108,8 @@ export class BexioUserService {
       }
       if (validationCompany && validationUser) {
         let rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
-        console.log("rolesDetails",rolesDetails);
-        
+        console.log("rolesDetails", rolesDetails);
+
         if (!rolesDetails) {
           return res.status(500).send({
             status_code: 500,
@@ -130,14 +130,14 @@ export class BexioUserService {
 
           let token = tokenSet.access_token;
           let refreshToken = tokenSet.refresh_token;
-         //console.log('rk_csn',jwt.decode(token)['company_id']);
+          //console.log('rk_csn',jwt.decode(token)['company_id']);
 
           let rk_csn = jwt.decode(token)['company_id']
           const check = await connectBexio.companyregistered.findMany({
             where: { rk_csn: rk_csn },
           });
-          console.log("Check rk_csn:",rk_csn);
-          
+          console.log("Check rk_csn:", rk_csn);
+
           if (check.length == 0) {
 
             const insertData = await connectLibrary.$queryRaw<any[]>`
@@ -156,24 +156,24 @@ export class BexioUserService {
             // });
             //console.log('2. Session Domain:', config.SESSION_DOMAIN);
             //console.log('3. Session Expiry:', config.SESSION_EXPIRY);
-            
+
             let billingCookie = {
               bexio: true,
               objectid: insertData[0]?.objectid,
-              isNew:true,
-              isnewUser:true,
+              isNew: true,
+              isnewUser: true,
             }
 
             console.log('4. Billing Cookie Data:', billingCookie);
             //console.log('5. Bexio Token Cookie Data:', bexioTokenCookie);
-            
+
             // Encrypt cookie values
             const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
             const encryptedBexioTokenCookie = encryptionControl.encrypt(JSON.stringify(bexioTokenCookie));
-            
+
             //console.log('6. Encrypted Billing Cookie:', encryptedBillingCookie);
             //console.log('7. Encrypted Bexio Token Cookie:', encryptedBexioTokenCookie);
-            
+
             // Set cookies with detailed options
             const billingCookieOptions = {
               domain: config.SESSION_DOMAIN,
@@ -183,7 +183,7 @@ export class BexioUserService {
               secure: false,
               path: '/'
             };
-            
+
             const bexioTokenCookieOptions = {
               domain: config.SESSION_DOMAIN,
               maxAge: config.SESSION_EXPIRY,
@@ -193,22 +193,22 @@ export class BexioUserService {
             };
             //console.log('8. Billing Cookie Options:', billingCookieOptions);
             //console.log('9. Bexio Token Cookie Options:', bexioTokenCookieOptions);
-            
+
             // Set cookies
             res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
             res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptedBexioTokenCookie, bexioTokenCookieOptions);
-            
+
             let bexioURL = config.BILLING_APP;
             return res.redirect(`${bexioURL}`);
           }
           else {
-          let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
-              console.log('responseResult', responseResult);
-              if(responseResult.status) {
-                return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
-              } else {
-                return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
-              }
+            let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
+            console.log('responseResult', responseResult);
+            if (responseResult.status) {
+              return res.redirect(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refreshToken))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`);
+            } else {
+              return res.redirect(`${config.BEXIO_APP_URL}/login/error`);
+            }
           }
         } else {
           return res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
@@ -245,7 +245,7 @@ export class BexioUserService {
         isBexioUser: true
 
       }
-     
+
       let rk_csn = jwt.decode(tokenSet.access_token)['company_id']
 
       //  await bexioPool.query(updateRefreshToken, [tokenSet.refresh_token,rk_csn]);
@@ -369,8 +369,8 @@ export class BexioUserService {
 
         if (response.statusCode === 200) {
           try {
-             return resolve(JSON.parse(response.body))
-          
+            return resolve(JSON.parse(response.body))
+
           } catch (e) {
             console.error('Failed to parse company profile:', e);
             return resolve(false);
@@ -540,7 +540,7 @@ export class BexioUserService {
 
           const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
                 SELECT p.objectid FROM party p WHERE p.cid = ${partyId}
-              `);         
+              `);
 
 
           const networkIdG2b = await connectNewGate2b.$queryRaw<any[]>(Prisma.sql`
@@ -842,19 +842,19 @@ export class BexioUserService {
       let userId = await userCheck(userDetails);
       if (!userId) {
         userId = await saveUser(userDetails);
-             console.log('first user');
-          let billingCookie = {
-              isnewUser:true,
-            }
-            const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
-          const billingCookieOptions = {
-              domain: config.SESSION_DOMAIN,
-              maxAge: config.SESSION_EXPIRY,
-              httpOnly: false,
-              signed: false,
-              secure: false,
-            };
-         res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
+        console.log('first user');
+        let billingCookie = {
+          isnewUser: true,
+        }
+        const encryptedBillingCookie = encryptionControl.encrypt(JSON.stringify(billingCookie));
+        const billingCookieOptions = {
+          domain: config.SESSION_DOMAIN,
+          maxAge: config.SESSION_EXPIRY,
+          httpOnly: false,
+          signed: false,
+          secure: false,
+        };
+        res.cookie(config.BILLING_COOKIE_NAME, encryptedBillingCookie, billingCookieOptions);
       }
       let userAccountStatus = await checkUserAccount(userId)
 
@@ -873,7 +873,7 @@ export class BexioUserService {
         accountId = userAccountStatus;
 
       }
-      accountIdFinal = await savePartyAcc(partyId, accountId, isAdmin, partyUser);      
+      accountIdFinal = await savePartyAcc(partyId, accountId, isAdmin, partyUser);
 
       if (newCompany && accountIdFinal != 0) {
 
@@ -915,7 +915,7 @@ export class BexioUserService {
         console.log('parms', parmsSend);
 
         await setBusinessConnector(JSON.stringify(parmsSend));
-        
+
         let parms = {
           config: {
             platform: {
@@ -956,13 +956,13 @@ export class BexioUserService {
         console.log("contactUpdateUsercontactUpdateUser");
 
         createOctConfig(netcomIdG2b)
-      } 
+      }
       // if (isCompanyAlreadyExists.length == 0) {
-        let decryptData = req?.body?.encrToken?encryptionControl.decrypt(req.body.encrToken):null;
+      let decryptData = req?.body?.encrToken ? encryptionControl.decrypt(req.body.encrToken) : null;
 
-        if (decryptData?.planId && decryptData?.subScriptionType) {
-          await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
-        }
+      if (decryptData?.planId && decryptData?.subScriptionType) {
+        await addSubscriptionParty(partyId, accountId, decryptData?.planId, decryptData?.subScriptionType, netcomIdG2b);
+      }
       // }
       if (isCompanyAlreadyExists.length > 0 && isCompanyAlreadyExists[0]?.netcomid) {
         createOctConfig(isCompanyAlreadyExists[0]?.netcomid)
@@ -1006,7 +1006,7 @@ export class BexioUserService {
           let getBiller = `SELECT id, billerId
           FROM biller
           WHERE netcomid = '${netcomIdG2b}'`
-          
+
           // connectMssql
           const fetchBillerId = await pool.query(getBiller);
           // Proceed only if a biller record is not found
@@ -1131,7 +1131,7 @@ export class BexioUserService {
 
 
       } catch (error) {
-        
+
         console.log(error);
 
       }
@@ -1599,10 +1599,10 @@ export class BexioUserService {
       addMailChimp(decryptData.given_name, decryptData.family_name, decryptData.email)
 
       let userCid = result[0]?.cid;
-     
+
       return userCid
     }
-    async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {     
+    async function account(resultdata, partyData, decryptData, netcomeAddress, bexioUserId) {
 
       const valuesaccount = [
         resultdata || '',
@@ -1642,7 +1642,7 @@ export class BexioUserService {
             WHERE cid = ${partyData.technicalCid}
           `
         );
-      }     
+      }
 
       console.log("valuesaccountvaluesaccount", valuesaccount);
 
@@ -1707,7 +1707,7 @@ export class BexioUserService {
       `);
 
 
-      const personalAddressdata = personalAddressResult[0]?.cid;      
+      const personalAddressdata = personalAddressResult[0]?.cid;
 
       await connectGate2b.$executeRaw(
         Prisma.sql`
@@ -2064,38 +2064,38 @@ VALUES (
 
     async function addSubscriptionParty(partyValue, accountValue, planId, subScriptionType, netcomIdG2b) {
       return new Promise(async (resolve, reject) => {
-        try{
-        if (subScriptionType == 'PLAN') {
+        try {
+          if (subScriptionType == 'PLAN') {
 
-          let formData = {
+            let formData = {
 
-            planId: planId,
-            rolePartyId: partyValue,
-            roleAccId: accountValue,
-            user_email: email,
-            language: 'DE'
-          };
-          console.log('********************planPurchasefomdata', formData);
+              planId: planId,
+              rolePartyId: partyValue,
+              roleAccId: accountValue,
+              user_email: email,
+              language: 'DE'
+            };
+            console.log('********************planPurchasefomdata', formData);
 
-          let planResponse = await planPurchase(formData);
-        }
-        else {
-          let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
-          let objectid = billingCookie.objectid
-          const activationResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
+            let planResponse = await planPurchase(formData);
+          }
+          else {
+            let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
+            let objectid = billingCookie.objectid
+            const activationResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
           SELECT paymentData, detail 
           FROM activation 
           WHERE objectid = ${objectid}::uuid
         `);
 
 
-          //console.log("Object ID:", billingCookie.objectid);
-          let paymentDetails = activationResult[0]?.paymentdata;
+            //console.log("Object ID:", billingCookie.objectid);
+            let paymentDetails = activationResult[0]?.paymentdata;
 
-          if (paymentDetails) {
+            if (paymentDetails) {
 
 
-            const updateResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
+              const updateResult = await connectLibrary.$queryRaw<any>(Prisma.sql`
             UPDATE activation 
             SET paymentdata = 
               jsonb_set(
@@ -2115,37 +2115,37 @@ VALUES (
 
 
 
-            paymentDetails = updateResult[0]?.paymentdata;
+              paymentDetails = updateResult[0]?.paymentdata;
 
-            let packageSuccess = await packagePayment(paymentDetails);
-            console.log("packageSuccess: activation table",packageSuccess);
-            
-            return resolve(true)
+              let packageSuccess = await packagePayment(paymentDetails);
+              console.log("packageSuccess: activation table", packageSuccess);
+
+              return resolve(true)
+            }
+
+
+            let formData = {
+
+              addonId: planId,
+              rolePartyId: partyValue,
+              roleAccId: accountValue,
+              user_email: email,
+              language: 'DE',
+              user_first_name: givenname,
+              orderId: orderId,
+              ...(paymentData && { payedResponse: paymentData })
+            };
+
+            let packageResponse = await packagePayment(formData);
+            console.log("packageSuccess:", packageResponse);
+
+
           }
-
-
-          let formData = {
-
-            addonId: planId,
-            rolePartyId: partyValue,
-            roleAccId: accountValue,
-            user_email: email,
-            language: 'DE',
-            user_first_name: givenname,
-            orderId: orderId,
-            ...(paymentData && { payedResponse: paymentData })
-          };
-
-          let packageResponse = await packagePayment(formData);
-          console.log("packageSuccess:",packageResponse);
-
-
+          return resolve(true)
+        } catch (error) {
+          console.log("Error in addSubscriptionParty:", error);
+          return reject(error);
         }
-        return resolve(true)
-      } catch (error) {
-        console.log("Error in addSubscriptionParty:", error);
-        return reject(error);
-      }
 
       });
 
@@ -2179,7 +2179,7 @@ VALUES (
   FROM ediparty 
   WHERE rk_party = ${userDetails[0].objectid}::uuid
 `);
-// console.log('userDetails[0]', userDetails[0]);
+    // console.log('userDetails[0]', userDetails[0]);
     const datetimeToken = {
       cookieCreatedTime: new Date(new Date(new Date().getTime() + 15 * 60000).toUTCString()),
       userMail: userDetails[0].email,
@@ -2209,129 +2209,129 @@ VALUES (
   async getToken(req: Request, res: Response): Promise<any> {
     //console.log('getToken request:', req);
     let partyAccountId = null;
-    
+
     try {
-        // Get form data from request body
-        const { partyAccount, token } = req.body;
-        //console.log('partyAccount', partyAccount);
-        //console.log('token', token);
-        if (!partyAccount || !token) {
-            throw new Error('Missing required form fields');
-        }
+      // Get form data from request body
+      const { partyAccount, token } = req.body;
+      //console.log('partyAccount', partyAccount);
+      //console.log('token', token);
+      if (!partyAccount || !token) {
+        throw new Error('Missing required form fields');
+      }
 
-        //console.log('Form Data:', { partyAccount, token });
-        partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(partyAccount));
-        //console.log('partyAccountId', partyAccountId);
-        if (!partyAccountId) {
-            throw new Error('Invalid party account ID');
-        }
+      //console.log('Form Data:', { partyAccount, token });
+      partyAccountId = encryptionControl.decryptCookie(decodeURIComponent(partyAccount));
+      //console.log('partyAccountId', partyAccountId);
+      if (!partyAccountId) {
+        throw new Error('Invalid party account ID');
+      }
 
-        // Fetch user details with proper type casting
-        const userDetails = await connectLibrary.$queryRaw<any[]>(
-            Prisma.sql`SELECT email, u.cid AS userId, pa.fk_party AS partyId, a.cid AS accountId, p.objectid
+      // Fetch user details with proper type casting
+      const userDetails = await connectLibrary.$queryRaw<any[]>(
+        Prisma.sql`SELECT email, u.cid AS userId, pa.fk_party AS partyId, a.cid AS accountId, p.objectid
                         FROM party_account pa
                         INNER JOIN account a ON a.cid = pa.fk_account
                         INNER JOIN public.user u ON u.cid = a.fk_user
                         INNER JOIN party p ON p.cid = pa.fk_party
                         INNER JOIN status s ON s.cid = pa.fk_status 
                         WHERE pa.cid = ${parseInt(partyAccountId)} AND s."statusLabel" = 'active'`
-        );
+      );
 
-        if (!userDetails.length) {
-            throw new Error('User not found or inactive');
-        }
+      if (!userDetails.length) {
+        throw new Error('User not found or inactive');
+      }
 
-        const netcomIdResult = await connectGate2b.$queryRaw<any[]>(
-            Prisma.sql`SELECT netcomid FROM ediparty WHERE rk_party = ${userDetails[0].objectid}::uuid`
-        );
-        const netcomId = netcomIdResult[0]?.netcomid;
+      const netcomIdResult = await connectGate2b.$queryRaw<any[]>(
+        Prisma.sql`SELECT netcomid FROM ediparty WHERE rk_party = ${userDetails[0].objectid}::uuid`
+      );
+      const netcomId = netcomIdResult[0]?.netcomid;
 
-        //console.log('netcomId', netcomId);
-        
-        let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(token));
-        //console.log('Decoded Token:', decodedToken);
-        
-        const bexioClient = await bexioInterfaceClient();
-        const tokenSet = await bexioClient.refresh(decodedToken);
-        
-        let bexioTokenCookie = { 
-            access_Token: tokenSet.access_token,
-            refresh_Token: tokenSet.refresh_token,
-            isBexioUser: true
-        };
-        
-        let companyId = jwt.decode(tokenSet.access_token)['company_id'];
-        await connectBexio.$queryRaw<any[]>(
-            Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
-        );
-        // Clear existing cookies
-       res.clearCookie(config.BILLING_COOKIE_NAME, {
-          domain: config.SESSION_DOMAIN,
-          httpOnly: false,
-          secure: false,
-          path: '/'
-        });
+      //console.log('netcomId', netcomId);
 
-       // res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
-        
-        // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
-        
-        // Set cookie with proper options for local development
-        const cookieOptions = {
-            domain: config.SESSION_DOMAIN,
-            maxAge: config.SESSION_EXPIRY,
-            httpOnly: true, // Changed to false to allow JavaScript access
-            signed: true,   // Changed to false since we're not using cookie-parser signing
-            secure: false,    // Changed to true to work with sameSite: 'none'
-        };
+      let decodedToken = encryptionControl.decryptCookie(decodeURIComponent(token));
+      //console.log('Decoded Token:', decodedToken);
+
+      const bexioClient = await bexioInterfaceClient();
+      const tokenSet = await bexioClient.refresh(decodedToken);
+
+      let bexioTokenCookie = {
+        access_Token: tokenSet.access_token,
+        refresh_Token: tokenSet.refresh_token,
+        isBexioUser: true
+      };
+
+      let companyId = jwt.decode(tokenSet.access_token)['company_id'];
+      await connectBexio.$queryRaw<any[]>(
+        Prisma.sql`UPDATE companyregistered SET refresh_token = ${tokenSet.refresh_token} WHERE rk_csn = ${companyId}`
+      );
+      // Clear existing cookies
+      res.clearCookie(config.BILLING_COOKIE_NAME, {
+        domain: config.SESSION_DOMAIN,
+        httpOnly: false,
+        secure: false,
+        path: '/'
+      });
+
+      // res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME);
+
+      // await getUserPermissions(userDetails[0].partyId, userDetails[0].accountId);
+
+      // Set cookie with proper options for local development
+      const cookieOptions = {
+        domain: config.SESSION_DOMAIN,
+        maxAge: config.SESSION_EXPIRY,
+        httpOnly: true, // Changed to false to allow JavaScript access
+        signed: true,   // Changed to false since we're not using cookie-parser signing
+        secure: false,    // Changed to true to work with sameSite: 'none'
+      };
 
 
-        // Set the cookie
-        res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), cookieOptions);
+      // Set the cookie
+      res.cookie(config.TOKEN_COOKIE_BEXIO_NAME, encryptionControl.encrypt(JSON.stringify(bexioTokenCookie)), cookieOptions);
 
-        // Log response headers to verify cookie was set
-        //console.log('Response headers:', res.getHeaders());
+      // Log response headers to verify cookie was set
+      //console.log('Response headers:', res.getHeaders());
 
-        // Convert partyId to string before encryption
-        const responseData = encryptionControl.encrypt(String(userDetails[0].partyId));
-        
-        res.send({
-            status_code: 200,
-            message: '',
-            data: responseData,
-            status: true,
-            showPopUp: true,
-            showEbill: config.IS_EBILL_DISABLED,
-        });
+      // Convert partyId to string before encryption
+      const responseData = encryptionControl.encrypt(String(userDetails[0].partyId));
+
+      res.send({
+        status_code: 200,
+        message: '',
+        data: responseData,
+        status: true,
+        showPopUp: true,
+        showEbill: config.IS_EBILL_DISABLED,
+      });
 
     } catch (error) {
-        console.error('Error in getToken:', error);
-        res.status(500).send({
-            status_code: 500,
-            message: error.message || 'Internal server error',
-            error_details: error.code === 'ETIMEDOUT' ? 'Connection timeout - Please check your network connection' : error.message,
-            status: false,
-        });
+      console.error('Error in getToken:', error);
+      res.status(500).send({
+        status_code: 500,
+        message: error.message || 'Internal server error',
+        error_details: error.code === 'ETIMEDOUT' ? 'Connection timeout - Please check your network connection' : error.message,
+        status: false,
+      });
     }
-}
+  }
 
-async getAccessToken(req: any, res: Response): Promise<any>{
-  //console.log('getAccessToken request:', req.session);
-  //console.log('req.sessionID',req.sessionID);
+  async getAccessToken(req: any, res: Response): Promise<any> {
+    //console.log('getAccessToken request:', req.session);
+    //console.log('req.sessionID',req.sessionID);
 
-  let cookie: any = null;
-  let isNewCompany;
-  let formData = req.body;
-  try {
-   
-    //console.log(req.cookies);
-    isNewCompany = encryptionControl.decryptCookie(decodeURIComponent(formData['isNewCompany']));
+    let cookie: any = null;
+    let isNewCompany;
+    let formData = req.body;
+    try {
 
-    //console.log('isNewCompanyisNewCompany',isNewCompany);
-    
-    cookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME]));
-     console.log('cookie****************',cookie);
-     const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+      //console.log(req.cookies);
+      isNewCompany = encryptionControl.decryptCookie(decodeURIComponent(formData['isNewCompany']));
+
+      //console.log('isNewCompanyisNewCompany',isNewCompany);
+
+      cookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.EXPIRE_EXPIRES_COOKIE_NAME]));
+      console.log('cookie****************', cookie);
+      const userDetails = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
       SELECT 
         pa.isuser,
         pa.cid AS "partyAccountId",
@@ -2347,53 +2347,53 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       WHERE pa.fk_party = ${parseInt(cookie?.partyID)}
         AND pa.fk_account = ${parseInt(cookie.accId)}
         AND s."statusLabel" = 'active'`);
-    //console.log('userDetails',userDetails);
-    const data = {
-      email: userDetails[0].email,
-      userId: userDetails[0].userId,
-    };
-    const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
-    const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
-      expiresIn: config.JWTRefreshExpiration,
-    });
-    req.session.isAuth = true;
+      //console.log('userDetails',userDetails);
+      const data = {
+        email: userDetails[0].email,
+        userId: userDetails[0].userId,
+      };
+      const accessToken = jwt.sign(data, config.SECRET_JWT, { expiresIn: config.JWTExpiration });
+      const refreshToken = jwt.sign(data, config.SECRET_REFRESH_JWT, {
+        expiresIn: config.JWTRefreshExpiration,
+      });
+      req.session.isAuth = true;
 
-    let tokenCookie = { 
-      accessToken:accessToken,
-      refreshToken:refreshToken,
-      userMail: userDetails[0].email,
-      partyID: String(userDetails[0].partyId),
-      userID: userDetails[0].userId,
-      accId: userDetails[0].accountId,
-      isBexioCompany:true,
-      netcomId:cookie.netcomid
+      let tokenCookie = {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        userMail: userDetails[0].email,
+        partyID: String(userDetails[0].partyId),
+        userID: userDetails[0].userId,
+        accId: userDetails[0].accountId,
+        isBexioCompany: true,
+        netcomId: cookie.netcomid
 
-    }
-    res.cookie(config.TOKEN_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(tokenCookie)), {
-      domain: config.SESSION_DOMAIN,
-      maxAge: config.SESSION_EXPIRY,
-      httpOnly: true,
-      signed: true,
-      secure: false
-    });
-    let email = userDetails[0].email;
+      }
+      res.cookie(config.TOKEN_COOKIE_NAME, encryptionControl.encrypt(JSON.stringify(tokenCookie)), {
+        domain: config.SESSION_DOMAIN,
+        maxAge: config.SESSION_EXPIRY,
+        httpOnly: true,
+        signed: true,
+        secure: false
+      });
+      let email = userDetails[0].email;
 
-    let userLanguage = userDetails[0].userlanguage ? userDetails[0].userlanguage : 'de';    
-  
-    const selectResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`SELECT * FROM authTable WHERE mail= ${email} AND sessionId = ${req.sessionID}`);
-    // //console.log('selectResult',selectResult);
-    //console.log('selectResult.length', selectResult.length);
-    if (selectResult.length === 0) {
-        
-    //console.log('INSERT start');
+      let userLanguage = userDetails[0].userlanguage ? userDetails[0].userlanguage : 'de';
+
+      const selectResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`SELECT * FROM authTable WHERE mail= ${email} AND sessionId = ${req.sessionID}`);
+      // //console.log('selectResult',selectResult);
+      //console.log('selectResult.length', selectResult.length);
+      if (selectResult.length === 0) {
+
+        //console.log('INSERT start');
 
         await connectLibrary.$executeRaw(Prisma.sql`INSERT INTO authTable (mail, refreshToken, sessionId, accessToken) VALUES(${email}, ${refreshToken}, ${req.sessionID}, ${accessToken})`);
-    //console.log('INSERT end');
+        //console.log('INSERT end');
 
-    } else {
-      await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
-      const deleteOldTokens50thFromGeneratedNow = await connectLibrary.$executeRaw(
-        Prisma.sql`
+      } else {
+        await connectLibrary.$executeRaw(Prisma.sql`UPDATE authTable SET refreshToken = ${refreshToken}, accessToken = ${accessToken} WHERE mail = ${email} AND sessionId = ${req.sessionID}`);
+        const deleteOldTokens50thFromGeneratedNow = await connectLibrary.$executeRaw(
+          Prisma.sql`
     DELETE FROM public.authtable
     WHERE mail = ${email}
     AND "id" NOT IN (
@@ -2403,18 +2403,17 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       LIMIT 50
     )
   `
-      );
-      console.log("deleteOldTokens50thFromGeneratedNow", deleteOldTokens50thFromGeneratedNow);
+        );
+        console.log("deleteOldTokens50thFromGeneratedNow", deleteOldTokens50thFromGeneratedNow);
 
-  }
-  if(isNewCompany === "true"){
-    await gate2bRegisterInBexio(userLanguage || 'de', formData.module, userDetails[0].email);
-  }
-    //console.log('formData.module',formData.module);
-  
-    if(formData.module == 'EBILL')
-    {
-      let checkRoleQry = `SELECT * 
+      }
+      if (isNewCompany === "true") {
+        await gate2bRegisterInBexio(userLanguage || 'de', formData.module, userDetails[0].email);
+      }
+      //console.log('formData.module',formData.module);
+
+      if (formData.module == 'EBILL') {
+        let checkRoleQry = `SELECT * 
       FROM 
       partyapplication_account_role par
       INNER JOIN partyapplication_account paa ON par.fk_partyapplication_account = paa.cid
@@ -2425,305 +2424,292 @@ async getAccessToken(req: any, res: Response): Promise<any>{
       INNER JOIN status st on st.cid = pa.fk_status
       WHERE pa.fk_account=$1 AND s.code = 'EN' AND pa.fk_party =$2  AND r.name IN('EBILL_ADMIN','EBILL_USER')`
 
-    const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`${checkRoleQry}`, [userDetails[0].accountid, userDetails[0].partyid]);
-    //console.log('checkRoleData', checkRoleData);
-    if(checkRoleData.length === 0){
-      await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, formData.module);
-      await partyServiceUpdate(userDetails[0].partyId, 'EBILL', 'EDI');
+        const checkRoleData = await connectLibrary.$queryRaw<any[]>(Prisma.sql`${checkRoleQry}`, [userDetails[0].accountid, userDetails[0].partyid]);
+        //console.log('checkRoleData', checkRoleData);
+        if (checkRoleData.length === 0) {
+          await setEbillRole(userDetails[0].partyId, userDetails[0].accountId, userDetails[0].partyAccountId, userDetails[0].isuser, formData.module);
+          await partyServiceUpdate(userDetails[0].partyId, 'EBILL', 'EDI');
+
+        }
+      }
+
+
+      await getUserPermissions(String(userDetails[0].partyId), userDetails[0].accountId);
+      res.status(200).send({
+        status_code: 200,
+        message: '',
+        status: true,
+        data: encryptionControl.encrypt(String(userDetails[0].partyId))
+      });
+
+    } catch (error) {
+      // commonErrors['errorTitle'] = req.originalUrl;
+      // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
+      // warningMessage(commonErrors,error);
+      console.log("error in getAccessToken", error);
+      res.status(500).send({
+        status_code: 500,
+        message: JSON.stringify(error),
+        status: false,
+      });
 
     }
+  }
+  async bexioLogout(req: any, res: Response): Promise<any> {
+
+    let sessionId = req.signedCookies[config.SESSION_COOKIE_NAME];
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
     }
-   
-    
-    await getUserPermissions(String(userDetails[0].partyId),userDetails[0].accountId);
-    res.status(200).send({
-      status_code: 200,
-      message: '',
-      status: true,
-      data:encryptionControl.encrypt(String(userDetails[0].partyId))
-  });
 
-  } catch (error) { 
-    // commonErrors['errorTitle'] = req.originalUrl;
-    // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+cookie;
-    // warningMessage(commonErrors,error);
-    console.log("error in getAccessToken", error);
-    res.status(500).send({
-      status_code: 500,
-      message: JSON.stringify(error),
-      status: false,
-  });
-    
-  }
-}
-async bexioLogout(req: any, res: Response): Promise<any>{
+    const redis_client = await redisClient;
+    let redisKey = req.body.partyId + "_";
+    const keys = await redis_client.keys(redisKey + "*");
 
-  let sessionId = req.signedCookies[config.SESSION_COOKIE_NAME];
-  if (!redisClient.isOpen) {
-  await redisClient.connect();
-  }
+    for (const key of keys) {
+      await redis_client.del(key);
+    }
 
-  const redis_client = await redisClient;
-  let redisKey = req.body.partyId+"_";
-  const keys = await redis_client.keys(redisKey + "*");
+    console.log('inside');
 
-for (const key of keys) {
-  await redis_client.del(key);
-}
-
-console.log('inside');
-
-  if(!req.signedCookies[config.TOKEN_COOKIE_NAME]){
+    if (!req.signedCookies[config.TOKEN_COOKIE_NAME]) {
       return res.send({ status: true });
-  }
-  const cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_NAME]));
-  let mtcCookie = req.cookies[config.EXPIRE_MTC_COOKIE_NAME] ? encryptionControl.decryptCookie(req.cookies[config.EXPIRE_MTC_COOKIE_NAME]) : '';
-  console.log('mtcCookie',mtcCookie);
-  const options = {
+    }
+    const cookie = JSON.parse(encryptionControl.decryptCookie(req.signedCookies[config.TOKEN_COOKIE_NAME]));
+    let mtcCookie = req.cookies[config.EXPIRE_MTC_COOKIE_NAME] ? encryptionControl.decryptCookie(req.cookies[config.EXPIRE_MTC_COOKIE_NAME]) : '';
+    console.log('mtcCookie', mtcCookie);
+    const options = {
       domain: config.SESSION_DOMAIN,
-  };
-  res.clearCookie(config.EXPIRE_EXPIRES_COOKIE_NAME, options);
+    };
+    res.clearCookie(config.EXPIRE_EXPIRES_COOKIE_NAME, options);
 
-  if(mtcCookie == '')
-  {
+    if (mtcCookie == '') {
       if (sessionId && req.sessionID && sessionId === req.sessionID) {
-                await connectLibrary.$executeRaw(
-        Prisma.sql`
+        await connectLibrary.$executeRaw(
+          Prisma.sql`
           DELETE FROM authTable
           WHERE mail = ${cookie.userMail} AND sessionId = ${sessionId}
         `
-      );
-          sessionId = 'sess:' + sessionId;
-          res.clearCookie(config.SESSION_COOKIE_NAME, options);
-          res.clearCookie(config.TOKEN_COOKIE_NAME, options);
-          res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME, options);
-          req.session.destroy();
-          return res.send({ status: true });
+        );
+        sessionId = 'sess:' + sessionId;
+        res.clearCookie(config.SESSION_COOKIE_NAME, options);
+        res.clearCookie(config.TOKEN_COOKIE_NAME, options);
+        res.clearCookie(config.TOKEN_COOKIE_BEXIO_NAME, options);
+        req.session.destroy();
+        return res.send({ status: true });
       } else {
-      console.log('else');
-      return res.send({ status: true });
-        
+        console.log('else');
+        return res.send({ status: true });
+
       }
-  }else{
+    } else {
       console.log('else2');
       return res.send({ status: true });
-  
-  }
-};
-async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
-  console.log('55555555555555555555');
+
+    }
+  };
+  async bexioCompanyCreate(req: any, res: Response,): Promise<any> {
+    console.log('55555555555555555555');
 
     let decryptData;
-  
+
     try {
-        decryptData = encryptionControl.decrypt(req.body.encrToken);
-        if('subScriptionType' in decryptData && 'planId' in decryptData)
-        {
-          const bexioClient = await bexioInterfaceClient();
-          let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
-          let refreshToken = cookie.refresh_Token;
-          const tokenSet = await bexioClient.refresh(refreshToken);
-          console.log(tokenSet);
-          let companyDetails;
-          let temp = await  this.getloginUserCompanyDetails(tokenSet.access_token);
-          if(!temp)
-          {
-            res.send({
+      decryptData = encryptionControl.decrypt(req.body.encrToken);
+      if ('subScriptionType' in decryptData && 'planId' in decryptData) {
+        const bexioClient = await bexioInterfaceClient();
+        let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
+        let refreshToken = cookie.refresh_Token;
+        const tokenSet = await bexioClient.refresh(refreshToken);
+        console.log(tokenSet);
+        let companyDetails;
+        let temp = await this.getloginUserCompanyDetails(tokenSet.access_token);
+        if (!temp) {
+          res.send({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return;
+        }
+        companyDetails = temp;
+        console.log("companyDetails", companyDetails);
+        let tempJson = companyDetails[0];
+        if (tempJson['country_name'] == '' || tempJson['name'] == '' || tempJson['address'] == '' || tempJson['city'] == '' || tempJson['postcode'] == '' || tempJson['country_id'] == '') {
+
+          res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
+          return;
+        }
+        const validation = async (data, fields) => {
+          let status;
+          for (const element of fields) {
+
+            if (!data[element]) {
+              console.log(element);
+              return false;
+
+            }
+          }
+          return true;
+        };
+        let validationCompanyStatus;
+        // console.log(JSON.parse(companyDetails));
+
+        let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
+        if (!coutryCode) {
+          // commonErrors['errorTitle'] = req.originalUrl;
+          // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getConutryCode_not_found -req param,',JSON.parse(req.body);
+          // warningMessage(commonErrors,'getConutryCode_not_found');
+          res.end({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return
+        }
+        companyDetails ? validationCompanyStatus = await validation(companyDetails[0], ['name', 'address', 'city', 'postcode', 'country_id']) : '';
+        console.log('validationCompanyStatus', validationCompanyStatus);
+        console.log('companyDetails', companyDetails);
+        let token = tokenSet.refresh_token;
+        let userDetails
+        userDetails = await this.getLoginUserInfo(tokenSet.access_token)
+        console.log("userDetails", userDetails);
+
+        console.log(tokenSet.access_token);
+        if (!userDetails) {
+          // commonErrors['errorTitle'] = req.originalUrl;
+          // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserInfo_not_found -req param,',JSON.stringify(req.body);
+          // warningMessage(commonErrors,'getLoginUserInfo_not_found');
+          res.end({
+            status_code: 500,
+            message: 'something_went_wrong',
+            status: false,
+          });
+          return
+        }
+        let validationUserStatus;
+        userDetails ? validationUserStatus = await validation(userDetails, ['given_name', 'family_name', 'email']) : '';
+        console.log('validationCompanyStatus', validationCompanyStatus);
+        console.log('userDetails', userDetails);
+
+
+        if (validationUserStatus && validationCompanyStatus) {
+          let rolesDetails;
+          rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
+          console.log("rolesDetails", rolesDetails);
+
+          if (!rolesDetails) {
+            // commonErrors['errorTitle'] = req.originalUrl;
+            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserRoles_not_found -req param,',JSON.stringify(req.body);
+            // warningMessage(commonErrors,'getLoginUserRoles_not_found');
+            res.end({
               status_code: 500,
               message: 'something_went_wrong',
               status: false,
             });
-            return;
+            return
           }
-          companyDetails = temp;
-          console.log("companyDetails",companyDetails);
-          let tempJson = companyDetails[0];
-          if(tempJson['country_name'] == '' || tempJson['name'] == '' || tempJson['address'] == '' || tempJson['city'] == '' || tempJson['postcode'] == '' || tempJson['country_id'] == '')
-          {
-            
-            res.redirect(`${config.BEXIO_APP_URL}/login/unauthorized`);
-            return;
-          }
-          const validation = async (data, fields) => {
-              let status;
-              for (const element of fields) {
-  
-                  if (!data[element]) {
-                    console.log(element);
-                    return false;
-  
-                  }
-              }
-              return true;
-          };
-          let validationCompanyStatus;
-          // console.log(JSON.parse(companyDetails));
-          
-          let coutryCode = await this.getConutryCode(tokenSet.access_token, companyDetails[0]['country_name'])
-          if(!coutryCode)
-          {
-            // commonErrors['errorTitle'] = req.originalUrl;
-            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getConutryCode_not_found -req param,',JSON.parse(req.body);
-            // warningMessage(commonErrors,'getConutryCode_not_found');
-            res.end({
-              status_code: 500,
-              message: 'something_went_wrong',
-              status: false,
-          });
-          return
-          }
-          companyDetails ? validationCompanyStatus = await validation(companyDetails[0], ['name', 'address', 'city', 'postcode', 'country_id']) : '';
-          console.log('validationCompanyStatus',validationCompanyStatus);
-          console.log('companyDetails',companyDetails);
-          let token = tokenSet.refresh_token;
-          let userDetails
-          userDetails = await this.getLoginUserInfo(tokenSet.access_token)
-          console.log("userDetails",userDetails);
-          
-          console.log(tokenSet.access_token);
-          if(!userDetails)
-          {
-            // commonErrors['errorTitle'] = req.originalUrl;
-            // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserInfo_not_found -req param,',JSON.stringify(req.body);
-            // warningMessage(commonErrors,'getLoginUserInfo_not_found');
-            res.end({
-              status_code: 500,
-              message: 'something_went_wrong',
-              status: false,
-          }); 
-          return
-          }
-          let validationUserStatus;
-          userDetails ? validationUserStatus = await validation(userDetails, ['given_name', 'family_name', 'email']) : '';
-          console.log('validationCompanyStatus',validationCompanyStatus);
-          console.log('userDetails',userDetails);
-  
-          
-          if (validationUserStatus && validationCompanyStatus) {
-              let rolesDetails;
-              rolesDetails = await this.getLoginUserRoles(tokenSet.access_token);
-              console.log("rolesDetails",rolesDetails);
-              
-              if(!rolesDetails)
-              {
-                // commonErrors['errorTitle'] = req.originalUrl;
-                // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+'getLoginUserRoles_not_found -req param,',JSON.stringify(req.body);
-                // warningMessage(commonErrors,'getLoginUserRoles_not_found');
-                res.end({
-                  status_code: 500,
-                  message: 'something_went_wrong',
-                  status: false,
-              });
-              return
-              }
-              
-              let isAdmin;
-              if (rolesDetails.indexOf('is_superadmin') != -1) {
-                  isAdmin = true;
-              } else {
-                  isAdmin = false;
-              }
-              
-              let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
-              console.log('companyCreateStatus', companyCreateStatus);
-              if (companyCreateStatus) {
 
-                let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode,res,req)
-                console.log('responseResult', responseResult);
-                if(responseResult.status)
-                  {
-                    const options = {
-                      domain: config.SESSION_DOMAIN,
-                    };
-                   
-                    let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
-                    console.log("Object ID:", billingCookie.objectid );
-                    // const delUserDetailsQry = `DELETE FROM activation WHERE objectid = $1`
-                    // await pool.query(delUserDetailsQry, [billingCookie.objectid ]);
-                    const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+          let isAdmin;
+          if (rolesDetails.indexOf('is_superadmin') != -1) {
+            isAdmin = true;
+          } else {
+            isAdmin = false;
+          }
+
+          let companyCreateStatus = await this.checkCompanyStatus(companyDetails[0]['name'], isAdmin);
+          console.log('companyCreateStatus', companyCreateStatus);
+          if (companyCreateStatus) {
+
+            let responseResult = await this.bexioUserCreate(userDetails, companyDetails, tokenSet.access_token, isAdmin, coutryCode, res, req)
+            console.log('responseResult', responseResult);
+            if (responseResult.status) {
+              const options = {
+                domain: config.SESSION_DOMAIN,
+              };
+
+              let billingCookie = JSON.parse(encryptionControl.decryptCookie(req.cookies[config.BILLING_COOKIE_NAME]));
+              console.log("Object ID:", billingCookie.objectid);
+              // const delUserDetailsQry = `DELETE FROM activation WHERE objectid = $1`
+              // await pool.query(delUserDetailsQry, [billingCookie.objectid ]);
+              const objectId = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
                     DELETE FROM activation WHERE objectid = ${billingCookie.objectid}::uuid
                   `);
-                    // res.clearCookie(config.BILLING_COOKIE_NAME, options);
-                    // logs.action = 'BEXIO_LOGIN';
-                    // logs.level = 'NOTIFICATION';
-                    // logs.item = 'EDI';
-                    // addlogs(logs,data.rolePartyId,data.roleAccId);
-                    console.log('BEXIO_APP_URL',config.BEXIO_APP_URL);
-                    console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
-                    res.send({
-                      status_code: 200,
-                      message: 'success',
-                      status: true,
-                      redirectUrl:`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`
-                    });
-                    return;
-                    // res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.accountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`)
-                  }
-                else
-                  {
-                console.log('111');
-                  
-                    // res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
-                    res.send({
-                      status_code: 200,
-                      message: 'success',
-                      status: true,
-                      redirectUrl:`${config.BEXIO_APP_URL}/login/error`
-                    });
-                    return;
-  
-                  }
-                  // something went wrong
-              }
-              else{
-                res.send({
-                  status_code: 200,
-                  message: 'success',
-                  status: true,
-                  redirectUrl:`${config.BEXIO_APP_URL}/login/permissiondenied`
-                });
-                return;
-                // res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
-                // return;
-  
-                // permission
-            }
-          } else {
-            console.log('258258');
-            
-              // res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
+              // res.clearCookie(config.BILLING_COOKIE_NAME, options);
+              // logs.action = 'BEXIO_LOGIN';
+              // logs.level = 'NOTIFICATION';
+              // logs.item = 'EDI';
+              // addlogs(logs,data.rolePartyId,data.roleAccId);
+              console.log('BEXIO_APP_URL', config.BEXIO_APP_URL);
+              console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
               res.send({
                 status_code: 200,
                 message: 'success',
                 status: true,
-                redirectUrl:`${config.BEXIO_APP_URL}/login/unauthorized`
+                redirectUrl: `${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`
               });
               return;
-              // Correct
+              // res.redirect(`${config.BEXIO_APP_URL}#/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.accountId.toString()))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.isNewCompany.toString()))}`)
             }
-        }else{
+            else {
+              console.log('111');
+
+              // res.redirect(`${config.BEXIO_APP_URL}#/login/error`);
+              res.send({
+                status_code: 200,
+                message: 'success',
+                status: true,
+                redirectUrl: `${config.BEXIO_APP_URL}/login/error`
+              });
+              return;
+
+            }
+            // something went wrong
+          }
+          else {
+            res.send({
+              status_code: 200,
+              message: 'success',
+              status: true,
+              redirectUrl: `${config.BEXIO_APP_URL}/login/permissiondenied`
+            });
+            return;
+          }
+        } else {
+          console.log('258258');
+
+          // res.redirect(`${config.BEXIO_APP_URL}#/login/unauthorized`);
           res.send({
-            status_code: 500,
-            message: 'validation_error',
-            status: false,
-            
+            status_code: 200,
+            message: 'success',
+            status: true,
+            redirectUrl: `${config.BEXIO_APP_URL}/login/unauthorized`
           });
+          return;
+          // Correct
         }
-  
-  
+      } else {
+        res.send({
+          status_code: 500,
+          message: 'validation_error',
+          status: false,
+
+        });
+      }
+
+
     } catch (error) {
-     
-        // logs.action = 'BEXIO_LOGIN';
-        // logs.level = 'ERROR';
-        // logs.item = 'EDI';
-        // addlogs(logs,data.rolePartyId,data.roleAccId);
-        console.log('error',error);
-        console.log(config.BEXIO_APP_URL);
-          // commonErrors['errorTitle'] = req.originalUrl;
-          // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;  
-          // warningMessage(commonErrors,error);
-         res.redirect(`${config.BEXIO_APP_URL}/login/error`);
-      
+
+      // logs.action = 'BEXIO_LOGIN';
+      // logs.level = 'ERROR';
+      // logs.item = 'EDI';
+      // addlogs(logs,data.rolePartyId,data.roleAccId);
+      console.log('error', error);
+      console.log(config.BEXIO_APP_URL);
+      // commonErrors['errorTitle'] = req.originalUrl;
+      // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+params;  
+      // warningMessage(commonErrors,error);
+      res.redirect(`${config.BEXIO_APP_URL}/login/error`);
+
     }
   };
   async switchCompany(req: any, res: Response,): Promise<any> {
@@ -2734,14 +2720,14 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       const bexioClient = await bexioInterfaceClient();
       let partyId = data.partyId;
       let accountId = data.accountId;
-      console.log('partyId',partyId);
-      console.log('accountId',accountId);
+      console.log('partyId', partyId);
+      console.log('accountId', accountId);
       const refresTokenResult = await connectBexio.companyregistered.findMany({
         where: {
           rk_party: Number(partyId),
         },
       });
-      console.log('refresTokenResult',refresTokenResult);
+      console.log('refresTokenResult', refresTokenResult);
       const partyIdNum = BigInt(partyId);
       const accountIdNum = BigInt(accountId);
       const getPartyAccoutDetailsResult = await connectLibrary.$queryRaw<any[]>(
@@ -2754,8 +2740,8 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
             AND s."statusLabel" = 'active'
         `
       );
-       console.log('getPartyAccoutDetailsResult',getPartyAccoutDetailsResult);
-         console.log('getPartyAccoutDetailsResultlength',getPartyAccoutDetailsResult.length);
+      console.log('getPartyAccoutDetailsResult', getPartyAccoutDetailsResult);
+      console.log('getPartyAccoutDetailsResultlength', getPartyAccoutDetailsResult.length);
       if (!getPartyAccoutDetailsResult.length) {
         return res.status(200).json({
           status_code: 500,
@@ -2773,16 +2759,16 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       try {
 
         tokenSet = await bexioClient.refresh(refresTokenResult[0].refresh_token);
-         console.log('tokenSet',tokenSet);
+        console.log('tokenSet', tokenSet);
       } catch (error) {
-        console.log('error in token',error)
+        console.log('error in token', error)
         return res.status(200).json({
           status_code: 500,
-          message: 'token_missing'+error,
+          message: 'token_missing' + error,
           status: false,
         });
       }
-      
+
       await connectBexio.companyregistered.updateMany({
         where: {
           rk_party: Number(partyId),
@@ -2791,26 +2777,26 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
           refresh_token: tokenSet.refresh_token,
         },
       });
-        const partyAccountResult = await connectLibrary.$queryRaw<
-          { cid: any; fk_status: any }[]
-        >(Prisma.sql`
+      const partyAccountResult = await connectLibrary.$queryRaw<
+        { cid: any; fk_status: any }[]
+      >(Prisma.sql`
                   SELECT pa.cid, pa.fk_status
                   FROM party_account pa
                   INNER JOIN status s ON s.cid = pa.fk_status
                   WHERE pa.fk_party =${partyIdNum} AND pa.fk_account =  ${accountIdNum} AND s."statusLabel" = 'active'
                 `);
-                let isNewCompany = false
-    const redirectUrl = `${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`;
+      let isNewCompany = false
+      const redirectUrl = `${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(refresTokenResult[0].refresh_token))}/${encodeURIComponent(encryptionControl.encrypt(partyAccountResult[0].cid.toString()))}/${encodeURIComponent(encryptionControl.encrypt(isNewCompany.toString()))}`;
 
       return res.status(200).json({
         status: true,
         redirectUrl: redirectUrl,
         status_code: 200,
       });
-          
+
 
     } catch (error) {
-      console.log('error',error);
+      console.log('error', error);
       return res.status(200).json({
         status_code: 500,
         message: 'something_went_wrong',
@@ -2818,10 +2804,10 @@ async bexioCompanyCreate(req: any, res: Response, ): Promise<any> {
       });
     }
   }
- 
+
 }
 
-const companyConfirmation = async(companyname, zip, city, street, state)=> {
+const companyConfirmation = async (companyname, zip, city, street, state) => {
   //console.log("companyConfirmation function");
   //console.log({
   //   companyname, zip, city, street, state
@@ -2849,7 +2835,7 @@ const companyConfirmation = async(companyname, zip, city, street, state)=> {
   }
 
 };
- const addMailChimp = async(fName, lName, email) => {
+const addMailChimp = async (fName, lName, email) => {
   try {
     //console.log('fName', fName);
     //console.log('lName', lName);
@@ -2907,46 +2893,46 @@ const planPurchase = async (data) => {
   });
 }
 const packagePayment = async (data) => {
-  let fomdata= {
+  let fomdata = {
     payementData: encryptionControl.encrypt(JSON.stringify(data))
   }
-  let  options = {
-      'method': 'POST',
-      'url': config.ADMIN_URL+'payment/packagePayment',
-       formData: fomdata
-    };
-    //console.log('optionsoptions',options);
-    
+  let options = {
+    'method': 'POST',
+    'url': config.ADMIN_URL + 'payment/packagePayment',
+    formData: fomdata
+  };
+  //console.log('optionsoptions',options);
+
   return new Promise(function (resolve, reject) {
     request(options, async function (error, response, body) {
       if (!error && response.statusCode == 200) {
         return resolve(body);
       } else {
-          //console.log('er',error);
-          
+        //console.log('er',error);
+
         return reject(error);
       }
     });
   });
 }
 
-const getUserPermissions = async (partyId,accId) => {
-  return new Promise( async (resolve, reject) => {
-      try {
-          const validation = async (partyId,accId) => {
-              if (!partyId && !accId) {
-                  return true;
-              }
-          };
-          const validationResult = await validation(partyId,accId);
-          if( !validationResult ){
-              
-              // Ensure Redis client is connected
-              if (!redisClient.isOpen) {
-                  await redisClient.connect();
-              }
+const getUserPermissions = async (partyId, accId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const validation = async (partyId, accId) => {
+        if (!partyId && !accId) {
+          return true;
+        }
+      };
+      const validationResult = await validation(partyId, accId);
+      if (!validationResult) {
 
-              const getUserPermissionsResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
+        // Ensure Redis client is connected
+        if (!redisClient.isOpen) {
+          await redisClient.connect();
+        }
+
+        const getUserPermissionsResult = await connectLibrary.$queryRaw<any[]>(Prisma.sql`
                 SELECT po.policy, par.cid 
                 FROM partyapplication_account_role par
                 INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
@@ -2955,63 +2941,63 @@ const getUserPermissions = async (partyId,accId) => {
                 INNER JOIN policy po ON po.cid = rp.fk_policy
                 WHERE fk_account = ${parseInt(accId)}::bigint AND p.fk_party = ${parseInt(partyId)}::bigint
             `);
-            
-              
-              const redisKey = 'permissions_'+partyId+'_'+accId;
-              const roleObject = {};
-              roleObject[redisKey] = {};
-              if( getUserPermissionsResult.length > 0){
-                  getUserPermissionsResult.forEach(element => {
-                      let policy = element.policy;
-                      let effect = {};
-                      if( policy != null){
-                          policy.Statement.forEach(ps => {
-                              if (ps.Effect in roleObject[redisKey]){
-                                  roleObject[redisKey][ps.Effect] = roleObject[redisKey][ps.Effect].concat(ps.Action)
-                              }else{
-                                  effect[ps.Effect] = ps.Action;
-                                  roleObject[redisKey][ps.Effect] = ps.Action;
-                              }
-                          });
-                      }
-                  });
-                  let effectObject = Object.keys(roleObject[redisKey]);
-                  effectObject.forEach( ele => {
-                      roleObject[redisKey][ele] = [...new Set(roleObject[redisKey][ele])]
-                  })
-                  
-                  try {
-                      await redisClient.set(redisKey, JSON.stringify(roleObject[redisKey]), {
-                          EX: 24 * 60 * 60 * 2 // 2 days in seconds
-                      });
-                  } catch (redisError) {
-                      console.error('Redis error:', redisError);
-                      // Continue execution even if Redis fails
-                  }
-              }
-              return resolve(redisKey);
+
+
+        const redisKey = 'permissions_' + partyId + '_' + accId;
+        const roleObject = {};
+        roleObject[redisKey] = {};
+        if (getUserPermissionsResult.length > 0) {
+          getUserPermissionsResult.forEach(element => {
+            let policy = element.policy;
+            let effect = {};
+            if (policy != null) {
+              policy.Statement.forEach(ps => {
+                if (ps.Effect in roleObject[redisKey]) {
+                  roleObject[redisKey][ps.Effect] = roleObject[redisKey][ps.Effect].concat(ps.Action)
+                } else {
+                  effect[ps.Effect] = ps.Action;
+                  roleObject[redisKey][ps.Effect] = ps.Action;
+                }
+              });
+            }
+          });
+          let effectObject = Object.keys(roleObject[redisKey]);
+          effectObject.forEach(ele => {
+            roleObject[redisKey][ele] = [...new Set(roleObject[redisKey][ele])]
+          })
+
+          try {
+            await redisClient.set(redisKey, JSON.stringify(roleObject[redisKey]), {
+              EX: 24 * 60 * 60 * 2 // 2 days in seconds
+            });
+          } catch (redisError) {
+            console.error('Redis error:', redisError);
+            // Continue execution even if Redis fails
           }
-      } catch (error) {
-        //console.log('getUserPermissions error', error);
+        }
+        return resolve(redisKey);
+      }
+    } catch (error) {
+      //console.log('getUserPermissions error', error);
       // commonErrors['errorTitle'] = getUserPermissions.name;
       // commonErrors['errorDescription'] = 'From:'+path.basename(__filename)+' '+error.toString()+'-req param,'+partyId+' '+accId;
       // warningMessage(commonErrors,error);
-          reject(error)
-          // return res.status(statusCode.INTERNAL_SERVER_ERROR).json({
-          //     message: 'something went wrong',
-          //     status: false
-          // });
-      }
+      reject(error)
+      // return res.status(statusCode.INTERNAL_SERVER_ERROR).json({
+      //     message: 'something went wrong',
+      //     status: false
+      // });
+    }
   });
 }
-const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
+const gate2bRegisterInBexio = async (userLanguage, module, email) => {
   //console.log('gate2bRegisterInBexio');
-  
+
   let subject = '';
   let message = '';
   let mailData
-  if(module == 'EBILL'){
-    mailData = await fetchEmailContent('register_gate2b_bexio_app_ebill',userLanguage);
+  if (module == 'EBILL') {
+    mailData = await fetchEmailContent('register_gate2b_bexio_app_ebill', userLanguage);
     /* if (userLanguage == 'de') {
       subject='Registrierung für gate2b in der bexio-App'
 
@@ -3027,46 +3013,46 @@ const gate2bRegisterInBexio = async (userLanguage,module,email)  => {
       <br><br>If you have any questions, please contact the sales team at ` + config.SALES_TEAM_CONTACT + `  or the 
       support team at ` + config.HELP_DESK_CONTACT + `.<br><br>Kind regards<br>io-market AG`
     } */
-  }else{
-      /* if (userLanguage == 'de') {
-        subject='Registrierung für gate2b in der bexio-App'
-        message = `Lieber Kunde
-        <br><br>
-        <div>Vielen Dank für deine Registrierung für das gate2b in der bexio-App. Mit deiner Registrierung hast du dir gleichzeitig auch einen kostenlosen Account für das gate2b-Modul erstellt.</div><br>
-        <div>Bei Fragen steht dir das Sales-Team unter ` + config.SALES_TEAM_CONTACT + ` oder das Support-Team unter ` + config.HELP_DESK_CONTACT + ` gerne zur Verfügung.</div><br>
-        <div>Freundliche Grüsse</div>
-        <div>io-market AG</div><br>`
-    }
-    else {
-        subject = 'Registration for gate2b in the bexio app';
-        message =`Dear customer
-        <br><br>
-        <div>Thank you for registering for gate2b in the bexio app. With your registration you have also created a free account for the gate2b module.</div><br>
-        <div>If you have any questions, please do not hesitate to contact the Sales-Team at ` + config.SALES_TEAM_CONTACT + ` or the Support-Team at ` + config.HELP_DESK_CONTACT + `.</div><br>
-        <div>Kind regards</div>
-        <div>io-market AG</div><br>`
-    } */
-    mailData = await fetchEmailContent('register_gate2b_bexio_app',userLanguage);
+  } else {
+    /* if (userLanguage == 'de') {
+      subject='Registrierung für gate2b in der bexio-App'
+      message = `Lieber Kunde
+      <br><br>
+      <div>Vielen Dank für deine Registrierung für das gate2b in der bexio-App. Mit deiner Registrierung hast du dir gleichzeitig auch einen kostenlosen Account für das gate2b-Modul erstellt.</div><br>
+      <div>Bei Fragen steht dir das Sales-Team unter ` + config.SALES_TEAM_CONTACT + ` oder das Support-Team unter ` + config.HELP_DESK_CONTACT + ` gerne zur Verfügung.</div><br>
+      <div>Freundliche Grüsse</div>
+      <div>io-market AG</div><br>`
+  }
+  else {
+      subject = 'Registration for gate2b in the bexio app';
+      message =`Dear customer
+      <br><br>
+      <div>Thank you for registering for gate2b in the bexio app. With your registration you have also created a free account for the gate2b module.</div><br>
+      <div>If you have any questions, please do not hesitate to contact the Sales-Team at ` + config.SALES_TEAM_CONTACT + ` or the Support-Team at ` + config.HELP_DESK_CONTACT + `.</div><br>
+      <div>Kind regards</div>
+      <div>io-market AG</div><br>`
+  } */
+    mailData = await fetchEmailContent('register_gate2b_bexio_app', userLanguage);
   }
   subject = mailData.subject || '';
   message = mailData.message || '';
   //console.log('messagemessage',message);
- 
+
   await sendEmail({
-      email: config.DEBUG ? config.DEBUG_MAIL : email,
-      subject: subject,
-      message,
+    email: config.DEBUG ? config.DEBUG_MAIL : email,
+    subject: subject,
+    message,
   });
 }
 
-const createOctConfig = async (netComId)  => {
+const createOctConfig = async (netComId) => {
   try {
     // let data = req.body
     let responseData = null
 
     let fomdata = {
       name: netComId,
-      config: JSON.stringify({"sequence":["Gate2b","Print"],"serviceStatus":{"Gate2b":true}}),
+      config: JSON.stringify({ "sequence": ["Gate2b"], "serviceStatus": { "Gate2b": true } }),
       status: 1,
       module: 'BEX'
     }
@@ -3076,14 +3062,14 @@ const createOctConfig = async (netComId)  => {
       formData: fomdata
     };
 
-    console.log('options',options);
+    console.log('options', options);
 
     return new Promise(function (resolve, reject) {
       request(options, async function (error, response, body) {
 
         if (error) {
           commonErrors['errorTitle'] = 'setConfiguration';
-          commonErrors['errorDescription'] = 'From:' +  ' ' + error.toString();
+          commonErrors['errorDescription'] = 'From:' + ' ' + error.toString();
           warningMessage(commonErrors, error);
           return resolve(error)
         }
@@ -3104,9 +3090,9 @@ const createOctConfig = async (netComId)  => {
     });
 
   }
-  catch(error) {
+  catch (error) {
     console.log("Error in createOctConfig:", error);
-    
+
     // return resolve(responseData)
   }
 }
