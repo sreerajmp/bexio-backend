@@ -11,13 +11,13 @@ flowchart TD
     Client["Client / Frontend"] -->|REST API / HTTPS| API_Gateway["NestJS API Gateway"]
 
     subgraph "Application Core"
-        API_Gateway --> Auth["Auth & Session (Redis)"]
+        API_Gateway --> CookieCheck["Cookie Auth Check\n(decrypt TOKEN_COOKIE_BEXIO per request)"]
         API_Gateway --> Pipes["Global Validation Pipes"]
         Pipes --> Modules["Feature Modules"]
     end
 
     subgraph "Feature Modules"
-        Modules --> UserMod["BexioUser Module"]
+        Modules --> UserMod["BexioUser Module\n(sets TOKEN_COOKIE_BEXIO after OAuth2)"]
         Modules --> DebtorsMod["Debtors Module"]
         Modules --> CreditorsMod["Creditors Module"]
         Modules --> DashboardMod["Dashboard Module"]
@@ -33,7 +33,7 @@ flowchart TD
         ContactMod --> DynamoDB["DynamoDB - Jobs"]
         Modules --> Prisma["Prisma Client"]
         Prisma --> DB["Database (Bexio / Library / Gate2B DBs)"]
-        Auth --> Redis["Redis Cache"]
+        DebtorsMod -->|"Invoice list cache (TTL 2d)"| Redis["Redis (response cache only)"]
     end
 
     subgraph "External Integrations"
@@ -109,14 +109,15 @@ flowchart TD
 ## Request Flow
 
 1.  **Incoming Request**: Client triggers an API call (e.g., `POST /api/v1/debtors/sendInvoice`).
-2.  **Middleware**: `cookie-parser` parses and validates signed cookies (backed by Redis for sessions).
-3.  **Guards & Pipes**:
-    -   Global `ValidationPipe` ensures DTOs are valid.
-    -   Service methods decrypt the `TOKEN_COOKIE_BEXIO` signed cookie to verify the user's Bexio identity.
+2.  **Middleware**: `cookie-parser` (with the shared `SESSION_SECRET`) parses and verifies the HMAC signature on signed cookies.
+3.  **Auth Check (per-request, in-service)**:
+    -   There is **no global auth guard**. Each service method individually reads `req.signedCookies[TOKEN_COOKIE_BEXIO_NAME]`, decrypts it with `encryptionControl.decryptCookie()`, and extracts the Bexio `access_token` and `refresh_token`.
+    -   If the cookie is absent or tampered with, decryption fails and the method returns `401 unauthorized`.
+    -   `express-session` with `RedisStore` is configured in `main.ts` but **the session object is never read or written** by any service method — Redis is not part of the request auth path.
 4.  **Controller**: Routes the request to the appropriate service method.
 5.  **Service Layer**: Executes business logic.
-    -   May query the database via Prisma.
-    -   May call external APIs (Bexio).
+    -   Queries the database via Prisma.
+    -   Calls Bexio REST APIs using the `access_token` from the decrypted cookie.
     -   Offloads heavy tasks to background workers via `worker_threads`.
 6.  **Response**: Returns standard JSON response to the client.
 
