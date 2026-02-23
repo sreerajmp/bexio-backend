@@ -1160,6 +1160,7 @@ export class DebtorsService {
         [invoice]
       );
       warningMessage({
+        ...commonErrors,
         messagetype: "478",
         netcomId: data.netcomId,
         errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
@@ -1385,6 +1386,7 @@ export class DebtorsService {
               inv
             );
             warningMessage({
+              ...commonErrors,
               messagetype: "406",
               message: "Not Acceptable Channel Missing",
               netcomId: data.netcomId,
@@ -1428,6 +1430,7 @@ export class DebtorsService {
             inv
           );
           warningMessage({
+            ...commonErrors,
             messagetype: "406",
             message: "Not Acceptable Channel Missing",
             netcomId: data.netcomId,
