@@ -290,7 +290,7 @@ export class DashboardService {
               console.log("status true");
               Object.assign(result[0], JSON.parse(response.body).data);
             } else {
-              console.log("status false", response.body);
+              console.log("status false", response?.body);
               return res.status(500).json({
                 data: [],
                 status_code: 500,

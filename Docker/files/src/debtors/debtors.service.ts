@@ -1184,19 +1184,6 @@ export class DebtorsService {
         invoice.contactId,
         [invoice]
       );
-      warningMessage({
-        messagetype: "406",
-        message: "Not Acceptable Receipient NotSubscribed",
-        netcomId: data.netcomId,
-        errorDescription: `From:${path.basename(__filename)} no_subscription_found for invoice ${invoice.doc_id}`,
-        errorTitle: "DebtorsService.processEbillInvoice",
-        process: "processEbillInvoice",
-        guid: "dummy-guid",
-        filename: invoice.documentNumber
-      }, "no_subscription_found");
-      console.log(`Skipped eBill processing for invoice ${invoice.doc_id} (allow=false)`);
-      return null; //  stop here — skip rest of processing
-
     }
     const tokenSet = await bexioClient.refresh(recipientToken[0]?.refresh_token || '');
     invoice.accessToken = tokenSet.access_token;
