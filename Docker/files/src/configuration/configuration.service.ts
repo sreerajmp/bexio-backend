@@ -663,31 +663,31 @@ export class ConfigurationService {
       encrToken = encryptionControl.decrypt(req.body.encrToken);
       console.log('encrToken', encrToken);
 
-      if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
+      // if (!encrToken || !('accId' in encrToken) || !('partyId' in encrToken)) {
 
 
-        const getUserPermissionsResult = await connectLibrary.$queryRaw<any>`
-          SELECT po.policy, par.cid 
-          FROM partyapplication_account_role par
-          INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
-          INNER JOIN partyapplication p ON p.cid = pa.fk_partyapplication 
-          INNER JOIN role_policy rp ON rp.fk_role = par.fk_role 
-          INNER JOIN policy po ON po.cid = rp.fk_policy
-          INNER JOIN role r ON r.cid = rp.fk_role 
-          WHERE fk_account = ${BigInt(encrToken.roleAccId)}
-          AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
-          AND r.name LIKE '%EBILL%'
-      `;
-        console.log('getUserPermissionsResult', getUserPermissionsResult, encrToken.roleAccId, encrToken.rolePartyId);
+      //   const getUserPermissionsResult = await connectLibrary.$queryRaw<any>`
+      //     SELECT po.policy, par.cid 
+      //     FROM partyapplication_account_role par
+      //     INNER JOIN partyapplication_account pa ON par.fk_partyapplication_account = pa.cid
+      //     INNER JOIN partyapplication p ON p.cid = pa.fk_partyapplication 
+      //     INNER JOIN role_policy rp ON rp.fk_role = par.fk_role 
+      //     INNER JOIN policy po ON po.cid = rp.fk_policy
+      //     INNER JOIN role r ON r.cid = rp.fk_role 
+      //     WHERE fk_account = ${BigInt(encrToken.roleAccId)}
+      //     AND p.fk_party = ${BigInt(encrToken.rolePartyId)}
+      //     AND r.name LIKE '%EBILL%'
+      // `;
+      //   console.log('getUserPermissionsResult', getUserPermissionsResult, encrToken.roleAccId, encrToken.rolePartyId);
 
-        if (getUserPermissionsResult.length == 0) {
-          return res.status(status_code.INTERNAL_SERVER_ERROR).json({
-            status_code: 200,
-            message: 'no_data_found_getUserPermissionsResult',
-            status: false,
-          });
-        }
-      }
+      //   if (getUserPermissionsResult.length == 0) {
+      //     return res.status(status_code.INTERNAL_SERVER_ERROR).json({
+      //       status_code: 200,
+      //       message: 'no_data_found_getUserPermissionsResult',
+      //       status: false,
+      //     });
+      //   }
+      // }
 
       const netcomId = encrToken?.netcomId;
 
