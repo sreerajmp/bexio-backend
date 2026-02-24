@@ -2042,106 +2042,6 @@ export class ConfigurationService {
     }
   }
 
-  // async getActiveSalesTaxList(req: Request, res: Response): Promise<any> {
-  //   try {
-  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-  //     if (!cookieData) {
-  //       return res.status(500).send({
-  //           status_code: 500,
-  //           message: 'Missing_cookie',
-  //           status: false,
-  //         })
-  //     }
-
-  //     let accessToken = cookie.access_Token;
-  //     const taxList: any = await getActiveSalesTaxBexio(accessToken);
-  //     //console.log("taxList :: ",taxList);
-  //     if( taxList?.status === false ){
-  //       return res.status(taxList.statuscode).send({
-  //         status_code: taxList.statuscode,
-  //         message: taxList.message,
-  //         status: false,
-  //       })
-  //     }
-  //     //console.log("taxList ",taxList);
-  //     return res.status(200).send({
-  //       status: 200,
-  //       data: taxList,
-  //     });
-  //   } catch (error) {
-  //     //console.log("Error getActiveSalesTaxList :: ",error);
-  //   }
-  // }
-
-  // async getUnitList(req: Request, res: Response): Promise<any> {
-  //   try {
-  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-  //     if (!cookieData) {
-  //       return res.status(500).send({
-  //           status_code: 500,
-  //           message: 'Missing_cookie',
-  //           status: false,
-  //         })
-  //     }
-
-  //     let accessToken = cookie.access_Token;
-  //     const unitList: any = await getUnitList(accessToken);
-  //     if( unitList?.status == false ){
-  //       return res.status(unitList.statuscode).send({
-  //         status_code: unitList.statuscode,
-  //         message: unitList.message,
-  //         status: false,
-  //       })
-  //     }
-  //     //console.log("unitList ",unitList);
-  //     return res.status(200).send({
-  //       status: 200,
-  //       data: unitList,
-  //     });
-  //   } catch (error) {
-  //     //console.log("Error getUnitList :: ",error);
-  //   }
-  // }
-  // async getActiveAccounts(req: Request, res: Response): Promise<any> {
-  //   //console.log("getActiveAccounts")
-  //   try {
-  //     let reqTaxId = req.body.tax_id;
-  //     //console.log(reqTaxId)
-  //     let cookieData = req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME];
-  //     const cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(cookieData)));
-  //     if (!cookieData) {
-  //       return res.status(500).send({
-  //           status_code: 500,
-  //           message: 'Missing_cookie',
-  //           status: false,
-  //         })
-  //     }
-
-  //     let accessToken = cookie.access_Token;
-  //     let isBexioUser = cookie.isBexioUser;
-  //     const activeAccounts: any = await getActiveAccounts(accessToken);
-  //     if( activeAccounts?.status == false ){
-  //       return res.status(activeAccounts.statuscode).send({
-  //         status_code: activeAccounts.statuscode,
-  //         message: activeAccounts.message,
-  //         status: false,
-  //       })
-  //     }
-  //     let newAccountList = activeAccounts.filter( item => item.tax_id == reqTaxId);
-  //     //console.log("newAccountList :: ",newAccountList.length);
-  //     //console.log("activeAccounts ",activeAccounts.length);
-  //     return res.status(200).send({
-  //       status: 200,
-  //       data: newAccountList,
-  //     });
-  //   } catch (error) {
-
-  //     //console.log("Error getActiveAccounts :: ",error);
-  //   }
-  // }
-
   async getArticleDetails(req: Request, res: Response): Promise<any> {
     try {
       const { taxId, unitId, accountId, articleId } = req.body;
@@ -2246,52 +2146,52 @@ export class ConfigurationService {
     }
   }
 
- 
+
   async getContacts(req: Request, res: Response): Promise<any> {
 
     try {
       let cookie = JSON.parse(encryptionControl.decryptCookie(JSON.stringify(req.signedCookies[config.TOKEN_COOKIE_BEXIO_NAME])));
       let accessToken = cookie.access_Token;
-      let decryptdata=req.body
-      const { name, limit = 2000,offset = 0 } = req.body ?? {};
+      let decryptdata = req.body
+      const { name, limit = 2000, offset = 0 } = req.body ?? {};
       let result;
       let data = [];
 
-      console.log("decryptdata-------------",decryptdata);
-      console.log("name-------------",name);
-      if(name){ 
-        let contactList:any =await searchContact(accessToken,{name},offset,limit)
-        console.log("contactList-------------",contactList);
-        if(contactList?.error){
+      console.log("decryptdata-------------", decryptdata);
+      console.log("name-------------", name);
+      if (name) {
+        let contactList: any = await searchContact(accessToken, { name }, offset, limit)
+        console.log("contactList-------------", contactList);
+        if (contactList?.error) {
           return res.status(500).send({
             status_code: 500,
             message: 'something_went_wrong',
             status: false,
           })
         }
-        if(contactList?.length !== 0){  
-        result = contactListMapping(contactList) || []
+        if (contactList?.length !== 0) {
+          result = contactListMapping(contactList) || []
         }
         return res.status(200).send({
           status: 200,
           data: result,
         });
-      }else {
+      } else {
         let contactList: any = await getAllcontacts(accessToken, offset, limit, data);
         if (contactList === "Unauthorized") {
-        return res.status(401).send({
-          status_code: 401,
-          message: 'Unauthorized',
-          status: false,
-        });
-      }else {
-        ////console.log("totalCount", totalCount);
-        result = contactListMapping(contactList)
-        return res.status(200).send({
-          status: 200,
-          data: result,
-        });
-      }
+          return res.status(401).send({
+            status_code: 401,
+            message: 'Unauthorized',
+            status: false,
+          });
+        } else {
+          ////console.log("totalCount", totalCount);
+          result = contactListMapping(contactList)
+          return res.status(200).send({
+            status: 200,
+            data: result,
+          });
+        }
 
       }
     } catch (error) {

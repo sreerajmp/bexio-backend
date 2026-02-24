@@ -2328,7 +2328,19 @@ export class DebtorsService {
             rkInvoice
           );
         }
-        await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId, service);
+        try {
+          await notifiBexio(refDataQueryResult[0].companyregistered?.refresh_token, rkInvoice, formData.status.trim(), formData.message, refDataQueryResult[0].companyregistered?.netcomid, formData.amount, bankId, service);
+        } catch (notifyError: any) {
+          console.log('notifiBexio error (non-fatal):', notifyError);
+          commonErrors['errorTitle'] = req.originalUrl;
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' notifiBexio failed: ' + notifyError.toString() + ' -req param,' + JSON.stringify(formData);
+          warningMessage(commonErrors, notifyError);
+          return res.status(200).json({
+            status_code: 200,
+            message: notifyError?.message || notifyError.toString(),
+            status: false,
+          });
+        }
 
         return res.status(200).json({
           status_code: 200,
