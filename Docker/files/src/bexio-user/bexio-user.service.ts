@@ -1110,9 +1110,7 @@ export class BexioUserService {
 
         let options = {
           'method': 'POST',
-          'url': config.PYTHON_API + 'third-party-connector',
-          // 'url':'http://192.168.2.63:5005/api/bexio-connector',
-          // 'headers': headers,
+          'url': config.GATE2BURL + 'third-party-connector',
           formData: fomdata
         };
         return new Promise(function (resolve, reject) {
