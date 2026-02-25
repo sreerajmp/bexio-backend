@@ -1,8 +1,10 @@
-import { Controller, Post, Body, UseInterceptors, Get, Req, Res, Param, Query, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, Get, Req, Res, Param, Query, UploadedFile, UseGuards } from '@nestjs/common';
 import { ConfigurationService } from './configuration.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { CookieAuthGuard } from '../common/guards/cookie-auth.guard';
 import { File as MulterFile } from 'multer';
+@UseGuards(CookieAuthGuard)
 @Controller('configuration')
 export class ConfigurationController {
   constructor(private readonly configurationService: ConfigurationService) {

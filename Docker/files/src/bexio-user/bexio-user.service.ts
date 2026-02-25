@@ -2673,6 +2673,10 @@ VALUES (
               redirectUrl: `${config.BEXIO_APP_URL}/login/permissiondenied`
             });
             return;
+            // res.redirect(`${config.BEXIO_APP_URL}#/login/permissiondenied`);
+            // return;
+
+            // permission
           }
         } else {
           console.log('258258');

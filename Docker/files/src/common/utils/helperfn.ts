@@ -198,7 +198,7 @@ export const getBcDetails = async (bc_id, netcomId) => {
       }
       let options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'get-contact-bc',
+        'url': config.GATE2BURL + 'get-contact-bc',
         formData: formData
       };
 
@@ -210,7 +210,7 @@ export const getBcDetails = async (bc_id, netcomId) => {
         }
         try {
 
-          //console.log('output',config.PYTHON_API + 'get-contact-bc');
+          //console.log('output',config.GATE2BURL + 'get-contact-bc');
           const result = JSON.parse(response.body);
           resolve(result);
         } catch (err) {
@@ -1484,7 +1484,7 @@ export async function invoiceFilePush(netcomId, service, data, filename, type) {
 
     let options = {
       'method': 'POST',
-      'url': config.PYTHON_API + 'bexio-file-drop',
+      'url': config.GATE2BURL + 'bexio-file-drop',
       // 'headers': headers,
       formData: formData
     };
@@ -3178,7 +3178,7 @@ export const moveFile = async (netcomId, fileName) => {
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'move-file',
+        'url': config.GATE2BURL + 'move-file',
         //  'url':'http://192.168.2.63:5005/api/post-list/invitations',
         formData: formData
       };
@@ -5210,7 +5210,7 @@ export const pushPrintInvoice = async (invoices, bodyValues, headerParams, chann
       };
       let options = {
         method: 'POST',
-        url: config.PYTHON_API + 'get-print-settings',
+        url: config.GATE2BURL + 'get-print-settings',
         form: { form: JSON.stringify(formData) }
       };
       request(options, async function (error, response) {

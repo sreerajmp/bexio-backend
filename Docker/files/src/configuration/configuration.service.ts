@@ -815,9 +815,7 @@ export class ConfigurationService {
 
         let options = {
           'method': 'POST',
-          'url': config.PYTHON_API + 'invite-details',
-          // 'url': 'http://192.168.2.64:5005/api/'+'invite-details',
-
+          'url': config.GATE2BURL + 'invite-details',
           formData: formData
         };
         request(options, async function (error, response, body) {
@@ -1714,11 +1712,11 @@ export class ConfigurationService {
         console.log('inviteData', inviteData);
         console.log(formData);
 
-        console.log('config.PYTHON_API', config.PYTHON_API + 'merge-connections');
+        console.log('config.GATE2BURL', config.GATE2BURL + 'merge-connections');
         return new Promise(async (resolve, reject) => {
           var options = {
             'method': 'POST',
-            'url': config.PYTHON_API + 'merge-connections',
+            'url': config.GATE2BURL + 'merge-connections',
             formData: formData
 
           };
@@ -2395,7 +2393,7 @@ export class ConfigurationService {
 
       const options = {
         method: 'POST',
-        url: config.PYTHON_API + 'company-g2b-connections',
+        url: config.GATE2BURL + 'company-g2b-connections',
         formData,
       };
 
@@ -2567,7 +2565,7 @@ const createConnector = async (params) => {
 
     let options = {
       'method': 'POST',
-      'url': config.PYTHON_API + 'third-party-connector',
+      'url': config.GATE2BURL + 'third-party-connector',
       formData: formdata
     };
     return new Promise(function (resolve, reject) {
@@ -2600,7 +2598,7 @@ const inviteCompanySend = async (params) => {
 
     let options = {
       'method': 'POST',
-      'url': config.PYTHON_API + 'send-invitation',
+      'url': config.GATE2BURL + 'send-invitation',
 
       formData: fomdata
     };
@@ -2660,7 +2658,7 @@ const getInvitationDetails = async (code): Promise<any | false> => {
     }
     let options = {
       'method': 'POST',
-      'url': config.PYTHON_API + 'post-list/connections',
+      'url': config.GATE2BURL + 'post-list/connections',
       // 'url': 'http://192.168.2.64:5005/api/'+'invite-details',
       formData: formData
     };
@@ -2712,7 +2710,7 @@ const getPythonData = async (netcomId) => {
       }
       const options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'post-list/connections',
+        'url': config.GATE2BURL + 'post-list/connections',
         formData: formData
       };
       console.log('getPythonData options', options);
@@ -2844,7 +2842,7 @@ const getInvitations = async (code) => {
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'post-list/invitations',
+        'url': config.GATE2BURL + 'post-list/invitations',
 
         formData: formData
       };
@@ -2876,7 +2874,7 @@ const getStatus = async (code) => {
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'fetch-field-status',
+        'url': config.GATE2BURL + 'fetch-field-status',
         formData: formData
       };
       request(options, function (error, response) {
@@ -2918,7 +2916,7 @@ const getConnections = async (netcomId, docType) => {
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'post-list/connections',
+        'url': config.GATE2BURL + 'post-list/connections',
         formData: formData
 
       };
@@ -2955,7 +2953,7 @@ const getConnectionsDetailsOfInviteSender = async (code, netComId) => {
     return new Promise(async (resolve, reject) => {
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'post-list/connections',
+        'url': config.GATE2BURL + 'post-list/connections',
         formData: formData
 
       };
