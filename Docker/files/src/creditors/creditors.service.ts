@@ -28,7 +28,7 @@ const { connectBexio, connectNewGate2b, connectLibrary } =
 export class CreditorsService {
   constructor(
     private readonly sendOrderWorkerHost: SendOrderWorkerHost,
-  ) {}
+  ) { }
   async getInvoice(req: Request, res: Response): Promise<any> {
     let cookie = null;
     let data = req.body;
@@ -484,7 +484,7 @@ export class CreditorsService {
           }
           let resData = JSON.parse(response.body);
 
-          if (response.statusCode == 401){
+          if (response.statusCode == 401) {
             return res.status(401).json({
               status: true,
               status_code: response.statusCode,
@@ -493,7 +493,7 @@ export class CreditorsService {
             });
           }
 
-          if (response.statusCode != 200){
+          if (response.statusCode != 200) {
             return res.status(500).json({
               status: true,
               status_code: response.statusCode,
@@ -741,7 +741,7 @@ export class CreditorsService {
 
       var options = {
         method: 'POST',
-        url: config.PYTHON_API + 'file-download',
+        url: config.GATE2BURL + 'file-download',
         formData: formData,
       };
       request(options, function (error, response) {

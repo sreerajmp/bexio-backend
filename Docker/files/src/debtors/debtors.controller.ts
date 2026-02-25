@@ -1,11 +1,14 @@
-import { Controller, Post, UseInterceptors, Req, Res, Body } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, Req, Res, Body, UseGuards } from '@nestjs/common';
 import { DebtorsService } from './debtors.service';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { GetInvoiceDto, GetOrderListDto, GetDeliveryNotesListDto, SendInvoiceDto, SendOrderDto } from './dto/debtors.dto';
+import { CookieAuthGuard } from 'src/common/guards/cookie-auth.guard';
+import { SkipAuth } from 'src/common/decorators/skip-auth.decorator';
 
+@UseGuards(CookieAuthGuard)
 @ApiTags('Debtors')
 @Controller('debtors')
 export class DebtorsController {
@@ -83,6 +86,7 @@ export class DebtorsController {
   async invoiceDetails(@Req() req: Request, @Res() res: Response): Promise<any> {
     return this.debtorsService.invoiceDetails(req, res);
   }
+  @SkipAuth()
   @Post('changeInvoiceSendStatus')
   @ApiOperation({ summary: 'Change Invoice Send Status', description: 'Updates the send status of an invoice.' })
   @UseInterceptors(AnyFilesInterceptor())

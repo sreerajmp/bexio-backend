@@ -1,12 +1,15 @@
 // Handles HTTP endpoints for importing contacts from Salesforce and pushing to Bexio
-import { Controller, Post, Body, Get, Query, UseInterceptors, Req, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseInterceptors, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ContactImportService } from './contact-import.service';
 import { ImportContactDto, SyncEbillConactDto } from './dto/import-contact.dto';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
+import { CookieAuthGuard } from 'src/common/guards/cookie-auth.guard';
+import { SkipAuth } from 'src/common/decorators/skip-auth.decorator';
 
 @ApiTags('Contact Import')
+@UseGuards(CookieAuthGuard)
 @Controller('contact-import')
 export class ContactImportController {
   constructor(private readonly contactImportService: ContactImportService) { }
@@ -55,7 +58,7 @@ export class ContactImportController {
       return { message: 'Unauthorized', status: 401 };
     }
   }
-
+  @SkipAuth()
   @Post('scheduler-contact')
   @UseInterceptors(AnyFilesInterceptor())
   async schedulercontact(@Req() req: Request, @Res() res: Response): Promise<any> {

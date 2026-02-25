@@ -1611,7 +1611,7 @@ export class DebtorsService {
       }
       var options = {
         'method': 'POST',
-        'url': config.PYTHON_API + 'file-download',
+        'url': config.GATE2BURL + 'file-download',
         formData: formData
       };
       console.log('formData', formData);
