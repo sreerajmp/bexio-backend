@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { RedisCacheInterceptor } from 'src/common/interceptor/redisStore';
 import { ApiBody } from '@nestjs/swagger';
 import { CookieAuthGuard } from 'src/common/guards/cookie-auth.guard';
+import { SkipAuth } from 'src/common/decorators/skip-auth.decorator';
 
 @UseGuards(CookieAuthGuard)
 @Controller('creditors')
@@ -56,7 +57,7 @@ export class CreditorsController {
 
     return this.creditorsService.passTog2b(req, res, req.method, pathValue);
   }
-
+  @SkipAuth()
   @Post('emailSendingScheduler')
   @UseInterceptors(AnyFilesInterceptor()) //This enables form-data parsing
   @ApiBody({

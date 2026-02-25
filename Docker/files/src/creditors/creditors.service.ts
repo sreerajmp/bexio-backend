@@ -457,7 +457,6 @@ export class CreditorsService {
           totalCount = await orderListCountSearch(accessToken, 0, 2000);
           options = {
             method: 'GET',
-            // 'url': `${config.BEXIO_API}2.0/kb_invoice`,
             url: `${config.BEXIO_API}3.0/purchase_orders/?limit=${showTo}&offset=${showFrom}&order_by=${sortColumn}_${sortType}`,
             headers: {
               Accept: 'application/json',
@@ -1373,15 +1372,6 @@ export class CreditorsService {
           }
 
           console.log("invoicedCompanyName ----", invoicedCompanyName);
-
-          // const qryListAllInvoice =
-          //   await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type, status
-          //                   FROM public.documents_invoice_send
-          //                   WHERE time_stamp  BETWEEN ${startTimestamp}::timestamptz AND ${endTimestamp}::timestamptz ORDER BY time_stamp DESC`;
-          //   const qryListAllInvoice = await connectBexio.$queryRaw<any>` SELECT cid, rk_invoice, invoice_number, invoice_type
-          //   FROM public.documents_invoice_send
-          //  `;
-
           const qryListAllInvoice =
             await connectBexio.$queryRaw<any>` 
                   SELECT cid, rk_invoice, invoice_number, invoice_type, status
@@ -1505,11 +1495,6 @@ export class CreditorsService {
 
           const germanDate = startDate ? `${new Date(startTimestamp).toLocaleDateString('de-DE')}` : date.toLocaleDateString('de-DE');
 
-          // const today = new Date();
-          // today.setDate(today.getDate()); // Subtract 1 day to get yesterday
-
-          // const germanDateToday = today.toLocaleDateString('de-DE');
-
           console.log(germanDate);
           let subject = `Übersicht der versendeten Rechnungen – ${invoicedCompanyName} - ${germanDate}`;
           let mailBody = `<table width="100%" style="max-width:600px">
@@ -1602,18 +1587,8 @@ export class CreditorsService {
               status: "success",
               info: result.info
             })
-            // return res.status(200).json({              
-            //   status_code: 200,
-            //   message: 'Email sent successfully',
-            //   data: result.info,
-            // })
+
           } catch (error) {
-            // throw error;      
-            // return res.status(500).json({              
-            //   status_code: 500,
-            //   message: 'Email sent failed',
-            //   error: error,
-            // })      
             results.push({
               company: getDistinctCompany[j].fk_companyregistered,
               message: 'Email sent failed',
@@ -2033,32 +2008,4 @@ const getConnectionDetails = async (partyId, accountId, contactId, req) => {
     console.log(error);
   }
 };
-const deleteRedis = async (api, key) => {
-  const checkAPI = JSON.parse(
-    fs.readFileSync('./assets/iom_E76FAD2A-41E9-E211-84C9-D8D385E0B238.json'),
-  );
-  let delApis = checkAPI.realated[api];
-  console.log('delApis', delApis);
-  console.log('data', key);
 
-  const redis_client = await redisClient;
-
-  try {
-    delApis.split(',').forEach(async (element) => {
-      // <--- make this async
-      const pattern = key + element + '*';
-      console.log(pattern);
-
-      const data = await redis_client.keys(pattern); // use await instead of callback
-      data.forEach(async (apis) => {
-        await redis_client.del(apis); // also await here
-      });
-    });
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-// getCurrencyList removed , if needed  import from helperfn.ts 
-// getloginUserCompanyDetails List removed , if needed  import from helperfn.ts 
-// invoiceFilePush List removed , if needed  import from helperfn.ts 
