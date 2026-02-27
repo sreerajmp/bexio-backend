@@ -2318,7 +2318,7 @@ export class DebtorsService {
         console.log('rkInvoice', rkInvoice);
 
         if (
-          (service === 'edi' && formData.status?.trim() === 'COMPLETED') ||
+          (service === 'edi' && formData.status?.trim() === 'SENT') ||
           (service === 'ebill' && formData.status?.trim() === 'COMPLETED') ||
           (service === 'print' && formData.status?.trim() === 'SENT') ||
           (service === 'email' && formData.status?.trim() === 'SENT')
