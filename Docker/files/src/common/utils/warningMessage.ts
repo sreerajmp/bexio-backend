@@ -36,21 +36,21 @@ const pushToLoki = async (data: any, error: any) => {
  * Main entry point for logging warnings/errors.
  * Now exclusively uses pushToLoki (via stdout/Logger).
  */
-const warningMessageToDotnet = async (data, error ,isLogger:boolean = true) => {
-    if(isLogger){
+const warningMessageToDotnet = async (data, error, isLogger: boolean = true) => {
+    if (isLogger) {
         await pushToLoki(data, error);
     }
     if (error != null) {
         const errorId = crypto.randomBytes(15).toString('hex');
-        const errorFolder = config.ERROR_PATH + '/'
-        if (!fs.existsSync(errorFolder)) {
-            fs.mkdirSync(errorFolder)
-        }
-        fs.writeFile(errorFolder + '/' + errorId + '.txt', util.inspect(error), 'utf-8', function (err) {
-            if (err) {
-                console.log(err);
-            }
-        });
+        // const errorFolder = config.ERROR_PATH + '/'
+        // if (!fs.existsSync(errorFolder)) {
+        //     fs.mkdirSync(errorFolder)
+        // }
+        // fs.writeFile(errorFolder + '/' + errorId + '.txt', util.inspect(error), 'utf-8', function (err) {
+        //     if (err) {
+        //         console.log(err);
+        //     }
+        // });
         let addl_params = {
             "key": config.GLOBAL_KEY,
             "module": config.GLOBAL_MODULE,
