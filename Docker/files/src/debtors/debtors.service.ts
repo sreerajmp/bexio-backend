@@ -2380,11 +2380,7 @@ const markAsSentToken = async (refresh_token, rk_invoice) => {
   try {
     const bexioClient = await bexioInterfaceClient();
     const tokenSet = await bexioClient.refresh(refresh_token);
-    // STEP 1: Mark as sent
-    // await markAsIssued(tokenSet.access_token, rk_invoice);
     await markAsSent(tokenSet.access_token, rk_invoice);
-    // STEP 2: Mark as pending
-    // await markAsPending(tokenSet.access_token, invoice);
   } catch (error: any) {
     warningMessage(commonErrors, error);
 
@@ -2435,9 +2431,9 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
   console.log('tokenSet', tokenSet);
   console.log('id', id);
   console.log('status', status);
-
-  await addBexioComment(tokenSet.access_token, id, status, erroMsg, netcomId);
-
+  if (service == 'ebill') {
+    await addBexioComment(tokenSet.access_token, id, status, erroMsg, netcomId);
+  }
 
   return new Promise(async (resolve, reject) => {
     try {
@@ -2600,6 +2596,11 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
       // const tokenSet = await bexioClient.refresh(refreshToken);
       console.log('config.BEXIO_COMMENTS', config.BEXIO_COMMENTS);
       let commentsData = JSON.parse(config.BEXIO_COMMENTS);
+      if (!commentsData[status]) {
+        console.log('Status not found in BEXIO_COMMENTS:', status);
+        resolve(false);
+        return;
+      }
       console.log(commentsData[status].replace('[message]', '{ ' + message + ' }'))
       let comments = commentsData[status].replace('[message]', '{ ' + message + ' }')
       let invoiceData = await getInvoiceOT(token, id);

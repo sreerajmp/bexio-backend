@@ -1905,56 +1905,6 @@ export const pushEbillInvoice = async (req, res) => {
         resolve('biller_not_found')
         return
       }
-
-
-      // const companyDetailsResult = await connectLibrary.$queryRaw<any>(
-      //   Prisma.sql`
-      //   SELECT pa.cid,lp.companyname,a.code AS app,av.version AS appversion
-      //   FROM partyapplication pa 
-      //   INNER JOIN application_version av ON av.cid = pa.fk_application_version  
-      //   INNER JOIN application a ON a.cid = av.fk_application
-      //   INNER JOIN legalparty lp ON lp.fk_party = pa.fk_party
-      //   WHERE pa.fk_party = ${Number(partyId)} AND a.code = 'EBILL'
-      //    `
-      // );
-      // let companyJson = JSON.parse(getBillerResult.recordset[0].companyJSON);
-
-
-      // let defaultLang = companyJson['localizedData']['defaultLanguage'];
-
-      // let tempCompanyName = companyJson['legalName'];
-      // let tempMail = companyJson['localizedData'][defaultLang]['emailAddress'];
-
-      // let checkRecipientData;
-      console.log('decryptData?.contact_pid !', decryptData?.contact_pid);
-      console.log('typeof decryptData.contact_pid', typeof decryptData.contact_pid);
-
-      console.log('config.IS_LIVE', config.IS_LIVE);
-
-      //     if ((config.IS_LIVE === 'true') && decryptData?.contact_pid) {
-      //           console.log('checkRecipientValid');
-      //         checkRecipientData = await checkRecipientValid(decryptData.biller_pid, decryptData.contact_pid);
-      //       } else {
-      //         checkRecipientData = true;
-
-      //       }
-      //  console.log('checkRecipientData',checkRecipientData);
-      //       console.log('checkRecipientData', checkRecipientData, 'Type:', typeof checkRecipientData);
-      //       if (!checkRecipientData) {
-
-      //         await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
-
-      //         invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'recipientId_not_allowed');
-
-      //         commonErrors['errorTitle'] = req.originalUrl;
-      //         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' comapny_name ' + tempCompanyName + ' email_id ' + tempMail + ' recipientId_not_allowed' + '-req param,' + JSON.stringify(decryptData);
-
-
-      //         warningMessage(commonErrors, 'recipientId_not_allowed');
-
-      //         resolve('recipientId_not_allowed')
-      //         return
-      //       }
       let accessToken = '';
       if ('token' in decryptData) {
         accessToken = decryptData.token;
@@ -2000,30 +1950,6 @@ export const pushEbillInvoice = async (req, res) => {
         warningMessage(logData, 'invoice_not_found');
         return resolve('invoice_not_found')
       }
-
-      // let recipentStatus;
-      // console.log('decryptData?.contact_pid',decryptData?.contact_pid);
-
-      // if ((config.IS_LIVE === 'true') && (decryptData?.contact_pid)) {
-      //   console.log('checkRecipient');
-      //   recipentStatus = await checkRecipient(decryptData.biller_pid, decryptData.contact_pid, invoice.contact_id, accessToken)
-      // } else {
-      //   recipentStatus = true;
-      // }
-      // console.log('recipentStatus',recipentStatus);
-      // console.log('recipentStatus', recipentStatus, 'Type:', typeof recipentStatus);
-      // recipentStatus = (recipentStatus === true || recipentStatus === "true");
-      //   console.log('Type:', typeof recipentStatus);
-      // if (!recipentStatus) {
-
-      //   await notifiBexioBulk(decryptData.token, decryptData.invoice_id, 'ERROR-INTERNAL', 'Dieser "Kontakt" hat Sie als Rechnungssteller bisher noch nicht abonniert. Bitte kontaktieren Sie Ihren Kunden.', getBillerResult.recordset[0].netcomid)
-      //   invoiceCid = await setEbillInvoiceSendStatus(partyId, decryptData.invoice_id, '', decryptData, '0', 'ebill_Recipient_not_found');
-      //   commonErrors['errorTitle'] = req.originalUrl;
-      //   commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_Recipient_not_found ' + '-req param,' + JSON.stringify(decryptData);
-      //   warningMessage(commonErrors, 'ebill_Recipient_not_found');
-      //   resolve('ebill_Recipient_not_found');
-      //   return;
-      // }
 
 
       let pdf, fileName, pdfContent;
@@ -2119,17 +2045,6 @@ export const pushEbillInvoice = async (req, res) => {
       }
       invoice['companyProfile'] = temp;
       invoice['companyProfile'] = JSON.parse(invoice['companyProfile']);
-
-      // paymentType = true;
-      // if (!paymentType) {
-      //   invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'ebill_paymentType_not_found', 'EBILL', '', decryptData);
-      //   commonErrors['errorTitle'] = req.originalUrl;
-      //   commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + 'ebill_paymentType_not_found ' + '-req param,' + JSON.stringify(decryptData);
-      //   warningMessage(commonErrors, 'ebill_paymentType_not_found');
-      //   return resolve('ebill_paymentType_not_found')
-      // }
-
-      // invoice['paymentType'] = true;
       let contact = await getContact(accessToken, invoice.contact_id);
       if (!contact) {
         invoiceCid = await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'contact_not_found', 'EBILL', '', decryptData);
@@ -5509,60 +5424,7 @@ export function isArticleMatch(item: any, article: any): boolean {
     Number(item.discount_in_percent) == Number(article.discount_in_percent))
 
 }
-//status change to draft to pending
-// export const markAsPending = async (access_token, id) => {
-//   console.log('markAsPending');
-//   console.log('id', id);
-//   let invoiceId = Number(id);
-//   return new Promise((resolve, reject) => {
-//     var options = {
-//       method: 'POST',
-//       url: `https://api.bexio.com/2.0/kb_invoice/${id}/issue`,
-//       headers: {
-//         Accept: 'application/json',
-//         Authorization: 'Bearer ' + access_token
-//       }
-//     };
 
-//     request(options, function (error, response) {
-//       console.log('************************');
-
-//       if (error) {
-//         commonErrors['errorTitle'] = 'markAsPending';
-//         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,';
-//         warningMessage(commonErrors, error);
-//         return resolve(false);
-//       }
-//       console.log('response', response);
-//       if (response.statusCode === 200) {
-//         try {
-//           const resBody = JSON.parse(response.body);
-//           return resolve(resBody);
-//         } catch (parseError) {
-//           console.error('Failed to parse response:', response.body);
-//           commonErrors['errorTitle'] = 'markAsPending';
-//           commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Failed to parse response: ' + response.body;
-//           warningMessage(commonErrors, parseError);
-//           return resolve(false);
-//         }
-//       } else if (response.statusCode === 400) {
-//         const msg = response.body ? JSON.stringify(response.body) : '';
-//         console.log(msg);
-//         commonErrors['errorTitle'] = 'markAsPending';
-//         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + msg + ' -bexio param,';
-//         warningMessage(commonErrors, msg);
-//         return resolve(false);
-//       } else {
-//         commonErrors['errorTitle'] = 'markAsPending';
-//         commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Unexpected status: ' + response.statusCode + ' -bexio param,';
-//         warningMessage(commonErrors, response.body);
-//         return resolve(false);
-//       }
-//     });
-//   });
-// };
-
-// Dummy Bexio push function
 export async function pushContactToBexio(
   netcomid: string,
   contacts: Array<{
