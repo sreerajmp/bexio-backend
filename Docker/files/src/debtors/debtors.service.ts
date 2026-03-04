@@ -2431,10 +2431,8 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
   console.log('tokenSet', tokenSet);
   console.log('id', id);
   console.log('status', status);
-  if (service == 'ebill') {
-    await addBexioComment(tokenSet.access_token, id, status, erroMsg, netcomId);
-  }
-
+  await addBexioComment(tokenSet.access_token, id, status, erroMsg, netcomId);
+  
   return new Promise(async (resolve, reject) => {
     try {
       console.log('bankId', bankId);
@@ -2628,13 +2626,13 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
         resolve(false)
         return
       }
-      let isNotifyBexio = true;
+      let isNotifyBexio = false;
       const getCompanyIdQryResult = await connectBexio.companyregistered.findMany({
         where: {
           netcomid: netcomId,
           settings: {
             path: ['notifyComments'], // Specify the key in the JSON
-            equals: 'false', // Checks if the value of 'notifyComments' is 'false'
+            equals: 'true', // Checks if the value of 'notifyComments' is 'false'
           },
         },
         select: {
@@ -2644,7 +2642,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
 
 
       if (getCompanyIdQryResult.length > 0) {
-        isNotifyBexio = false;
+        isNotifyBexio = true;
       }
       console.log('isNotifyBexio', isNotifyBexio);
 
