@@ -581,7 +581,7 @@ export class ConfigurationService {
   }
   async changePayementComments(req: Request, res: Response): Promise<any> {
     const encrToken = req.body;
-
+    console.log('changePayementComments starts.......');
     try {
       // Fetch settings for the given party ID
       const getStatusQryRslt: any = await connectBexio.companyregistered.findMany({

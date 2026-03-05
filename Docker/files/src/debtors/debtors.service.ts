@@ -2640,9 +2640,12 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
         },
       });
 
+      console.log("getCompanyIdQryResult",getCompanyIdQryResult);
+      
 
       if (getCompanyIdQryResult.length > 0) {
         isNotifyBexio = true;
+        console.log('isNotifyBexio', isNotifyBexio);
       }
       console.log('isNotifyBexio', isNotifyBexio);
 
@@ -2660,6 +2663,9 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
       };
       // console.log(options);
       if (isNotifyBexio) {
+
+        console.log("inside ISNotifyBexio");
+        
         request(options, function (error, response) {
           if (error) {
             console.log('errorr', error);
@@ -2673,7 +2679,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
           console.log(response.body);
           console.log('options', options);
 
-          console.log('response', response.body);
+          console.log('response addBexioComment', response.body);
 
           if (response.statusCode == 201) {
             resolve(JSON.parse(response.body));
