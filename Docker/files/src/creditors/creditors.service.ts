@@ -437,7 +437,22 @@ export class CreditorsService {
             },
           );
         }
+        if (data['orderStatus'] == 'draft') {
+                console.log("invoiceStatus no", data['orderStatus']);
 
+                searchJson.push(
+                  {
+                    "field": "id",
+                    "value": getSendInvoiceList[0]?.invoiceid?.map((id) => Number(id)) ?? [], // Exclude Sent/Pending
+                    "criteria": "not_in"
+                  },
+                  {
+                    "field": "kb_item_status_id",
+                    "value": 7, // 7 = Draft in Bexio
+                    "criteria": "equal"
+                  },
+                );
+              }
         console.log('searchJsonsearchJson', searchJson.length);
         console.log('searchJsonsearchJson', searchJson);
         if (searchJson.length != 0) {
