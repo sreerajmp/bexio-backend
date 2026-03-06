@@ -50,6 +50,10 @@ export class DashboardService {
         }),
       ]);
 
+      console.log("orderSend------------",orderSend);
+      console.log("orderReceive------------",orderReceive);
+      
+
       // Merge all documents into one array
       const mergedData = [
         ...invoiceSend.map((item) => ({
@@ -127,6 +131,9 @@ export class DashboardService {
         return matchesType;
       });
 
+      console.log("baseFilteredData---------",baseFilteredData);
+
+
       // STEP 2: Filter further with title, doc number, and invoice no — for `filteredCount` and paginated data
       let finalFilteredData: any = baseFilteredData.filter((item) => {
         const searchValue = (filterTitle || '').toString().toLowerCase().trim();
@@ -139,6 +146,8 @@ export class DashboardService {
         return matches;
       });
       finalFilteredData = finalFilteredData.map((item) => {
+        console.log("finalFilteredData without sorting---------",finalFilteredData);
+        
         if (item.companyregistered && item.companyregistered.refresh_token) {
 
           const { refresh_token, ...rest } = item.companyregistered;
@@ -157,11 +166,13 @@ export class DashboardService {
         const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return dateB - dateA;
       });
-      console.log('finalFilteredData', finalFilteredData);
+      console.log('finalFilteredData------', finalFilteredData);
 
       // Paginate
       const paginatedData = finalFilteredData.slice(showFrom, showTo);
 
+      console.log("paginatedData---------",paginatedData);
+    
 
       return res.status(200).json({
         status: 200,
