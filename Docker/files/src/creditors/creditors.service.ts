@@ -448,7 +448,7 @@ export class CreditorsService {
                   },
                   {
                     "field": "kb_item_status_id",
-                    "value": 7, // 7 = Draft in Bexio
+                    "value": 22, // 22 = Draft in Bexio
                     "criteria": "equal"
                   },
                 );
@@ -1744,7 +1744,6 @@ const setOrderSendStatus = async (
       });
 
       console.log("selectQryResult", selectQryResult);
-
 
       if (selectQryResult.length == 0) {
         console.log('ifffffffffffff');
