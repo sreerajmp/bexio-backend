@@ -324,7 +324,12 @@ export class DebtorsService {
         // Helper Function: getInvoicesQuery(channel, netcomId, true)
         // Purpose: Queries 'documents_invoice_send' (Local DB) to find invoices explicitly marked with 'channel'.
         // Returns: List of invoice IDs.
-        const getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
+        let getInvoiceIdRslt
+         if (data['customerId'] != '' && data['customerId']) {
+          getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true,data.customerId);
+         }else{
+          getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
+         }
         console.log("getInvoiceIdRslt:", getInvoiceIdRslt);
         console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
@@ -1614,7 +1619,7 @@ export class DebtorsService {
         'url': config.GATE2BURL + 'file-download',
         formData: formData
       };
-      console.log('formData', formData);
+      console.log('formData--------', formData);
       request(options, async function (error, response) {
         if (error) {
           console.log("python error", error);
@@ -1633,7 +1638,7 @@ export class DebtorsService {
         let customerIds = await constGetContactId(bc_id);
 
         let title;
-        console.log('response', response.body);
+        console.log('response----', response.body);
         if (JSON.parse(response.body).message == "something_went_wrong") {
           console.log('response.body log', response.body);
           console.log("Error Occure Response body message condition");

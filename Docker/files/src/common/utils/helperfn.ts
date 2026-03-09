@@ -6133,8 +6133,11 @@ export const validDate = (date: string, isEnd?: boolean) => {
 export const getInvoicesQuery = async (
   channel: string,
   netcomId: number,
-  include: boolean
+  include: boolean, 
+  contactId?:string 
 ) => {
+
+  const prismaContactId=contactId ?Prisma.sql`AND ds.receiver_contactid = ${Number(contactId)}`:Prisma.empty
   const normalizedChannel =
     channel.toLowerCase() === "print"
       ? ["PRINT", "POST"]
@@ -6146,15 +6149,14 @@ export const getInvoicesQuery = async (
     FROM documents_invoice_send ds
     INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
     WHERE c.netcomid = ${netcomId}
+      ${prismaContactId}
       AND ${include
         ? Prisma.sql`UPPER(ds.invoice_type) IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
         : Prisma.sql`UPPER(ds.invoice_type) NOT IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
       }
   `
   );
-
 };
-
 
 export function escapeLikeChars(text) {
   return text.replace(/[_%]/g, "\\$&")
