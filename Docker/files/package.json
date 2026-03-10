@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@mailchimp/mailchimp_marketing": "^3.0.80",
-    "@nestjs/bull": "^11.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.1",
     "@nestjs/core": "^11.0.1",
@@ -31,7 +30,6 @@
     "@prisma/client": "^6.5.0",
     "@types/express-session": "^1.18.1",
     "aws-sdk": "^2.1692.0",
-    "bull": "^4.16.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "connect-redis": "^8.0.2",
@@ -48,7 +46,6 @@
     "reflect-metadata": "^0.2.2",
     "request": "^2.88.2",
     "rxjs": "^7.8.1",
-    "workerpool": "^9.2.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
@@ -63,7 +60,6 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
-    "@types/workerpool": "^6.4.7",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
