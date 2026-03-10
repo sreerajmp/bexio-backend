@@ -1090,7 +1090,7 @@ export class CreditorsService {
             } else {
               res.send({
                 status_code: 500,
-                message: 'create_bill_error',
+                message: 'something_went_wrong',
                 status: false,
               });
             }
