@@ -324,12 +324,11 @@ export class DebtorsService {
         // Helper Function: getInvoicesQuery(channel, netcomId, true)
         // Purpose: Queries 'documents_invoice_send' (Local DB) to find invoices explicitly marked with 'channel'.
         // Returns: List of invoice IDs.
-        let getInvoiceIdRslt
-         if (data['customerId'] != '' && data['customerId']) {
-          getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true,data.customerId);
-         }else{
-          getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true);
-         }
+        let getInvoiceIdRslt;
+        let queryStatus = data['invoiceStatus'] === 'failed' ? 0 : undefined;
+        let customerIdStr = (data['customerId'] != '' && data['customerId']) ? String(data['customerId']) : undefined;
+
+        getInvoiceIdRslt = await getInvoicesQuery(channel, netcomId, true, customerIdStr, queryStatus);
         console.log("getInvoiceIdRslt:", getInvoiceIdRslt);
         console.log("getInvoiceIdRslt invoices:", getInvoiceIdRslt?.[0]?.['invoices']);
 
@@ -342,18 +341,6 @@ export class DebtorsService {
         console.log("Include - Contacts for channel:", contactIds);
 
         // STEP B: Resolve Contacts for Explicit Invoices
-        // Even if we have the invoice ID, we need the Contact IDs for merging later.
-        let invoiceContactListIds: number[] = [];
-        // if (invoices.length > 0 && contactIds.length > 0) {
-        // Helper Function: getInvoiceSearch(accessToken, filters)
-        // Purpose: Calls Bexio API to get invoice details (specifically contact_id) for the list of IDs we found.
-        // const invoiceListTemp: any = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]) || [];
-        // invoiceContactListIds = (Array.isArray(invoiceListTemp) ? invoiceListTemp : [])
-        //     .map((inv: any) => inv?.contact_id)
-        //     .filter(Boolean);
-        // invoiceContactListIds = [...contactIds];
-        // console.log("Explicit Invoice Contact IDs:", invoiceContactListIds);
-        // }
         if (data['invoiceStatus'] !== 'draft') {
           const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
           invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
@@ -2437,7 +2424,7 @@ const notifiBexio = async (refreshToken, id, status, message?, netcomId?, amount
   console.log('id', id);
   console.log('status', status);
   await addBexioComment(tokenSet.access_token, id, status, erroMsg, netcomId);
-  
+
   return new Promise(async (resolve, reject) => {
     try {
       console.log('bankId', bankId);
@@ -2645,8 +2632,8 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
         },
       });
 
-      console.log("getCompanyIdQryResult",getCompanyIdQryResult);
-      
+      console.log("getCompanyIdQryResult", getCompanyIdQryResult);
+
 
       if (getCompanyIdQryResult.length > 0) {
         isNotifyBexio = true;
@@ -2670,7 +2657,7 @@ const addBexioComment = async (token, id, status, message?, netcomId?) => {
       if (isNotifyBexio) {
 
         console.log("inside ISNotifyBexio");
-        
+
         request(options, function (error, response) {
           if (error) {
             console.log('errorr', error);

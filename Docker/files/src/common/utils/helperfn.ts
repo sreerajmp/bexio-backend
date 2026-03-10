@@ -6133,11 +6133,13 @@ export const validDate = (date: string, isEnd?: boolean) => {
 export const getInvoicesQuery = async (
   channel: string,
   netcomId: number,
-  include: boolean, 
-  contactId?:string 
+  include: boolean,
+  contactId?: string,
+  status?: number
 ) => {
 
-  const prismaContactId=contactId ?Prisma.sql`AND ds.receiver_contactid = ${Number(contactId)}`:Prisma.empty
+  const prismaContactId = contactId ? Prisma.sql`AND ds.receiver_contactid = ${Number(contactId)}` : Prisma.empty
+  const prismaStatus = status !== undefined ? Prisma.sql`AND ds.status = ${status}` : Prisma.empty;
   const normalizedChannel =
     channel.toLowerCase() === "print"
       ? ["PRINT", "POST"]
@@ -6150,6 +6152,7 @@ export const getInvoicesQuery = async (
     INNER JOIN companyregistered c ON ds.fk_companyregistered = c.cid
     WHERE c.netcomid = ${netcomId}
       ${prismaContactId}
+      ${prismaStatus}
       AND ${include
         ? Prisma.sql`UPPER(ds.invoice_type) IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
         : Prisma.sql`UPPER(ds.invoice_type) NOT IN (${Prisma.join(normalizedChannel.map(v => Prisma.sql`${v}`))})`
