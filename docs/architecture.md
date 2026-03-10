@@ -123,7 +123,7 @@ flowchart TD
 
 ## Background Processing (Workers)
 
-> **Important**: The application uses **Node.js built-in `worker_threads`** — **not Bull queues and not the `workerpool` npm package**.
+> **Important**: The application uses **Node.js built-in `worker_threads`**.
 
 Each worker host (`*Host`) is a NestJS `@Injectable()` service that:
 1. Spawns a single persistent `Worker` thread at `onApplicationBootstrap`.
