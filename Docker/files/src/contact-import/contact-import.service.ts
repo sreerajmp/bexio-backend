@@ -94,12 +94,10 @@ export class ContactImportService {
       console.log('accessToken', accessToken);
 
       const countryList = await getCountryLists(accessToken);
-
-      const contactList: any = await searchContact(accessToken, { name, channel, email }, page, limit, netcomId);
-
-      console.log('searchContact result:', JSON.stringify(contactList));
-
-      if (contactList?.statusCode === 401) {
+      
+      const response = await searchContact(accessToken, { name, channel, email }, page, limit, netcomId);
+      console.log('searchContact result:', JSON.stringify(response));
+     if (response?.statusCode === 401) {
         console.log('contactImportSearch: unauthorized (401) from bexio');
         return res.status(401).send({
           status_code: 401,
@@ -107,6 +105,7 @@ export class ContactImportService {
           status: false,
         });
       }
+      const contactList = Array.isArray(response) ? response : [];
 
       console.log('contactList', contactList);
 
@@ -143,9 +142,7 @@ export class ContactImportService {
           })
         }
       }
-
-      const slicedContactList = contactList.slice((page - 1) * limit, page * limit)
-
+      const slicedContactList = Array.isArray(contactList) ? contactList.slice((page - 1) * limit, page * limit): []
       console.log('contactList', contactList);
       console.log("slicedContactList", slicedContactList);
 
