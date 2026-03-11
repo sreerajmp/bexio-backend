@@ -1910,7 +1910,7 @@ export const pushEbillInvoice = async (req, res) => {
         accessToken = decryptData.token;
 
       }
-      await markAsIssued(accessToken, decryptData.invoice_id);
+    
       ////console.log("checkRecipientData----", checkRecipientData);
 
       if (result.length == 0) {
@@ -2158,6 +2158,7 @@ export const pushEbillInvoice = async (req, res) => {
         resolve(invoiceCid);
         return;
       }
+      await markAsIssued(accessToken, decryptData.invoice_id,'EBILL');
       return resolve(true)
     } catch (error) {
       commonErrors['errorTitle'] = req.originalUrl;
@@ -6176,10 +6177,17 @@ export const getStatusLabel = (status: number) => {
   return null;
 }
 
-export const markAsIssued = async (access_token, id) => {
+export const markAsIssued = async (access_token, id,channel?) => {
   console.log('markAsIssued');
   console.log('id', id);
   let invoiceId = Number(id);
+if (channel == 'EBILL') {
+  const invoice: any = await getInvoiceOT(access_token, id);
+
+  if (invoice?.kb_item_status_id == 8) {
+    await revertIssue(access_token, id);
+  }
+}
   return new Promise((resolve, reject) => {
     var options = {
       method: 'POST',
@@ -6227,7 +6235,60 @@ export const markAsIssued = async (access_token, id) => {
     });
   });
 };
+export const revertIssue = async (access_token, id) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const options = {
+        method: 'POST',
+        url: `https://api.bexio.com/2.0/kb_invoice/${id}/revert_issue`,
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer ' + access_token,
+        },
+      };
 
+      request(options, function (error, response) {
+        if (error) {
+          commonErrors['errorTitle'] = 'revertIssue';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-bexio param,' + id;
+          warningMessage(commonErrors, error);
+          return resolve(false);
+        }
+
+        console.log('responseof revertIssue', response);
+
+        try {
+          if (response && response.statusCode === 200) {
+            try {
+              const parsed = response.body ? JSON.parse(response.body) : response.body;
+              return resolve(parsed);
+            } catch (parseErr) {
+              commonErrors['errorTitle'] = 'revertIssue';
+              commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Failed to parse response: ' + response.body;
+              warningMessage(commonErrors, parseErr);
+              return resolve(false);
+            }
+          } else {
+            commonErrors['errorTitle'] = 'revertIssue';
+            commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' Unexpected status: ' + (response ? response.statusCode : 'no response') + ' -bexio param,' + id;
+            warningMessage(commonErrors, response);
+            return resolve(false);
+          }
+        } catch (innerErr) {
+          commonErrors['errorTitle'] = 'revertIssue';
+          commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + innerErr.toString() + '-bexio param,' + id;
+          warningMessage(commonErrors, innerErr);
+          return resolve(false);
+        }
+      });
+    } catch (err) {
+      commonErrors['errorTitle'] = 'revertIssue';
+      commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + err.toString() + '-bexio param,' + id;
+      warningMessage(commonErrors, err);
+      return resolve(false);
+    }
+  });
+}
 
 export const contactListMapping = (contactList: any) => {
   return contactList.map((contact) => ({
