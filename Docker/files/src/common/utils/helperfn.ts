@@ -1255,11 +1255,11 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
 
   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
     "INVOICE_ID": invoice.document_nr,
-    "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+    "INVOICE_DATE": new Date(invoice.is_valid_from).toISOString(),
     "INVOICE_TYPE": "invoice",
     "DELIVERY_DATE": [{
-      "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-      "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+      "DELIVERY_START_DATE": new Date(invoice.is_valid_from).toISOString(),
+      "DELIVERY_END_DATE": new Date(invoice.is_valid_from).toISOString(),
     }],
     "bmecat:LANGUAGE": 'deu',
     "PARTIES": [{
@@ -2577,15 +2577,15 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
   let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
   taxIsAdded = invoice.taxs.length;
   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
-    "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
+    "GENERATION_DATE": new Date(invoice.is_valid_from).toISOString(),
   }))),
     obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
       "INVOICE_ID": invoice.document_nr,
-      "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+      "INVOICE_DATE": new Date(invoice.is_valid_from).toISOString(),
       "INVOICE_TYPE": "invoice",
       "DELIVERY_DATE": [{
-        "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-        "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+        "DELIVERY_START_DATE": new Date(invoice.is_valid_from).toISOString(),
+        "DELIVERY_END_DATE": new Date(invoice.is_valid_from).toISOString(),
       }],
       "bmecat:LANGUAGE": 'deu',
       "PARTIES": [{
@@ -4379,15 +4379,15 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
   // let v = coutryList.filter(coutry => coutry.id == invoice.contact.country_id)
   taxIsAdded = invoice.taxs.length;
   obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['CONTROL_INFO'].push(JSON.parse(JSON.stringify({
-    "GENERATION_DATE": new Date(invoice.updated_at).toISOString(),
+    "GENERATION_DATE": new Date(invoice.is_valid_from).toISOString(),
   }))),
     obj.OPENTRANS.INVOICE[0]['INVOICE_HEADER'][0]['INVOICE_INFO'].push(JSON.parse(JSON.stringify({
       "INVOICE_ID": invoice.document_nr,
-      "INVOICE_DATE": new Date(invoice.updated_at).toISOString(),
+      "INVOICE_DATE": new Date(invoice.is_valid_from).toISOString(),
       "INVOICE_TYPE": "invoice",
       "DELIVERY_DATE": [{
-        "DELIVERY_START_DATE": new Date(invoice.updated_at).toISOString(),
-        "DELIVERY_END_DATE": new Date(invoice.updated_at).toISOString(),
+        "DELIVERY_START_DATE": new Date(invoice.is_valid_from).toISOString(),
+        "DELIVERY_END_DATE": new Date(invoice.is_valid_from).toISOString(),
       }],
       "bmecat:LANGUAGE": 'deu',
       "PARTIES": [{
