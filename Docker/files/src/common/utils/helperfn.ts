@@ -1418,7 +1418,7 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
           }
           : {}),
         "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined, // product id mandatory field so just added intername as description short
-        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+        "bmecat:DESCRIPTION_LONG": element?.text? element.text:element?.article?.intern_description || undefined
       }],
       "QUANTITY": element.amount ? Math.trunc(element.amount) : 1,
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62', // add defult value directly
@@ -2702,7 +2702,7 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
       "PRODUCT_ID": [{
         "bmecat:SUPPLIER_PID": element?.article?.intern_code ? element.article.intern_code : undefined,
         "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined,
-        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+        "bmecat:DESCRIPTION_LONG": element?.text? element.text:element?.article?.intern_description || undefined
       }],
       "QUANTITY": element?.amount ? Math.trunc(element.amount) : 1,
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
@@ -3653,7 +3653,7 @@ const setOrderToOt = async (order, coutryList, contactDetails, pdf, fileName, cu
           }
           : {}),
         "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined, // product id mandatory field so just added intername as description short
-        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+        "bmecat:DESCRIPTION_LONG": element?.text? element.text:element?.article?.intern_description || undefined
       }],
       "QUANTITY": element?.article?.amount ? element.article.amount : element.amount,
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'CT',
@@ -4499,7 +4499,7 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
       "PRODUCT_ID": [{
         "bmecat:SUPPLIER_PID": element?.article?.intern_code ? element.article.intern_code : undefined,
         "bmecat:DESCRIPTION_SHORT": element?.article?.intern_name ? element.article.intern_name.substring(0, 145) : undefined,
-        "bmecat:DESCRIPTION_LONG": element?.article?.intern_description ? element.article.intern_description : undefined
+        "bmecat:DESCRIPTION_LONG": element?.text? element.text:element?.article?.intern_description || undefined
       }],
       "QUANTITY": element.amount ? Math.trunc(element.amount) : 1,
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
