@@ -1004,7 +1004,7 @@ export class ConfigurationService {
               mode: "LIVE",
               payee_details: {
                 company_payee: "self",
-                partner_company_payee: ""
+                partner_company_payee: "other"
               },
               user_email: data.email,
               invited_company_name: data.invitedcompanyname,
