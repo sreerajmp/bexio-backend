@@ -1090,7 +1090,7 @@ export class ConfigurationService {
               .status(200)
               .json({
                 status_code: 500,
-                message: 'something_went_wrong',
+                message: JSON.parse(inviteStatus).message,
                 status: false
               });
           }
