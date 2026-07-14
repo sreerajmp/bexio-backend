@@ -19,7 +19,7 @@ export class PrismaClientsService implements OnApplicationShutdown {
 
   constructor() {
     if (isMainThread) {
-      this.warnIfMissingConnectionLimit();
+      this.logPoolConfig();
     }
   }
 
@@ -47,22 +47,17 @@ export class PrismaClientsService implements OnApplicationShutdown {
     ]);
   }
 
-  private warnIfMissingConnectionLimit() {
-    const urls = [
-      { name: 'DATABASE_URL', value: process.env.DATABASE_URL },
-      { name: 'LIBRARY_DATABASE_URL', value: process.env.LIBRARY_DATABASE_URL },
-      { name: 'GATE2B_DATABASE_URL', value: process.env.GATE2B_DATABASE_URL },
-      { name: 'NEWGATE2B_DATABASE_URL', value: process.env.NEWGATE2B_DATABASE_URL },
-    ];
-    const missing = urls.filter(
-      (u) => u.value && !/[?&]connection_limit=/.test(u.value),
+  /**
+   * Logs effective pool settings on startup so they are visible in Grafana.
+   * connection_limit × 4 clients = total max DB connections from this pod.
+   */
+  private logPoolConfig() {
+    const connLimit = process.env.PRISMA_CONN_LIMIT || '5';
+    const poolTimeout = process.env.PRISMA_POOL_TIMEOUT || '10';
+    const totalMax = Number(connLimit) * 4;
+
+    this.logger.log(
+      `DB pool config — connection_limit: ${connLimit} per client × 4 clients = ${totalMax} max connections | pool_timeout: ${poolTimeout}s`,
     );
-    if (missing.length > 0 && !process.env.PRISMA_CONN_LIMIT) {
-      this.logger.warn(
-        `connection_limit is not set in ${missing
-          .map((u) => u.name)
-          .join(', ')}. Consider adding ?connection_limit=N or PRISMA_CONN_LIMIT.`,
-      );
-    }
   }
 }

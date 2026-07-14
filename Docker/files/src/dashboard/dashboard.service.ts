@@ -50,9 +50,9 @@ export class DashboardService {
         }),
       ]);
 
-      console.log("orderSend------------",orderSend);
-      console.log("orderReceive------------",orderReceive);
-      
+      console.log("orderSend------------", orderSend);
+      console.log("orderReceive------------", orderReceive);
+
 
       // Merge all documents into one array
       const mergedData = [
@@ -131,7 +131,7 @@ export class DashboardService {
         return matchesType;
       });
 
-      console.log("baseFilteredData---------",baseFilteredData);
+      console.log("baseFilteredData---------", baseFilteredData);
 
 
       // STEP 2: Filter further with title, doc number, and invoice no — for `filteredCount` and paginated data
@@ -146,8 +146,8 @@ export class DashboardService {
         return matches;
       });
       finalFilteredData = finalFilteredData.map((item) => {
-        console.log("finalFilteredData without sorting---------",finalFilteredData);
-        
+        console.log("finalFilteredData without sorting---------", finalFilteredData);
+
         if (item.companyregistered && item.companyregistered.refresh_token) {
 
           const { refresh_token, ...rest } = item.companyregistered;
@@ -166,13 +166,13 @@ export class DashboardService {
         const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
         return dateB - dateA;
       });
-      console.log('finalFilteredData------', finalFilteredData);
+      console.log('finalFilteredData count:', finalFilteredData.length);
 
       // Paginate
       const paginatedData = finalFilteredData.slice(showFrom, showTo);
 
-      console.log("paginatedData---------",paginatedData);
-    
+      console.log("paginatedData---------", paginatedData);
+
 
       return res.status(200).json({
         status: 200,
@@ -216,14 +216,14 @@ export class DashboardService {
         });
       }
 
-      console.log('sdasssssssssssssssssssssssssssssssssssssssss');
+      console.log('Fetching objectId for partyId:', decryptData.partyId);
 
       const objectId = await connectLibrary.$queryRaw<any[]>`
        SELECT objectid FROM party WHERE cid=${Number(decryptData.partyId)}
       `;
 
 
-      console.log('sdasssssssssssssobjectIdssssssssssssssssssssssssssss');
+      console.log('objectId result:', objectId);
 
       if (objectId.length > 0) {
         result.push({});
@@ -326,7 +326,6 @@ export class DashboardService {
       let responseValue = JSON.stringify(decryptData)
       commonErrors['errorTitle'] = req.originalUrl;
       commonErrors['errorDescription'] = 'From:' + path.basename(__filename) + ' ' + error.toString() + '-req param,' + responseValue;
-      warningMessage(commonErrors, error);
       warningMessage(commonErrors, error);
 
       return res.status(status_code.INTERNAL_SERVER_ERROR).json({

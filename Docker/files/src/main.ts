@@ -9,8 +9,15 @@ import config from './common/config/index';
 import * as express from 'express';
 import redisClient from './common/utils/redisDB';
 import { RedisStore } from 'connect-redis';
+import { patchConsole } from './common/utils/safeLogger';
 
 export async function bootstrap() {
+  // ✅ Patch console FIRST — before anything else initializes.
+  // Intercepts all console.log/warn/error calls globally and suppresses
+  // payloads exceeding MAX_LOG_BYTES (default: 50 KB) to prevent ENOBUFS.
+  // Configure limit via env: MAX_LOG_BYTES=102400 (e.g. 100 KB)
+  patchConsole();
+
   const app = await NestFactory.create(AppModule);
   // Set 'trust proxy' on the underlying Express instance
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
