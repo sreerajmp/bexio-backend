@@ -2,11 +2,11 @@ import * as nodemailer from 'nodemailer';
 import config from '../config';
 
 const sendEmail = async (options) => {
-    return {
-        success: true,
-        message: "Email send successful",
+    // return {
+    //     success: true,
+    //     message: "Email send successful",
 
-    }
+    // }
     // create transporter
     console.log(options.email);
     console.log(config.MAIL_SERVER);
