@@ -4410,7 +4410,7 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
 
         }, {
           "bmecat:PARTY_ID": [{
-            "_": billerDetails['recipientid'] || '00000000',
+            "_": invoice?.contact_id || '00000000',
             "$": {
               "type": "party_specific"
             }
