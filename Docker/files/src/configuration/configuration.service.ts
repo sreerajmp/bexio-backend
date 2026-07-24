@@ -289,7 +289,7 @@ export class ConfigurationService {
         rk_receivercontactid: Number(item.rk_receivercontactid)
       }));
 
-      // console.log('*******************', partyAccountCheck);
+       console.log('*******************', partyAccountCheck);
       const getInviteCompanyBcResult = await connectBexio.contact_bc.findMany({
         where: {
           type: 'EDI',
@@ -312,9 +312,9 @@ export class ConfigurationService {
 
       let resultBc: any = [];
       if (businessConnectionIds != null && businessConnectionIds.length > 0) {
-        //console.log('businessConnectionIds', businessConnectionIds);
+       console.log('businessConnectionIds', businessConnectionIds);
         let bcResult: any = await getBcDetails(businessConnectionIds, dataCookie.netcomId);
-        //console.log('bcResult', bcResult);
+        console.log('bcResult', bcResult);
 
         resultBc = bcResult['data'];
       }
@@ -444,9 +444,9 @@ export class ConfigurationService {
 
           for (let contactIndex in resData) {
             resData[contactIndex]['country'] = countryList[resData[contactIndex]['country_id']] ? countryList[resData[contactIndex]['country_id']] : '';
-            //console.log('resData[contactIndex]', resData[contactIndex]['country']);
-            //console.log('partyAccountCheck', partyAccountCheck);
-            //console.log('partyAccountChecklength', partyAccountCheck.length);
+            console.log('resData[contactIndex]',resData);
+            console.log('partyAccountCheck', partyAccountCheck);
+            console.log('partyAccountChecklength', partyAccountCheck.length);
             if (partyAccountCheck.length != 0) {
 
 
