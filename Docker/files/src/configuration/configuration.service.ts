@@ -464,6 +464,7 @@ export class ConfigurationService {
                     if (partyAccountCheck[partyAccountIndex].rk_sendercontactid == resData[contactIndex].id) {
                       let tempIndex = partyAccountCheck[partyAccountIndex].rk_businessconnection
                       let tempBc = beStruct[tempIndex ? tempIndex : ''];
+                        console.log('tempBc', tempBc);
                       if (tempBc) {
                         if (docType == tempBc['company_details']['doc_type']['data']) {
                           resData[contactIndex]['bcActive'].push(beStruct[tempIndex ? tempIndex : '']);
@@ -1002,10 +1003,7 @@ export class ConfigurationService {
           const parms = {
             config: {
               mode: "LIVE",
-              payee_details: {
-                company_payee: "self",
-                partner_company_payee: "other"
-              },
+              payee_details: typeof data.payee_details === 'string' ? data.payee_details : JSON.stringify(data.payee_details),
               user_email: data.email,
               invited_company_name: data.invitedcompanyname,
               partner_netcomid: "",
@@ -1685,10 +1683,7 @@ export class ConfigurationService {
         let tempConnectionDetails = JSON.parse(inviteSenderDetails);
         console.log('tempConnectionDetails', tempConnectionDetails);
 
-        let tempPaye = { "company_payee": tempConnectionDetails.results[0].company_payee, "partner_company_payee": tempConnectionDetails.results[0].partner_company_payee, "company_direction": 0 };
-        if (!tempConnectionDetails.results[0].company_payee) {
-          tempPaye.company_payee = "self";
-        }
+        let tempPaye = typeof data.payee_details === 'string' ? JSON.parse(data.payee_details) : data.payee_details;
 
 
         let formData = {
