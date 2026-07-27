@@ -289,7 +289,7 @@ export class ConfigurationService {
         rk_receivercontactid: Number(item.rk_receivercontactid)
       }));
 
-       console.log('*******************', partyAccountCheck);
+      console.log('*******************', partyAccountCheck);
       const getInviteCompanyBcResult = await connectBexio.contact_bc.findMany({
         where: {
           type: 'EDI',
@@ -312,7 +312,7 @@ export class ConfigurationService {
 
       let resultBc: any = [];
       if (businessConnectionIds != null && businessConnectionIds.length > 0) {
-       console.log('businessConnectionIds', businessConnectionIds);
+        console.log('businessConnectionIds', businessConnectionIds);
         let bcResult: any = await getBcDetails(businessConnectionIds, dataCookie.netcomId);
         console.log('bcResult', bcResult);
 
@@ -444,7 +444,7 @@ export class ConfigurationService {
 
           for (let contactIndex in resData) {
             resData[contactIndex]['country'] = countryList[resData[contactIndex]['country_id']] ? countryList[resData[contactIndex]['country_id']] : '';
-            console.log('resData[contactIndex]',resData);
+            console.log('resData[contactIndex]', resData);
             console.log('partyAccountCheck', partyAccountCheck);
             console.log('partyAccountChecklength', partyAccountCheck.length);
             if (partyAccountCheck.length != 0) {
@@ -464,7 +464,7 @@ export class ConfigurationService {
                     if (partyAccountCheck[partyAccountIndex].rk_sendercontactid == resData[contactIndex].id) {
                       let tempIndex = partyAccountCheck[partyAccountIndex].rk_businessconnection
                       let tempBc = beStruct[tempIndex ? tempIndex : ''];
-                        console.log('tempBc', tempBc);
+                      console.log('tempBc', tempBc);
                       if (tempBc) {
                         if (docType == tempBc['company_details']['doc_type']['data']) {
                           resData[contactIndex]['bcActive'].push(beStruct[tempIndex ? tempIndex : '']);
@@ -1003,7 +1003,7 @@ export class ConfigurationService {
           const parms = {
             config: {
               mode: "LIVE",
-              payee_details: typeof data.payee_details === 'string' ? data.payee_details : JSON.stringify(data.payee_details),
+              payee_details: JSON.stringify(data.payee_details),
               user_email: data.email,
               invited_company_name: data.invitedcompanyname,
               partner_netcomid: "",
@@ -1683,7 +1683,7 @@ export class ConfigurationService {
         let tempConnectionDetails = JSON.parse(inviteSenderDetails);
         console.log('tempConnectionDetails', tempConnectionDetails);
 
-        let tempPaye = typeof data.payee_details === 'string' ? JSON.parse(data.payee_details) : data.payee_details;
+        // let tempPaye = typeof data.payee_details === 'string' ? JSON.parse(data.payee_details) : data.payee_details;
 
 
         let formData = {
@@ -1701,7 +1701,7 @@ export class ConfigurationService {
           rk_contact: data.id,
           rk_partyreceived: data.partyId,
           ot_updator: JSON.stringify({ "in_custom_id": data.id, "out_custom_id": "1", "receiver_file_name": '' }),
-          payee_details: JSON.stringify(tempPaye),
+          payee_details: JSON.stringify(data.payee_details),
           mode: inviteData?.mode
         };
         console.log('inviteData', inviteData);
