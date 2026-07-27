@@ -1003,7 +1003,7 @@ export class ConfigurationService {
           const parms = {
             config: {
               mode: "LIVE",
-              payee_details: JSON.stringify(data.payee_details),
+              payee_details: data.payee_details,
               user_email: data.email,
               invited_company_name: data.invitedcompanyname,
               partner_netcomid: "",
@@ -1701,11 +1701,11 @@ export class ConfigurationService {
           rk_contact: data.id,
           rk_partyreceived: data.partyId,
           ot_updator: JSON.stringify({ "in_custom_id": data.id, "out_custom_id": "1", "receiver_file_name": '' }),
-          payee_details: JSON.stringify(data.payee_details),
+          payee_details: data.payee_details,
           mode: inviteData?.mode
         };
         console.log('inviteData', inviteData);
-        console.log(formData);
+        console.log('formData',formData);
 
         console.log('config.GATE2BURL', config.GATE2BURL + 'merge-connections');
         return new Promise(async (resolve, reject) => {
@@ -2589,7 +2589,7 @@ const inviteCompanySend = async (params) => {
     let fomdata = {
       data: params
     }
-    // console.log(fomdata);
+     console.log(fomdata);
 
     let options = {
       'method': 'POST',
