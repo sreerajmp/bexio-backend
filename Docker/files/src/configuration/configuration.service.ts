@@ -1303,23 +1303,23 @@ export class ConfigurationService {
           console.log("response.body:::::::", companyId);
 
           if (data.id) {
-            const responseData = [
-              data.status,
-              data.legalName,
-              data.accounts[0]['iid'],
-              data.billRecipientSubscriptionStatus,
-              data.localizedData['defaultLanguage'],
-              data,
-              data.id
-            ]
-            let jsonReq = JSON.stringify(data)
-            const updateBillerData = `UPDATE biller
-                                    SET lastupdate = getdate(),status='${data.status}',legalname='${data.legalName}',
-                                    uid ='${data.accounts[0]['iid']}',subscriptionstatus='${data.billRecipientSubscriptionStatus}',defaultlanguage='${data.localizedData.defaultLanguage}'
-                                    ,companyJSON = '${jsonReq}'
-                                    WHERE billerid='${data.id}'`
+            let jsonReq = JSON.stringify(data);
+            const reqQuery = pool.request();
+            reqQuery.input('status', data.status);
+            reqQuery.input('legalName', data.legalName);
+            reqQuery.input('uid', data.accounts?.[0]?.iid || '');
+            reqQuery.input('subscriptionstatus', data.billRecipientSubscriptionStatus);
+            reqQuery.input('defaultlanguage', data.localizedData?.defaultLanguage || '');
+            reqQuery.input('companyJSON', jsonReq);
+            reqQuery.input('billerid', data.id);
 
-            await pool.query(updateBillerData, responseData);
+            const updateBillerData = `UPDATE biller
+                                    SET lastupdate = getdate(),status=@status,legalname=@legalName,
+                                    uid =@uid,subscriptionstatus=@subscriptionstatus,defaultlanguage=@defaultlanguage
+                                    ,companyJSON = @companyJSON
+                                    WHERE billerid=@billerid`;
+
+            await reqQuery.query(updateBillerData);
             const companyIdNumber = Number(companyId);
             const getPartyEbillResult = await connectLibrary.$queryRaw<any>`SELECT cid
               FROM "ebillWallet"
