@@ -465,7 +465,7 @@ export class DebtorsService {
         });
       });
 
-      // console.log("response invoice filter test endpoint",response);
+      
 
 
       if (response.statusCode == 401) {
@@ -476,10 +476,12 @@ export class DebtorsService {
         });
       } else if (response.statusCode == 200) {
         let parsed = JSON.parse(response.body) as any[]
+        console.log("parsed",parsed);
         if (invoiceListTemp && invoiceListTemp.length > 0) {
           parsed = [...parsed, ...invoiceListTemp];
           parsed = Array.from(new Map(parsed.map(item => [item['id'], item])).values());
         }
+        console.log("parsed1",parsed);
         const perPage = Number(data.records_per_page);
         //   console.log('parsed------', parsed);
         // console.log('perPage========', perPage);
@@ -491,6 +493,7 @@ export class DebtorsService {
           // Helper Function: parseResponse(data)
           // Purpose: Basic validation of the response data structure.
           resData = parseResponse(parsed.slice(0, perPage));
+          console.log("parsed1resData",resData);
         } else {
           // console.log('entered in else',totalCount);
           resData = parseResponse(parsed.slice(0, perPage));
