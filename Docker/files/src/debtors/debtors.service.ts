@@ -527,7 +527,7 @@ export class DebtorsService {
       if (resData && resData.length > 0) {
         let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
         let contact_idList: any = [];
-        // console.log('resultArrayresultArrayresultArray',resultArray);
+        console.log('resultArrayresultArrayresultArray',resData);
 
         for (let invoice in resData) {
           resData[invoice]['allowSend'] = true;
@@ -564,7 +564,7 @@ export class DebtorsService {
           resultData.push(resData[invoice]);
         }
 
-        // console.log("resData id ", resData.map(item=>item.id));
+         console.log("resultData ", resultData);
 
 
         // Step 9.1: Fetch Contact Details (Batch)
@@ -613,7 +613,7 @@ export class DebtorsService {
         // Helper Function: getRecipientList(...)
         const recipientArr: any[] = await getRecipientList(req.body.netcomId, contact_idList) as any[];
         const recipientMap = new Map(recipientArr.map(e => [e.rk_contact, e.recipient_id]));
-
+        console.log("resultData1 ", resultData);
         // Step 9.3: Final Enrichment Loop
         resultData = resultData.map(second => {
           const contactId = second["contact_id"];
@@ -652,7 +652,7 @@ export class DebtorsService {
         keys.forEach(element => {
           redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey;
         });
-
+       console.log("resultData2 ", resultData);
         await redisClient.set(redisKey, JSON.stringify({
           status: 200,
           data: resultData,
@@ -1531,7 +1531,7 @@ export class DebtorsService {
       }
 
       // ------------------------------
-      // 6. Set Bexio token cookie if any eBill processed
+      // 7. Set Bexio token cookie if any eBill processed
       // ------------------------------
       const validEbill = ebillProcessed.filter(inv => inv?.accessToken && inv?.refreshToken);
       console.log('validEbill', validEbill)
