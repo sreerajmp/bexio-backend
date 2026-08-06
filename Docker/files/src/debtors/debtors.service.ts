@@ -341,14 +341,11 @@ export class DebtorsService {
         console.log("Include - Contacts for channel:", contactIds);
 
         // STEP B: Resolve Contacts for Explicit Invoices
-        if (data['invoiceStatus'] !== 'draft') {
-          const invoiceSearchJson: any[] = [{ field: "id", value: invoices, criteria: "in" }];
-          if (data.dateFrom) {
-            invoiceSearchJson.push({ field: "is_valid_from", value: data.dateFrom, criteria: ">=" });
-          }
-          if (data.dateTo) {
-            invoiceSearchJson.push({ field: "is_valid_from", value: data.dateTo, criteria: "<=" });
-          }
+        if (data['invoiceStatus'] !== 'draft' && invoices.length > 0) {
+          const invoiceSearchJson: any[] = [
+            ...searchJson,
+            { field: "id", value: invoices, criteria: "in" }
+          ];
           const searchResult = await getInvoiceSearch(accessToken, invoiceSearchJson);
           invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
         }
