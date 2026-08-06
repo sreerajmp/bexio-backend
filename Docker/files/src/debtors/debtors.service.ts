@@ -342,7 +342,14 @@ export class DebtorsService {
 
         // STEP B: Resolve Contacts for Explicit Invoices
         if (data['invoiceStatus'] !== 'draft') {
-          const searchResult = await getInvoiceSearch(accessToken, [{ field: "id", value: invoices, criteria: "in" }]);
+          const invoiceSearchJson: any[] = [{ field: "id", value: invoices, criteria: "in" }];
+          if (data.dateFrom) {
+            invoiceSearchJson.push({ field: "is_valid_from", value: data.dateFrom, criteria: ">=" });
+          }
+          if (data.dateTo) {
+            invoiceSearchJson.push({ field: "is_valid_from", value: data.dateTo, criteria: "<=" });
+          }
+          const searchResult = await getInvoiceSearch(accessToken, invoiceSearchJson);
           invoiceListTemp = Array.isArray(searchResult) ? searchResult : [];
         }
 
@@ -465,7 +472,7 @@ export class DebtorsService {
         });
       });
 
-      
+
 
 
       if (response.statusCode == 401) {
@@ -476,12 +483,12 @@ export class DebtorsService {
         });
       } else if (response.statusCode == 200) {
         let parsed = JSON.parse(response.body) as any[]
-        console.log("parsed",parsed);
+        console.log("parsed", parsed);
         if (invoiceListTemp && invoiceListTemp.length > 0) {
           parsed = [...parsed, ...invoiceListTemp];
           parsed = Array.from(new Map(parsed.map(item => [item['id'], item])).values());
         }
-        console.log("parsed1",parsed);
+        console.log("parsed1", parsed);
         const perPage = Number(data.records_per_page);
         //   console.log('parsed------', parsed);
         // console.log('perPage========', perPage);
@@ -493,7 +500,7 @@ export class DebtorsService {
           // Helper Function: parseResponse(data)
           // Purpose: Basic validation of the response data structure.
           resData = parseResponse(parsed.slice(0, perPage));
-          console.log("parsed1resData",resData);
+          console.log("parsed1resData", resData);
         } else {
           // console.log('entered in else',totalCount);
           resData = parseResponse(parsed.slice(0, perPage));
@@ -530,7 +537,7 @@ export class DebtorsService {
       if (resData && resData.length > 0) {
         let status = JSON.parse(config.BEXIO_INVOICE_STATUS || '');
         let contact_idList: any = [];
-        console.log('resultArrayresultArrayresultArray',resData);
+        console.log('resultArrayresultArrayresultArray', resData);
 
         for (let invoice in resData) {
           resData[invoice]['allowSend'] = true;
@@ -567,7 +574,7 @@ export class DebtorsService {
           resultData.push(resData[invoice]);
         }
 
-         console.log("resultData ", resultData);
+        console.log("resultData ", resultData);
 
 
         // Step 9.1: Fetch Contact Details (Batch)
@@ -655,7 +662,7 @@ export class DebtorsService {
         keys.forEach(element => {
           redisKey = req.body[element] ? redisKey + element + ':' + req.body[element] + '_' : redisKey;
         });
-       console.log("resultData2 ", resultData);
+        console.log("resultData2 ", resultData);
         await redisClient.set(redisKey, JSON.stringify({
           status: 200,
           data: resultData,
