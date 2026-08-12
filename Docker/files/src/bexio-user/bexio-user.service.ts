@@ -2639,6 +2639,7 @@ VALUES (
               // addlogs(logs,data.rolePartyId,data.roleAccId);
               console.log('BEXIO_APP_URL', config.BEXIO_APP_URL);
               console.log(`${config.BEXIO_APP_URL}/landing/${encodeURIComponent(encryptionControl.encrypt(token))}/${encodeURIComponent(encryptionControl.encrypt(responseResult.partyAccountId.toString()))}`);
+              await refreshRedisCache('company-list');
               res.send({
                 status_code: 200,
                 message: 'success',
@@ -3098,4 +3099,16 @@ const createOctConfig = async (netComId) => {
     // return resolve(responseData)
   }
 }
+const refreshRedisCache = async (apiName): Promise<number> => {
+    const pattern = `${apiName}_*`;
+    const keys = await redisClient.keys(pattern);
+    if (!keys || keys.length === 0) {
+        console.log(`No Redis cache found for ${apiName}`);
+        return 0;
+    }
+    const deletedCount = await redisClient.del(keys);
+    console.log(`Redis cache refreshed: ${apiName}`);
+    console.log(`Keys deleted: ${deletedCount}`);
+    return deletedCount;
+};
 
