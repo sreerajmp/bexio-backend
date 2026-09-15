@@ -2693,6 +2693,7 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
 
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
+    console.log('element-------', element);
     let arr, status = true;
     ////console.log('987');
     obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
@@ -2710,6 +2711,7 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
       "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
         "TAX_DETAILS_FIX": element?.tax?.value && taxIsAdded > 0 ? [{
+          ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
           "bmecat:TAX_TYPE": element?.tax?.type,
           "bmecat:TAX": element?.tax?.value
 
@@ -4836,8 +4838,10 @@ export const getActiveSalesTaxBexio = async (access_token, tax_id) => {
       }
       // res.send(response.body)
       ////console.log("getTaxListA :: ",response.body);
-      if (response.statusCode == 200)
+      if (response.statusCode == 200){
+        console.log("response.body :: ",response.body);
         return resolve(JSON.parse(response.body));
+      }
       else {
         let returnObject = {
           statuscode: response.statusCode,
