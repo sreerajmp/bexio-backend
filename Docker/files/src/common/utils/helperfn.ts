@@ -4323,6 +4323,8 @@ export async function getConnectionBc(inviteCompanyIds: number[], tempBc: number
 export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryList, pdf, fileName, billerDetails, formData, invoiceLogUid) => {
   console.log('EMAIL:::', invoice?.companyProfile);
 
+  console.log('invoice------------', invoice);
+
 
   let emptyValue = 'NA'
   let taxIsAdded;
@@ -4482,8 +4484,11 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
 
   invoice.taxs.length != 0 ?
     invoice.taxs.forEach(element => {
+      console.log('element first', element);
       JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
         {
+           ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
+           ...(element.tax?.type ?{"bmecat:TAX_TYPE": element.tax?.type} :{}),
           "bmecat:TAX": element.percentage,
           "TAX_AMOUNT": element.value
         }
@@ -4491,8 +4496,13 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
     })
     : obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"] = '';
 
+    console.log('invoice.positions', invoice.positions);
+
   for (let index = 0; index < invoice.positions.length; index++) {
     let element = invoice.positions[index];
+
+
+    console.log('element-------------', element);
     obj.OPENTRANS.INVOICE[0]['INVOICE_ITEM_LIST'][0]['INVOICE_ITEM'].push(JSON.parse(JSON.stringify({
       "$": {
         "type": "order_item"
