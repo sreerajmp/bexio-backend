@@ -1312,10 +1312,10 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
       "_": invitionData.receiver_customerid,
       "$": {
         "type": "supplier_specific"
-      }
+      } 
     }],
-    "bmecat:CURRENCY": invoice.currency['name'],
-    "PAYMENT": invoice.bank != '' ? [{
+    "bmecat:CURRENCY": invoice.currency['name'],              
+    "PAYMENT": invoice.bank != '' ? [{ 
       "ACCOUNT": [{
         "HOLDER": invoice.bank?.owner ? invoice.bank.owner : '',
         "BANK_ACCOUNT": [{
@@ -2711,11 +2711,10 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
       "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
         "TAX_DETAILS_FIX": element?.tax?.value && taxIsAdded > 0 ? [{
-          ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
           "bmecat:TAX_TYPE": element?.tax?.type,
           "bmecat:TAX": element?.tax?.value
 
-        }] : undefined,
+        }] : undefined, 
 
 
         "bmecat:PRICE_QUANTITY": priceQuantity,
@@ -4509,6 +4508,7 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
       "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
         "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
+          ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
           "bmecat:TAX_TYPE": element.tax?.type,
           "bmecat:TAX": element.tax?.value
 
