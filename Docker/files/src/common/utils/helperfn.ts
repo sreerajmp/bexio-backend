@@ -1684,6 +1684,42 @@ export const pushEmailInvoice = async (invoices, bodyValues, headerParams, chann
         return resolve('currency_not_found');
       }
       invoice['currency'] = currency;
+
+      for (const items of invoice.positions) {
+          if (items.tax_id) {
+            let tempTax = await getTaxs(accessToken, items.tax_id);
+            if (!tempTax) {
+             await setInvoiceSendStatus(partyId, decryptData.invoice_id, '', '0', 'tax_not_found', 'EMAIL', '', decryptData);
+              const logData = {
+                ...commonErrors,
+                errorTitle:invoices.originalUrl,
+                errorDescription: 'From:' + path.basename(__filename) + 'tax_not_found' + '-req param,' + JSON.stringify(decryptData),
+                netcomId:bodyValues?.netcomId,
+                channel: 'EBILL',
+                messagetype: "406",
+                message: 'Not Acceptable Tax Missing',
+                filename: invoice['document_nr']
+              };
+              warningMessage(logData, 'tax_not_found');
+              return resolve('tax_not_found');
+            }
+            items['tax'] = tempTax;
+          }
+          let tempItem;
+          if ('article_id' in items) {
+            tempItem = await getProducts(accessToken, items.article_id);
+            if (tempItem) {
+              items['article'] = tempItem;
+            }
+          } else {
+            items['article'] = {}
+            items['article']['intern_name'] = items.text;
+            items['article']['intern_description'] = items.text;
+
+          }
+        }
+
+      
       let xml: any = await setInvoiceEmailOt(invoice, bill_recipient_email, coutryList, pdfContent, fileName, {}, '', invoice_uuid);
 
       if (xml == false) {
@@ -4484,11 +4520,9 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
 
   invoice.taxs.length != 0 ?
     invoice.taxs.forEach(element => {
-      console.log('element first', element);
+      console.log('element first', element.tax);
       JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
         {
-           ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
-           ...(element.tax?.type ?{"bmecat:TAX_TYPE": element.tax?.type} :{}),
           "bmecat:TAX": element.percentage,
           "TAX_AMOUNT": element.value
         }
@@ -4520,8 +4554,8 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
         "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
           ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
           "bmecat:TAX_TYPE": element.tax?.type,
-          "bmecat:TAX": element.tax?.value
-
+          "bmecat:TAX": element.tax?.value,
+          "TAX_AMOUNT": element.tax?.value
         }] : undefined,
 
 
