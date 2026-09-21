@@ -1437,7 +1437,7 @@ export const setInvoiceToOt = async (invoice, coutryList, invitionData, pdf, fil
 
           }]
         }],
-        "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
+        "TAX_DETAILS_FIX": element.tax?.value != null && taxIsAdded > 0 ? [{
           "bmecat:TAX_TYPE": element.tax?.type,
           "bmecat:TAX": element.tax?.value
           // "TAX_AMOUNT": element.tax_value
@@ -2746,7 +2746,7 @@ export const setInvoiceEbillOt = async (invoice, coutryList, contactNumber, pdf,
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
       "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element?.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-        "TAX_DETAILS_FIX": element?.tax?.value && taxIsAdded > 0 ? [{
+        "TAX_DETAILS_FIX": element?.tax?.value != null && taxIsAdded > 0 ? [{
           "bmecat:TAX_TYPE": element?.tax?.type,
           "bmecat:TAX": element?.tax?.value
 
@@ -4520,7 +4520,7 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
 
   invoice.taxs.length != 0 ?
     invoice.taxs.forEach(element => {
-      console.log('element first', element.tax);
+      console.log('element first', element);
       JSON.parse(JSON.stringify(obj.OPENTRANS['INVOICE'][0]['INVOICE_SUMMARY'][0]['TOTAL_TAX']["TAX_DETAILS_FIX"].push(
         {
           "bmecat:TAX": element.percentage,
@@ -4551,11 +4551,11 @@ export const setInvoiceEmailOt = async (invoice, bill_recipient_email, coutryLis
       "bmecat:ORDER_UNIT": orderUnit[element.unit_name] ? orderUnit[element.unit_name] : 'C62',
       "PRODUCT_PRICE_FIX": [JSON.parse(JSON.stringify({
         "bmecat:PRICE_AMOUNT": element.unit_price == null ? 0.00 : parseFloat(element.unit_price).toFixed(2),
-        "TAX_DETAILS_FIX": element.tax?.value && taxIsAdded > 0 ? [{
+        "TAX_DETAILS_FIX": element.tax?.value != null && taxIsAdded > 0 ? [{
           ...(element?.tax?.code ? { "bmecat:TAX_CATEGORY": element.tax.code } : {}),
           "bmecat:TAX_TYPE": element.tax?.type,
           "bmecat:TAX": element.tax?.value,
-          "TAX_AMOUNT": element.tax?.value
+          // "TAX_AMOUNT": element.tax?.value
         }] : undefined,
 
 
