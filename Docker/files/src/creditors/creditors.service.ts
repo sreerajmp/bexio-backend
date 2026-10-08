@@ -438,21 +438,21 @@ export class CreditorsService {
           );
         }
         if (data['orderStatus'] == 'draft') {
-                console.log("invoiceStatus no", data['orderStatus']);
+          console.log("invoiceStatus no", data['orderStatus']);
 
-                searchJson.push(
-                  {
-                    "field": "id",
-                    "value": getSendInvoiceList[0]?.invoiceid?.map((id) => Number(id)) ?? [], // Exclude Sent/Pending
-                    "criteria": "not_in"
-                  },
-                  {
-                    "field": "kb_item_status_id",
-                    "value": 22, // 22 = Draft in Bexio
-                    "criteria": "equal"
-                  },
-                );
-              }
+          searchJson.push(
+            {
+              "field": "id",
+              "value": getSendInvoiceList[0]?.invoiceid?.map((id) => Number(id)) ?? [], // Exclude Sent/Pending
+              "criteria": "not_in"
+            },
+            {
+              "field": "kb_item_status_id",
+              "value": 22, // 22 = Draft in Bexio
+              "criteria": "equal"
+            },
+          );
+        }
         console.log('searchJsonsearchJson', searchJson.length);
         console.log('searchJsonsearchJson', searchJson);
         if (searchJson.length != 0) {
@@ -1289,7 +1289,7 @@ export class CreditorsService {
               status_code: 500,
               message: 'something_went_wrong',
               status: false,
-              body: response ? response.toString() : 'No response',
+              body: response?.body?.toString() || 'No response',
             });
           }
         });
